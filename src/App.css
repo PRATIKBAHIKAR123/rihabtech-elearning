@@ -7,6 +7,46 @@
   pointer-events: none;
 }
 
+.App-Gradient-Angular{
+background: conic-gradient(from 141.29deg at 50% 37.72%, #FF7700 0deg,  #FFC38E 360deg);
+}
+.landing-gradient {
+  background: linear-gradient(to bottom, white, #f1f1fb);
+}
+
+.btn-rouded {
+border-radius: 48px;
+padding-top: 12px !important;
+padding-bottom: 12px;
+height: auto;
+font-family: 'Zen Kaku Gothic Antique', sans-serif;
+font-weight: bold;
+}
+
+.banner-section-title {
+  color: #000927;
+  font-size: 3rem; /* Equivalent to text-5xl */
+  font-weight: bold;
+  font-family: 'Barlow', sans-serif;
+  text-transform: capitalize;
+  line-height: 57.6px;
+}
+
+.banner-section-subtitle{
+  color: #000927;
+  font-size: 1.125rem; /* Equivalent to text-lg */
+  font-weight: bold;
+  font-family: 'Barlow', sans-serif;
+  line-height: 1.5; /* Equivalent to leading-normal */
+}
+
+.course-card {
+  gap: .8rem;
+  grid-template-rows: auto 1fr;
+  max-width: 37.5rem;
+  min-width: 17.3rem;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
@@ -22,6 +62,13 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+}
+
+input{
+  border-left: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: 1px solid #bdbdbd;
 }
 
 .App-link {
