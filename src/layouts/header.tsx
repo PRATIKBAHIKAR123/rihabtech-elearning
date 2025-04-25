@@ -10,19 +10,19 @@ function Header() {
     const components: { title: string; href: string; description: string }[] = [
         {
             title: "Digital Marketing",
-            href: "/docs/primitives/alert-dialog",
+            href: "/#/courselist",
             description:
                 "A digital marketing course that covers the fundamentals of online marketing, including SEO, social media, and email marketing.",
         },
         {
             title: "UI UX Design",
-            href: "/docs/primitives/hover-card",
+            href: "/#/courselist",
             description:
                 "UI UX design course that teaches the principles of user interface and user experience design, including wireframing, prototyping, and usability testing.",
         },
         {
             title: "Animation",
-            href: "/docs/primitives/hover-card",
+            href: "/#/courselist",
             description:
                 "UI UX design course that teaches the principles of user interface and user experience design, including wireframing, prototyping, and usability testing.",
         },
@@ -39,10 +39,10 @@ function Header() {
                 <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
                     <a href="#" className={`font-medium ${window.location.pathname === '/' ? 'text-primary' : 'text-[#000927]'} hover:text-blue-600`}>Home</a>
 
-                    <NavigationMenu className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
-                        <NavigationMenuList>
+                    <NavigationMenu >
+                        <NavigationMenuList className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
                             <NavigationMenuItem>
-                                <a href="#" > <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-blue-600 hover:bg-transparent focus:bg-transparent">Courses</NavigationMenuTrigger></a>
+                                <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-blue-600 hover:bg-transparent focus:bg-transparent">Courses</NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <ul className="grid w-[400px] gap-2 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px] ">
                                         {components.map((component) => (
@@ -57,6 +57,10 @@ function Header() {
                                     </ul>
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
+                           {window.location.hash === '#/learner/homepage' && <NavigationMenuItem>
+                             <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-blue-600 hover:bg-transparent focus:bg-transparent">My Learnings</NavigationMenuTrigger>
+                                
+                            </NavigationMenuItem>}
                         </NavigationMenuList>
                     </NavigationMenu>
                     <a href="#" className="font-medium text-[#000927] hover:text-blue-600">Teachers</a>
@@ -74,6 +78,7 @@ function Header() {
                 <div className="hidden md:flex items-center space-x-4">
                     <Button variant={'outline'} className="hidden border-primary text-primary rounded-none md:block px-4 py-2 text-sm font-medium hover:bg-blue-50" onClick={() => window.location.href = '/#/login'}>Sign In</Button>
                     <Button className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700" onClick={() => window.location.href = '/#/sign-up'}>Sign Up</Button>
+                    {/* <Button className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700" onClick={() => window.location.href = '/#/sign-up'}>Teach With Us</Button> */}
                 </div>
             </div>
         </header>

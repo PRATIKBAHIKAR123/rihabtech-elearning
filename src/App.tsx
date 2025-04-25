@@ -8,7 +8,8 @@ import CommanLayout from './pages/comman/layout';
 import { useEffect } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import HomePage from './pages/learner/homepage';
+import CourseList from './pages/comman/courses/courseList';
+import LearnerRoutes from './pages/learner/LearnerRoutes';
 
 function App() {
   useEffect(() => {
@@ -23,7 +24,9 @@ function App() {
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
-      <Route path="/homepage" element={<CommanLayout><HomePage /></CommanLayout> } />
+      <Route path="/courselist" element={<CommanLayout><CourseList /></CommanLayout> } />
+      <Route path="/learner/*" element={<CommanLayout><LearnerRoutes /></CommanLayout>} />
+
     </Routes>
   </Router>
   );

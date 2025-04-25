@@ -151,6 +151,14 @@ font-weight: bold;
   }
 }
 
+.page-title{
+  color: #000927;
+  font-size: 3rem; /* Equivalent to text-5xl */
+  font-weight: bold;
+  font-family: 'Archivo', sans-serif;
+  line-height: 60px;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
