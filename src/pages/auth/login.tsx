@@ -89,7 +89,7 @@ export default function LoginPage() {
               </label>
             </div>
 
-            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4">
+            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" onClick={() => window.location.href = '/#/homepage'}>
             Log In
             </Button>
             </div>
