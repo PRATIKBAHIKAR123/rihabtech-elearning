@@ -252,7 +252,7 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
                 style={{ width: `${course.progress}%` }}
               ></div>
             </div>
-            <div className="text-xs text-orange-500 mt-1">{course.progress}% Completed</div>
+            <div className="text-xs text-primary mt-1">{course.progress}% Completed</div>
           </div>
         )}
         
@@ -262,7 +262,7 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
               <span className="text-green-600 font-medium">Free</span>
             ) : (
               <div>
-                <span className="text-orange-500 font-medium">₹{course.price}</span>
+                <span className="text-primary font-medium">₹{course.price}</span>
                 {course.originalPrice && (
                   <span className="text-xs text-gray-500 line-through ml-1">₹{course.originalPrice}</span>
                 )}

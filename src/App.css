@@ -24,6 +24,9 @@ font-weight: bold;
 }
 
 .banner-section-title {
+  animation-name: fadeInUp;
+  animation-duration: 1s;
+  animation-fill-mode: both;
   color: #000927;
   font-size: 3rem; /* Equivalent to text-5xl */
   font-weight: bold;
@@ -33,11 +36,26 @@ font-weight: bold;
 }
 
 .banner-section-subtitle{
+  animation-name: fadeInLeft;
+  animation-duration: 1s;
+  animation-fill-mode: both;
   color: #000927;
   font-size: 1.125rem; /* Equivalent to text-lg */
   font-weight: bold;
   font-family: 'Barlow', sans-serif;
   line-height: 1.5; /* Equivalent to leading-normal */
+}
+
+.section-title {
+  animation-name: fadeInUp;
+  animation-duration: 1s;
+  animation-fill-mode: both;
+  color: #000927;
+  font-size: 32px;
+  font-weight: bold;
+  font-family: 'Archivo', sans-serif;
+  text-transform: capitalize;
+  line-height: 2.5rem; /* Adjusted for leading-10 equivalent */
 }
 
 .course-card {

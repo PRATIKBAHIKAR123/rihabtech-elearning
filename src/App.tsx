@@ -4,7 +4,7 @@ import { Route, HashRouter as Router, Routes } from 'react-router-dom';
 import SignUpPage from './pages/auth/signup';
 import LoginPage from './pages/auth/login';
 import EducationLandingPage from './pages/comman/landingPage';
-import MainLayout from './layouts/mainLayout';
+import CommanLayout from './pages/comman/layout';
 
 function App() {
   return (
@@ -12,7 +12,7 @@ function App() {
     <Routes>
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<MainLayout><EducationLandingPage /></MainLayout> } />
+      <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
     </Routes>
   </Router>
   );

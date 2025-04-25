@@ -1,8 +1,13 @@
 import React from 'react';
-import { ChevronRight, Star, Users, Clock, BookOpen, List, Search } from 'lucide-react';
+import {  List, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import Certifications from './landingPage/certifications';
 import Courses from './landingPage/courses';
+import TrustAndEducationSections from './landingPage/trustedcustomers';
+import BestEducationSections from './landingPage/besteducation';
+import NewCourses from './landingPage/new-courses';
+import TestimonialsSection from './landingPage/testimonials';
+import CareerSkillsSections from './landingPage/skillsForGrowth';
 
 const EducationLandingPage: React.FC = () => {
   return (
@@ -46,106 +51,24 @@ const EducationLandingPage: React.FC = () => {
       {/* Get Best Education Section */}
       <Courses/>
       
-      {/* Student Reviews */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">What Our Students Say</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((_, index) => (
-              <div key={index} className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100">
-                <div className="flex items-center text-yellow-500 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-6">
-                  "The courses were comprehensive and well-structured. I've learned skills that I'm now using daily in my job. The instructors were knowledgeable and supportive."
-                </p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex-shrink-0 mr-4">
-                    <img 
-                      src="/api/placeholder/48/48" 
-                      alt="Student" 
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Alex Thompson</h4>
-                    <p className="text-sm text-gray-500">Web Developer</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Trusted Customers */}
+      <TrustAndEducationSections/>
       
       {/* Certification Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-12">Courses Aligned For Industry-Ready Skills Improvement</h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
-            {[
-              {
-                title: "Certified Programs",
-                icon: "BookOpen",
-                description: "Industry recognized certification"
-              },
-              {
-                title: "Expert Instructors",
-                icon: "Users",
-                description: "Learn from professionals"
-              },
-              {
-                title: "Flexible Learning",
-                icon: "Clock",
-                description: "Study at your own pace"
-              },
-              {
-                title: "Career Support",
-                icon: "Star",
-                description: "Job placement assistance"
-              }
-            ].map((item, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <BookOpen className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <BestEducationSections/>
       
+      {/* New Course */}
+      <NewCourses/>
       {/* Newsletter Section */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated With EduLearn</h2>
-          <p className="text-blue-100 mb-6 max-w-lg mx-auto">
-            Subscribe to our newsletter for the latest course updates, learning tips, and special offers.
-          </p>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
-            <input 
-              type="email" 
-              placeholder="Enter your email" 
-              className="w-full md:flex-1 px-4 py-3 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button className="w-full md:w-auto px-6 py-3 bg-white text-blue-600 rounded-md hover:bg-blue-50 font-medium">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </section>
+     <CareerSkillsSections/>
+
+    <TestimonialsSection/>
       
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
+            {/* <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
                   <span className="font-bold text-white">E</span>
@@ -163,7 +86,7 @@ const EducationLandingPage: React.FC = () => {
                   </a>
                 ))}
               </div>
-            </div>
+            </div> */}
             
             <div>
               <h3 className="font-semibold text-lg mb-4">Company</h3>
@@ -203,7 +126,7 @@ const EducationLandingPage: React.FC = () => {
           </div>
           
           <div className="pt-8 border-t border-gray-800 text-sm text-gray-400 flex flex-col md:flex-row justify-between items-center">
-            <p>© 2025 EduLearn. All rights reserved.</p>
+            <p>© 2025 Rihab. All rights reserved.</p>
             <div className="flex space-x-4 mt-4 md:mt-0">
               <a href="#" className="hover:text-white">Terms</a>
               <a href="#" className="hover:text-white">Privacy</a>

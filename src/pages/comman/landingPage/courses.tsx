@@ -1,5 +1,6 @@
-import { Clock, User, User2 } from "lucide-react";
+import { Clock, User2 } from "lucide-react";
 import Divider from "../../../components/ui/divider";
+import { Button } from "../../../components/ui/button";
 
 export default function Courses() {
     const  courses = [
@@ -40,10 +41,20 @@ export default function Courses() {
           image: "Images/courses/eduma-learnpress-lms 4.jpg"
         },
       ];
+
+     const coursecategories = [{'id':1,'title':'Lorem Ipsum',},{'id':2,'title':'Lorem Ipsum',},{'id':3,'title':'Lorem Ipsum',},{'id':4,'title':'Lorem Ipsum',},{'id':5,'title':'Lorem Ipsum',},{'id':6,'title':'Lorem Ipsum',},{'id':7,'title':'Lorem Ipsum',},{'id':8,'title':'Lorem Ipsum',},]
       return(
-  <section className="py-16 landing-gradient">
+  <section className="py-16 bg-[#F2F2FB]">
+    
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-12">
+          <div className="grid grid-cols-3 md:grid-cols-8 gap-2 justify-start mb-8">
+          {coursecategories.map((category,index)=>(
+      <div key={index} className="bg-white rounded-[35px] px-2 md:px-4 flex items-center">
+        <h2 className="text-primary text-sm md:text-md font-medium font-['Archivo'] capitalize leading-10">{category.title}</h2>
+        </div>
+        ))}
+        </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-12">
               {courses.map((course,index)=>(
                 <div key={index} className="overflow-hidden">
                 <div className="relative">
@@ -57,22 +68,26 @@ export default function Courses() {
                       <User2 size={16}/>
                       <span>{course.students} Students</span>
                     </div>
-                    <span>|</span>
+                    <Divider/>
                     <div className="px-1 py-0.5 flex items-center gap-2">
                       <Clock size={16}/>
                       <span>{course.duration} Weeks</span>
                     </div>
                   </div>
-                  <p className=" text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed mb-3 max-lines-2">{course.description}</p>
+                  <p className=" text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed max-lines-2">{course.description}</p>
                 
                   
                   {course.price !== undefined && (
                     <div className="flex items-center justify-between">
                       {course.price === 0 ? (
-                        <span className="text-green-600 flex font-medium">Free <Divider/> <a className="text-orange-500">Start learning</a></span>
+                        <span className="text-green-600 flex items-center gap-2 font-medium">Free <Divider/> <a className="text-primary">Start learning</a></span>
                       ) : (
-                        <div>
-                          <span className="text-orange-500 font-medium">₹{course.price}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="justify-between flex items-center gap-2">
+                            <span className="text-[#999999] text-base font-normal font-['Barlow'] leading-relaxed">From</span>
+                            <span className="text-[#000927] text-base font-semibold font-['Barlow'] capitalize leading-relaxed"> ₹{course.price} </span>
+                        </div>
+                        <Divider/> <a className="text-primary font-medium">Start learning</a>
                           
                         </div>
                       )}
@@ -82,7 +97,11 @@ export default function Courses() {
               </div>
             ))}
             </div>
-            
+            <div className="w-full flex justify-center">
+                <Button variant={'outline'} className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50">
+                    View All Courses
+                </Button>
+            </div>
            
           </div>
         </section>
