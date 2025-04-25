@@ -95,7 +95,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-sm mt-6">
-            Don’t Own an Account? <a href="/#/" className="text-blue-600 font-medium">Sign Up</a>
+            Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a>
             </div>
           </div>
         </div>

@@ -24,7 +24,7 @@ const TrustAndEducationSections = () => {
           
           {/* First row of logos */}
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 mb-12">
-            {trustedCustomers.map((cus,index)=>(<img key={index} src={cus.logo} alt={cus.name} className="h-10 opacity-100 grayscale hover:opacity-100 hover:grayscale-0 transition-all" />))}
+            {trustedCustomers.map((cus,index)=>(<img key={index} data-aos="fade-Up" src={cus.logo} alt={cus.name} className="h-10 opacity-100 grayscale hover:opacity-100 hover:grayscale-0 transition-all" />))}
            
           </div>
           

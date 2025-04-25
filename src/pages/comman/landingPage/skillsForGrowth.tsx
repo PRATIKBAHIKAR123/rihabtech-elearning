@@ -20,9 +20,9 @@ const CareerSkillsSections = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Feature 1 */}
-            {careerSkills.map((skill,index)=>(<div className="flex flex-col items-center text-center">
+            {careerSkills.map((skill,index)=>(<div key={index} className="flex flex-col items-center text-center">
               <div className="w-16 h-16 mb-6 text-orange-500">
-                <img src={skill.icon} alt="Skill Icon" className="w-full h-full" />
+                <img src={skill.icon} alt="Skill Icon"  data-aos="fade-down" className="w-full h-full" />
               </div>
               <h3 className="text-xl font-bold mb-3">{skill.title}</h3>
               <p className="text-[#666666] text-xl font-normal font-['Barlow'] leading-[30px]">

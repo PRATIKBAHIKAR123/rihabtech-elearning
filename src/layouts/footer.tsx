@@ -1,5 +1,7 @@
 // import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
 
+import { Facebook } from "lucide-react";
+
 const Footer = () => {
   return (
     <footer className="bg-black text-white py-16 font-['Montserrat']">
@@ -63,13 +65,13 @@ const Footer = () => {
 
         <div className="mt-12 flex justify-end gap-4">
           <a href="#" className="text-[#FF553E] hover:text-[#ff553e]/80">
-            {FaFacebook({ size: 24 })}
+            <img src="Images/icons/facebook sec-.png" alt="Logo" className="h-8 w-8" />
           </a>
           <a href="#" className="text-[#FF553E] hover:text-[#ff553e]/80">
-            {FaInstagram({ size: 24 })}
+            <img src="Images/icons/ant-design_instagram-outlined.png" alt="Logo" className="h-8 w-8" />
           </a>
           <a href="#" className="text-[#FF553E] hover:text-[#ff553e]/80">
-            {FaTwitter({ size: 24 })}
+            <img src="Images/icons/twitter sec-.png" alt="Logo" className="h-8 w-8" />
           </a>
         </div>
       </div>

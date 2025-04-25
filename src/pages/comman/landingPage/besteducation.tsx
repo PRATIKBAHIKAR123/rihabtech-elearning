@@ -47,7 +47,7 @@ const BestEducationSections = () => {
               {/* Features List */}
               <div className="space-y-3">
                 {/* Feature 1 */}
-                {cardtopic.map((topic,index)=>(<div key={index} className="flex items-start gap-3 p-6 bg-white rounded-sm shadow-sm hover:shadow-md transition-all">
+                {cardtopic.map((topic,index)=>(<div data-aos="fade-up" key={index} className="flex items-start gap-3 p-6 bg-white rounded-sm shadow-sm hover:shadow-md transition-all">
                   <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-500 font-semibold">
                   {topic.id}
                   </div>

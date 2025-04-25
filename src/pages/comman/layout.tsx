@@ -1,6 +1,7 @@
 
 import Header from "../../layouts/header";
 import AdvertiseBanner from "../../layouts/addbanner";
+import Footer from "../../layouts/footer";
 
 const CommanLayout = ({ children }: { children: React.ReactNode }) => {
 
@@ -10,6 +11,7 @@ const CommanLayout = ({ children }: { children: React.ReactNode }) => {
     <AdvertiseBanner />
        <Header />
       <main>{children}</main>
+      <Footer/>
     </>
   );
 };

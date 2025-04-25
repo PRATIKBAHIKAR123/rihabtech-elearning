@@ -42,9 +42,9 @@ export default function Certifications() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 mb-12">
             {certifications.map((cer,index)=>(<div  key={index}  className="bg-white p-8 rounded-none shadow-sm hover:shadow-md transition-shadow duration-300 border border-[#D4D4D4] flex flex-col items-center">
               <div className="p-3">
-                <img src={cer.image} alt="Certification Icon" className="w-12 h-12" />
+                <img  data-aos="fade-up" src={cer.image} alt="Certification Icon" className="w-12 h-12" />
               </div>
-              <p className="text-[#000927] text-2xl font-bold font-['Archivo'] capitalize leading-[30px] text-center">{cer.title}</p>
+              <p className="text-[#000927] text-2xl font-bold font-['Archivo'] capitalize leading-[30px] text-center ">{cer.title}</p>
               <p className="text-[#666666] text-base font-medium font-['Barlow'] leading-relaxed mt-1 text-center">{cer.description}</p>
             </div>))}
           </div>
