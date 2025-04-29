@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 import React from "react";
 
 function Header() {
-    const advertiseBanner = document.getElementById('advertisebanner');
+    const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
     const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
     const components: { title: string; href: string; description: string }[] = [
         {
@@ -27,6 +27,9 @@ function Header() {
                 "UI UX design course that teaches the principles of user interface and user experience design, including wireframing, prototyping, and usability testing.",
         },
     ]
+
+    // console.log(document.querySelectorAll('#advertisebanner')[0], "advertiseBanner.offsetHeight")
+    // console.log(headerStyle, "headerStyle")
 
     return (
         <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
@@ -63,8 +66,7 @@ function Header() {
                             </NavigationMenuItem>}
                         </NavigationMenuList>
                     </NavigationMenu>
-                    <a href="#" className="font-medium text-[#000927] hover:text-blue-600">Teachers</a>
-                    <a href="#" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
+                    <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
                     <a href="#" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
                 </nav>
 

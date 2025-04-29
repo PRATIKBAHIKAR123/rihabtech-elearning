@@ -8,6 +8,7 @@ import BestEducationSections from './landingPage/besteducation';
 import NewCourses from './landingPage/new-courses';
 import TestimonialsSection from './landingPage/testimonials';
 import CareerSkillsSections from './landingPage/skillsForGrowth';
+import { Fade } from 'react-awesome-reveal';
 
 const EducationLandingPage: React.FC = () => {
   return (
@@ -46,7 +47,9 @@ const EducationLandingPage: React.FC = () => {
       </section>
 
       {/* Top-Rated Courses Section */}
+      <Fade delay={1000}>
       <Certifications/>
+      </Fade>
       
       {/* Get Best Education Section */}
       <Courses/>
@@ -61,8 +64,9 @@ const EducationLandingPage: React.FC = () => {
       <NewCourses/>
       {/* Newsletter Section */}
      <CareerSkillsSections/>
-
+     <Fade delay={1000}>
     <TestimonialsSection/>
+    </Fade>
       
     </div>
   );

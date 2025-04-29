@@ -159,6 +159,84 @@ font-weight: bold;
   line-height: 60px;
 }
 
+.gradient-header{
+background: linear-gradient(
+  to top right, 
+  #f57c00 50%,   /* Strong Orange Bottom Left */
+  #ffcc80 50%    /* Light Orange Top Right */
+);
+padding: 4.5rem 0;
+width: 100%;
+text-align: center;
+
+.header-title{
+  color: #ffffff;
+  text-align: center;
+  font-family: "Spartan-Bold", sans-serif;
+  font-size: 40px;
+  line-height: 60px;
+  font-weight: 700;
+}
+
+}
+
+.swiper-pagination-bullet-active{
+  background: var(--primary-color) !important;
+}
+
+.custom-tabs-list {
+  display: flex;
+  gap: 2rem;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+  background: transparent;
+  justify-content: left;
+}
+
+.custom-tab-trigger {
+  background: none !important;
+  border: none !important;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  color: #555;
+  font-weight: 500;
+  position: relative;
+  transition: color 0.3s ease;
+  box-shadow: none !important;
+}
+
+.custom-tab-trigger[data-state="active"] {
+  color: var(--primary-color); /* orange-500 */
+  font-weight: 600;
+}
+
+.custom-tab-trigger[data-state="active"]::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--primary-color); /* orange underline */
+}
+
+.details-title{
+  color: #181818;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: 'Spartan', sans-serif;
+  line-height: 1.75rem;
+}
+
+.details-description{
+  color: #808080;
+  font-size: 15px;
+  font-weight: normal;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.5;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
@@ -177,6 +255,13 @@ font-weight: bold;
 }
 
 input{
+  border-left: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: 1px solid #bdbdbd;
+}
+
+textarea{
   border-left: none;
   border-top: none;
   border-right: none;
