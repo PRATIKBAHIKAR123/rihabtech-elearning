@@ -18,7 +18,7 @@ function ShoppingCart() {
                     {[1, 2, 3].map((item, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4 flex items-center justify-between">
                             <div className="flex items-center">
-                                <img src="/images/icons/Rectangle.png" alt="Design Course" className="w-24 h-24 object-cover mr-4" />
+                                <img src="/Images/icons/Rectangle.png" alt="Design Course" className="w-24 h-24 object-cover mr-4" />
                                 <div>
                                     <h3 className="course-title">Design Course</h3>
                                     <p className="text-gray-600">Lorem ipsum</p>
