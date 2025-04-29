@@ -2,7 +2,7 @@ import { Clock, User2 } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import { Button } from "../../../components/ui/button";
 
-export default function Courses() {
+export default function SuggestedCourses() {
     const  courses = [
         {
           id: 1,
@@ -47,16 +47,16 @@ export default function Courses() {
   <section className="py-16 bg-[#F2F2FB]">
     
           <div className="container mx-auto px-4">
-          <div className="grid grid-cols-3 md:grid-cols-8 gap-2 justify-start mb-8">
+          {/* <div className="grid grid-cols-3 md:grid-cols-8 gap-2 justify-start mb-8">
           {coursecategories.map((category,index)=>(
       <div key={index} className="bg-white rounded-[35px] px-2 md:px-4 flex items-center">
         <h2 className="text-primary text-sm md:text-md font-medium font-['Archivo'] capitalize leading-10">{category.title}</h2>
         </div>
         ))}
-        </div>
+        </div> */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-12">
               {courses.map((course,index)=>(
-                <div key={index} className="overflow-hidden" onClick={() => window.location.href = '/#/courseDetails'}>
+                <div key={index} className="overflow-hidden">
                 <div className="relative">
                   <img src={course.image} alt={course.title} className="w-full h-40 object-cover" />
                   

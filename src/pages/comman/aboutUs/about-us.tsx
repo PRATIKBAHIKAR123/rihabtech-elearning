@@ -1,0 +1,224 @@
+
+import { BookOpen, Award, Star, Clock, ArrowRight, } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import { Button } from '../../../components/ui/button';
+
+
+export default function AboutUs() {
+    const testimonials = [
+        {
+            name: 'Michael Chen',
+            designation: 'Data Science Graduate',
+            testimonial: 'I switched careers after taking courses on this platform. The skills I gained were exactly what employers were looking for. Highly recommend!',
+            photo: 'Images/users/Testimonial-1.png',
+            rating: 5,
+        },
+        {
+            name: 'Sarah Johnson',
+            designation: 'Web Development Student',
+            testimonial: 'The courses were incredibly well-structured and the instructors explained complex concepts with ease. I\'ve learned so much in such a short time!',
+            photo: 'Images/users/Testimonial-2.png',
+            rating: 5,
+        },
+        {
+            name: 'John Doe',
+            designation: 'Web Development Student',
+            testimonial: 'The courses were incredibly well-structured and the instructors explained complex concepts with ease. I\'ve learned so much in such a short time!',
+            photo: 'Images/users/Testimonial-3.png',
+            rating: 5,
+        },
+    ];
+    return (
+        <div className="flex flex-col min-h-screen">
+
+
+            {/* Hero Section with Orange Gradient */}
+            <section className="gradient-header">
+                <div className="container mx-auto">
+                    <h1 className="header-title">A Large Range of Course
+                        Learning Paths</h1>
+                </div>
+            </section>
+
+
+            <section className="py-16 px-4 md:px-20 bg-white">
+                <div className="flex flex-col-reverse md:flex-row items-center gap-12">
+
+                    {/* LEFT Side */}
+                    <div className="flex flex-col gap-4 w-full md:w-1/2 text-center md:text-left">
+                        <div className="text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">About Us</div>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">We Providing The <span className="text-primary">Best Quality</span> Online
+                            Courses.</h2>
+                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">Lorem ipsum dolor sit amet consectur adipiscing elit sed eiusmod ex tempor incididunt labore dolore magna aliquaenim ad minim.</div>
+
+                        {/* Features List */}
+                        <ul className="space-y-4 text-left">
+                            <li className="flex items-center gap-2">
+                                <span className="text-primary text-xl">✔</span>
+                                <span className="text-gray-700 font-medium">Flexible Classes</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="text-primary text-xl">✔</span>
+                                <span className="text-gray-700 font-medium">Offline Class Mode</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="text-primary text-xl">✔</span>
+                                <span className="text-gray-700 font-medium">Educator Support</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* RIGHT Side */}
+                    <div className="w-full md:w-1/2 relative flex justify-center">
+                        {/* Background Shape (Optional) */}
+                        {/* <div className="absolute -top-10 -left-10 w-40 h-40 bg-orange-100 rounded-3xl hidden md:block"></div> */}
+
+                        {/* Main Image */}
+                        <img
+                            src="Images/Banners/about-11.webp.png"
+                            alt="Group Photo"
+                            className="rounded-lg w-80 md:w-96 relative"
+                        />
+
+                        {/* Floating Image */}
+                        <img
+                            src="Images/Banners/about-12.webp.png"
+                            alt="Man with Laptop"
+                            className="absolute -top-12 right-20 w-32 md:w-40 rounded-lg shadow-lg"
+                        />
+                    </div>
+
+                </div>
+            </section>
+
+
+            {/* Features Section */}
+            <section className="py-16 px-6 bg-white">
+                <div className="container mx-auto text-center mb-16">
+                    <div className="text-center justify-center text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">WHY CHOOSE EDUBLINK</div>
+
+                    <div className="text-center justify-center"><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]">The Best </span><span className="text-primary text-4xl font-bold font-['Spartan'] leading-[50.04px]">Beneficial</span><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]"> Side of EduBlink</span></div>
+
+                </div>
+
+                <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* Feature 1 */}
+                    {[{
+                        'name': 'High Quality Courses', 'description': 'Access premium educational content taught by industry experts and academics',
+                        'color': '#FFA600', 'icon': 'Images/icons/Icon.png', 'id': '1'
+                    }, {
+                        'name': 'Life Time Access', 'description': 'Buy once and access your courses forever with lifetime learning guarantees',
+                        'color': '#EE4A62', 'icon': 'Images/icons/Icon-1.png', 'id': '2'
+                    }, {
+                        'name': 'Expert Instructors', 'description': 'Learn from industry professionals with real-world experience and expert knowledge',
+                        'color': '#4664E4', 'icon': 'Images/icons/Icon-2.png', 'id': '3'
+                    },
+                    ].map((f, index) => (<div key={index} className="bg-white p-8 rounded-[5px] shadow-[0px_10px_30px_0px_rgba(0,0,0,0.05)] text-center hover:shadow-lg transition duration-300">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                            <div
+                                className="absolute inset-0 rounded-full"
+                                style={{ backgroundColor: f.color, opacity: 0.1 }}
+                            ></div>
+                            <img src={f.icon} alt="Feature Icon" className="w-8 h-8 relative z-10" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">{f.name}</h3>
+                        <p className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">{f.description}.</p>
+                    </div>))}
+
+                </div>
+            </section>
+
+            {/* Testimonials Section */}
+            <section className="py-16 px-6 bg-gray-50">
+            <div className="container mx-auto ">
+                <div className="flex flex-col-reverse md:flex-row items-center gap-12">
+                    <div className="flex flex-col gap-4 w-full md:w-1/3 text-center md:text-left">
+                        <div className="text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">TESTIMONIALS</div>
+                        <h2 className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px] mb-6">What Our Students Have To Say</h2>
+                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">Lorem ipsum dolor sit amet consectur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliquaenim ad minim.</div>
+                        <Button className="font-medium font-[15px] w-40 py-6 items-center">View All <ArrowRight/></Button>
+                    </div>
+
+                    <div className="container mx-auto px-4">
+                        <Swiper
+                            slidesPerView={1.2}
+                            centeredSlides={true}
+                            spaceBetween={-80}
+                            loop={false}
+                            pagination={{ clickable: true, bulletActiveClass: 'swiper-pagination-bullet-active' }}
+                            modules={[Pagination]}
+                            className="overflow-x-hidden"
+                            autoplay={{ disableOnInteraction: false }}
+                            breakpoints={{
+                                768: {
+                                    slidesPerView: 2.2,
+                                },
+                                1024: {
+                                    slidesPerView: 3,
+                                }
+                            }}
+                        >
+                            {testimonials.map((testimonial, index) => (
+                                <SwiperSlide key={index} className="transition-all duration-500">
+                                    {({ isActive }) => (
+                                        <div className={`p-8 rounded-lg shadow-lg bg-white 
+                  ${isActive ? 'scale-100 opacity-100 blur-0' : 'scale-90 opacity-50 blur-sm'}
+                  transition-all duration-500`}>
+
+                                            <div className="flex justify-left mb-4">
+                                                <img
+                                                    src={testimonial.photo}
+                                                    alt={testimonial.name}
+                                                    className="w-16 h-16 rounded-full object-cover"
+                                                />
+                                            </div>
+
+                                            <p className="text-gray-600 text-left mb-4">
+                                                {testimonial.testimonial}
+                                            </p>
+
+                                            <div className="flex justify-left mb-2">
+                                                {[...Array(testimonial.rating)].map((_, i) => (
+                                                    <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.95h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448 1.287 3.95c.3.921-.755 1.688-1.538 1.118L10 13.347l-3.37 2.448c-.783.57-1.838-.197-1.538-1.118l1.287-3.95-3.37-2.448c-.783-.57-.38-1.81.588-1.81h4.162l1.286-3.95z" />
+                                                    </svg>
+                                                ))}
+                                            </div>
+
+                                            <div className="text-left">
+                                                <h4 className="font-bold text-lg">{testimonial.name}</h4>
+                                                <p className="text-sm text-gray-400">{testimonial.designation}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
+                </div>
+                </div>
+            </section>
+
+            {/* Stats Section with Gradient */}
+            <section className="container mx-auto h-auto md:h-[460px] bg-contains bg-center flex items-center bg-no-repeat" style={{ backgroundImage: "url('Images/Banners/map-shape-3.png.png')" }}>
+                
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center justify-center items-center mx-auto px-4 md:px-20">
+                        {[{title:'STUDENT ENROLLED',count:'29.3k',image:'Images/icons/Overlay.png'},
+                            {title:'CLASS COMPLETED',count:'32.4k',image:'Images/icons/Overlay-1.png'},
+                            {title:'SATISFACTION RATE',count:'100%',image:'Images/icons/Overlay-2.png'},
+                            {title:'TOP INSTRUCTORS',count:'325+',image:'Images/icons/Overlay-3.png'}
+                        ].map((i,index)=>(<div key={index} className="p-12 bg-white rounded-sm shadow-[0px_30px_70px_0px_rgba(16,12,47,0.05)] flex flex-col items-center justify-center gap-3 hover:shadow-lg transition duration-300">
+                            <img src={ i.image } alt="Icon" className="w-16 h-16 mx-auto mb-4" />
+                            <h3 className="text-4xl font-bold mb-2">{i.count}</h3>
+                            <p className="text-[#181818] text-[13px] font-medium font-['Spartan'] leading-[13px]">{i.title}</p>
+                        </div>))}
+                    
+                </div>
+            </section>
+
+        </div>
+    );
+}
