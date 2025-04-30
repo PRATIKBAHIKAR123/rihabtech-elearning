@@ -177,7 +177,7 @@ export default function CourseList() {
   )
   }
 
-  function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
+ export function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
     return (
       <div className="course-card overflow-hidden">
         <div className="relative">

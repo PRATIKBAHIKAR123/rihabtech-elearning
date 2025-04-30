@@ -47,7 +47,7 @@ const EducationLandingPage: React.FC = () => {
       </section>
 
       {/* Top-Rated Courses Section */}
-      <Fade delay={1000}>
+      <Fade delay={500}>
       <Certifications/>
       </Fade>
       
@@ -64,7 +64,7 @@ const EducationLandingPage: React.FC = () => {
       <NewCourses/>
       {/* Newsletter Section */}
      <CareerSkillsSections/>
-     <Fade delay={1000}>
+     <Fade delay={500}>
     <TestimonialsSection/>
     </Fade>
       

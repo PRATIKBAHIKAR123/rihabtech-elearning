@@ -14,7 +14,12 @@ export default function CourseDetails() {
                     Security Thinking & Principles</div>
                     <div className="flex gap-3 items-center mt-2">
                         <img src="Images/icons/user-laptop.png" alt="Star" className="w-4 h-4" />
-                        <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">By Emilie Bryant</div>
+                        <div 
+                            className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer hover:underline hover:text-gray-300 transition-all duration-200" 
+                            onClick={() => { window.location.href = '/#/instructorDetails' }}
+                        >
+                            By Emilie Bryant
+                        </div>
                         <Divider className="h-4 bg-white" />
                         <img src="Images/icons/Icon (1).png" alt="Star" className="w-4 h-4" />
                         <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">Motivation</div>
@@ -95,7 +100,7 @@ maecenas accumsan lacus vel facilisis.
       <span className="flex items-center gap-4">
         <img src="Images/icons/course-Icon-1.png" className="h-6" /> Instructor:
       </span>
-      <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed">Emilie Bryant</span>
+      <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>Emilie Bryant</span>
     </li>
     <hr className="w-full bg-[#E5E5E5]" />
     <li className="flex justify-between">

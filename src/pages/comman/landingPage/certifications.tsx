@@ -40,7 +40,7 @@ export default function Certifications() {
           <h2 className="text-[#000927] text-[32px] section-title text-center mb-8">Top most interesting Certification</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 mb-12">
-            {certifications.map((cer,index)=>(<div  key={index}  className="bg-white p-8 rounded-none shadow-sm hover:shadow-md transition-shadow duration-300 border border-[#D4D4D4] flex flex-col items-center">
+            {certifications.map((cer,index)=>(<div  key={index}  className="bg-white p-8 rounded-none shadow-sm hover:shadow-md transition-shadow duration-300 border border-[#D4D4D4] flex flex-col items-center cursor-pointer">
               <div className="p-3">
                 <img  data-aos="fade-up" src={cer.image} alt="Certification Icon" className="w-12 h-12" />
               </div>

@@ -21,10 +21,28 @@ function Header() {
                 "UI UX design course that teaches the principles of user interface and user experience design, including wireframing, prototyping, and usability testing.",
         },
         {
+            title: "Mobile App Development",
+            href: "/#/courselist",
+            description:
+                "A mobile app development course that teaches the fundamentals of building mobile applications for iOS and Android.",
+        },
+        {
             title: "Animation",
             href: "/#/courselist",
             description:
                 "UI UX design course that teaches the principles of user interface and user experience design, including wireframing, prototyping, and usability testing.",
+        },
+        {
+            title: "Graphic Design",
+            href: "/#/courselist",
+            description:
+                "A graphic design course that teaches the principles of design, including typography, color theory, and layout.",
+        },
+        {
+            title: "Photography",
+            href: "/#/courselist",
+            description:
+                "A photography course that covers the basics of composition, lighting, and editing.",
         },
     ]
 
@@ -34,7 +52,7 @@ function Header() {
     return (
         <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
             <div className="mx-auto px-10 py-4 gap-16 flex items-center justify-between">
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
                     <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
                     <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[181px] mt-1" />
                 </div>

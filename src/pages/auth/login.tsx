@@ -33,14 +33,14 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold">The Space Where Learners & Teachers Connect</h1>
           </div>
 
-          <div className="flex gap-2 mb-6">
+          {/* <div className="flex gap-2 mb-6">
             <Button className="btn-rouded flex-1 hover:bg-orange-600">
               Login As Learner
             </Button>
             <Button variant={'secondary'} className="btn-rouded flex-1">
              Login As Instructor
             </Button>
-          </div>
+          </div> */}
 
           <div className="space-y-4">
             {/* <div>

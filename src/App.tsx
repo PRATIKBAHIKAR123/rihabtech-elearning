@@ -14,6 +14,8 @@ import AboutUs from './pages/comman/aboutUs/about-us';
 import Pricing from './pages/comman/pricing/pricing';
 import ContactUs from './pages/comman/contactUs/contactUs';
 import CourseDetails from './pages/comman/courses/courseDetails';
+import InstructorDetails from './pages/comman/courses/instructor/instructorDetails';
+import ScrollToTop from './lib/utils';
 
 function App() {
   useEffect(() => {
@@ -27,13 +29,16 @@ function App() {
     }, []);
   return (
     <Router>
+      <ScrollToTop />
     <Routes>
+    
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
       <Route path="/aboutUs" element={<CommanLayout><AboutUs /></CommanLayout> } />
       <Route path="/contactUs" element={<CommanLayout><ContactUs /></CommanLayout> } />
       <Route path="/pricing" element={<CommanLayout><Pricing /></CommanLayout> } />
+      <Route path="/instructorDetails" element={<CommanLayout><InstructorDetails /></CommanLayout> } />
       <Route path="/courselist" element={<CommanLayout><CourseList /></CommanLayout> } />
       <Route path="/courseDetails" element={<CommanLayout><CourseDetails /></CommanLayout> } />
       <Route path="/learner/*" element={<CommanLayout><LearnerRoutes /></CommanLayout>} />

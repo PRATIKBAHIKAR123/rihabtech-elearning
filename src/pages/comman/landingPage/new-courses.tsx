@@ -40,13 +40,17 @@ export default function NewCourses() {
           <div className="container mx-auto px-8">
           <div className="flex justify-between items-center mb-8">
           <h2 className="section-title">New on Rihab Technologies</h2>
-          <Button variant={'outline'} className="px-6 py-3 rounded-none border-black h-auto text-black hover:bg-primary font-medium">
+          <Button variant={'outline'} className="px-6 py-3 rounded-none border-black h-auto text-black hover:bg-primary font-medium" onClick={() => {
+                    window.location.href = '/#/courselist';
+                  }}>
           View all Events
             </Button>
          </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
               {courses.map((course,index)=>(
-                <div key={index} className="overflow-hidden">
+                <div key={index} className="overflow-hidden cursor-pointer hover:opacity-50" onClick={() => {
+                  window.location.href = '/#/courseDetails';
+                }}>
                 <div className="relative">
                   <img src={course.image} alt={course.title} className="w-full h-45 object-cover" />
                   

@@ -91,7 +91,13 @@ export default function HomePage() {
 
 function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
   return (
-    <div className="course-card overflow-hidden">
+    <div className="course-card overflow-hidden" onClick={() => {
+      if(course.progress){
+        window.location.href = '/#/learner/current-course';
+      }else{
+      window.location.href = '/#/courseDetails';
+    }
+    }}>
       <div className="relative">
         <img src={course.image} alt={course.title} />
        
