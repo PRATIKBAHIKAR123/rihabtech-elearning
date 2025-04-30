@@ -56,7 +56,9 @@ export default function SuggestedCourses() {
         </div> */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-12">
               {courses.map((course,index)=>(
-                <div key={index} className="overflow-hidden">
+                <div key={index} className="overflow-hidden cursor-pointer hover:opacity-50" onClick={() => {
+                  window.location.href = '/#/courseDetails';
+                }}>
                 <div className="relative">
                   <img src={course.image} alt={course.title} className="w-full h-40 object-cover" />
                   

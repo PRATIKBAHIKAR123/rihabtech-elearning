@@ -179,7 +179,9 @@ export default function CourseList() {
 
  export function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
     return (
-      <div className="course-card overflow-hidden">
+      <div className="course-card overflow-hidden" onClick={() => {
+        window.location.href = '/#/courseDetails';
+      }}>
         <div className="relative">
           <img src={course.image} alt={course.title} />
          
