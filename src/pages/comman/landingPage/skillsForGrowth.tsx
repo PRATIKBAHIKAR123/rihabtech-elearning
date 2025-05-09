@@ -3,10 +3,10 @@
 // This component contains just the two sections shown in the image
 const CareerSkillsSections = () => {
     const careerSkills = [
-        { id: 1, title: "Industry Experts", description: "Comprehensive self-paced courses created with top practitioners" ,icon:'Images/icons/skill.png'},
-        { id: 2, title: "Free Resources", description: "Free guides on career paths, salaries, interview tips, and more",icon:'Images/icons/cloud.png' },
-        { id: 3, title: "Skill-based Learning", description: "600+ job-ready skills on offer in today's most in-demand domains",icon:'Images/icons/edu gears.png' },
-        { id: 4, title: "Anytime, Anywhere", description: "Learn while working or studying from any place, across any device",icon:'Images/icons/Container (4).png' },
+        { id: 1, title: "Industry Experts", description: "Real-world learning Online from leaders in every field Present." ,icon:'Images/icons/skill.png'},
+        { id: 2, title: "Free Resources", description: "Guides, tips, and eBooks to boost your career at no extra cost.",icon:'Images/icons/cloud.png' },
+        { id: 3, title: "Skill-based Learning", description: "Over 600+ skill-focused courses in today’s top industries.",icon:'Images/icons/edu gears.png' },
+        { id: 4, title: "Anytime, Anywhere", description: "Learn flexibly on your phone, tablet, or laptop. It just needs Some Clicks.",icon:'Images/icons/Container (4).png' },
     ];
   return (
     <>

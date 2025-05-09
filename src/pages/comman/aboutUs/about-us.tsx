@@ -10,24 +10,27 @@ import { Button } from '../../../components/ui/button';
 export default function AboutUs() {
     const testimonials = [
         {
-            name: 'Michael Chen',
-            designation: 'Data Science Graduate',
-            testimonial: 'I switched careers after taking courses on this platform. The skills I gained were exactly what employers were looking for. Highly recommend!',
-            photo: 'Images/users/Testimonial-1.png',
+            name: 'Sneha Patil',
+            designation: 'Learner',
+            testimonial: 'Flexible classes made it easy for me to learn at my own pace.The quality of teaching is truly impressive!',
+            photo: null,
+            initial:'SP',
             rating: 5,
         },
         {
-            name: 'Sarah Johnson',
-            designation: 'Web Development Student',
-            testimonial: 'The courses were incredibly well-structured and the instructors explained complex concepts with ease. I\'ve learned so much in such a short time!',
-            photo: 'Images/users/Testimonial-2.png',
+            name: 'Omkar Deshmukh',
+            designation: '',
+            testimonial: 'Lifetime access lets me revisit lessons anytime I need.A perfect platform for working professionals like me.',
+            photo: null,
+            initial:'OD',
             rating: 5,
         },
         {
-            name: 'John Doe',
+            name: 'Revati Jadhav',
             designation: 'Web Development Student',
-            testimonial: 'The courses were incredibly well-structured and the instructors explained complex concepts with ease. I\'ve learned so much in such a short time!',
-            photo: 'Images/users/Testimonial-3.png',
+            testimonial: 'The instructors are so supportive and clear in their guidance.I feel more confident and skilled after every',
+            photo: null,
+            initial:'RJ',
             rating: 5,
         },
     ];
@@ -38,8 +41,7 @@ export default function AboutUs() {
             {/* Hero Section with Orange Gradient */}
             <section className="gradient-header">
                 <div className="container mx-auto">
-                    <h1 className="header-title">A Large Range of Course
-                        Learning Paths</h1>
+                    <h1 className="header-title">Empowering Minds, One Course at a Time</h1>
                 </div>
             </section>
 
@@ -50,9 +52,11 @@ export default function AboutUs() {
                     {/* LEFT Side */}
                     <div className="flex flex-col gap-4 w-full md:w-1/2 text-center md:text-left">
                         <div className="text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">About Us</div>
-                        <h2 className="text-3xl font-bold text-gray-800 mb-2">We Providing The <span className="text-primary">Best Quality</span> Online
-                            Courses.</h2>
-                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">Lorem ipsum dolor sit amet consectur adipiscing elit sed eiusmod ex tempor incididunt labore dolore magna aliquaenim ad minim.</div>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Learn Your Way, Grow Your Future
+                            {/* <span className="text-primary">Best Quality</span> */}
+                            </h2>
+                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">At <span className='font-bold'>Rihab Technologies</span>, we make learning simple and flexible. Our courses are designed to fit into your busy life — whether you want to learn online, offline, or at your own pace.
+                        We work with expert instructors to bring you high-quality content and real-world skills that you can use right away.</div>
 
                         {/* Features List */}
                         <ul className="space-y-4 text-left">
@@ -62,11 +66,11 @@ export default function AboutUs() {
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="text-primary text-xl">✔</span>
-                                <span className="text-gray-700 font-medium">Offline Class Mode</span>
+                                <span className="text-gray-700 font-medium">Live Chat with Instructor</span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="text-primary text-xl">✔</span>
-                                <span className="text-gray-700 font-medium">Educator Support</span>
+                                <span className="text-gray-700 font-medium">Help and Support from Real Industry Experts</span>
                             </li>
                         </ul>
                     </div>
@@ -98,22 +102,22 @@ export default function AboutUs() {
             {/* Features Section */}
             <section className="py-16 px-6 bg-white">
                 <div className="container mx-auto text-center mb-16">
-                    <div className="text-center justify-center text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">WHY CHOOSE EDUBLINK</div>
+                    <div className="text-center justify-center text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">WHY CHOOSE RIHAB</div>
 
-                    <div className="text-center justify-center"><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]">The Best </span><span className="text-primary text-4xl font-bold font-['Spartan'] leading-[50.04px]">Beneficial</span><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]"> Side of EduBlink</span></div>
+                    <div className="text-center justify-center"><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]">The Best </span><span className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px]"> Discover the Best Learning Experience</span></div>
 
                 </div>
 
                 <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Feature 1 */}
                     {[{
-                        'name': 'High Quality Courses', 'description': 'Access premium educational content taught by industry experts and academics',
+                        'name': 'High Quality Courses', 'description': 'Learn from courses that are carefully created by industry experts.',
                         'color': '#FFA600', 'icon': 'Images/icons/Icon.png', 'id': '1'
                     }, {
-                        'name': 'Life Time Access', 'description': 'Buy once and access your courses forever with lifetime learning guarantees',
+                        'name': 'Life Time Access', 'description': 'Pay once, learn forever. Access your courses anytime you want.',
                         'color': '#EE4A62', 'icon': 'Images/icons/Icon-1.png', 'id': '2'
                     }, {
-                        'name': 'Expert Instructors', 'description': 'Learn from industry professionals with real-world experience and expert knowledge',
+                        'name': 'Expert Instructors', 'description': 'Get real-world knowledge from Professionals with years of experience.',
                         'color': '#4664E4', 'icon': 'Images/icons/Icon-2.png', 'id': '3'
                     },
                     ].map((f, index) => (<div key={index} className="bg-white p-8 rounded-[5px] shadow-[0px_10px_30px_0px_rgba(0,0,0,0.05)] text-center hover:shadow-lg transition duration-300">
@@ -138,8 +142,10 @@ export default function AboutUs() {
                     <div className="flex flex-col gap-4 w-full md:w-1/3 text-center md:text-left">
                         <div className="text-[#808080] text-[15px] font-medium font-['Poppins'] uppercase leading-relaxed tracking-wide">TESTIMONIALS</div>
                         <h2 className="text-[#181818] text-4xl font-bold font-['Spartan'] leading-[50.04px] mb-6">What Our Students Have To Say</h2>
-                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">Lorem ipsum dolor sit amet consectur adipiscing elit sed eiusmod tempor incididunt labore dolore magna aliquaenim ad minim.</div>
-                        <Button className="font-medium font-[15px] w-40 py-6 items-center">View All <ArrowRight/></Button>
+                        <div className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed">Our learners are at the heart of everything we do. Here’s what a few of them had to share:</div>
+                        <Button className="font-medium font-[15px] w-40 py-6 items-center" onClick={() => {
+        window.location.href = '/#/pricing';
+      }}>Buy Plan <ArrowRight/></Button>
                     </div>
 
                     <div className="container mx-auto px-4">
@@ -169,11 +175,13 @@ export default function AboutUs() {
                   transition-all duration-500`}>
 
                                             <div className="flex justify-left mb-4">
-                                                <img
+                                                {testimonial.photo?(<img
                                                     src={testimonial.photo}
                                                     alt={testimonial.name}
                                                     className="w-16 h-16 rounded-full object-cover"
-                                                />
+                                                />):(
+                                                    <div className='size-[70px] relative bg-neutral-300 rounded-[70px] overflow-hidden text-center uppercase justify-center flex items-center'><div className=" text-black text-[23px] font-normal font-['Poppins'] leading-relaxed">{testimonial.initial}</div></div>
+                                                )}
                                             </div>
 
                                             <p className="text-gray-600 text-left mb-4">

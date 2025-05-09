@@ -19,9 +19,7 @@ const TestimonialsSection: React.FC = () => {
             <span className="text-gray-300 text-center font-serif"><img src='Images/icons/SVG.png' alt='"'className='h-[48px] w-[48px]' /></span>
               </div>
               <p className="text-gray-600 text-center mb-8">
-                "I have an understanding that, even if the work is not perfect, it's a work in 
-                progress. And the reason why I'm on Skillshare is to develop a skill. I feel that 
-                it's a safe space."
+                "Taking courses here was a game-changer. The lessons are clear, actionable, and the certificates helped me to get my dream job for which I was waiting from a long time!"
               </p>
               <div className="flex items-center justify-center">
                 <div className="mr-4">
@@ -32,8 +30,8 @@ const TestimonialsSection: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold">DeVeor R</h4>
-                  <p className="text-gray-500 text-sm">Business course</p>
+                  <h4 className="font-bold">Mahi Kukreja</h4>
+                  <p className="text-gray-500 text-sm">Learner</p>
                 </div>
               </div>
             </div>
@@ -44,9 +42,7 @@ const TestimonialsSection: React.FC = () => {
                 <span className="text-gray-300 text-center font-serif"><img src='Images/icons/SVG.png' alt='"'className='h-[48px] w-[48px]' /></span>
               </div>
               <p className="text-gray-600 text-center mb-8">
-                "I have an understanding that, even if the work is not perfect, it's a work in 
-                progress. And the reason why I'm on Skillshare is to develop a skill. I feel that 
-                it's a safe space."
+                "The instructors are top-notch, and the platform is so easy to use. I built my first app after completing a Developer course here. Which even got publish on Play Store!"
               </p>
               <div className="flex items-center justify-center">
                 <div className="mr-4">
@@ -57,8 +53,8 @@ const TestimonialsSection: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold">Tony Chester</h4>
-                  <p className="text-gray-500 text-sm">Photography course</p>
+                  <h4 className="font-bold">Raunak Khurana</h4>
+                  <p className="text-gray-500 text-sm">Learner</p>
                 </div>
               </div>
             </div>

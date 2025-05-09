@@ -39,7 +39,7 @@ export default function NewCourses() {
          
           <div className="container mx-auto px-8">
           <div className="flex justify-between items-center mb-8">
-          <h2 className="section-title">New on Rihab Technologies</h2>
+          <h2 className="section-title">What’s New on Rihab Technologies</h2>
           <Button variant={'outline'} className="px-6 py-3 rounded-none border-black h-auto text-black hover:bg-primary font-medium" onClick={() => {
                     window.location.href = '/#/courselist';
                   }}>

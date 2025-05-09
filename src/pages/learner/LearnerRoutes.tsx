@@ -5,6 +5,7 @@ import MyWishlist from './myAccount/mywishlist';
 import PaymentMethod from './payment-mode/payment';
 import ShoppingCart from './shopping-cart/shopping';
 import CourseDetailsPage from './playingcourse/currentCourseDetails';
+import ChatInterface from './chatscreen/chatscreen';
 
 export default function LearnerRoutes() {
   return (
@@ -15,6 +16,7 @@ export default function LearnerRoutes() {
       <Route path="payment" element={<PaymentMethod />} />
       <Route path="current-course" element={<CourseDetailsPage />} />
       <Route path="shopping-cart" element={<ShoppingCart />} />
+      <Route path="chat" element={<ChatInterface />} />
     </Routes>
   );
 }

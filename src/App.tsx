@@ -16,6 +16,8 @@ import ContactUs from './pages/comman/contactUs/contactUs';
 import CourseDetails from './pages/comman/courses/courseDetails';
 import InstructorDetails from './pages/comman/courses/instructor/instructorDetails';
 import ScrollToTop from './lib/utils';
+import InstructorLayout from './pages/instructor/layout';
+import InstructorRoutes from './pages/instructor/instructorRoutes';
 
 function App() {
   useEffect(() => {
@@ -42,6 +44,7 @@ function App() {
       <Route path="/courselist" element={<CommanLayout><CourseList /></CommanLayout> } />
       <Route path="/courseDetails" element={<CommanLayout><CourseDetails /></CommanLayout> } />
       <Route path="/learner/*" element={<CommanLayout><LearnerRoutes /></CommanLayout>} />
+      <Route path="/instructor/*" element={<InstructorLayout><InstructorRoutes /></InstructorLayout>} />
 
     </Routes>
   </Router>

@@ -2,6 +2,7 @@ import { Check, CheckCircle2, Info } from "lucide-react";
 import TrustAndEducationSections from "../landingPage/trustedcustomers";
 import BestEducationSections from "../landingPage/besteducation";
 import NewCourses from "./new-courses";
+import PracticeAdvice from "./besteducation";
 
 type Feature = {
     text: string;
@@ -176,7 +177,7 @@ type PricingPlan = {
       <TrustAndEducationSections/>
       
       {/* Certification Section */}
-      <BestEducationSections/>
+      <PracticeAdvice/>
 
       <NewCourses/>
             </div>

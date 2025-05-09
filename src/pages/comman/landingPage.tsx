@@ -18,12 +18,14 @@ const EducationLandingPage: React.FC = () => {
       <section className="landing-gradient py-12 md:py-16">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
           <div className="flex flex-col gap-6 md:w-1/2">
-          <p className="banner-section-subtitle">
-          Professional & Lifelong Learning
-            </p>
+          
             <h1 className="banner-section-title">
-              Online Courses With Certificates & Guidance
+            Master New Skills with Certified Online Courses
             </h1>
+
+            <p className="banner-section-subtitle">
+            Unlock your potential with expert-led courses, flexible learning, and official certifications — all in one place.
+            </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button className="px-6 py-3 rounded-none h-auto text-white hover:bg-blue-700 font-medium">

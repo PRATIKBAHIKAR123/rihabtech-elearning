@@ -57,7 +57,7 @@ export default function SuggestedCourses() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-12">
               {courses.map((course,index)=>(
                 <div key={index} className="overflow-hidden cursor-pointer hover:opacity-50" onClick={() => {
-                  window.location.href = '/#/courseDetails';
+                  window.scrollTo({ top: 0, behavior: "smooth" });
                 }}>
                 <div className="relative">
                   <img src={course.image} alt={course.title} className="w-full h-40 object-cover" />
@@ -100,7 +100,9 @@ export default function SuggestedCourses() {
             ))}
             </div>
             <div className="w-full flex justify-center">
-                <Button variant={'outline'} className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50">
+                <Button variant={'outline'} className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50"  onClick={() => {
+        window.location.href = '/#/courselist';
+      }}>
                     View All Courses
                 </Button>
             </div>

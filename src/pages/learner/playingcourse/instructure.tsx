@@ -16,7 +16,7 @@ export default function Instructor() {
     <div className="w-full">
     <div className="mb-12">
       <div className="text-primary text-[15px] font-medium font-['Poppins'] leading-[15px] mb-4">INSTRUCTOR</div>
-      <h1 className="text-[#181818] text-[28px] font-bold font-['Spartan'] leading-7 mb-2">{instructor.name}</h1>
+      <h1 className="text-xl font-semibold text-primary mt-4 hover:underline cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>{instructor.name}</h1>
       <p className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed mb-4">{instructor.role}</p>
       
       <div className="flex items-center gap-6 mb-6">

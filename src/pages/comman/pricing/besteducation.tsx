@@ -1,8 +1,8 @@
-const BestEducationSections = () => {
+const PracticeAdvice = () => {
     const cardtopic = [
-        { id: 1, name: "Training Courses", description: "Boost your skills through flexible, beginner-to-advanced programs." },
-        { id: 2, name: "Expert instruction", description: "Learn from professionals who bring real industry experience." },
-        { id: 3, name: "Expert instruction", description: "Stay job-ready with hands-on projects and real-world applications." },
+        { id: 1, name: "Flexible Course Access", description: "Pay once and access your courses anytime, anywhere — no hidden fees, no surprises." },
+        { id: 2, name: "Expert-Led Content", description: "Every course is crafted by industry experts to ensure you get real-world knowledge at a great value." },
+        { id: 3, name: "Tech Starter Pack", description: "Dive into coding, AI, and web development with beginner-friendly pricing." },
     ];
   return (
     <>
@@ -13,11 +13,10 @@ const BestEducationSections = () => {
               <div className="mb-2">
                 <span className="text-sm font-medium text-primary">Practice Advice</span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Learn from the Best to Become Your Best</h2>
-              {/* <p className="text-gray-600 mb-8">
-                Problems trying to resolve the conflict between<br />
-                the two major realms of Classical physics: Newtonian mechanics
-              </p> */}
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Smart Learning, Smarter Pricing</h2>
+              <p className="text-gray-600 mb-8">
+              Choose the perfect plan to unlock your learning journey. Flexible options crafted for beginners, professionals, and lifelong learners.
+              </p>
               
               
             </div>
@@ -28,7 +27,7 @@ const BestEducationSections = () => {
             {/* Woman with colorful background */}
             <div className="relative">
                 <img 
-                  src="Images/Banners/col-md-6 (1).png" 
+                  src="Images/Banners/thumb-concept.png" 
                   alt="Woman with notebook" 
                   className="relative z-10 mx-auto"
                 />
@@ -40,7 +39,8 @@ const BestEducationSections = () => {
                  Most Trusted in Online Learning
               </h3>
               <p className="text-gray-600 mb-6">
-                 We bring industry experts and practical knowledge together to help you build real-world skills that drive results.
+              Most calendars are designed for teams. Slate s designed 
+              for freelancers 
               </p>
               
               {/* Features List */}
@@ -66,4 +66,4 @@ const BestEducationSections = () => {
   );
 };
 
-export default BestEducationSections;
+export default PracticeAdvice;

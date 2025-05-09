@@ -3,9 +3,20 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { LoginModeDialog } from "./loginMode";
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoginModeOpen, setLoginModeIsOpen] = useState(false);
+  const [isInstructorloginMode, setLoginMode] = useState(false);
+
+ const handleLoginModeOpen = () => {
+  if (isInstructorloginMode) {
+    setLoginModeIsOpen(true);
+  }else{
+    window.location.href = '/#/login';
+  }
+  }
 
   return (
     <div className="flex min-h-screen w-full">
@@ -103,10 +114,12 @@ export default function SignUpPage() {
               </label>
             </div>
 
-            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4">
+            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" onClick={()=> setLoginModeIsOpen(true)}>
               SIGN UP
             </Button>
             </div>
+
+            <LoginModeDialog open={isLoginModeOpen} setOpen={setLoginModeIsOpen} setIsInstructor={setLoginMode} />
 
             <div className="text-center text-sm mt-6">
               Own an Account? <a href="/#/login" className="text-blue-600 font-medium">JUMP RIGHT IN</a>

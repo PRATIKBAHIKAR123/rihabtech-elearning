@@ -147,7 +147,7 @@ export default function CourseList() {
         </div>
         
         <p className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed mb-8 max-w-6xl">
-          Embark on a journey of knowledge and skill development with our online course marketplace. Discover a diverse array of expert-led courses designed to empower and enrich your learning experience. From professional development to personal growth, explore our curated selection of online courses that cater to your unique aspirations.
+        Step into a world of endless learning opportunities with our online course marketplace. Browse a wide range of expertly crafted courses that help you build new skills, grow professionally, and follow your passions. Whether you're aiming to level up your career or dive into a personal hobby, find the perfect course that fits your goals and sparks your curiosity.
         </p>
         
         {/* Filter and Results */}
@@ -171,7 +171,13 @@ export default function CourseList() {
               <CourseCard key={index} course={course} />
             ))}
           </div>
-           
+          <div className="w-full flex justify-center mb-3">
+                <Button variant={'outline'} className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50" onClick={() => {
+                    
+                  }}>
+                    Load More
+                </Button>
+            </div>
           </div>
         </section>
   )

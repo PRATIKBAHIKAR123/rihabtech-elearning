@@ -3,8 +3,24 @@ import Divider from "../../../components/ui/divider";
 import { Tabs, TabsContent, TabsList, TabsTrigger,  } from "../../../components/ui/tabs";
 import { Button } from "../../../components/ui/button";
 import SuggestedCourses from "./courses";
+import Curriculum from "./coursecurriculam";
+import InstructorDetails from "./instructor/instructorShortDetails";
+import CourseReviews from "../../learner/playingcourse/reviews";
+import CartModal from "../../../modals/cartModal";
+import React from "react";
 
 export default function CourseDetails() {
+  const [isCartModalOpen, setIsCartModalOpen] = React.useState(false);
+  
+  const sampleCartItem = {
+    id: 1,
+    title: "Design Course",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.",
+    price: 186.99,
+    image: "Images/courses/Rectangle 24.png",
+    students: 72,
+    duration: "12 weeks"
+  };
     return (
         <div className="flex flex-col min-h-screen">
             
@@ -18,7 +34,7 @@ export default function CourseDetails() {
                             className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer hover:underline hover:text-gray-300 transition-all duration-200" 
                             onClick={() => { window.location.href = '/#/instructorDetails' }}
                         >
-                            By Emilie Bryant
+                            By Edward Narton
                         </div>
                         <Divider className="h-4 bg-white" />
                         <img src="Images/icons/Icon (1).png" alt="Star" className="w-4 h-4" />
@@ -78,6 +94,32 @@ maecenas accumsan lacus vel facilisis.
                 </p>
               </TabsContent>
 
+              <TabsContent value="curriculum" className="py-4">
+                <Curriculum/>
+
+              </TabsContent>
+
+              <TabsContent value="instructor" className="py-4">
+              <InstructorDetails
+        imageUrl="Images/users/team-18.jpg.jpg"
+        name="Edward Narton, Developer and Lead Instructor"
+        title="Developer and Lead Instructor"
+        rating={4.7}
+        reviews={958905}
+        students={3143964}
+        courses={7}
+        shortBio="I'm Angela, a developer with a passion for teaching. I'm the lead instructor at the London App Brewery, London's leading Programming Bootcamp."
+        fullBio="I'm Angela, a developer with a passion for teaching. I'm the lead instructor at the London App Brewery, London's leading Programming Bootcamp. I've helped hundreds of thousands of students learn to code and change their lives by becoming a developer. I've been invited by companies such as Twitter, Facebook and Google to teach their employees.
+
+My first foray into programming was when I was just 12 years old, wanting to build my own Space Invader game. Since then, I've made hundreds of websites, apps and games. But most importantly, I realised that my greatest passion is teaching."
+      />
+              </TabsContent>
+
+              <TabsContent value="reviews" className="py-4">
+                <CourseReviews/>
+
+              </TabsContent>
+
               {/* Add more <TabsContent /> blocks here for other tabs */}
             </Tabs>
           </div>
@@ -100,7 +142,7 @@ maecenas accumsan lacus vel facilisis.
       <span className="flex items-center gap-4">
         <img src="Images/icons/course-Icon-1.png" className="h-6" /> Instructor:
       </span>
-      <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>Emilie Bryant</span>
+      <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>Edward Narton</span>
     </li>
     <hr className="w-full bg-[#E5E5E5]" />
     <li className="flex justify-between">
@@ -140,7 +182,7 @@ maecenas accumsan lacus vel facilisis.
   </ul>
 </div>
 
-              <Button className="w-full py-6 text-sm font-normal font-['Spartan'] text-white">
+              <Button className="w-full py-6 text-sm font-normal font-['Spartan'] text-white" onClick={() => setIsCartModalOpen(true)}>
                 Buy Now
               </Button>
 
@@ -158,6 +200,11 @@ maecenas accumsan lacus vel facilisis.
         </div>
       </section>
       <SuggestedCourses/>
+      <CartModal 
+        isOpen={isCartModalOpen}
+        setIsOpen={setIsCartModalOpen}
+        cartItem={sampleCartItem}
+      />
         </div>
     )
 }
