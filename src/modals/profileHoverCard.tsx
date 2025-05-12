@@ -1,62 +1,89 @@
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card";
+import { BarChart3, LayoutGrid, User, Settings, FileText, Shield, Lock } from "lucide-react";
 
-import { HoverCard,  HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card";
+const profileMenuList = [
+  {
+    title: "Profile",
+    description: "Lerners Profile",
+    icon: <User className="w-6 h-6 text-orange-500" />,
+  },
+  {
+    title: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet",
+    icon: <BarChart3 className="w-6 h-6 text-orange-500" />,
+  },
+  {
+    title: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet",
+    icon: <LayoutGrid className="w-6 h-6 text-orange-500" />,
+  },
+  
+  {
+    title: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet",
+    icon: <Settings className="w-6 h-6 text-orange-500" />,
+  },
+  {
+    title: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet",
+    icon: <FileText className="w-6 h-6 text-orange-500" />,
+  },
+  {
+    title: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet",
+    icon: <FileText className="w-6 h-6 text-orange-500" />,
+  },
+  
+];
 
 export const ProfileMenu: React.FC = () => {
-    return (
-
-              <HoverCard>
-              <HoverCardTrigger>
-              <div className="ml-4">
-                        <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
-                            MA
-                        </div>
-                    </div>
-              </HoverCardTrigger>
-              <HoverCardContent className="hover-card">
-              <div className=" text-[#677489] text-sm font-medium font-['Urbanist'] uppercase leading-[21px]">Lorem ipsum dolor sit amet</div>
-      {profilemenuList.map((course, idx) => (
-        <div
-          key={idx}
-          className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
-        >
-          <img
-            src={course.imageUrl}
-            alt={course.title}
-            className="w-22 h-16 object-cover rounded-md"
-          />
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-            <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1">
-              {course.description}
-            </p>
-  
-            
+  return (
+    <HoverCard>
+      <HoverCardTrigger>
+        <div className="ml-4 cursor-pointer">
+          <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
+            MA
           </div>
-          <div>
-            </div>
         </div>
-      ))}
-              </HoverCardContent>
-            </HoverCard>
-    );
-  };
-  
-  const profilemenuList = [
-      {
-        title: 'Lorem Ipsum',
-        description: 'Lorem ipsum dolor sit amet',
-        imageUrl: 'Images/icons/menu-icons/Vector.png',
-      },
-      {
-        title: 'Lorem Ipsum',
-        description: 'Lorem ipsum dolor sit amet',
-        imageUrl: 'Images/icons/menu-icons/Vector.png',
-      },
-      {
-        title: 'Lorem Ipsum',
-        description: 'Lorem ipsum dolor sit amet',
-        imageUrl: 'Images/icons/menu-icons/Vector.png',
-      },
-    ];
+      </HoverCardTrigger>
+      <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 w-96">
+        {/* <div className="text-[#677489] text-sm font-medium font-['Urbanist'] uppercase leading-[21px] mb-4">
+          LOREM IPSUM DOLOR SIT AMET
+        </div> */}
+        <div className="flex flex-col gap-2">
+          {profileMenuList.map((item, idx) => {
+            if (idx === 0) {
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                  onClick={() => window.location.href = '/#/learner/profile/public-profile'}
+                >
+                  <div>{item.icon}</div>
+                  <div>
+                    <div className="font-semibold text-lg text-[#1e1e1e]">{item.title}</div>
+                    <div className="text-[#677489] text-sm font-medium">{item.description}</div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div
+                key={idx}
+                className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+              >
+                <div>{item.icon}</div>
+                <div>
+                  <div className="font-semibold text-lg text-[#1e1e1e]">{item.title}</div>
+                  <div className="text-[#677489] text-sm font-medium">{item.description}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
 
     

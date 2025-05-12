@@ -3,99 +3,96 @@ import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
 import React, { useState } from "react";
-import {  MyCartMenu } from "../modals/cartListPopover";
+import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
+import { ProfileMenu } from "../modals/profileHoverCard";
 
 function Header() {
-      const [isSearchPopupOpen, setSearchPopupIsOpen] = useState(false);
-    const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
-    const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
-    const isLearnerPath = window.location.hash.includes("learner");
-    const isHomePath = window.location.pathname === '/';
+  const [isSearchPopupOpen, setSearchPopupIsOpen] = useState(false);
+  const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
+  const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
+  const isLearnerPath = window.location.hash.includes("learner");
+  const isHomePath = window.location.pathname === '/';
 
 
-    return (
-        <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
-            <div className="mx-auto px-10 py-4 gap-16 flex items-center justify-between">
-                <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
-                    <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
-                    <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[181px] mt-1" />
-                </div>
+  return (
+    <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
+      <div className="mx-auto px-10 py-4 gap-16 flex items-center justify-between">
+        <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
+          <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
+          <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[181px] mt-1" />
+        </div>
 
-                <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
-                    <a href="#" className={`font-medium ${window.location.pathname === '/' ? 'text-primary' : 'text-[#000927]'} hover:text-blue-600`}>Home</a>
+        <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
+          <a href="#" className={`font-medium ${window.location.pathname === '/' ? 'text-primary' : 'text-[#000927]'} hover:text-blue-600`}>Home</a>
 
-                    <MainNavigationMenu/>
-                    <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-                    {!isLearnerPath&&<a href="/#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>}
-                </nav>
+          <MainNavigationMenu />
+          <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
+          {!isLearnerPath && <a href="/#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>}
+        </nav>
 
-                <div className="hidden md:block relative flex-grow">
-                    {/* <Search className="absolute top-1/4 left-4" size={22} />
+        <div className="hidden md:block relative flex-grow">
+          {/* <Search className="absolute top-1/4 left-4" size={22} />
                     <input type="text" placeholder="Search Something Here" className="bg-neutral-100 border-none rounded-[27px] w-full pl-12 py-2"
                      onClick={()=> setSearchPopupIsOpen(true)} /> */}
-                     <SearchWithPopup/>
-                </div>
+          <SearchWithPopup />
+        </div>
 
-                <Search className="flex md:hidden" size={22} />
+        <Search className="flex md:hidden" size={22} />
 
-                <div className="hidden md:flex items-center space-x-4">
-  {window.location.hash.includes("learner") ? (
-    // Show "Teach With Us" button when the path contains "learner"
-    <Button
-      className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700"
-      onClick={() => window.location.href = '/#/instructor/course-test-selection'}
-    >
-      Teach With Us
-    </Button>
-  ) : (
-    // Show other buttons when the path does not contain "learner"
-    <>
-      <Button
-        variant="outline"
-        className="hidden border-primary text-primary rounded-none md:block px-4 py-2 text-sm font-medium hover:bg-blue-50"
-        onClick={() => window.location.href = '/#/login'}
-      >
-        Sign In
-      </Button>
-      <Button
-        className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700"
-        onClick={() => window.location.href = '/#/sign-up'}
-      >
-        Sign Up
-      </Button>
-    </>
-  )}
-</div>
-{isLearnerPath&&<div className="flex items-center">
-                    
-    <MyCartMenu/>
-                    <div className="ml-4 relative">
-                        <button className="relative">
-                            <BellIcon />
-                        </button>
-                    </div>
-                    <div className="ml-4">
-                        <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
-                            MA
-                        </div>
-                    </div>
-                </div>}
+        <div className="hidden md:flex items-center space-x-4">
+          {window.location.hash.includes("learner") ? (
+            // Show "Teach With Us" button when the path contains "learner"
+            <Button
+              className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700"
+              onClick={() => window.location.href = '/#/instructor/course-test-selection'}
+            >
+              Teach With Us
+            </Button>
+          ) : (
+            // Show other buttons when the path does not contain "learner"
+            <>
+              <Button
+                variant="outline"
+                className="hidden border-primary text-primary rounded-none md:block px-4 py-2 text-sm font-medium hover:bg-blue-50"
+                onClick={() => window.location.href = '/#/login'}
+              >
+                Sign In
+              </Button>
+              <Button
+                className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700"
+                onClick={() => window.location.href = '/#/sign-up'}
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+        </div>
+        {isLearnerPath && <div className="flex items-center">
 
-            </div>
-            {/* <SearchWithPopup open={isSearchPopupOpen} setOpen={setSearchPopupIsOpen}/> */}
-        </header>
-    );
+          <MyCartMenu />
+          <div className="ml-4 relative">
+            <button className="relative">
+              <BellIcon />
+            </button>
+          </div>
+          <ProfileMenu />
+        </div>}
+
+      </div>
+      {/* <SearchWithPopup open={isSearchPopupOpen} setOpen={setSearchPopupIsOpen}/> */}
+    </header>
+  );
 }
 
 const ListItem = React.forwardRef<
-    React.ElementRef<"a">,
-    React.ComponentPropsWithoutRef<"a">
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a">
 >(({ className, title, children, ...props }, ref) => {
-    return (
-        <li>
-        </li>
-    )
+  return (
+    <li>
+    </li>
+  )
 })
 ListItem.displayName = "ListItem"
 
@@ -132,92 +129,92 @@ interface SectionHeading {
 
 // Course menu items
 const courseMenuItems: SectionHeading[] = [
-    {
-      title: "Design",
-      items: [
-        {
-          title: "UI UX",
-          href: "/#/courselist",
-          icon: <BarChart3 className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Web Design",
-          href: "/#/courselist",
-          icon: <PlayCircle className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Photoshop",
-          href: "/#/courselist",
-          icon: <LayoutGrid className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Figma",
-          href: "/#/courselist",
-          icon: <User className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Adobe",
-          href: "/#/courselist",
-          icon: <Calendar className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Game Design",
-          href: "/#/courselist",
-          icon: <GraduationCap className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-      ],
-    },
-    {
-      title: "DEVELOPMENT",
-      items: [
-        {
-          title: "Web Development",
-          href: "/#/courselist",
-          icon: <Settings className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "App Development",
-          href: "/#/courselist",
-          icon: <FileText className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-        {
-          title: "Programming",
-          href: "/#/courselist",
-          icon: <LayoutGrid className="h-5 w-5 text-primary" />,
-          description: "Lorem ipsum dolor sit amet",
-        },
-      ],
-    },
-    {
-      title: "ALWAYS IMPROVING",
-      items: [
-        {
-            image: 'Images/courses/Illustration Components.png',
-            icon: undefined,
-            title: "",
-            href: ""
-        },
-        {
-          title: "Lorem ipsum dolor sit amet",
-          href: "/#/courselist",
-          icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
-        },
-        {
-          title: "Lorem ipsum dolor sit amet",
-          href: "/#/courselist",
-          icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
-        },
-      ],
-    },
-  ];
+  {
+    title: "Design",
+    items: [
+      {
+        title: "UI UX",
+        href: "/#/courselist",
+        icon: <BarChart3 className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Web Design",
+        href: "/#/courselist",
+        icon: <PlayCircle className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Photoshop",
+        href: "/#/courselist",
+        icon: <LayoutGrid className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Figma",
+        href: "/#/courselist",
+        icon: <User className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Adobe",
+        href: "/#/courselist",
+        icon: <Calendar className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Game Design",
+        href: "/#/courselist",
+        icon: <GraduationCap className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+    ],
+  },
+  {
+    title: "DEVELOPMENT",
+    items: [
+      {
+        title: "Web Development",
+        href: "/#/courselist",
+        icon: <Settings className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "App Development",
+        href: "/#/courselist",
+        icon: <FileText className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+      {
+        title: "Programming",
+        href: "/#/courselist",
+        icon: <LayoutGrid className="h-5 w-5 text-primary" />,
+        description: "Lorem ipsum dolor sit amet",
+      },
+    ],
+  },
+  {
+    title: "ALWAYS IMPROVING",
+    items: [
+      {
+        image: 'Images/courses/Illustration Components.png',
+        icon: undefined,
+        title: "",
+        href: ""
+      },
+      {
+        title: "Lorem ipsum dolor sit amet",
+        href: "/#/courselist",
+        icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
+      },
+      {
+        title: "Lorem ipsum dolor sit amet",
+        href: "/#/courselist",
+        icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
+      },
+    ],
+  },
+];
 
 
 // List Item component for courses
@@ -265,7 +262,7 @@ const IconListItem = React.forwardRef<
         >
           <div className="flex-shrink-0 mt-1">{icon}</div>
           <div className="w-auto h-38 relative rounded-xl overflow-hidden">
-            {image&&<img src={image} />}
+            {image && <img src={image} />}
           </div>
           <div>
             <div className="text-sm font-medium leading-none">{title}</div>
@@ -302,7 +299,7 @@ export const CoursesMenu: React.FC = () => {
                       title={item.title}
                       href={item.href}
                       icon={item.icon}
-                      image = {item.image}
+                      image={item.image}
                     >
                       {item.description}
                     </IconListItem>
@@ -324,7 +321,7 @@ export const CoursesMenu: React.FC = () => {
                       title={item.title}
                       href={item.href}
                       icon={item.icon}
-                      image = {item.image}
+                      image={item.image}
                     >
                       {item.description}
                     </IconListItem>
@@ -342,73 +339,73 @@ export const CoursesMenu: React.FC = () => {
 // My Learnings Navigation Menu Component
 export const MyLearningsMenu: React.FC = () => {
   return (
-<NavigationMenuItem>
-  <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
-    My Learnings
-  </NavigationMenuTrigger>
+    <NavigationMenuItem>
+      <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
+        My Learnings
+      </NavigationMenuTrigger>
 
-  <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
-    {mylearnigs.map((course, idx) => (
-      <div
-        key={idx}
-        className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
-      >
-        <img
-          src={course.imageUrl}
-          alt={course.title}
-          className="w-22 h-16 object-cover rounded-md"
-        />
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-          <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1">
-            {course.description}
-          </p>
+      <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
+        {mylearnigs.map((course, idx) => (
+          <div
+            key={idx}
+            className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
+          >
+            <img
+              src={course.imageUrl}
+              alt={course.title}
+              className="w-22 h-16 object-cover rounded-md"
+            />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
+              <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1">
+                {course.description}
+              </p>
 
-          <div className="mt-3">
-            <div className="relative h-2 bg-gray-200 rounded-full">
-              <div
-                className="absolute top-0 left-0 h-2 bg-primary rounded-full"
-                style={{ width: `${course.progress * 100}%` }}
-              >
-              
+              <div className="mt-3">
+                <div className="relative h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="absolute top-0 left-0 h-2 bg-primary rounded-full"
+                    style={{ width: `${course.progress * 100}%` }}
+                  >
+
+                  </div>
+                </div>
+                <div className="text-right text-xs font-semibold text-primary mt-1">
+                  {(course.progress * 100).toFixed(0)}% Completed
+                </div>
               </div>
             </div>
-            <div className="text-right text-xs font-semibold text-primary mt-1">
-              {(course.progress * 100).toFixed(0)}% Completed
-            </div>
           </div>
-        </div>
-      </div>
-    ))}
-  </NavigationMenuContent>
-</NavigationMenuItem>
+        ))}
+      </NavigationMenuContent>
+    </NavigationMenuItem>
   );
 };
 
 const mylearnigs = [
-    {
-      title: 'Design Course',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-      imageUrl: 'Images/courses/Rectangle 24.png',
-      progress: 0.5,
-    },
-    {
-      title: 'Design Course',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-      imageUrl: 'Images/courses/Rectangle 24.png',
-      progress: 0.5,
-    },
-    {
-      title: 'Design Course',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-      imageUrl: 'Images/courses/Rectangle 24.png',
-      progress: 0.5,
-    },
-  ];
+  {
+    title: 'Design Course',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
+    imageUrl: 'Images/courses/Rectangle 24.png',
+    progress: 0.5,
+  },
+  {
+    title: 'Design Course',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
+    imageUrl: 'Images/courses/Rectangle 24.png',
+    progress: 0.5,
+  },
+  {
+    title: 'Design Course',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
+    imageUrl: 'Images/courses/Rectangle 24.png',
+    progress: 0.5,
+  },
+];
 
 
 
-  
+
 
 // Combined navigation menu component for easy import
 export const MainNavigationMenu: React.FC = () => {

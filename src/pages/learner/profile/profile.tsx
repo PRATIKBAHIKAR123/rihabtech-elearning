@@ -66,7 +66,7 @@ const Profile = () => {
                 </div>
               </div>
               <div className="flex">
-                <Button type="button" className="w-full bg-[#ff7700] hover:bg-[#e55e00] text-white font-barlow font-semibold text-lg py-3 rounded shadow-md transition">Update Profile Changes</Button>
+                <Button type="button" className="w-full bg-[#ff7700] hover:bg-[#e55e00] text-white font-barlow font-semibold text-lg py-3  shadow-md transition">Update Profile Changes</Button>
               </div>
             </form>
           </div>
