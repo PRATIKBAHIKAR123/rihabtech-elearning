@@ -2,10 +2,12 @@ import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCa
 import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
-import React from "react";
+import React, { useState } from "react";
 import {  MyCartMenu } from "../modals/cartListPopover";
+import SearchWithPopup from "../modals/searchListModal";
 
 function Header() {
+      const [isSearchPopupOpen, setSearchPopupIsOpen] = useState(false);
     const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
     const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
     const isLearnerPath = window.location.hash.includes("learner");
@@ -29,8 +31,10 @@ function Header() {
                 </nav>
 
                 <div className="hidden md:block relative flex-grow">
-                    <Search className="absolute top-1/4 left-4" size={22} />
-                    <input type="text" placeholder="Search Something Here" className="bg-neutral-100 border-none rounded-[27px] w-full pl-12 py-2" />
+                    {/* <Search className="absolute top-1/4 left-4" size={22} />
+                    <input type="text" placeholder="Search Something Here" className="bg-neutral-100 border-none rounded-[27px] w-full pl-12 py-2"
+                     onClick={()=> setSearchPopupIsOpen(true)} /> */}
+                     <SearchWithPopup/>
                 </div>
 
                 <Search className="flex md:hidden" size={22} />
@@ -79,6 +83,7 @@ function Header() {
                 </div>}
 
             </div>
+            {/* <SearchWithPopup open={isSearchPopupOpen} setOpen={setSearchPopupIsOpen}/> */}
         </header>
     );
 }
