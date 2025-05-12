@@ -14,46 +14,25 @@ const LearnerProfileSidebar = () => {
   const location = useLocation();
 
   return (
-    <aside style={{ minWidth: 330 }}>
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 8,
-          border: '1px solid #eee',
-          overflow: 'hidden',
-        }}
-      >
+    <aside className="w-full md:w-80 max-w-xs">
+      <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm overflow-hidden">
         <nav>
           {sidebarItems.map((item, index) => (
             <Link
               key={item.label}
               to={item.path}
-              style={{
-                display: 'block',
-                padding: '16px 20px',
-                color: location.pathname === item.path ? '#ff7700' : '#222',
-                fontWeight: location.pathname === item.path ? 700 : 500,
-                fontFamily: 'Poppins, sans-serif',
-                fontSize: 16,
-                textDecoration: 'none',
-                borderBottom:
-                  index !== sidebarItems.length - 1 ? '1px solid #eee' : 'none',
-              }}
+              className={`block px-6 py-4 text-base font-barlow transition-colors duration-150 ${
+                location.pathname === item.path
+                  ? 'text-[#ff7700] font-bold bg-[#fff7ef]'
+                  : 'text-[#222] font-medium hover:bg-[#f8f8f8]'
+              } ${index !== sidebarItems.length - 1 ? 'border-b border-[#eee]' : ''}`}
             >
               {item.label}
             </Link>
           ))}
           <Link
             to="/learner/profile/logout"
-            style={{
-              display: 'block',
-              padding: '16px 20px',
-              color: '#C30000',
-              fontWeight: 700,
-              fontFamily: 'Barlow, sans-serif',
-              fontSize: 16,
-              textDecoration: 'none',
-            }}
+            className="block px-6 py-4 text-base font-barlow font-bold text-[#C30000] hover:bg-[#fff7ef]"
           >
             Logout
           </Link>

@@ -3,7 +3,7 @@ import '../../../styles/temp.css';
 
 const PublicProfile = () => {
   return (
-    <div className="public-profile-root">
+    <div className="public-profile-root min-h-screen">
       <section className="gradient-header public-profile-banner">
         <div className="container">
           <div className="public-profile-banner-content">

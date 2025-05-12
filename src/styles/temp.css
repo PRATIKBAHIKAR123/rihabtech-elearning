@@ -350,19 +350,21 @@
 }
 
 .public-profile-initials {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   background: #ff7700;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 48px;
-  font-weight: 600;
+  font-size: 56px;
+  font-weight: 500;
   font-family: 'Barlow', sans-serif;
   margin-bottom: 24px;
-  box-shadow: 0 2px 12px rgba(255,119,0,0.10);
+  margin-top: 24px;
+font-family: 'Archivo', sans-serif;  box-shadow: 0 4px 24px rgba(255,119,0,0.10);
+  overflow: hidden;
 }
 
 .public-profile-edit-btn {
@@ -417,4 +419,8 @@
 
 .profile-sidebar-card {
   @apply bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-0;
+}
+
+.bg-white.rounded-xl.shadow-sm {
+  box-shadow: 0 2px 16px rgba(0,0,0,0.10) !important;
 }
