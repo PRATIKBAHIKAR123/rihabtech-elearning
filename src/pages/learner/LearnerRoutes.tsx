@@ -12,6 +12,7 @@ import AccountSecurity from './profile/account&security';
 import Logout from './profile/logout';
 import ProfilePhoto from './profile/profile-photo';
 import TermsOfUse from './profile/terms-of-use';
+import ProfilePaymentMethod from './profile/payment-method';
 
 export default function LearnerRoutes() {
   return (
@@ -25,7 +26,7 @@ export default function LearnerRoutes() {
       <Route path="chat" element={<ChatInterface />} />
       <Route path="profile/account&security" element={<AccountSecurity />} />
       <Route path="profile/logout" element={<Logout />} />
-      <Route path="profile/payment-method" element={<PaymentMethod />} />
+      <Route path="profile/payment-method" element={<ProfilePaymentMethod />} />
       <Route path="profile/public-profile" element={<PublicProfile />} />
       <Route path="Profile" element={<Profile />} />
       <Route path="profile/profile-photo" element={<ProfilePhoto />} />
