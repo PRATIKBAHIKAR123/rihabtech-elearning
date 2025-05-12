@@ -398,3 +398,23 @@
     right: 0;
   }
 }
+
+.container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.profile-input {
+  @apply bg-white border border-[#E6E6E6] rounded-lg shadow-sm px-4 py-2 w-full text-base font-medium text-[#222] focus:outline-none focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700]/20 transition;
+}
+
+.profile-form-card {
+  @apply bg-white rounded-xl border border-[#E6E6E6] shadow-sm px-8 py-8 flex flex-col gap-8;
+}
+
+.profile-sidebar-card {
+  @apply bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-0;
+}
