@@ -100,37 +100,31 @@ function PaymentMethod() {
                             </div>
 
                             <button className="flex items-center text-gray-600 p-2 rounded-lg">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5 mr-2"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
+                                <img
+                                    src="\Images\icons\add.png" // Replace with your actual image path
+                                    alt="Add Icon"
+                                    className="h-5 w-5 mr-2 object-contain"
+                                />
+                                
                                 Add New Cards
                             </button>
                         </div>
                     )}
 
                     <div className="border border-gray-300 rounded-lg p-4 flex justify-center items-center cursor-pointer">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 mr-2 text-gray-500"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <img
+                            src="\Images\icons\add.png" // Replace with your actual image path
+                            alt="Add Icon"
+                            className="h-5 w-5 mr-2 object-contain"
+                        />
                         <span className="text-gray-600">Add New Method</span>
                     </div>
+
                 </div>
 
-                <div className="w-full lg:w-1/3 mt-8 lg:mt-0">
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                        <h2 className="section-title font-[Kumbh Sans] text-2xl mb-6">Order Summary</h2>
+                <div className="w-full ml-16 mt-16 lg:w-1/3 ">
+                    <div className="bg-gray-100 p-6 rounded-lg">
+                        <h2 className="section-title font-[Kumbh Sans] text-xl mb-6">Order Summary</h2>
 
                         <div className="flex justify-between mb-4">
                             <span className="text-gray-700">Subtotal</span>
@@ -159,18 +153,26 @@ function PaymentMethod() {
                         </div>
 
                         <div className="mb-6">
-                            <div className="flex items-center">
-                                <input type="checkbox" id="terms" className="mr-2" />
-                                <label htmlFor="terms">I agree with the <a href="#" className="underline">Terms And Conditions</a></label>
-                            </div>
+                            <label className="flex items-center cursor-pointer">
+                                <input type="checkbox" className="hidden peer" id="terms" />
+                                <div className="w-4 h-4 rounded-full border border-gray-400 peer-checked:bg-gray-600 peer-checked:border-blue-600 mr-2 mt-1 flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span>
+                                    I agree with the <a href="#" className="underline font-bold">Terms And Conditions</a>
+                                </span>
+                            </label>
                         </div>
 
-                        <button className="btn-rouded w-full bg-orange-500 text-white mb-4">
+
+                        <button className="p-2 w-full bg-orange-500 text-white mb-4">
                             Process To Checkout
                         </button>
 
                         <div className="text-center">
-                            <a href="#" className="text-gray-600 underline">Or continue shopping</a>
+                            <a href="#" className="text-gray-600 font-bold">Or continue shopping</a>
                         </div>
                     </div>
                 </div>

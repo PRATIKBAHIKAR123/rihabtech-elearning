@@ -52,8 +52,8 @@ const PrivacyPolicy = () => {
   return (
     <section className="py-16 bg-white min-h-screen">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-4xl md:text-5xl font-bold text-[#000927] mb-6 text-center">Privacy <span className="text-primary">Policy</span></h1>
-        <p className="text-lg text-gray-700 mb-10 text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-6 text-center">Privacy <span className="text-primary">Policy</span></h1>
+        <p className="text-lg text-gray-700 mb-10 text-center  mx-auto">
           Please read this Privacy Policy carefully to understand how we collect, use, and protect your personal information.
         </p>
         <div className="space-y-10">

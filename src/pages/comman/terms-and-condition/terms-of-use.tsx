@@ -1,5 +1,5 @@
 import React from 'react';
-import CommanLayout from '../layout';
+// import CommanLayout from '../layout';
 
 const termsPoints = [
   {
@@ -65,9 +65,9 @@ const TermsOfUse = () => {
     // <CommanLayout>
       <section className="py-16 bg-white min-h-screen">
         <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#000927] mb-6 text-center">Terms of <span className="text-primary">Use</span></h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-6 text-center">Terms of <span className="text-primary">Use</span></h1>
           <p className="text-lg text-gray-700 mb-10 text-center max-w-2xl mx-auto">
-            Please read these Terms of Use carefully before using the SimpliLearnings website. By accessing or using any part of the site, you agree to be bound by these terms.
+            Please read these Terms of Use carefully before using the SimpliLearnings website.
           </p>
           <div className="space-y-10">
             {termsPoints.map((point, idx) => (
@@ -86,7 +86,6 @@ const TermsOfUse = () => {
           </div>
         </div>
       </section>
-    // </CommanLayout>
   );
 };
 

@@ -1,13 +1,22 @@
+import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card";
 
 export const MyCartMenu: React.FC = () => {
-  return (
+  const [isOpen, setIsOpen] = useState(false);
 
-    <HoverCard>
-      <HoverCardTrigger>
+  const handleCheckout = () => {
+    setIsOpen(false); // close the popover
+    setTimeout(() => {
+      window.location.href = '/#/learner/payment'; // redirect after closing
+    }, 100); // short delay ensures popover closes smoothly
+  };
+
+  return (
+    <HoverCard open={isOpen} onOpenChange={setIsOpen}>
+      <HoverCardTrigger asChild>
         <div className="ml-4 relative">
-          <button className="relative">
+          <button className="relative" onClick={() => setIsOpen(!isOpen)}>
             <ShoppingCart />
           </button>
         </div>
@@ -16,7 +25,7 @@ export const MyCartMenu: React.FC = () => {
         {mycartlist.map((course, idx) => (
           <div
             key={idx}
-            className="flex flex-col gap-3 mb-1 bg-white rounded-xl  p-4"
+            className="flex flex-col gap-3 mb-1 bg-white rounded-xl p-4"
           >
             <div className="flex items-start gap-4">
               <img
@@ -26,20 +35,18 @@ export const MyCartMenu: React.FC = () => {
               />
               <div className="flex-1">
                 <div className="flex justify-between items-start">
-                  <h3 className="text-lg  font-bold text-gray-900">{course.title}</h3>
+                  <h3 className="text-lg font-bold text-gray-900">{course.title}</h3>
                   <div className="text-xl font-bold text-orange-500">{course.price}</div>
                 </div>
-                <p className="text-gray-600 text-sm mt-1">
-                  {course.description}
-                </p>
+                <p className="text-gray-600 text-sm mt-1">{course.description}</p>
               </div>
             </div>
             <button
-              className="w-full py-2 border-2 border-orange-500 text-orange-500 font-bold  hover:bg-orange-50 transition"
+              onClick={handleCheckout}
+              className="w-full py-2 border-2 border-orange-500 text-orange-500 font-bold hover:bg-orange-50 transition"
             >
               Proceed To Checkout
             </button>
-
             <div className="border-b mt-2 border-gray-300"></div>
           </div>
         ))}
@@ -68,4 +75,3 @@ const mycartlist = [
     price: '₹186,99',
   },
 ];
-

@@ -21,16 +21,14 @@ const Profile = () => {
         <div className="public-profile-content">
           <LearnerProfileSidebar />
         </div>
-        {/* </div> */}
-        {/* Edit Profile Form */}
         <div className="flex-1">
           <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm px-0 py-0 mt-[32px]">
             <form className="px-8 py-8 flex flex-col gap-8">
               <div>
                 <div className="flex items-center gap-4 mb-2">
                   <span className="text-xl font-bold text-[#ff7700] font-barlow">Edit Profile</span>
-                  <div className="flex-1 border-b-2 border-[#ff7700] rounded" style={{ height: 3, minWidth: 60 }}></div>
                 </div>
+                  <div className="flex-1 border-b-2 border-[#ff7700] rounded" style={{ height: 3, minWidth: 60 }}></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
