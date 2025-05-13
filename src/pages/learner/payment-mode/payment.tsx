@@ -161,7 +161,7 @@ function PaymentMethod() {
                                     </svg>
                                 </div>
                                 <span>
-                                    I agree with the <a href="#" className="underline font-bold">Terms And Conditions</a>
+                                    I agree with the <a href="#/terms-of-use" className="underline font-bold">Terms And Conditions</a>
                                 </span>
                             </label>
                         </div>

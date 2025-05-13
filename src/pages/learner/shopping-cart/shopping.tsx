@@ -90,7 +90,7 @@ function ShoppingCart() {
                         <div className="mb-6">
                             <div className="flex items-center">
                                 <input type="checkbox" id="terms" className="mr-2" />
-                                <label htmlFor="terms">I agree with the <a href="#" className="underline">Terms And Conditions</a></label>
+                                <label htmlFor="terms">I agree with the <a href="/#/terms-of-use" className="underline">Terms And Conditions</a></label>
                             </div>
                         </div>
 
