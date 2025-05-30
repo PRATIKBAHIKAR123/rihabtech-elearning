@@ -28,10 +28,10 @@ export function LoginModeDialog({open, setOpen, setIsInstructor}: PopupScreenPro
         </DialogHeader>
         <DialogFooter>
           <Button type="submit"
-          onClick={() => setIsInstructor && setIsInstructor(false)}>Continue as a Learner</Button>
+          onClick={() => window.location.hash='#/login'}>Continue as a Learner</Button>
           <Button
             type="submit"
-            onClick={() => setIsInstructor && setIsInstructor(true)}
+            onClick={() => window.location.hash='#/instructor-signup'}
           >
             Signup as a Instructor
           </Button>

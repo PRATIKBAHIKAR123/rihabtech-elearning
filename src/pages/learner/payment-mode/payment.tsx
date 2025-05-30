@@ -122,7 +122,7 @@ function PaymentMethod() {
 
                 </div>
 
-                <div className="w-full ml-16 mt-16 lg:w-1/3 ">
+                <div className="w-full ml-0 md:ml-16 mt-16 lg:w-1/3 ">
                     <div className="bg-gray-100 p-6 rounded-lg">
                         <h2 className="section-title font-[Kumbh Sans] text-xl mb-6">Order Summary</h2>
 

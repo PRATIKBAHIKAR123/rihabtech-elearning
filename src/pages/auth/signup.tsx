@@ -4,8 +4,31 @@ import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { LoginModeDialog } from "./loginMode";
+import * as Yup from 'yup';
+import { useFormik } from "formik";
 
 export default function SignUpPage() {
+      const signupSchema = useFormik({
+      initialValues: {
+        email: '',
+        password: '',
+        number: '',
+        address: '',
+        termsconditions: false,
+      },
+      validationSchema: Yup.object({
+        email: Yup.string().email('Invalid email').required('Email is Required'),
+        password: Yup.string().matches(/^\d{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
+        number: Yup.string().matches(/^\d{10}$/,'Mobile Number Must be 10 Digits').required('Mobile Number is Required'),
+        address: Yup.string().required('Address is Required'),
+        termsconditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
+      }),
+      onSubmit: (values) => {
+        console.log(values);
+        setLoginModeIsOpen(true)
+      },
+    });
+    
   const [showPassword, setShowPassword] = useState(false);
   const [isLoginModeOpen, setLoginModeIsOpen] = useState(false);
   const [isInstructorloginMode, setLoginMode] = useState(false);
@@ -53,7 +76,7 @@ export default function SignUpPage() {
             </Button>
           </div> */}
 
-          <div className="space-y-4">
+          <form onSubmit={signupSchema.handleSubmit} className="space-y-4">
             {/* <div>
               <label htmlFor="username" className="text-sm text-gray-600 block mb-1">
                 Username
@@ -65,7 +88,28 @@ export default function SignUpPage() {
               <label htmlFor="email" className="text-sm text-gray-600 block mb-1">
                 Email
               </label>
-              <Input id="email" type="email" placeholder="johndoe@email.com" />
+              <Input id="email" type="email" 
+              value={signupSchema.values.email}
+          onChange={signupSchema.handleChange}
+          onBlur={signupSchema.handleBlur} placeholder="johndoe@email.com" />
+          {signupSchema.touched.email && signupSchema.errors.email && (
+          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.email}</p>
+        )}
+            </div>
+
+            <div>
+              <label htmlFor="number" className="text-sm text-gray-600 block mb-1">
+                Mobile Number
+              </label>
+              <div className="relative">
+                <Input id="number" type="number" maxLength={10}
+                value={signupSchema.values.number}
+          onChange={signupSchema.handleChange}
+                 placeholder="Enter Mobile Number" />
+                 {signupSchema.touched.number && signupSchema.errors.number && (
+          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.number}</p>
+        )}
+              </div>
             </div>
 
             <div>
@@ -73,7 +117,10 @@ export default function SignUpPage() {
                 Address
               </label>
               <div className="relative">
-                <Input id="address" placeholder="Mumbai, India" />
+                <Input id="address"
+                value={signupSchema.values.address}
+          onChange={signupSchema.handleChange}
+                 placeholder="Mumbai, India" />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
@@ -81,6 +128,9 @@ export default function SignUpPage() {
                   </svg>
                 </div>
               </div>
+              {signupSchema.touched.address && signupSchema.errors.address && (
+          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.address}</p>
+        )}
             </div>
 
             <div>
@@ -91,8 +141,13 @@ export default function SignUpPage() {
                 <Input 
                   id="password"
                   type={showPassword ? "text" : "password"}
+                   value={signupSchema.values.password}
+          onChange={signupSchema.handleChange}
                   placeholder="••••••••••••"
                 />
+                {signupSchema.touched.password && signupSchema.errors.password && (
+          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.password}</p>
+        )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -108,13 +163,26 @@ export default function SignUpPage() {
             </div>
             <div className="flex items-center justify-between space-x-2 mt-4">
             <div className="flex items-center space-x-2 mt-4">
-              <Checkbox id="terms" className="data-[state=checked]:bg-orange-500 border-gray-300" />
+          <Checkbox
+            id="terms"
+            checked={signupSchema.values.termsconditions}
+            onCheckedChange={(checked) =>
+              signupSchema.setFieldValue("termsconditions", checked)
+            }
+            className="data-[state=checked]:bg-orange-500 border-gray-300"
+          />
               <label htmlFor="terms" className="text-xs text-gray-600">
-                I accept the terms & conditions
+                I accept the <a className="font-bold cursor-pointer" onClick={()=>{
+                  signupSchema.setFieldValue("termsconditions", true)
+                  window.location.hash="#/terms-of-use"}}>terms & conditions</a>
+                  <br/>
+                  { signupSchema.errors.termsconditions && (
+          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.termsconditions}</p>
+        )}
               </label>
             </div>
 
-            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" onClick={()=> setLoginModeIsOpen(true)}>
+            <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4">
               SIGN UP
             </Button>
             </div>
@@ -124,7 +192,7 @@ export default function SignUpPage() {
             <div className="text-center text-sm mt-6">
               Own an Account? <a href="/#/login" className="text-blue-600 font-medium">JUMP RIGHT IN</a>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>

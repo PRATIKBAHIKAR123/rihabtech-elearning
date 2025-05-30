@@ -3,8 +3,27 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useFormik } from "formik";
+import * as Yup from 'yup';
+
+
 
 export default function LoginPage() {
+    const loginSchema = useFormik({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validationSchema: Yup.object({
+      email: Yup.string().email('Invalid email').required('Email is Required'),
+      password: Yup.string().required('Password is Required'),
+    }),
+    onSubmit: (values) => {
+      console.log(values);
+      window.location.href = '/#/learner/homepage';
+    },
+  });
+
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -42,7 +61,7 @@ export default function LoginPage() {
             </Button>
           </div> */}
 
-          <div className="space-y-4">
+          <form onSubmit={loginSchema.handleSubmit} className="space-y-4">
             {/* <div>
               <label htmlFor="username" className="text-sm text-gray-600 block mb-1">
                 Username
@@ -54,7 +73,14 @@ export default function LoginPage() {
               <label htmlFor="email" className="text-sm text-gray-600 block mb-1">
                 Email
               </label>
-              <Input id="email" type="email" placeholder="johndoe@email.com" />
+              <Input id="email" type="email"
+              value={loginSchema.values.email}
+          onChange={loginSchema.handleChange}
+          onBlur={loginSchema.handleBlur}
+               placeholder="johndoe@email.com" />
+               {loginSchema.touched.email && loginSchema.errors.email && (
+          <p className="text-red-500 text-sm mt-1">{loginSchema.errors.email}</p>
+        )}
             </div>
 
 
@@ -66,8 +92,13 @@ export default function LoginPage() {
                 <Input 
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  value={loginSchema.values.password}
+          onChange={loginSchema.handleChange}
                   placeholder="••••••••••••"
                 />
+                 {loginSchema.touched.password && loginSchema.errors.password && (
+          <p className="text-red-500 text-sm mt-1">{loginSchema.errors.password}</p>
+        )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -81,15 +112,15 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between space-x-2 mt-4">
-            <div className="flex items-center space-x-2 mt-4">
+            <div className="flex items-center justify-end space-x-2 mt-4">
+            {/* <div className="flex items-center space-x-2 mt-4">
               <Checkbox id="terms" className="data-[state=checked]:bg-orange-500 border-gray-300" />
               <label htmlFor="terms" className="text-xs text-gray-600">
                 I accept the terms & conditions
               </label>
-            </div>
+            </div> */}
 
-            <Button className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" onClick={() => window.location.href = '/#/learner/homepage'}>
+            <Button type="submit" className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4">
             Log In
             </Button>
             </div>
@@ -97,7 +128,7 @@ export default function LoginPage() {
             <div className="text-center text-sm mt-6">
             Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>

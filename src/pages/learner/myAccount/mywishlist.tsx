@@ -69,7 +69,11 @@ function CourseCard({ course }: { course: Course }) {
   const isFree = course.price === 0;
   return (
 
-    <div className="wishlist-course-udemy-style">
+    <div className="wishlist-course-udemy-style" onClick={()=>{
+      
+      window.location.href = '/#/courseDetails';
+    
+    }}>
       <div className="wishlist-image-container">
         <img className="wishlist-course-image" src={course.image} alt={course.title} />
         <div className="wishlist-image-overlay" />

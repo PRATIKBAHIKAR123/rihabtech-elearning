@@ -48,19 +48,19 @@ export default function ContactUs() {
           <div className="mb-8">
             <h3 className=" text-[#181818] text-lg font-semibold font-['Spartan'] leading-relaxed mb-2">Address</h3>
             <p className="text-gray-600">
-              Studio 76d, Riley Ford, North Michael chester,<br />
-              CF99 6QQ
+              ZK Tutorials, 484 Old Bazar Khadki Pune,<br />
+              Maharashtra India
             </p>
           </div>
           
           <div className="mb-8">
             <h3 className=" text-[#181818] text-lg font-semibold font-['Spartan'] leading-relaxed mb-2">Email</h3>
-            <p className="text-[#181818] text-[15px] font-normal font-['Poppins'] leading-relaxed">edublink@example.com</p>
+            <p className="text-[#181818] text-[15px] font-normal font-['Poppins'] leading-relaxed">support@zktutorials.com</p>
           </div>
           
           <div className="mb-8">
             <h3 className=" text-[#181818] text-lg font-semibold font-['Spartan'] leading-relaxed mb-2">Phone</h3>
-            <p className="text-[#181818] text-[15px] font-normal font-['Poppins'] leading-relaxed">(+091) 413 554 8598</p>
+            <p className="text-[#181818] text-[15px] font-normal font-['Poppins'] leading-relaxed">(+91)-8956444784</p>
           </div>
           
           <div className="flex space-x-4 mt-8">

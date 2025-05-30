@@ -1,4 +1,4 @@
-import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCap, LayoutGrid, PlayCircle, Search, Settings, ShoppingCart, User } from "lucide-react";
+import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCap, LayoutGrid, Menu, PlayCircle, Search, Settings, ShoppingCart, User } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
@@ -17,10 +17,30 @@ function Header() {
 
   return (
     <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
-      <div className="mx-auto px-10 py-4 gap-16 flex items-center justify-between">
+      <div className="flex items-center justify-between p-2 space-x-1 cursor-pointer md:hidden">
+              {/* <button>
+          <Menu className="text-primary" />
+        </button> */}
+        <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
+          <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[38px]" />
+          <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[170px] mt-1" />
+        </div>
+        
+        <div className="flex items-center gap-2">
+        <Search size={22} />
+<MyCartMenu />
+<div className="relative">
+  <button className="relative">
+    <BellIcon size={22}/>
+  </button>
+</div>
+<ProfileMenu />
+</div>
+    </div>
+      <div className="hidden md:flex mx-auto px-10 py-4 gap-16 items-center justify-between">
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
-          <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[181px] mt-1" />
+          <img src="Logos/brand-name-img.png" alt="Logo" className="h-[18px] w-[181px] mt-1" />
         </div>
 
         <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
@@ -349,6 +369,7 @@ export const MyLearningsMenu: React.FC = () => {
           <div
             key={idx}
             className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
+            onClick={()=>{window.location.hash = '#/learner/my-learnings'}}
           >
             <img
               src={course.imageUrl}

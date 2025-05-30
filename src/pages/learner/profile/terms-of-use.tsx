@@ -8,15 +8,7 @@ const TermsOfUse = () => {
   const [lastName] = useState('Agrawal');
 
   return (
-    <div className="public-profile-root min-h-screen bg-white">
-      <GradientHeader subtitle="My Profile / Learner" title={`${firstName} ${lastName}`} />
-      <div className="container flex flex-col md:flex-row">
-        {/* Sidebar */}
-        <div className="public-profile-content">
-          <LearnerProfileSidebar />
-        </div>
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center mt-[32px]">
+    
           <div className="bg-white  rounded-xl px-8 py-8  ">
             <div className="font-bold text-xl mb-2 border-b-2pb-1 w-fit mb-[24px] font-barlow">Terms of Use</div>
             <div className="flex flex-col gap-6 text-[#222] font-barlow text-base">
@@ -34,9 +26,6 @@ const TermsOfUse = () => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
   );
 };
 

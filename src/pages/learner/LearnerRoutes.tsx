@@ -6,13 +6,13 @@ import PaymentMethod from './payment-mode/payment';
 import ShoppingCart from './shopping-cart/shopping';
 import CourseDetailsPage from './playingcourse/currentCourseDetails';
 import ChatInterface from './chatscreen/chatscreen';
-import Profile from './profile/profile';
 import PublicProfile from './profile/public-profile';
 import AccountSecurity from './profile/account&security';
 import Logout from './profile/logout';
 import ProfilePhoto from './profile/profile-photo';
 import TermsOfUse from './profile/terms-of-use';
 import ProfilePaymentMethod from './profile/payment-method';
+import Profile from './profile/page';
 
 export default function LearnerRoutes() {
   return (

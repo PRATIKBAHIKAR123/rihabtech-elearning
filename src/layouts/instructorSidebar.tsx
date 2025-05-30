@@ -1,47 +1,133 @@
-import React from 'react';
+import { BarChartBig, LucideMessageCircleQuestion, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 const Sidebar = () => {
+ 
     return (
-      <div className="w-60 bg-white shadow-md h-screen px-4">
+      <div className="w-60 bg-white shadow-md max-h-full px-4">
         
         
-        <nav className="mt-6  h-screen bg-gray-50 rounded-[18px] py-8">
-          <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} />
-          <SidebarItem icon={<CreditCardIcon />} text="Payment" />
-          <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} />
-          <SidebarItem icon={<UsersIcon />} text="Groups" />
-          <SidebarItem icon={<UserIcon />} text="Students" />
-          <SidebarItem icon={<QuestionMarkIcon />} text="Support" />
+        <nav className="mt-6 h-[98%]  max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
+          <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
+          <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
+          <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
+          <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
+          <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/payment' />
+          <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/payment' />
+          <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/payment' />
         </nav>
       </div>
     );
   };
 
-// Sidebar Item Component
+  // Sidebar Item Component
 interface SidebarItemProps {
-  icon: React.ReactNode;
-  text: string;
-  active?: boolean;
-  badge?: number;
-}
-
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, active, badge }) => {
-  return (
-    <div className={`flex items-center px-4 py-3 cursor-pointer ${active ? 'border-l-4 border-primary text-primary' : 'text-gray-500'}`}>
-      <div className="w-6 h-6">
-        {icon}
-      </div>
-      <span className="ml-3 text-sm font-medium font-['DM_Sans']">{text}</span>
-      {badge && (
-        <div className="ml-auto bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-          {badge}
+    icon: React.ReactNode;
+    text: string;
+    active?: boolean;
+    badge?: number;
+    route:string
+  }
+  
+  const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) => {
+      const [activePath, setActivePath] = useState(window.location.hash);
+  
+    useEffect(() => {
+      const handleHashChange = () => {
+        setActivePath(window.location.hash);
+      };
+  
+      window.addEventListener('hashchange', handleHashChange);
+      return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+      };
+    }, []);
+  
+    const active = activePath === route;
+    return (
+      <div className={`flex items-center px-4 py-3 cursor-pointer ${active ? 'border-l-4 border-primary text-primary' : 'text-gray-500'}`} onClick={()=>{window.location.href = route}}>
+        <div className="w-6 h-6">
+          {icon}
         </div>
-      )}
-    </div>
-  );
-};
+        <span className="ml-3 text-sm font-medium font-['DM_Sans']">{text}</span>
+        {badge && (
+          <div className="ml-auto bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {badge}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  export default Sidebar;
 
-export default Sidebar
+  
+
+  type SidebarProps = {
+    isOpen: boolean;
+    onClose: () => void;
+  };
+
+ export const MobileSidebar = ({ isOpen, onClose }: SidebarProps) => {
+    return (
+      <div
+        className={`fixed top-0 left-0 h-full w-[300px] bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Close Button */}
+        <div className="flex justify-end p-4 md:hidden">
+          <button onClick={onClose}>
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+  
+        {/* User Info */}
+        <div className="px-4 pb-4 border-b">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
+              PB
+            </div>
+            <div>
+              <div className="font-semibold">Hi, Manan A.</div>
+              <div className="text-sm text-gray-500">Welcome back</div>
+            </div>
+          </div>
+          <button className="mt-3 text-purple-600 text-sm font-medium" onClick={() => window.location.href = '/#/learner/homepage'}>
+            Switch to Learner
+          </button>
+        </div>
+  
+        {/* Nav Menu */}
+        <nav className="mt-4 px-4 space-y-2 text-sm">
+          <MobileSidebarItem text="Courses" route='#/instructor/courses' />
+          <MobileSidebarItem text="Chat" route='#/instructor/chat' hasDropdown />
+          <MobileSidebarItem text="Performance" route='#/instructor/dashboard' hasDropdown />
+          <MobileSidebarItem text="Students" route='#/instructor/courses' />
+          <MobileSidebarItem text="Groups" route='#/instructor/courses' />
+        </nav>
+      </div>
+    );
+  };
+
+  type MobileSidebarItemProps = {
+    text: string;
+    hasDropdown?: boolean;
+    route:string;
+  };
+
+  const MobileSidebarItem = ({ text, hasDropdown, route }: MobileSidebarItemProps) => {
+    return (
+      <div className="flex items-center justify-between cursor-pointer hover:text-purple-600" onClick={()=>{window.location.hash = route}}>
+        <span>{text}</span>
+        {/* {hasDropdown && <span className="text-lg">›</span>} */}
+      </div>
+    );
+  };
+
+
+
+
 
 // SVG Icons
 const DocumentIcon = () => (

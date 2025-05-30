@@ -108,15 +108,12 @@ export default function AboutUs() {
 
                 </div>
 
-                <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="container mx-auto justify-center w-full grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Feature 1 */}
                     {[{
                         'name': 'High Quality Courses', 'description': 'Learn from courses that are carefully created by industry experts.',
                         'color': '#FFA600', 'icon': 'Images/icons/Icon.png', 'id': '1'
-                    }, {
-                        'name': 'Life Time Access', 'description': 'Pay once, learn forever. Access your courses anytime you want.',
-                        'color': '#EE4A62', 'icon': 'Images/icons/Icon-1.png', 'id': '2'
-                    }, {
+                    },  {
                         'name': 'Expert Instructors', 'description': 'Get real-world knowledge from Professionals with years of experience.',
                         'color': '#4664E4', 'icon': 'Images/icons/Icon-2.png', 'id': '3'
                     },

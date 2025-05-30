@@ -343,10 +343,11 @@
   flex-direction: column;
   align-items: center;
   position: absolute;
-  top: -210px; /* overlap the banner */
-  left: 550px;
+  top: -150px;
+    left: 123px;
   right: 0;
   margin: 0 auto;
+  z-index: 9;
 }
 
 .public-profile-initials {

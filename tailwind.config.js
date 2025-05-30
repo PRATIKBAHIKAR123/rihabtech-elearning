@@ -17,7 +17,7 @@ module.exports = {
         },
         background: "#F9FAFB",
         muted: "#E5E7EB",
-        accent: "#10B981",
+        accent: "#FF7700",
       },
     },
   },

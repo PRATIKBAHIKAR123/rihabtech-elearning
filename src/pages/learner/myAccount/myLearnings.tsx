@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, User2 } from "lucide-react";
+import { CourseCard } from '../../comman/courses/courseList';
 // const [courses] = useState<Course[]>(myLearningCourses);
 
 
@@ -59,56 +60,6 @@ const myLearningCourses: Course[] = [
   }
 ];
 
-function CourseCard({ course }: { course: Course }) {
-
-  return (
-    <div className="course-card overflow-hidden">
-      <div className="relative">
-        <img src={course.image} alt={course.title} />
-      </div>
-
-      <div className="course-details-section">
-        <div className="course-students">
-          <div className="py-0.5 flex gap-2 items-center">
-            <span>{course.students} Students</span>
-          </div>
-          <div className="py-0.5 flex items-center gap-2">
-            <span>{course.duration} Weeks</span>
-          </div>
-        </div>
-        <h3 className="course-title">{course.title}</h3>
-        <p className="course-desciption">{course.description}</p>
-
-        {course.progress !== undefined && (
-          <div className="course-progress">
-            <div className="course-progress-bar">
-              <div
-                className="progress-completed"
-                style={{ width: `${course.progress}%` }}
-              ></div>
-              <div className="progress-dot" />
-            </div>
-            <div className="progress-text-completed">{course.progress}% Completed</div>
-          </div>
-        )}
-
-        {course.price !== undefined && (
-          <div className="course-price-section">
-            {course.price === 0 ? (
-              <span className="price-free"></span>
-            ) : (
-              <div>
-                {course.originalPrice && (
-                  <span className="course-original-price">₹{course.originalPrice}</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function MyLearnings() {
 
@@ -164,7 +115,7 @@ export default function MyLearnings() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+              <CourseCard key={course.id} course={course} progress={true} />
             ))}
           </div>
         )}

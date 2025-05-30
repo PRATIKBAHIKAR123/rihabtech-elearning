@@ -15,13 +15,13 @@ export const MyCartMenu: React.FC = () => {
   return (
     <HoverCard open={isOpen} onOpenChange={setIsOpen}>
       <HoverCardTrigger asChild>
-        <div className="ml-4 relative">
+        <div className="ml-0 md:ml-4 relative">
           <button className="relative" onClick={() => setIsOpen(!isOpen)}>
             <ShoppingCart />
           </button>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="w-[500px] bg-white rounded-md shadow-2xl p-4">
+      <HoverCardContent className=" w-96 md:w-[500px] bg-white rounded-md shadow-2xl p-4">
         {mycartlist.map((course, idx) => (
           <div
             key={idx}

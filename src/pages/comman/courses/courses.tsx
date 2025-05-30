@@ -87,7 +87,7 @@ export default function SuggestedCourses() {
                         <div className="flex items-center gap-2">
                           <div className="justify-between flex items-center gap-2">
                             <span className="text-[#999999] text-base font-normal font-['Barlow'] leading-relaxed">From</span>
-                            <span className="text-[#000927] text-base font-semibold font-['Barlow'] capitalize leading-relaxed"> ₹{course.price} </span>
+                            <span className="text-[#000927] text-base font-semibold font-['Barlow'] capitalize leading-relaxed"> Included in Subscription </span>
                         </div>
                         <Divider/> <a className="text-primary font-medium">Start learning</a>
                           

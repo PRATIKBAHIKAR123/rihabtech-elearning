@@ -21,6 +21,7 @@ import InstructorRoutes from './pages/instructor/instructorRoutes';
 import TermsOfUse from './pages/comman/terms-and-condition/terms-of-use';
 import PrivacyPolicy from './pages/comman/privacy-policy/privacy-policy';
 import RefundPolicy from './pages/comman/refund-policy/refund-policy';
+import InstructorSignupPage from './pages/auth/instructorSignup';
 
 function App() {
   useEffect(() => {
@@ -39,6 +40,7 @@ function App() {
     
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/instructor-signup" element={<InstructorSignupPage />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
       <Route path="/aboutUs" element={<CommanLayout><AboutUs /></CommanLayout> } />
       <Route path="/contactUs" element={<CommanLayout><ContactUs /></CommanLayout> } />
@@ -49,6 +51,7 @@ function App() {
       <Route path="/refund-policy" element={<CommanLayout><RefundPolicy /></CommanLayout> } />
       <Route path="/courselist" element={<CommanLayout><CourseList /></CommanLayout> } />
       <Route path="/courseDetails" element={<CommanLayout><CourseDetails /></CommanLayout> } />
+      <Route path="/instructorDetails" element={<CommanLayout><InstructorDetails /></CommanLayout> } />
       <Route path="/learner/*" element={<CommanLayout><LearnerRoutes /></CommanLayout>} />
       <Route path="/instructor/*" element={<InstructorLayout><InstructorRoutes /></InstructorLayout>} />
 

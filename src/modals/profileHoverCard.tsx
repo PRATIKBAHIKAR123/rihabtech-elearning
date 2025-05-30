@@ -38,7 +38,7 @@ const profileMenuList = [
     title: "Courses",
     description: "View all enrolled courses",
     icon: <LayoutGrid className="w-6 h-6 text-orange-500" />,
-    path: "/#/learner/courses",
+    path: "#/learner/my-learnings",
   },
   {
     title: "Settings",
@@ -62,8 +62,8 @@ export const ProfileMenu: React.FC = () => {
   return (
     <HoverCard open={isOpen} onOpenChange={setIsOpen}>
       <HoverCardTrigger asChild>
-        <div className="ml-4 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-          <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
+        <div className="ml-0 md:ml-4 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+          <div className="w-7 md:w-10 h-7 md:h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
             MA
           </div>
         </div>

@@ -26,6 +26,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popove
             <div
               key={idx}
               className="flex items-start gap-4 p-4 border-b border-gray-200"
+            onClick={() => {
+      window.location.href = '/#/courseDetails';
+    }}
             >
               <img
                 src={course.imageUrl}

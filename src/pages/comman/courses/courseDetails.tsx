@@ -26,26 +26,32 @@ export default function CourseDetails() {
             
             <section className="gradient-header">
                 <div className="container mx-auto">
-                    <div className="w-1/2 text-left text-white text-4xl font-bold font-['Spartan'] leading-[50.40px]">Grow Personal Financial
+                    <div className="w-full md:w-1/2 text-left text-white text-lg md:text-4xl font-bold font-['Spartan'] leading -[30px] md:leading-[50.40px]">Grow Personal Financial
                     Security Thinking & Principles</div>
-                    <div className="flex gap-3 items-center mt-2">
+                    <div className="flex flex-col md:flex-row gap-3 items-start md:items-center mt-2">
+                      <div className="flex items-center gap-2">
                         <img src="Images/icons/user-laptop.png" alt="Star" className="w-4 h-4" />
                         <div 
                             className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer hover:underline hover:text-gray-300 transition-all duration-200" 
                             onClick={() => { window.location.href = '/#/instructorDetails' }}
                         >
                             By Edward Narton
+                            </div>
                         </div>
-                        <Divider className="h-4 bg-white" />
+                        <Divider className="h-0 md:h-4 bg-white" />
+                        <div className="flex items-center gap-2">
                         <img src="Images/icons/Icon (1).png" alt="Star" className="w-4 h-4" />
                         <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">Motivation</div>
-                        <Divider className="h-4 bg-white" />
+                        </div>
+                        <Divider className="h-0 md:h-4 bg-white" />
+                        <div className="flex items-center gap-2">
                         <div className="flex justify-left">
                                                 {[...Array(5)].map((_, i) => (
                                                     <img src="Images/icons/Container (6).png" alt="Star" className="w-4 h-4" />
                                                 ))}
                                             </div>
                         <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">(2 Reviews)</div>
+                        </div>
                         </div>
                 </div>
             </section>
@@ -57,7 +63,7 @@ export default function CourseDetails() {
           {/* Left: Tabs Section */}
           <div className="w-full lg:w-2/3">
             <Tabs defaultValue="overview" className="w-full custom-tabs">
-              <TabsList className="custom-tabs-list">
+              <TabsList className="custom-tabs-list overflow-x-scroll overflow-y-hidden md:overflow-x-auto">
                 <TabsTrigger value="overview" className="custom-tab-trigger">Overview</TabsTrigger>
                 <TabsTrigger value="curriculum" className="custom-tab-trigger">Curriculum</TabsTrigger>
                 <TabsTrigger value="instructor" className="custom-tab-trigger">Instructor</TabsTrigger>
@@ -135,7 +141,7 @@ My first foray into programming was when I was just 12 years old, wanting to bui
       <span className="flex items-center gap-4">
         <img src="Images/icons/course-Icon.png" className="h-6" /> Price:
       </span>
-      <span className="text-primary text-xl font-semibold font-['Poppins'] leading-[34.60px] font-semibold">₹49</span>
+      <span className="text-primary text-lg font-semibold font-['Poppins'] leading-[34.60px] font-semibold">Included in Subscription</span>
     </li>
     <hr className="w-full bg-[#E5E5E5]" />
     <li className="flex justify-between">
@@ -182,7 +188,7 @@ My first foray into programming was when I was just 12 years old, wanting to bui
   </ul>
 </div>
 
-              <Button className="w-full py-6 text-sm font-normal font-['Spartan'] text-white" onClick={() => setIsCartModalOpen(true)}>
+              <Button className="w-full py-6 text-sm font-normal font-['Spartan'] text-white" onClick={() => {window.location.hash = '#/pricing'}}>
                 Buy Now
               </Button>
 
