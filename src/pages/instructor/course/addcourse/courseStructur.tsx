@@ -1,6 +1,7 @@
+import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 
-export function CourseStructure(){
+export function CourseStructure({onSubmit}:any){
     return(
         <div>
             <h3 className="tip mb-2">Tip</h3>
@@ -72,6 +73,11 @@ Help learners apply your lessons to their real world with projects, assignment
                 <li>Your course is composed of valuable educational content and free of promotional or distracting materials</li>
                 </ul>
             </div>
+            <div className="flex justify-end">
+          <Button type="submit" className="rounded-none" onClick={onSubmit}>
+            Continue
+          </Button>
+        </div>
       </div>
     )
 }

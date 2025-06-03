@@ -38,11 +38,11 @@ const CourseContent = () => {
         { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
         { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
         { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
-        { id: "captions", icon: <Type size={18} />, label: "Captions" },
-        { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
+        // { id: "captions", icon: <Type size={18} />, label: "Captions" },
+        // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
         { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
         { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
-        { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
+        // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
         { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
       ];
       
@@ -56,7 +56,7 @@ const CourseContent = () => {
                 { id: "practice-test", icon: <Users size={18} />, label: "Practise Test" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
-                { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
+                // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
         }else{
@@ -67,11 +67,11 @@ const CourseContent = () => {
                 { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
                 { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
                 { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
-                { id: "captions", icon: <Type size={18} />, label: "Captions" },
-                { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
+                // { id: "captions", icon: <Type size={18} />, label: "Captions" },
+                // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
-                { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
+                // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
         }
@@ -114,37 +114,37 @@ const CourseContent = () => {
             )}
             {selectedItem === "course-structure" && (
               <div>
-                <CourseStructure/>
+                <CourseStructure onSubmit={()=>{setSelectedItem('setup-test-video')}}/>
               </div>
             )}
             {selectedItem === "setup-test-video" && (
               <div>
-                <SetupTestVideo/>
+                <SetupTestVideo onSubmit={()=>{setSelectedItem('film-edit')}}/>
               </div>
             )}
             {selectedItem === "film-edit" && (
               <div>
-                <SetupTestVideo/>
+                <SetupTestVideo onSubmit={()=>{setSelectedItem('curriculum')}}/>
               </div>
             )}
             {selectedItem === "curriculum" && (
               <div>
-                <CourseCarriculam/>
+                <CourseCarriculam onSubmit={()=>{setSelectedItem('course-landing-page')}}/>
               </div>
             )}
-            {selectedItem === "captions" && (
+            {/* {selectedItem === "captions" && (
               <div>
                 <CourseCaptions/>
               </div>
             )}
             {selectedItem === "accessibility"&&(
                 <Accessibility/>
-            )}
+            )} */}
             {selectedItem === "course-landing-page"&&(
                 <CourseLandingPage onSubmit={()=>{setSelectedItem('pricing')}}/>
             )}
             {selectedItem === "pricing"&&(
-                <CoursePricing/>
+                <CoursePricing onSubmit={()=>{setSelectedItem('course-messages')}}/>
             )}
             {selectedItem === "promotions" && (
               <div>

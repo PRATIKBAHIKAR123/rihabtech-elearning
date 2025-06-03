@@ -7,7 +7,11 @@ import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
 
-function Header() {
+type HeaderProps = {
+    onMenuClick: () => void;
+  };
+
+function Header({ onMenuClick }: HeaderProps) {
   const [isSearchPopupOpen, setSearchPopupIsOpen] = useState(false);
   const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
   const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
@@ -18,9 +22,9 @@ function Header() {
   return (
     <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
       <div className="flex items-center justify-between p-2 space-x-1 cursor-pointer md:hidden">
-              {/* <button>
+              <button onClick={onMenuClick}>
           <Menu className="text-primary" />
-        </button> */}
+        </button>
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[38px]" />
           <img src="Logos/brand-name-img.png" alt="Logo" className="h-[15px] w-[170px] mt-1" />
@@ -29,12 +33,12 @@ function Header() {
         <div className="flex items-center gap-2">
         <Search size={22} />
 <MyCartMenu />
-<div className="relative">
+{/* <div className="relative">
   <button className="relative">
     <BellIcon size={22}/>
   </button>
 </div>
-<ProfileMenu />
+<ProfileMenu /> */}
 </div>
     </div>
       <div className="hidden md:flex mx-auto px-10 py-4 gap-16 items-center justify-between">

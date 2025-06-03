@@ -2,7 +2,7 @@ import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 
-export function CoursePricing(){
+export function CoursePricing({onSubmit}:any){
     return(
          <div>
             <div className="mb-3">
@@ -47,7 +47,7 @@ export function CoursePricing(){
                 
                 </div>
                 <div className="flex justify-end items-end mt-2">
-                        <Button className="rounded-none">Save</Button>
+                        <Button className="rounded-none" onClick={onSubmit}>Save</Button>
                     </div>
       </div>
          </div>

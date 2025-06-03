@@ -11,6 +11,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { AssignmentEditor } from "../../../../components/ui/assignmentEditorComponent";
+import { on } from "events";
 
 function useArticleEditor(
   sectionIdx: number,
@@ -141,7 +142,7 @@ const getInitialLecture = (index: number): LectureItem => ({
   resources: [],
 });
 
-export function CourseCarriculam() {
+export function CourseCarriculam({ onSubmit }: any) {
   const [showContentType, setShowContentType] = useState<ViewItemState | null>(null);
   const [editLecture, setEditLecture] = useState<ViewItemState | null>(null);
   const [addType, setAddType] = useState<AddTypeState | null>(null);
@@ -244,6 +245,7 @@ export function CourseCarriculam() {
     validationSchema,
     onSubmit: (values) => {
       console.log("Curriculum values:", values);
+      onSubmit(values);
     },
   });
 

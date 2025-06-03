@@ -1,10 +1,14 @@
 import { Play, Plus } from "lucide-react";
 import { useState } from "react";
+import { CreateNoteDialog } from "./createNoteModal";
 
 
 export default function Notes() {
-    const [notes] = useState([
-        {
+  
+
+        const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [notes, setNotes] = useState([
+    {
           id: 1,
           heading: "Note Heading Here",
           content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui."
@@ -19,11 +23,22 @@ export default function Notes() {
           heading: "Note Heading Here",
           content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui."
         }
-      ]);
+  ]);
+
+        const handleCreateNote = (note: { heading: string; content: string }) => {
+    setNotes(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        heading: note.heading,
+        content: note.content
+      }
+    ]);
+  };
   return (
     <div className="container mx-auto px-2 py-2">
       <div className="mb-6">
-              <button className="border border-primary text-primary text- text-primary px-4 py-2 rounded flex items-center">
+              <button onClick={() => setIsDialogOpen(true)} className="border border-primary text-primary text- text-primary px-4 py-2 rounded flex items-center">
                 <span>Create A Note</span>
                 <Plus size={16} className="ml-2" />
               </button>
@@ -44,6 +59,11 @@ export default function Notes() {
                 </div>
               ))}
             </div>
+            <CreateNoteDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={handleCreateNote}
+      />
     </div>
   );
 }
