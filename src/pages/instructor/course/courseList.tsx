@@ -37,7 +37,7 @@ export default function CourseList() {
         </Button>
       </div>
             <div className="flex flex-col gap-2 mt-4">
-                {[...Array(3)].map((_,index)=>(<div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between hover:shadow-lg  cursor-pointer">
+                {[...Array(3)].map((_,index)=>(<div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between hover:shadow-lg  cursor-pointer" onClick={() => (window.location.href = "/#/learner/current-course")}>
                     <div className="flex gap-2 items-center">
                         <img src="Images/4860253.png" className="w-20 h-[82.29px] rounded-lg" />
                         <div>
