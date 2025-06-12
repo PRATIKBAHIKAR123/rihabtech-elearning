@@ -81,7 +81,7 @@ const CourseContent = () => {
     return (
         <div className="flex flex-col justify-between h-full">
       <div className="px-4 md:px-8">
-        <h1 className="ins-heading mb-3">How much time can you spend creating your course?</h1>
+        {/* <h1 className="ins-heading mb-3">How much time can you spend creating your course?</h1> */}
         
         <div className="bg-gray-50 rounded-[18px] shadow-sm p-6">
         <h2 className="text-black text-[17px] font-medium font-['Urbanist'] mb-4">Course Creation</h2>

@@ -12,8 +12,11 @@ const CourseTitle = () => {
       title: Yup.string().required("Course Title is required"),
     }),
     onSubmit: (values) => {
-      // Proceed to next step if valid
-      window.location.hash = "#/instructor/course-category";
+  const draft = JSON.parse(localStorage.getItem("courseDraft") || "{}");
+
+  draft.title = values.title;
+  localStorage.setItem("courseDraft", JSON.stringify(draft));
+  window.location.hash = "#/instructor/course-category";
     },
   });
 

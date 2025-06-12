@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Star, User, Globe, Bell, ShoppingCart, Search, Plus, Pause } from "lucide-react";
+import { Play, Star, User, Globe, Bell, ShoppingCart, Search, Plus, Pause, SkipBack, SkipForward, Fullscreen } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import Overview from './overview';
 import Notes from './notes';
@@ -7,6 +7,7 @@ import Instructor from './instructure';
 import CourseReviews from './reviews';
 import LearningTools from './learningtools';
 import ReactPlayer from 'react-player';
+import QNA from './qna';
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState("Notes");
@@ -63,7 +64,7 @@ export default function CourseDetailsPage() {
   const [watchSessions, setWatchSessions] = useState<WatchSession[]>([]); // track all watch sessions
   type WatchedSegment = { start: number; end: number };
   const [watchedSegments, setWatchedSegments] = useState<WatchedSegment[]>([]); // track watched video segments
-  
+const playerContainerRef = useRef<HTMLDivElement>(null);  
   // Refs for tracking
   const playerRef = useRef<ReactPlayer>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -306,6 +307,24 @@ export default function CourseDetailsPage() {
     handleSeek(seekTo);
   };
 
+  const handleFullscreen = () => {
+  const elem = playerContainerRef.current;
+  if (!elem) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    elem.requestFullscreen();
+  }
+};
+
+    const seekForward = () => {
+        playerRef!.current!.seekTo(playerRef!.current!.getCurrentTime() + 10);
+    };
+
+    const seekBackward = () => {
+        playerRef!.current!.seekTo(playerRef!.current!.getCurrentTime() - 10);
+    };
+
   // Generate watch time analytics
   const generateWatchTimeAnalytics = () => {
     // Calculate unique seconds watched (accounting for rewatching segments)
@@ -398,14 +417,15 @@ export default function CourseDetailsPage() {
             <div className="relative overflow-hidden mb-6 border-b rounded-lg pb-4"
               onMouseEnter={() => setIsHovered(true)}
   onMouseLeave={() => setIsHovered(false)}>
-              <div className="relative">
+              <div   ref={playerContainerRef}
+  className={`relative h-[450px]`}>
                   <ReactPlayer
             ref={playerRef}
             url="https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf" // Replace with your video URL
             playing={isPlaying}
             controls={false}
             width="100%"
-            height="455px"
+            height={document.fullscreenEnabled ? "100%" : "450px"} // Fullscreen height if enabled
             volume={volume}
             onProgress={({ playedSeconds }) => setCurrentTime(playedSeconds)}
             onDuration={setDuration}
@@ -467,12 +487,28 @@ export default function CourseDetailsPage() {
           <div className="flex justify-between items-center">
             {/* Controls */}
             <div className="flex items-center space-x-4">
+              <button
+    onClick={seekBackward}
+    className="focus:outline-none ml-2"
+    title="Fast Forward 10s"
+  >
+    {/* Fast Forward Icon */}
+    <SkipBack size={24} />
+  </button>
               <button 
                 onClick={isPlaying ? handlePause : handlePlay}
                 className="focus:outline-none"
               >
                 {isPlaying ? <Pause size={24} /> : <Play size={24} />}
               </button>
+              <button
+    onClick={seekForward}
+    className="focus:outline-none ml-2"
+    title="Fast Forward 10s"
+  >
+    {/* Fast Forward Icon */}
+    <SkipForward size={24} />
+  </button>
               <span className="text-sm">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
@@ -492,6 +528,13 @@ export default function CourseDetailsPage() {
                 }}
                 className="w-24"
               />
+              <button
+  onClick={handleFullscreen}
+  className="focus:outline-none ml-2"
+  title="Fullscreen"
+>
+  <Fullscreen size={24} />
+</button>
             </div>
           </div>
         </div>)}
@@ -566,7 +609,7 @@ export default function CourseDetailsPage() {
             {/* Tabs */}
             <div className="mb-6">
               <div className="flex space-x-2 ">
-                {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools"].map((tab) => (
+                {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools" ,"QNA"].map((tab) => (
                   <button
                     key={tab}
                     className={`px-4 py-2 text-[15px] font-medium font-['Archivo'] rounded-[35px] shadow-[0px_1px_1.600000023841858px_0px_rgba(0,0,0,0.25)] border border-primary ${
@@ -587,7 +630,7 @@ export default function CourseDetailsPage() {
             {activeTab === 'Instructor' && <Instructor />}
             {activeTab === 'Reviews' && <CourseReviews />}
             {activeTab === 'Learning Tools' && <LearningTools />}
-
+                 {activeTab === 'QNA' && <QNA />}
             
           </div>
           

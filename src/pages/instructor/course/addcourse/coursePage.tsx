@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -43,12 +43,24 @@ export function CourseLandingPage({ onSubmit }: any) {
     },
     validationSchema,
     onSubmit: (values) => {
+      // Save title and category to localStorage draft
+      const draft = JSON.parse(localStorage.getItem('courseDraft') || '{}');
+      draft.title = values.title;
+      draft.category = values.category;
+      localStorage.setItem('courseDraft', JSON.stringify(draft));
       // Handle submit (API call, etc.)
       console.log("Form values:", values);
       // You can send thumbnailFile and promoVideoFile to your backend here
       onSubmit(values);
     },
   });
+
+  useEffect(() => {
+    // Prefill from localStorage if available
+    const draft = JSON.parse(localStorage.getItem('courseDraft') || '{}');
+    if (draft.title) formik.setFieldValue('title', draft.title);
+    if (draft.category) formik.setFieldValue('category', draft.category);
+  }, []);
 
   // Handlers for file/image/video
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {

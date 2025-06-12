@@ -91,7 +91,7 @@ const AccountSecurity = () => {
             </div>
           </div>
           {/* Email Card */}
-          <div className="w-full">
+          {/* <div className="w-full">
             <div className="bg-white border border-[#E6E6E6] shadow-md flex flex-col gap-6 py-4 px-8">
               <div className="font-semibold text-[#ff7700] text-lg mb-2 border-b-2 border-[#ff7700] pb-1 w-fit mb-[24px]">Change Email</div>
               <form onSubmit={emailFormik.handleSubmit}>
@@ -115,7 +115,7 @@ const AccountSecurity = () => {
                 </button>
               </form>
             </div>
-          </div>
+          </div> */}
         </div>
   );
 };

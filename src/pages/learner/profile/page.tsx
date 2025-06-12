@@ -6,9 +6,12 @@ import { useState } from 'react';
 import ProfilePhoto from './profile-photo';
 import AccountSecurity from './account&security';
 import ProfilePaymentMethod from './payment-method';
-import TermsOfUse from './terms-of-use';
+// import TermsOfUse from './terms-of-use';
 import { Logs } from 'lucide-react';
 import Logout from './logout';
+import PrivacyPolicy from '../../comman/privacy-policy/privacy-policy';
+import RefundPolicy from '../../comman/refund-policy/refund-policy';
+import TermsOfUse from '../../comman/terms-and-condition/terms-of-use';
 
 const Profile = () => {
 
@@ -21,6 +24,8 @@ const Profile = () => {
   { label: 'Account & Security', tab: 'account&security' },
   { label: 'Payment Method', tab: 'payment-method' },
   { label: 'Terms Of Use', tab: 'terms-of-use' },
+    { label: 'Privacy Policy', tab: 'privacy-policy' },
+    { label: 'Refund Policy', tab: 'refund-policy' },
   { label: 'Logout', tab: 'logout' },
 ];
 
@@ -76,6 +81,8 @@ const Profile = () => {
           {activeTab=='account&security'&&<AccountSecurity/>}
           {activeTab=='payment-method'&&<ProfilePaymentMethod/>}
           {activeTab=='terms-of-use'&&<TermsOfUse/>}
+          {activeTab=='privacy-policy'&&<PrivacyPolicy/>}
+          {activeTab=='refund-policy'&&<RefundPolicy/>}
           {activeTab=='logout'&&<Logout/>}
           </div>
         </div>

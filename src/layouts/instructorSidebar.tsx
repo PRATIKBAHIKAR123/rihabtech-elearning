@@ -3,21 +3,19 @@ import React, { useEffect, useState } from 'react';
 
 const Sidebar = () => {
  
-    return (
-      <div className="w-60 bg-white shadow-md max-h-full px-4">
-        
-        
-        <nav className="mt-6 h-[98%]  max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
-          <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
-          <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
-          <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
-          <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
-          <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/payment' />
-          <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/payment' />
-          <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/payment' />
-        </nav>
-      </div>
-    );
+  return (
+    <div className="group w-16 hover:w-60 transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
+      <nav className="mt-6 h-[98%] max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
+        <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
+        <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
+        <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
+        <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
+        <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/payment' />
+        <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/payment' />
+        <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/payment' />
+      </nav>
+    </div>
+  );
   };
 
   // Sidebar Item Component
@@ -29,35 +27,42 @@ interface SidebarItemProps {
     route:string
   }
   
-  const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) => {
-      const [activePath, setActivePath] = useState(window.location.hash);
-  
-    useEffect(() => {
-      const handleHashChange = () => {
-        setActivePath(window.location.hash);
-      };
-  
-      window.addEventListener('hashchange', handleHashChange);
-      return () => {
-        window.removeEventListener('hashchange', handleHashChange);
-      };
-    }, []);
-  
-    const active = activePath === route;
-    return (
-      <div className={`flex items-center px-4 py-3 cursor-pointer ${active ? 'border-l-4 border-primary text-primary' : 'text-gray-500'}`} onClick={()=>{window.location.href = route}}>
-        <div className="w-6 h-6">
-          {icon}
-        </div>
-        <span className="ml-3 text-sm font-medium font-['DM_Sans']">{text}</span>
-        {badge && (
-          <div className="ml-auto bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {badge}
-          </div>
-        )}
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) => {
+  const [activePath, setActivePath] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActivePath(window.location.hash);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  const active = activePath === route;
+  return (
+    <div 
+      className={`flex items-center px-4 py-3 cursor-pointer whitespace-nowrap ${
+        active ? 'border-l-4 border-primary text-primary' : 'text-black'
+      }`} 
+      onClick={() => { window.location.href = route }}
+    >
+      <div className="w-6 h-6 min-w-[24px]">
+        {icon}
       </div>
-    );
-  };
+      <span className="ml-3 text-lg font-bold font-['DM_Sans'] group-hover:opacity-100 transition-opacity duration-300">
+        {text}
+      </span>
+      {badge && (
+        <div className="ml-auto bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {badge}
+        </div>
+      )}
+    </div>
+  );
+};
   
   export default Sidebar;
 

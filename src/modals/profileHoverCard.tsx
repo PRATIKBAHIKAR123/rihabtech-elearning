@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card";
 import { BarChart3, LayoutGrid, User, Settings, FileText } from "lucide-react";
+import { title } from "process";
+import path from "path";
 
 const profileMenuList = [
   {
@@ -9,25 +11,25 @@ const profileMenuList = [
     icon: <User className="w-6 h-6 text-orange-500" />,
     path: "/#/learner/profile",
   },
-  {
-    title: "Terms",
-    description: "View terms and conditions",
-    icon: <FileText className="w-6 h-6 text-orange-500" />,
-    path: "/#/terms-of-use",
-  },
+  // {
+  //   title: "Terms",
+  //   description: "View terms and conditions",
+  //   icon: <FileText className="w-6 h-6 text-orange-500" />,
+  //   path: "/#/terms-of-use",
+  // },
 
-  {
-    title: "Privacy Policy",
-    description: "Read our privacy policy",
-    icon: <FileText className="w-6 h-6 text-orange-500" />,
-    path: "/#/privacy-policy",
-  },
-  {
-    title: "Refund Policy",
-    description: "Read our privacy policy",
-    icon: <FileText className="w-6 h-6 text-orange-500" />,
-    path: "/#/refund-policy",
-  },
+  // {
+  //   title: "Privacy Policy",
+  //   description: "Read our privacy policy",
+  //   icon: <FileText className="w-6 h-6 text-orange-500" />,
+  //   path: "/#/privacy-policy",
+  // },
+  // {
+  //   title: "Refund Policy",
+  //   description: "Read our privacy policy",
+  //   icon: <FileText className="w-6 h-6 text-orange-500" />,
+  //   path: "/#/refund-policy",
+  // },
   {
     title: "Analytics",
     description: "Your analytics dashboard",
@@ -46,6 +48,12 @@ const profileMenuList = [
     icon: <Settings className="w-6 h-6 text-orange-500" />,
     path: "/#/learner/settings",
   },
+  {
+    title: "Logout",
+    description: "Sign out of your account",    
+    icon: <User className="w-6 h-6 text-orange-500" />,
+path: "/",
+  }
 
 ];
 
@@ -68,8 +76,8 @@ export const ProfileMenu: React.FC = () => {
           </div>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 w-96">
-        <div className="flex flex-col gap-2">
+      <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 h-auto w-96">
+        <div className="flex flex-col gap-2 justify-between">
           {profileMenuList.map((item, idx) => (
             <div
               key={idx}

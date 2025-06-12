@@ -78,6 +78,7 @@ const EditProfile: React.FC = () => {
                     value={formik.values.email}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
+                    readOnly
                     className="profile-input bg-white border border-[#E6E6E6] rounded-md font-bold focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
                   />
                   {formik.touched.email && formik.errors.email && (
