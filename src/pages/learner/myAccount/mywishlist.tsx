@@ -90,7 +90,7 @@ function CourseCard({ course }: { course: Course }) {
           <span className="price-divider" style={{ height: '18px', margin: '0 8px', background: '#e5e7eb', width: '1px', display: 'inline-block' }}></span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <img src="/icons/clock.png" alt="weeks" style={{ width: '24px', height: '18px', verticalAlign: 'middle' }} />
-            {course.duration} Weeks
+            {course.duration} Hrs
           </span>
         </div>
         <p className="wishlist-course-description">{course.description}</p>

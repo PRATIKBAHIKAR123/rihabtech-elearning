@@ -193,7 +193,7 @@ const CourseCreationItem: React.FC<CourseCreationItemProps> = ({ icon, label, ch
           </RadioGroup>
         <div className="flex items-center text-gray-700">
           {/* {icon} */}
-          <span className={`ml-2 text-xs font-semibold font-['Inter'] ${checked ? 'text-white':'text-black'}`}>{label}</span>
+          <span className={`ml-2 text-sm font-bold font-['Inter'] ${checked ? 'text-white':'text-black'}`}>{label}</span>
         </div>
       </div>
     );

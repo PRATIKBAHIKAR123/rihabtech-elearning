@@ -2,10 +2,11 @@ import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCa
 import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
+import { useCountdown } from "../utils/countdown_subscribtion";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -17,6 +18,11 @@ function Header({ onMenuClick }: HeaderProps) {
   const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
   const isLearnerPath = window.location.hash.includes("learner");
   const isHomePath = window.location.pathname === '/';
+const subscriptionEndTimestamp = useMemo(() => {
+  return new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).getTime();
+}, []);
+
+const countdown = useCountdown(subscriptionEndTimestamp);
 
 
   return (
@@ -41,7 +47,7 @@ function Header({ onMenuClick }: HeaderProps) {
 <ProfileMenu /> */}
 </div>
     </div>
-      <div className="hidden md:flex mx-auto px-10 py-4 gap-16 items-center justify-between">
+      <div className="hidden md:flex mx-auto px-8 py-4 gap-12 items-center justify-between">
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
           <img src="Logos/brand-name-img.png" alt="Logo" className="h-[18px] w-[181px] mt-1" />
@@ -68,7 +74,7 @@ function Header({ onMenuClick }: HeaderProps) {
           {window.location.hash.includes("learner") ? (
             // Show "Teach With Us" button when the path contains "learner"
             <Button
-              className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700"
+              className="px-4 py-2 text-sm rounded-none font-medium text-white hover:opacity-50"
               onClick={() => window.location.href = '/#/instructor/course-test-selection'}
             >
               Teach With Us
@@ -92,6 +98,27 @@ function Header({ onMenuClick }: HeaderProps) {
             </>
           )}
         </div>
+        {isLearnerPath && (
+  <div className=" flex items-center gap-3 px-4 py-1 border border-yellow-500 rounded-md bg-yellow-50 text-yellow-800 text-sm font-semibold">
+    {countdown.expired ? (
+      <span className="text-red-600 font-semibold">Subscription expired</span>
+    ) : (
+      <>
+        <span>Ends in:</span>
+        <span>
+          {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
+        </span>
+        <Button
+          variant="outline"
+          className="border-yellow-500 text-yellow-800 hover:bg-yellow-100 px-3 py-1 text-xs rounded"
+          onClick={() => window.location.href = '/#/pricing'}
+        >
+          Renew
+        </Button>
+      </>
+    )}
+  </div>
+)}
         {isLearnerPath && <div className="flex items-center">
 
           <MyCartMenu />
@@ -305,7 +332,7 @@ IconListItem.displayName = "IconListItem";
 export const CoursesMenu: React.FC = () => {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
+      <NavigationMenuTrigger className="p-0 text-base font-semibold font-['Barlow'] capitalize leading-relaxed bg-transparent font-medium text-[#000927] hover:text-blue-600 hover:text-primary hover:bg-transparent focus:bg-transparent">
         Courses
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-white shadow-lg rounded-md w-full">
@@ -364,7 +391,7 @@ export const CoursesMenu: React.FC = () => {
 export const MyLearningsMenu: React.FC = () => {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
+      <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-base font-medium text-[#000927] font-['Barlow'] capitalize leading-relaxed text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
         My Learnings
       </NavigationMenuTrigger>
 

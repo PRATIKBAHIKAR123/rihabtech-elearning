@@ -100,7 +100,7 @@ type PricingPlan = {
                 <h1 className="banner-section-title text-center my-12">
                     Choose the plan that fits your needs.
                 </h1>
-                <section className="p-4 md:p-16">
+                <section className="p-4 md:px-16">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:-gap-8">
                         {pricingPlans.map((plan) => (
                             <div
@@ -126,10 +126,10 @@ type PricingPlan = {
                                         }
                                     })}
                             >
-                                <h2 className={`text-3xl font-bold ${plan.highlighted ? 'text-gray-900' : 'text-purple-900'}`}>
+                                {/* <h2 className={`text-3xl font-bold ${plan.highlighted ? 'text-gray-900' : 'text-purple-900'}`}>
                                     {plan.name}
                                 </h2>
-                                <p className="text-gray-600 mt-2">{plan.description}</p>
+                                <p className="text-gray-600 mt-2">{plan.description}</p> */}
 
                                 <div className="mt-6">
                                     <h3 className="text-xl font-semibold">

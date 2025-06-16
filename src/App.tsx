@@ -22,6 +22,7 @@ import TermsOfUse from './pages/comman/terms-and-condition/terms-of-use';
 import PrivacyPolicy from './pages/comman/privacy-policy/privacy-policy';
 import RefundPolicy from './pages/comman/refund-policy/refund-policy';
 import InstructorSignupPage from './pages/auth/instructorSignup';
+import ForgetPasswordPage from './pages/auth/forgot-password';
 
 function App() {
   useEffect(() => {
@@ -40,6 +41,7 @@ function App() {
     
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgetPasswordPage />} />
       <Route path="/instructor-signup" element={<InstructorSignupPage />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
       <Route path="/aboutUs" element={<CommanLayout><AboutUs /></CommanLayout> } />

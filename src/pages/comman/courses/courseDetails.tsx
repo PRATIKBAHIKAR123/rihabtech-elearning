@@ -8,6 +8,7 @@ import InstructorDetails from "./instructor/instructorShortDetails";
 import CourseReviews from "../../learner/playingcourse/reviews";
 import CartModal from "../../../modals/cartModal";
 import React from "react";
+import ReactPlayer from "react-player";
 
 export default function CourseDetails() {
   const [isCartModalOpen, setIsCartModalOpen] = React.useState(false);
@@ -133,7 +134,9 @@ My first foray into programming was when I was just 12 years old, wanting to bui
           {/* Right: Sidebar Card */}
           <div className="w-full lg:w-1/3">
             <div className="bg-white rounded-[5px] shadow-[0px_10px_50px_0px_rgba(26,46,85,0.07)] p-4">
-              <img src="Images/Banners/Background.png" className="rounded-md mb-4" />
+              <ReactPlayer controls={true} url={'/courses/video2 - Trim.mp4'} className="rounded-md mb-4 z-999"
+              height={'220px'} width={'320px'}/>
+              {/* <img src="Images/Banners/Background.png" className="rounded-md mb-4" /> */}
               <div className="p-4">
   <h3 className="details-title mb-4">Course Includes:</h3>
   <ul className="text-[#181818] text-[15px] font-medium font-['Spartan'] leading-relaxed space-y-3 text-left">

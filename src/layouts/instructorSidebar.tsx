@@ -4,15 +4,15 @@ import React, { useEffect, useState } from 'react';
 const Sidebar = () => {
  
   return (
-    <div className="group w-16 hover:w-60 transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
+    <div className="group w-[82px] hover:w-60 transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
       <nav className="mt-6 h-[98%] max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
         <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
         <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
         <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
         <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
-        <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/payment' />
-        <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/payment' />
-        <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/payment' />
+        <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/groups' />
+        <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/students' />
+        <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/support' />
       </nav>
     </div>
   );
@@ -52,7 +52,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
       <div className="w-6 h-6 min-w-[24px]">
         {icon}
       </div>
-      <span className="ml-3 text-lg font-bold font-['DM_Sans'] group-hover:opacity-100 transition-opacity duration-300">
+      <span className="ml-8 text-lg font-bold font-['DM_Sans'] group-hover:opacity-100 transition-opacity duration-300">
         {text}
       </span>
       {badge && (

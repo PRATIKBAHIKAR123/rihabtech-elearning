@@ -23,7 +23,7 @@ function InstructorHeader({ onMenuClick }: InstructorHeaderProps) {
                 </div>
 
                 <div className="flex items-center">
-                    <Button className="px-4 py-2 text-sm rounded-none font-medium text-white hover:bg-blue-700" onClick={() => window.location.href = '/#/learner/homepage'}>Student</Button>
+                    <Button className="px-4 py-2 text-sm rounded-none font-medium text-white hover:opacity-50" onClick={() => window.location.href = '/#/learner/homepage'}>Student</Button>
                     <div className="ml-4 relative">
                         <button className="relative">
                             <BellIcon />

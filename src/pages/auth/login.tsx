@@ -125,8 +125,9 @@ export default function LoginPage() {
             </Button>
             </div>
 
-            <div className="text-center text-sm mt-6">
-            Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a>
+            <div className="text-center text-sm flex mt-6 justify-between">
+            <span>Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a></span>
+            <a href="#/forgot-password" className="text-primary font-bold">Forgot Password</a>
             </div>
           </form>
         </div>
