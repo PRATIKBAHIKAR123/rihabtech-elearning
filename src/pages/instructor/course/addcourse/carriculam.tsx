@@ -393,7 +393,7 @@ export function CourseCarriculam({ onSubmit }: any) {
             </div> */}
             {/* <h3 className="course-sectional-question mb-2">What will students learn in your course?</h3>
             <p className="course-sectional-descrption mb-4">
-              The following descriptions will be publicly visible on your Course Landing Page and will have a direct impact on your course performance. These descriptions will help learners decide if your course is right for them.
+              The following descriptions will be publicly visible on your Course Landing Page and will have a direct impact on your course performance. These descriptions will help learners decide if your course is right for them.
             </p> */}
 
             <FieldArray name="sections">
@@ -442,17 +442,105 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           onBlur={formik.handleBlur}
                                         />
                                       </div>
-                                      {formik.values.sections.length > 1 && (
+                                      <div className="flex items-center gap-2">
                                         <Button
                                           type="button"
                                           variant="outline"
                                           className="px-2 py-1 rounded-none"
-                                          onClick={() => removeSection(sectionIdx)}
-                                          title="Delete Section"
+                                          onClick={() => {
+                                            const fileInput = document.createElement('input');
+                                            fileInput.type = 'file';
+                                            fileInput.accept = 'video/*';
+                                            fileInput.multiple = true;
+                                            
+                                            fileInput.onchange = async (e) => {
+                                              const files = (e.target as HTMLInputElement).files;
+                                              if (!files || files.length === 0) return;
+
+                                              // Check for empty lecture
+                                              const emptyLectureIndex = section.items.findIndex(item => 
+                                                item.type === 'lecture' && 
+                                                item.contentType === '' && 
+                                                item.contentFiles.length === 0
+                                              );
+
+                                              // Create video lectures for each file
+                                              const newLectures = await Promise.all(
+                                                Array.from(files).map(async (file) => {
+                                                  const url = URL.createObjectURL(file);
+                                                  // Get video duration
+                                                  const duration = await new Promise<number>((resolve) => {
+                                                    const video = document.createElement('video');
+                                                    video.preload = 'metadata';
+                                                    video.onloadedmetadata = () => {
+                                                      resolve(video.duration);
+                                                      video.remove();
+                                                    };
+                                                    video.src = url;
+                                                  });
+
+                                                  return {
+                                                    type: 'lecture' as const,
+                                                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                                                    contentType: 'video' as const,
+                                                    videoSource: 'upload' as const,
+                                                    contentFiles: [{
+                                                      file,
+                                                      url,
+                                                      name: file.name,
+                                                      duration,
+                                                      status: 'uploaded' as VideoStatus,
+                                                      uploadedAt: new Date()
+                                                    }],
+                                                    contentUrl: '',
+                                                    contentText: '',
+                                                    articleSource: 'upload' as const,
+                                                    resources: []
+                                                  };
+                                                })
+                                              );
+
+                                              // If there's an empty lecture, update it with the first video
+                                              if (emptyLectureIndex !== -1) {
+                                                const updatedItems = [...section.items];
+                                                updatedItems[emptyLectureIndex] = newLectures[0];
+                                                
+                                                // Add remaining videos as new lectures
+                                                if (newLectures.length > 1) {
+                                                  updatedItems.push(...newLectures.slice(1));
+                                                }
+                                                
+                                                formik.setFieldValue(
+                                                  `sections[${sectionIdx}].items`,
+                                                  updatedItems
+                                                );
+                                              } else {
+                                                // No empty lecture found, add all as new lectures
+                                                const currentItems = [...section.items];
+                                                formik.setFieldValue(
+                                                  `sections[${sectionIdx}].items`,
+                                                  [...currentItems, ...newLectures]
+                                                );
+                                              }
+                                            };
+
+                                            fileInput.click();
+                                          }}
                                         >
-                                          <Trash2 size={18} className="text-red-500" />
+                                          <UploadCloud size={18} />
                                         </Button>
-                                      )}
+                                        {formik.values.sections.length > 1 && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="px-2 py-1 rounded-none"
+                                            onClick={() => removeSection(sectionIdx)}
+                                            title="Delete Section"
+                                          >
+                                            <Trash2 size={18} className="text-red-500" />
+                                          </Button>
+                                        )}
+                                      </div>
                                       {formik.touched.sections &&
                                         formik.touched.sections[sectionIdx] &&
                                         formik.errors.sections &&
