@@ -457,11 +457,14 @@ export function CourseCarriculam({ onSubmit }: any) {
                                               const files = (e.target as HTMLInputElement).files;
                                               if (!files || files.length === 0) return;
 
+                                              // Get current section items from formik
+                                              const currentSectionItems = formik.values.sections[sectionIdx]?.items || [];
+
                                               // Check for empty lecture
-                                              const emptyLectureIndex = section.items.findIndex(item => 
+                                              const emptyLectureIndex = currentSectionItems.findIndex(item => 
                                                 item.type === 'lecture' && 
                                                 item.contentType === '' && 
-                                                item.contentFiles.length === 0
+                                                (!item.contentFiles || item.contentFiles.length === 0)
                                               );
 
                                               // Create video lectures for each file
@@ -502,7 +505,7 @@ export function CourseCarriculam({ onSubmit }: any) {
 
                                               // If there's an empty lecture, update it with the first video
                                               if (emptyLectureIndex !== -1) {
-                                                const updatedItems = [...section.items];
+                                                const updatedItems = [...currentSectionItems];
                                                 updatedItems[emptyLectureIndex] = newLectures[0];
                                                 
                                                 // Add remaining videos as new lectures
@@ -516,10 +519,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                 );
                                               } else {
                                                 // No empty lecture found, add all as new lectures
-                                                const currentItems = [...section.items];
                                                 formik.setFieldValue(
                                                   `sections[${sectionIdx}].items`,
-                                                  [...currentItems, ...newLectures]
+                                                  [...currentSectionItems, ...newLectures]
                                                 );
                                               }
                                             };
