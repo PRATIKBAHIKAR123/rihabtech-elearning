@@ -208,19 +208,27 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     
     // Update every second while playing
     watchIntervalRef.current = setInterval(() => {
-      if (!playerRef.current) return;
+      if (!playerRef.current || !isPlaying) return;
       
       const currentPosition = playerRef.current.getCurrentTime();
       
-      // Add to watched segments (for analytics on which parts were watched)
+      // Only update if we have a valid last position and the video is playing
       if (lastPlayTimeRef.current !== null) {
-        addWatchedSegment(lastPlayTimeRef.current, currentPosition);
+        // Calculate the time difference since last update
+        const timeDiff = currentPosition - lastPlayTimeRef.current;
+        
+        // Only add time if we have a positive difference (video is playing forward)
+        if (timeDiff > 0) {
+          // Add to watched segments
+          addWatchedSegment(lastPlayTimeRef.current, currentPosition);
+          
+          // Update total watched time
+          setTotalWatched(prev => prev + timeDiff);
+        }
       }
       
-      // Update total watched time
-      setTotalWatched(prev => prev + 1); // Add one second
       lastPlayTimeRef.current = currentPosition;
-    }, 1000);
+    }, 100); // Update more frequently for smoother tracking
   };
 
   // Stop tracking watch time
@@ -401,7 +409,19 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     linkElement.click();
   };
 
-
+  // Add onProgress handler to ReactPlayer component
+  const handleProgress = (state: { playedSeconds: number }) => {
+    setCurrentTime(state.playedSeconds);
+    
+    // Update total watched time when video is playing
+    if (isPlaying && lastPlayTimeRef.current !== null) {
+      const timeDiff = state.playedSeconds - lastPlayTimeRef.current;
+      if (timeDiff > 0) {
+        setTotalWatched(prev => prev + timeDiff);
+      }
+    }
+    lastPlayTimeRef.current = state.playedSeconds;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -427,7 +447,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
             width="100%"
             height={document.fullscreenEnabled ? "100%" : "450px"} // Fullscreen height if enabled
             volume={volume}
-            onProgress={({ playedSeconds }) => setCurrentTime(playedSeconds)}
+            onProgress={handleProgress}
             onDuration={setDuration}
             onPlay={handlePlay}
             onPause={handlePause}
