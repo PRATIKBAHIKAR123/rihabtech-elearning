@@ -1890,12 +1890,6 @@ export function CourseCarriculam({ onSubmit }: any) {
         onUpload={async (filesOrExcel, sectionIdx) => {
           console.log('onUpload called with:', { filesOrExcel, sectionIdx, uploadType });
           
-          // Remove the early return since sectionIdx is 0 for the first section
-          // if (!sectionIdx) {
-          //   console.log('No section index provided');
-          //   return;
-          // }
-
           // Get current section items from formik
           const currentSectionItems = formik.values.sections[sectionIdx]?.items || [];
           console.log('Current section items:', currentSectionItems);
@@ -1908,7 +1902,18 @@ export function CourseCarriculam({ onSubmit }: any) {
           );
           console.log('Empty lecture index:', emptyLectureIndex);
 
-          if (uploadType === 'video' && filesOrExcel instanceof FileList) {
+          // Type guard for FileList
+          const isFileList = (value: unknown): value is FileList => {
+            return typeof value === 'object' && value !== null && 'length' in value && 'item' in value;
+          };
+
+          // Type guard for File
+          const isFile = (value: unknown): value is File => {
+            return typeof value === 'object' && value !== null && 'name' in value && 'size' in value && 'type' in value;
+          };
+
+          if (uploadType === 'video' && isFileList(filesOrExcel)) {
+            // Handle video files
             console.log('Processing video files');
             // Create video lectures for each file
             const newLectures = await Promise.all(
@@ -1967,7 +1972,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                 [...currentSectionItems, ...newLectures]
               );
             }
-          } else if (uploadType === 'document' && filesOrExcel instanceof FileList) {
+          } else if (uploadType === 'document' && isFileList(filesOrExcel)) {
+            // Handle document files
             console.log('Processing document files');
             // Create document lectures for each file
             const newLectures = Array.from(filesOrExcel).map((file) => {
@@ -2011,10 +2017,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                 [...currentSectionItems, ...newLectures]
               );
             }
-          } else if (uploadType === 'url' && filesOrExcel instanceof File) {
+          } else if (uploadType === 'url' && isFile(filesOrExcel)) {
+            // Handle Excel file
             console.log('Processing Excel file');
-            // Excel file upload logic
-            const file = filesOrExcel as File;
             const urls: string[] = await new Promise((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = (e) => {
@@ -2027,7 +2032,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                 resolve(urlList);
               };
               reader.onerror = reject;
-              reader.readAsArrayBuffer(file);
+              reader.readAsArrayBuffer(filesOrExcel);
             });
 
             // Create video lectures for each URL
@@ -2065,6 +2070,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               );
             }
           } else if (uploadType === 'write' && typeof filesOrExcel === 'string') {
+            // Handle written content
             console.log('Processing written article');
             const newLecture = {
               type: 'lecture' as const,
