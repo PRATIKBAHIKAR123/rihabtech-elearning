@@ -469,7 +469,7 @@ export function CourseCarriculam({ onSubmit }: any) {
     };
 
     const newItemIdx = formik.values.sections[sectionIdx].items.length;
-    
+
     formik.setFieldValue(`sections.${sectionIdx}.items`, [
       ...formik.values.sections[sectionIdx].items,
       newQuiz,
@@ -1219,8 +1219,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               )}
                                                             </div>
                                                           )}
- {/* QUIZ */}
- {item.type === 'quiz' && (
+                                                          {/* QUIZ */}
+                                                          {item.type === 'quiz' && (
                                                             <div className="flex flex-col gap-2">
                                                               <div className="flex items-center justify-between gap-2 mb-2">
                                                                 <div className="flex items-center gap-2">
