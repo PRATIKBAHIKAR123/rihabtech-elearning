@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -16,8 +16,6 @@ import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautif
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../../components/ui/dialog";
 // @ts-ignore
 import * as XLSX from 'xlsx';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 
 export interface Question {
@@ -169,6 +167,26 @@ const move = <T,>(
   return result;
 };
 
+// Add this function near the top of the file
+const downloadQuizSampleExcel = () => {
+  // Create sample quiz data
+  const sampleData = [
+    ['Quiz Title', 'Quiz Description', 'Question', 'Options', 'Correct Option'],
+    ['Sample Quiz', 'This is a sample quiz description', 'What is 2+2?', '3,4,5,6', '2'],
+    ['', '', 'What color is the sky?', 'Red,Blue,Green,Yellow', '2'],
+    ['', '', 'Which planet is closest to the sun?', 'Venus,Mars,Mercury,Jupiter', '3']
+  ];
+
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(sampleData);
+
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Quiz Template');
+
+  // Generate Excel file
+  XLSX.writeFile(wb, 'quiz_template.xlsx');
+};
 
 export function CourseCarriculam({ onSubmit }: any) {
   const [showContentType, setShowContentType] = useState<ViewItemState | null>(null);
@@ -181,6 +199,9 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [editAssignment, setEditAssignment] = useState<ViewItemState | null>(null);
   const [uploadModal, setUploadModal] = useState<{ open: boolean; sectionIdx: number | null }>({ open: false, sectionIdx: null });
   const [uploadType, setUploadType] = useState<'video' | 'document' | 'url' | 'write' | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [sectionIdx, setSectionIdx] = useState<number | null>(null);
+  const [articleContent, setArticleContent] = useState('');
 
   const initialValues: CurriculumFormValues = {
     sections: [
@@ -293,6 +314,54 @@ export function CourseCarriculam({ onSubmit }: any) {
       onSubmit(values);
     },
   });
+
+  const handleQuizExcelUpload = async (file: File, sectionIdx: number, itemIdx: number) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      // Skip header row
+      const rows = (json as any[][]).slice(1);
+
+      // Get quiz title and description from first row
+      const quizTitle = rows[0][0] || 'New Quiz';
+      const quizDescription = rows[0][1] || '';
+
+      // Process questions
+      const questions: Question[] = [];
+      let currentQuestion: Partial<Question> = {};
+
+      rows.forEach((row, index) => {
+        if (row[2]) { // If there's a question
+          if (Object.keys(currentQuestion).length > 0) {
+            questions.push(currentQuestion as Question);
+          }
+          currentQuestion = {
+            question: row[2],
+            options: row[3] ? row[3].split(',') : [],
+            correctOption: row[4] ? [parseInt(row[4]) - 1] : [0]
+          };
+        }
+      });
+
+      // Add the last question
+      if (Object.keys(currentQuestion).length > 0) {
+        questions.push(currentQuestion as Question);
+      }
+
+      // Update formik with the new quiz data
+      formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
+        type: 'quiz',
+        quizTitle,
+        quizDescription,
+        questions
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const handleAssignmentSave = (sectionIdx: number, itemIdx: number) => {
     const currentAssignment = formik.values.sections[sectionIdx].items[itemIdx];
@@ -1124,7 +1193,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                             </div>
                                                           )}
                                                           {/* QUIZ */}
-                                                          {item.type === "quiz" && (
+                                                          {item.type === 'quiz' && (
                                                             <div className="flex flex-col gap-2">
                                                               <div className="flex items-center justify-between gap-2 mb-2">
                                                                 <div className="flex items-center gap-2">
@@ -1134,7 +1203,86 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
-                                                                    className="px-2 py-1 rounded-none"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => {
+                                                                      const sampleData = [
+                                                                        ['Quiz Title', 'Quiz Description', 'Question', 'Options', 'Correct Options'],
+                                                                        ['Sample Quiz', 'This is a sample quiz description', 'What is 2+2?', '3,4,5,6', '2'],
+                                                                        ['', '', 'What colors are in rainbow?', 'Red,Blue,Green,Yellow,Purple,Orange', '1,2,3,4,5,6'],
+                                                                        ['', '', 'Which planets are in our solar system?', 'Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune', '1,2,3,4,5,6,7,8']
+                                                                      ];
+                                                                      const wb = XLSX.utils.book_new();
+                                                                      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+                                                                      XLSX.utils.book_append_sheet(wb, ws, 'Quiz Template');
+                                                                      XLSX.writeFile(wb, 'quiz_template.xlsx');
+                                                                    }}
+                                                                    title="Download Quiz Template"
+                                                                  >
+                                                                    <Download size={16} />
+                                                                  </Button>
+                                                                  <div className="relative">
+                                                                    <input
+                                                                      type="file"
+                                                                      accept=".xlsx,.xls"
+                                                                      onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file) {
+                                                                          const reader = new FileReader();
+                                                                          reader.onload = (e) => {
+                                                                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                                                                            const workbook = XLSX.read(data, { type: 'array' });
+                                                                            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                                                                            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                                                                            const rows = (json as any[][]).slice(1);
+                                                                            const quizTitle = rows[0][0] || 'New Quiz';
+                                                                            const quizDescription = rows[0][1] || '';
+                                                                            const questions: Question[] = [];
+                                                                            let currentQuestion: Partial<Question> = {};
+                                                                            rows.forEach((row, index) => {
+                                                                              if (row[2]) {
+                                                                                if (Object.keys(currentQuestion).length > 0) {
+                                                                                  questions.push(currentQuestion as Question);
+                                                                                }
+                                                                                currentQuestion = {
+                                                                                  question: row[2],
+                                                                                  options: row[3] ? row[3].split(',') : [],
+                                                                                  correctOption: row[4] ? row[4].split(',').map((opt: string) => parseInt(opt) - 1) : [0]
+                                                                                };
+                                                                              }
+                                                                            });
+                                                                            if (Object.keys(currentQuestion).length > 0) {
+                                                                              questions.push(currentQuestion as Question);
+                                                                            }
+                                                                            formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
+                                                                              type: 'quiz',
+                                                                              quizTitle,
+                                                                              quizDescription,
+                                                                              questions
+                                                                            });
+                                                                          };
+                                                                          reader.readAsArrayBuffer(file);
+                                                                        }
+                                                                      }}
+                                                                      className="hidden"
+                                                                      id={`quiz-excel-upload-${sectionIdx}-${itemIdx}`}
+                                                                    />
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => document.getElementById(`quiz-excel-upload-${sectionIdx}-${itemIdx}`)?.click()}
+                                                                      title="Upload Quiz from Excel"
+                                                                    >
+                                                                      <UploadCloud size={16} />
+                                                                    </Button>
+                                                                  </div>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
                                                                     onClick={() => remove(itemIdx)}
                                                                     title="Delete"
                                                                   >
@@ -1144,8 +1292,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     <Button
                                                                       type="button"
                                                                       variant="outline"
-                                                                      className="px-2 py-1 rounded-none"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
                                                                       onClick={() => setEditQuiz({ sectionIdx, itemIdx })}
+                                                                      title="Edit"
                                                                     >
                                                                       <Pencil size={16} />
                                                                     </Button>
@@ -1155,7 +1305,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
-                                                                    className="px-2 py-1 rounded-none"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
                                                                     onClick={() => setViewItem(
                                                                       viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
                                                                         ? null
@@ -1173,13 +1324,21 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               {(!isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ||
                                                                 editQuiz?.sectionIdx === sectionIdx && editQuiz?.itemIdx === itemIdx) && (
                                                                   <div className="border p-4 rounded bg-gray-50">
-                                                                    <Input
-                                                                      className="ins-control-border mb-2"
-                                                                      placeholder="Quiz Title"
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
-                                                                      value={item.quizTitle}
-                                                                      onChange={formik.handleChange}
-                                                                    />
+                                                                    {/* Quiz Title */}
+                                                                    <div className="mb-4">
+                                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                        Quiz Title
+                                                                      </label>
+                                                                      <input
+                                                                        type="text"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
+                                                                        value={item.quizTitle || ''}
+                                                                        onChange={formik.handleChange}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="Enter quiz title"
+                                                                      />
+                                                                    </div>
+
                                                                     <Input
                                                                       className="ins-control-border mb-2"
                                                                       placeholder="Quiz Description"
@@ -1190,48 +1349,37 @@ export function CourseCarriculam({ onSubmit }: any) {
 
                                                                     <div className="mt-4 mb-2">
                                                                       <h4 className="font-semibold mb-2">Questions</h4>
-                                                                      <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
-                                                                        {({ push: pushQuestion, remove: removeQuestion }) => (
-                                                                          <div className="flex flex-col gap-4">
+                                                                      <FieldArray
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions`}
+                                                                        render={arrayHelpers => (
+                                                                          <div className="space-y-4">
                                                                             {item.questions.map((question, qIdx) => (
-                                                                              <div key={qIdx} className="border p-3 rounded">
-                                                                                <div className="flex justify-between mb-2">
-                                                                                  <span className="font-medium">Question {qIdx + 1}</span>
+                                                                              <div key={qIdx} className="border p-3 rounded bg-white">
+                                                                                <div className="flex justify-between items-start mb-2">
+                                                                                  <Input
+                                                                                    className="ins-control-border"
+                                                                                    placeholder="Question"
+                                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].question`}
+                                                                                    value={question.question}
+                                                                                    onChange={formik.handleChange}
+                                                                                  />
                                                                                   {item.questions.length > 1 && (
                                                                                     <Button
                                                                                       type="button"
                                                                                       variant="outline"
-                                                                                      size="sm"
-                                                                                      className="px-2 py-1 rounded-none"
-                                                                                      onClick={() => removeQuestion(qIdx)}
+                                                                                      size="icon"
+                                                                                      className="h-8 w-8 ml-2"
+                                                                                      onClick={() => arrayHelpers.remove(qIdx)}
+                                                                                      title="Remove Question"
                                                                                     >
-                                                                                      <Trash2 size={14} />
+                                                                                      <Trash2 size={16} className="text-red-500" />
                                                                                     </Button>
                                                                                   )}
                                                                                 </div>
 
-                                                                                <Input
-                                                                                  className="ins-control-border mb-2"
-                                                                                  placeholder="Enter question"
-                                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
-                                                                                  value={question.question}
-                                                                                  onChange={formik.handleChange}
-                                                                                />
-
-                                                                                <div className="ml-4">
+                                                                                <div className="space-y-2">
                                                                                   {question.options.map((option, optIdx) => (
-                                                                                    <div key={optIdx} className="flex items-center gap-2 mb-2">
-                                                                                      {/* <input
-                                                              type="checkbox"
-                                                              //checked={question.correctOption.push(optIdx)}
-                                                              onChange={() => {
-                                                                formik.setFieldValue(
-                                                                  `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.correctOption`,
-                                                                  optIdx
-                                                                );
-                                                              }}
-                                                              className="bg-primary text-primary focus:ring-0 h-4 w-4"
-                                                            /> */}
+                                                                                    <div key={optIdx} className="flex items-center gap-2">
                                                                                       <Checkbox
                                                                                         checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
                                                                                         onCheckedChange={(checked: boolean) => {
@@ -1244,15 +1392,16 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                             : currentOptions.filter(idx => idx !== optIdx);
 
                                                                                           formik.setFieldValue(
-                                                                                            `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.correctOption`,
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].correctOption`,
                                                                                             updatedOptions
                                                                                           );
                                                                                         }}
+                                                                                        className="mt-1"
                                                                                       />
                                                                                       <Input
                                                                                         className="ins-control-border flex-1"
                                                                                         placeholder={`Option ${optIdx + 1}`}
-                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options.${optIdx}`}
+                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options[${optIdx}]`}
                                                                                         value={option}
                                                                                         onChange={formik.handleChange}
                                                                                       />
@@ -1260,76 +1409,83 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                         <Button
                                                                                           type="button"
                                                                                           variant="outline"
-                                                                                          className="px-2 py-1 rounded-none"
-                                                                                          size="sm"
+                                                                                          size="icon"
+                                                                                          className="h-8 w-8"
                                                                                           onClick={() => {
                                                                                             const newOptions = [...question.options];
                                                                                             newOptions.splice(optIdx, 1);
                                                                                             formik.setFieldValue(
-                                                                                              `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options`,
+                                                                                              `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
                                                                                               newOptions
                                                                                             );
+                                                                                            // Also update correctOption indices if needed
+                                                                                            const currentCorrectOptions = Array.isArray(question.correctOption)
+                                                                                              ? question.correctOption.filter(idx => idx !== optIdx).map(idx => idx > optIdx ? idx - 1 : idx)
+                                                                                              : [];
+                                                                                            formik.setFieldValue(
+                                                                                              `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].correctOption`,
+                                                                                              currentCorrectOptions
+                                                                                            );
                                                                                           }}
+                                                                                          title="Remove Option"
                                                                                         >
-                                                                                          <Trash2 size={14} />
+                                                                                          <Trash2 size={16} className="text-red-500" />
                                                                                         </Button>
                                                                                       )}
                                                                                     </div>
                                                                                   ))}
-                                                                                  <Button
-                                                                                    type="button"
-                                                                                    size="sm"
-                                                                                    variant="outline"
-                                                                                    onClick={() => {
-                                                                                      const newOptions = [...question.options, ""];
-                                                                                      formik.setFieldValue(
-                                                                                        `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options`,
-                                                                                        newOptions
-                                                                                      );
-                                                                                    }}
-                                                                                  >
-                                                                                    Add Option
-                                                                                  </Button>
                                                                                 </div>
+
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  variant="outline"
+                                                                                  className="mt-2"
+                                                                                  onClick={() => {
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
+                                                                                      [...question.options, '']
+                                                                                    );
+                                                                                  }}
+                                                                                >
+                                                                                  Add Option
+                                                                                </Button>
                                                                               </div>
                                                                             ))}
+
                                                                             <Button
                                                                               type="button"
                                                                               variant="outline"
-                                                                              className="rounded-none"
-                                                                              onClick={() =>
-                                                                                pushQuestion({
-                                                                                  question: "",
-                                                                                  options: ["", ""],
-                                                                                  correctOption: 0,
-                                                                                })
-                                                                              }
+                                                                              onClick={() => arrayHelpers.push({
+                                                                                question: '',
+                                                                                options: ['', ''],
+                                                                                correctOption: []
+                                                                              })}
                                                                             >
                                                                               Add Question
                                                                             </Button>
                                                                           </div>
                                                                         )}
-                                                                      </FieldArray>
-                                                                    </div>
+                                                                      />
 
-                                                                    <div className="flex justify-end gap-2 mt-4">
-                                                                      {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                      <div className="flex justify-end gap-2 mt-4">
+                                                                        {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                          <Button
+                                                                            type="button"
+                                                                            className="rounded-none"
+                                                                            variant="outline"
+                                                                            onClick={() => setEditQuiz(null)}
+                                                                          >
+                                                                            Cancel
+                                                                          </Button>
+                                                                        )}
                                                                         <Button
                                                                           type="button"
                                                                           className="rounded-none"
-                                                                          variant="outline"
-                                                                          onClick={() => setEditQuiz(null)}
+                                                                          onClick={() => handleQuizSave(sectionIdx, itemIdx)}
                                                                         >
-                                                                          Cancel
+                                                                          {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ? 'Update Quiz' : 'Save Quiz'}
                                                                         </Button>
-                                                                      )}
-                                                                      <Button
-                                                                        type="button"
-                                                                        className="rounded-none"
-                                                                        onClick={() => handleQuizSave(sectionIdx, itemIdx)}
-                                                                      >
-                                                                        Save Quiz
-                                                                      </Button>
+                                                                      </div>
                                                                     </div>
                                                                   </div>
                                                                 )}
@@ -1352,7 +1508,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             <ul className="list-disc ml-5">
                                                                               {q.options.map((opt, optIdx) => (
                                                                                 <li key={optIdx} className={
-                                                                                  q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
+                                                                                  Array.isArray(q.correctOption) && q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
                                                                                 }>
                                                                                   {opt}
                                                                                 </li>
@@ -2381,7 +2537,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
                     A
                     1 | URL
                     2 | https://example.com/video1
-                    3 | https://example.com/video2                
+                    3 | https://example.com/video2
                   </pre>
                 </div>
                 {selectedFiles && (
