@@ -481,6 +481,25 @@ export function CourseCarriculam({ onSubmit }: any) {
     setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
   };
 
+  const handleAssignmentExcelUpload = (sectionIdx: number, itemIdx: number, rows: any[][]) => {
+    if (rows.length > 0) {
+      const [title, description, duration, questionsText, totalMarksExcel, wordLimitExcel, modelAnswerText] = rows[0];
+      formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
+        type: 'assignment',
+        title: title || 'New Assignment',
+        description: description || '',
+        duration: parseInt(duration) || 0,
+        questions: [{
+          question: questionsText || '',
+          marks: totalMarksExcel || 0, // Default for individual question marks, as not explicitly in Excel template
+          answer: modelAnswerText || '',
+          maxWordLimit: parseInt(wordLimitExcel) || 0
+        }],
+        totalMarks: parseFloat(totalMarksExcel) || 0
+      });
+    }
+  };
+
   return (
     <FormikProvider value={formik}>
       <form onSubmit={formik.handleSubmit}>
@@ -1559,7 +1578,60 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
-                                                                    className="px-2 py-1 rounded-none"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => {
+                                                                      const sampleData = [
+                                                                        ['Title', 'Description', 'Duration', 'Questions', 'Marks', 'Word Limit', 'Model Answer'],
+                                                                        ['Sample Assignment', 'dd', '30 minutes', 'dd', '100', '500 words', 'vmvmmv']
+                                                                      ];
+                                                                      const wb = XLSX.utils.book_new();
+                                                                      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+                                                                      XLSX.utils.book_append_sheet(wb, ws, 'Assignment Template');
+                                                                      XLSX.writeFile(wb, 'assignment_template.xlsx');
+                                                                    }}
+                                                                    title="Download Assignment Template"
+                                                                  >
+                                                                    <Download size={16} />
+                                                                  </Button>
+                                                                  <div className="relative">
+                                                                    <input
+                                                                      type="file"
+                                                                      accept=".xlsx,.xls"
+                                                                      onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file) {
+                                                                          const reader = new FileReader();
+                                                                          reader.onload = (e) => {
+                                                                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                                                                            const workbook = XLSX.read(data, { type: 'array' });
+                                                                            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                                                                            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                                                                            const rows = (json as any[][]).slice(1);
+                                                                            handleAssignmentExcelUpload(sectionIdx, itemIdx, rows);
+                                                                          };
+                                                                          reader.readAsArrayBuffer(file);
+                                                                        }
+                                                                      }}
+                                                                      className="hidden"
+                                                                      id={`assignment-excel-upload-${sectionIdx}-${itemIdx}`}
+                                                                    />
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => document.getElementById(`assignment-excel-upload-${sectionIdx}-${itemIdx}`)?.click()}
+                                                                      title="Upload Assignment from Excel"
+                                                                    >
+                                                                      <UploadCloud size={16} />
+                                                                    </Button>
+                                                                  </div>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
                                                                     onClick={() => remove(itemIdx)}
                                                                     title="Delete"
                                                                   >
@@ -1568,9 +1640,11 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                     <Button
                                                                       type="button"
-                                                                      variant="ghost"
-                                                                      className="px-2 py-1 rounded-none"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
                                                                       onClick={() => setEditAssignment({ sectionIdx, itemIdx })}
+                                                                      title="Edit"
                                                                     >
                                                                       <Pencil size={16} />
                                                                     </Button>
@@ -1579,8 +1653,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                 {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                   <Button
                                                                     type="button"
-                                                                    variant="ghost"
-                                                                    className="p-1"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
                                                                     onClick={() => setViewItem(
                                                                       viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
                                                                         ? null
