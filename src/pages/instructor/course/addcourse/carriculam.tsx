@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, Eye, ChevronDown, ChevronUp, File, ExternalLink, GripVertical } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -10,11 +10,14 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import { AssignmentEditor } from "../../../../components/ui/assignmentEditorComponent";
-import { on } from "events";
 import { Textarea } from "../../../../components/ui/textarea";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../../components/ui/dialog";
+// @ts-ignore
+import * as XLSX from 'xlsx';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 
 export interface Question {
@@ -176,6 +179,8 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [isQuizSubmitted, setIsQuizSubmitted] = useState<{ [key: string]: boolean }>({});
   const [isAssignmentSubmitted, setIsAssignmentSubmitted] = useState<{ [key: string]: boolean }>({});
   const [editAssignment, setEditAssignment] = useState<ViewItemState | null>(null);
+  const [uploadModal, setUploadModal] = useState<{ open: boolean; sectionIdx: number | null }>({ open: false, sectionIdx: null });
+  const [uploadType, setUploadType] = useState<'video' | 'document' | 'url' | 'write' | null>(null);
 
   const initialValues: CurriculumFormValues = {
     sections: [
@@ -447,90 +452,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           type="button"
                                           variant="outline"
                                           className="px-2 py-1 rounded-none"
-                                          onClick={() => {
-                                            const fileInput = document.createElement('input');
-                                            fileInput.type = 'file';
-                                            fileInput.accept = 'video/*';
-                                            fileInput.multiple = true;
-                                            
-                                            fileInput.onchange = async (e) => {
-                                              const files = (e.target as HTMLInputElement).files;
-                                              if (!files || files.length === 0) return;
-
-                                              // Get current section items from formik
-                                              const currentSectionItems = formik.values.sections[sectionIdx]?.items || [];
-
-                                              // Check for empty lecture
-                                              const emptyLectureIndex = currentSectionItems.findIndex(item => 
-                                                item.type === 'lecture' && 
-                                                item.contentType === '' && 
-                                                (!item.contentFiles || item.contentFiles.length === 0)
-                                              );
-
-                                              // Create video lectures for each file
-                                              const newLectures = await Promise.all(
-                                                Array.from(files).map(async (file) => {
-                                                  const url = URL.createObjectURL(file);
-                                                  // Get video duration
-                                                  const duration = await new Promise<number>((resolve) => {
-                                                    const video = document.createElement('video');
-                                                    video.preload = 'metadata';
-                                                    video.onloadedmetadata = () => {
-                                                      resolve(video.duration);
-                                                      video.remove();
-                                                    };
-                                                    video.src = url;
-                                                  });
-
-                                                  return {
-                                                    type: 'lecture' as const,
-                                                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
-                                                    contentType: 'video' as const,
-                                                    videoSource: 'upload' as const,
-                                                    contentFiles: [{
-                                                      file,
-                                                      url,
-                                                      name: file.name,
-                                                      duration,
-                                                      status: 'uploaded' as VideoStatus,
-                                                      uploadedAt: new Date()
-                                                    }],
-                                                    contentUrl: '',
-                                                    contentText: '',
-                                                    articleSource: 'upload' as const,
-                                                    resources: []
-                                                  };
-                                                })
-                                              );
-
-                                              // If there's an empty lecture, update it with the first video
-                                              if (emptyLectureIndex !== -1) {
-                                                const updatedItems = [...currentSectionItems];
-                                                updatedItems[emptyLectureIndex] = newLectures[0];
-                                                
-                                                // Add remaining videos as new lectures
-                                                if (newLectures.length > 1) {
-                                                  updatedItems.push(...newLectures.slice(1));
-                                                }
-                                                
-                                                formik.setFieldValue(
-                                                  `sections[${sectionIdx}].items`,
-                                                  updatedItems
-                                                );
-                                              } else {
-                                                // No empty lecture found, add all as new lectures
-                                                formik.setFieldValue(
-                                                  `sections[${sectionIdx}].items`,
-                                                  [...currentSectionItems, ...newLectures]
-                                                );
-                                              }
-                                            };
-
-                                            fileInput.click();
-                                          }}
+                                          onClick={() => setUploadModal({ open: true, sectionIdx })}
                                         >
                                           <UploadCloud size={18} />
-                                        </Button>
+                                        </Button>                                     
                                         {formik.values.sections.length > 1 && (
                                           <Button
                                             type="button"
@@ -573,8 +498,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                             <div
                                               ref={provided.innerRef}
                                               {...provided.draggableProps}
-                                              className={`border rounded p-3 mb-2 bg-gray-50 ${
-                                                snapshot.isDragging ? 'shadow-lg bg-white' : ''
+                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${
+                                                          snapshot.isDragging ? 'shadow-lg bg-white' : ''
                                               }`}
                                             >
 
@@ -618,7 +543,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               </Button>
                                                             </>
                                                           ) : (
-                                                            <div   className="cursor-grab active:cursor-grabbing flex gap-2 items-center hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
+                                                                  <div   className="cursor-grab active:cursor-grabbing flex gap-2 items-center hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
                                                               <GripVertical size={16} className="text-gray-400" />
                                                               <span className="font-semibold">{item.lectureName}</span>
                                                               <Button
@@ -1952,6 +1877,228 @@ export function CourseCarriculam({ onSubmit }: any) {
           </Button>
         </div>
       </form>
+      {/* Upload Content Modal */}
+      <UploadContentModal
+        open={uploadModal.open}
+        onClose={() => { 
+          console.log('Modal closing');
+          setUploadModal({ open: false, sectionIdx: null }); 
+          setUploadType(null); 
+        }}
+        uploadType={uploadType}
+        setUploadType={setUploadType}
+        onUpload={async (filesOrExcel, sectionIdx) => {
+          console.log('onUpload called with:', { filesOrExcel, sectionIdx, uploadType });
+          
+          // Remove the early return since sectionIdx is 0 for the first section
+          // if (!sectionIdx) {
+          //   console.log('No section index provided');
+          //   return;
+          // }
+
+          // Get current section items from formik
+          const currentSectionItems = formik.values.sections[sectionIdx]?.items || [];
+          console.log('Current section items:', currentSectionItems);
+
+          // Check for empty lecture
+          const emptyLectureIndex = currentSectionItems.findIndex(item => 
+            item.type === 'lecture' && 
+            item.contentType === '' && 
+            (!item.contentFiles || item.contentFiles.length === 0)
+          );
+          console.log('Empty lecture index:', emptyLectureIndex);
+
+          if (uploadType === 'video' && filesOrExcel instanceof FileList) {
+            console.log('Processing video files');
+            // Create video lectures for each file
+            const newLectures = await Promise.all(
+              Array.from(filesOrExcel).map(async (file) => {
+                const url = URL.createObjectURL(file);
+                // Get video duration
+                const duration = await new Promise<number>((resolve) => {
+                  const video = document.createElement('video');
+                  video.preload = 'metadata';
+                  video.onloadedmetadata = () => {
+                    resolve(video.duration);
+                    video.remove();
+                  };
+                  video.src = url;
+                });
+
+                return {
+                  type: 'lecture' as const,
+                  lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                  contentType: 'video' as const,
+                  videoSource: 'upload' as const,
+                  contentFiles: [{
+                    file,
+                    url,
+                    name: file.name,
+                    duration,
+                    status: 'uploaded' as VideoStatus,
+                    uploadedAt: new Date()
+                  }],
+                  contentUrl: '',
+                  contentText: '',
+                  articleSource: 'upload' as const,
+                  resources: []
+                };
+              })
+            );
+
+            // If there's an empty lecture, update it with the first video
+            if (emptyLectureIndex !== -1) {
+              const updatedItems = [...currentSectionItems];
+              updatedItems[emptyLectureIndex] = newLectures[0];
+              
+              // Add remaining videos as new lectures
+              if (newLectures.length > 1) {
+                updatedItems.push(...newLectures.slice(1));
+              }
+              
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                updatedItems
+              );
+            } else {
+              // No empty lecture found, add all as new lectures
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                [...currentSectionItems, ...newLectures]
+              );
+            }
+          } else if (uploadType === 'document' && filesOrExcel instanceof FileList) {
+            console.log('Processing document files');
+            // Create document lectures for each file
+            const newLectures = Array.from(filesOrExcel).map((file) => {
+              return {
+                type: 'lecture' as const,
+                lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                contentType: 'article' as const,
+                videoSource: 'upload' as const,
+                contentFiles: [{
+                  file,
+                  url: URL.createObjectURL(file),
+                  name: file.name,
+                  status: 'uploaded' as VideoStatus,
+                  uploadedAt: new Date()
+                }],
+                contentUrl: '',
+                contentText: '',
+                articleSource: 'upload' as const,
+                resources: []
+              };
+            });
+
+            // If there's an empty lecture, update it with the first document
+            if (emptyLectureIndex !== -1) {
+              const updatedItems = [...currentSectionItems];
+              updatedItems[emptyLectureIndex] = newLectures[0];
+              
+              // Add remaining documents as new lectures
+              if (newLectures.length > 1) {
+                updatedItems.push(...newLectures.slice(1));
+              }
+              
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                updatedItems
+              );
+            } else {
+              // No empty lecture found, add all as new lectures
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                [...currentSectionItems, ...newLectures]
+              );
+            }
+          } else if (uploadType === 'url' && filesOrExcel instanceof File) {
+            console.log('Processing Excel file');
+            // Excel file upload logic
+            const file = filesOrExcel as File;
+            const urls: string[] = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                // Assume URLs are in the first column, skip header
+                const urlList = (json as any[][]).slice(1).map(row => row[0]).filter(Boolean);
+                resolve(urlList);
+              };
+              reader.onerror = reject;
+              reader.readAsArrayBuffer(file);
+            });
+
+            // Create video lectures for each URL
+            const newLectures = urls.map((url, idx) => ({
+              type: 'lecture' as const,
+              lectureName: `Video Link ${idx + 1}`,
+              contentType: 'video' as const,
+              videoSource: 'link' as const,
+              contentFiles: [],
+              contentUrl: url,
+              contentText: '',
+              articleSource: 'upload' as const,
+              resources: []
+            }));
+
+            // If there's an empty lecture, update it with the first URL
+            if (emptyLectureIndex !== -1) {
+              const updatedItems = [...currentSectionItems];
+              updatedItems[emptyLectureIndex] = newLectures[0];
+              
+              // Add remaining URLs as new lectures
+              if (newLectures.length > 1) {
+                updatedItems.push(...newLectures.slice(1));
+              }
+              
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                updatedItems
+              );
+            } else {
+              // No empty lecture found, add all as new lectures
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                [...currentSectionItems, ...newLectures]
+              );
+            }
+          } else if (uploadType === 'write' && typeof filesOrExcel === 'string') {
+            console.log('Processing written article');
+            const newLecture = {
+              type: 'lecture' as const,
+              lectureName: 'Article',
+              contentType: 'article' as const,
+              videoSource: 'upload' as const,
+              contentFiles: [],
+              contentUrl: '',
+              contentText: filesOrExcel,
+              articleSource: 'write' as const,
+              resources: []
+            };
+
+            if (emptyLectureIndex !== -1) {
+              const updatedItems = [...currentSectionItems];
+              updatedItems[emptyLectureIndex] = newLecture;
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                updatedItems
+              );
+            } else {
+              formik.setFieldValue(
+                `sections[${sectionIdx}].items`,
+                [...currentSectionItems, newLecture]
+              );
+            }
+          }
+
+          // Close the modal after processing
+          setUploadModal({ open: false, sectionIdx: null });
+          setUploadType(null);
+        }}
+        sectionIdx={uploadModal.sectionIdx}
+      />
     </FormikProvider>
   );
 }
@@ -1998,3 +2145,217 @@ const formatDuration = (seconds: number): string => {
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
+
+// Modal for Upload Content
+function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload, sectionIdx }: {
+  open: boolean;
+  onClose: () => void;
+  uploadType: 'video' | 'document' | 'url' | 'write' | null;
+  setUploadType: (type: 'video' | 'document' | 'url' | 'write' | null) => void;
+  onUpload: (filesOrExcel: FileList | File | string, sectionIdx: number) => void;
+  sectionIdx: number | null;
+}) {
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [articleContent, setArticleContent] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File change event triggered');
+    console.log('Files:', e.target.files);
+    console.log('Upload type:', uploadType);
+    console.log('Section index:', sectionIdx);
+
+    if (!e.target.files || e.target.files.length === 0) {
+      console.log('No files selected');
+      return;
+    }
+
+    if (sectionIdx === null) {
+      console.log('No section index');
+      return;
+    }
+
+    if (uploadType === 'url') {
+      // For URL/Excel, we only need the first file
+      if (e.target.files[0]) {
+        console.log('Processing Excel file');
+        onUpload(e.target.files[0], sectionIdx);
+      }
+    } else {
+      // For video and document, we can handle multiple files
+      console.log('Processing multiple files');
+      onUpload(e.target.files, sectionIdx);
+    }
+
+    // Reset the file input
+    setFileInputKey(prev => prev + 1);
+  };
+
+  const handleWriteSubmit = () => {
+    if (sectionIdx !== null && articleContent.trim()) {
+      onUpload(articleContent, sectionIdx);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Select Content Type to Upload</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2">
+            <Button 
+              variant={uploadType === 'video' ? 'default' : 'outline'} 
+              onClick={() => {
+                console.log('Video type selected');
+                setUploadType('video');
+              }}
+            >
+              Video
+            </Button>
+            <Button 
+              variant={uploadType === 'document' ? 'default' : 'outline'} 
+              onClick={() => {
+                console.log('Document type selected');
+                setUploadType('document');
+              }}
+            >
+              Document
+            </Button>
+            <Button 
+              variant={uploadType === 'url' ? 'default' : 'outline'} 
+              onClick={() => {
+                console.log('URL type selected');
+                setUploadType('url');
+              }}
+            >
+              URL (Excel)
+            </Button>
+            <Button 
+              variant={uploadType === 'write' ? 'default' : 'outline'} 
+              onClick={() => {
+                console.log('Write type selected');
+                setUploadType('write');
+              }}
+            >
+              Write
+            </Button>
+          </div>
+
+          {uploadType === 'video' && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Upload Video Files</label>
+              <input
+                key={fileInputKey}
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-none file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary file:text-white
+                  hover:file:bg-primary/90"
+              />
+              <p className="text-xs text-gray-500">Select one or more video files to upload</p>
+            </div>
+          )}
+
+          {uploadType === 'document' && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Upload Document Files</label>
+              <input
+                key={fileInputKey}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.md"
+                multiple
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-none file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary file:text-white
+                  hover:file:bg-primary/90"
+              />
+              <p className="text-xs text-gray-500">Select one or more document files to upload</p>
+            </div>
+          )}
+
+          {uploadType === 'url' && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Upload Excel File with URLs</label>
+              <input
+                key={fileInputKey}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-none file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary file:text-white
+                  hover:file:bg-primary/90"
+              />
+              <div className="text-xs text-gray-500 space-y-2">
+                <p>Upload an Excel file with URLs in the first column.</p>
+                <p className="font-medium">Sample Excel Format:</p>
+                <pre className="bg-gray-100 p-2 rounded">
+                  A
+                  1 | URL
+                  2 | https://example.com/video1
+                  3 | https://example.com/video2
+                  4 | https://example.com/video3
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {uploadType === 'write' && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Write Article Content</label>
+              <div className="border rounded-md">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={articleContent}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setArticleContent(data);
+                  }}
+                  config={{
+                    toolbar: [
+                      'heading',
+                      '|',
+                      'bold',
+                      'italic',
+                      'link',
+                      'bulletedList',
+                      'numberedList',
+                      '|',
+                      'outdent',
+                      'indent',
+                      '|',
+                      'blockQuote',
+                      'insertTable',
+                      'undo',
+                      'redo'
+                    ]
+                  }}
+                />
+              </div>
+              <Button 
+                onClick={handleWriteSubmit}
+                className="mt-2"
+              >
+                Save Article
+              </Button>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
