@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -455,7 +455,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           onClick={() => setUploadModal({ open: true, sectionIdx })}
                                         >
                                           <UploadCloud size={18} />
-                                        </Button>                                     
+                                        </Button>
                                         {formik.values.sections.length > 1 && (
                                           <Button
                                             type="button"
@@ -490,739 +490,738 @@ export function CourseCarriculam({ onSubmit }: any) {
                                               >
                                                 {section.items.map((item, itemIdx) => (
                                                   <Draggable
-                                          key={`item-${sectionIdx}-${itemIdx}`}
-                                          draggableId={`item-${sectionIdx}-${itemIdx}`}
-                                          index={itemIdx}
-                                        >
-                                          {(provided, snapshot) => (
-                                            <div
-                                              ref={provided.innerRef}
-                                              {...provided.draggableProps}
-                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${
-                                                          snapshot.isDragging ? 'shadow-lg bg-white' : ''
-                                              }`}
-                                            >
+                                                    key={`item-${sectionIdx}-${itemIdx}`}
+                                                    draggableId={`item-${sectionIdx}-${itemIdx}`}
+                                                    index={itemIdx}
+                                                  >
+                                                    {(provided, snapshot) => (
+                                                      <div
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''
+                                                          }`}
+                                                      >
 
-                                                  <div>
-                                                    {/* LECTURE */}
-                                                    {item.type === "lecture" && (
-                                                      <div className={`${showContentType &&
-                                                        showContentType.sectionIdx === sectionIdx &&
-                                                        showContentType.itemIdx === itemIdx ? 'flex-col' : 'flex-row'} flex justify-between`}>
-                                                        <div className="flex w-full items-center gap-2 mb-2">
-                                                          {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
-                                                            <>
-                                                              <div className="w-full flex-2">
-                                                                <Input
-                                                                  className="ins-control-border w-full"
-                                                                  //style={{ maxWidth: 300 }}
-                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].lectureName`}
-                                                                  value={item.lectureName}
-                                                                  onChange={formik.handleChange}
-                                                                  onBlur={() => setEditLecture(null)}
-                                                                  autoFocus
-                                                                />
-                                                              </div>
-                                                              <Button
-                                                                type="button"
-                                                                //variant="ghost"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => setEditLecture(null)}
-                                                                title="Save"
-                                                              >
-                                                                Save
-                                                              </Button>
-                                                              <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => remove(itemIdx)}
-                                                                title="Cancel"
-                                                              >
-                                                                Cancel
-                                                              </Button>
-                                                            </>
-                                                          ) : (
-                                                                  <div   className="cursor-grab active:cursor-grabbing flex gap-2 items-center hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
-                                                              <GripVertical size={16} className="text-gray-400" />
-                                                              <span className="font-semibold">{item.lectureName}</span>
-                                                              <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => setEditLecture({ sectionIdx, itemIdx })}
-                                                                title="Edit Lecture Name"
-                                                              >
-                                                                <Pencil size={16} />
-                                                              </Button>
-
-                                                              <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => remove(itemIdx)}
-                                                                title="Cancel"
-                                                              >
-                                                                <Trash2 size={16} className="text-red-500" />
-                                                              </Button>
-                                                            </div>
-                                                          )}
-
-
-                                                        </div>
-                                                        {/* Content Type and Upload */}
-                                                        {showContentType &&
-                                                          showContentType.sectionIdx === sectionIdx &&
-                                                          showContentType.itemIdx === itemIdx ? (
-                                                          <div className="flex flex-col gap-2 mt-2 w-auto px-12">
-                                                            <label className="ins-label">Content Type</label>
-                                                            <Select
-                                                              value={item.contentType}
-                                                              onValueChange={value => {
-                                                                formik.setFieldValue(
-                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentType`,
-                                                                  value
-                                                                );
-                                                              }}
-                                                            >
-                                                              <SelectTrigger className="ins-control-border">
-                                                                <SelectValue placeholder="Select Content Type" />
-                                                              </SelectTrigger>
-                                                              <SelectContent>
-                                                                {CONTENT_TYPES.map(type => (
-                                                                  <SelectItem key={type.value} value={type.value}>
-                                                                    {type.label}
-                                                                  </SelectItem>
-                                                                ))}
-                                                              </SelectContent>
-                                                            </Select>
-                                                            {/* Article: Plain textarea for React 19 */}
-                                                            {item.contentType === "article" && (
-                                                              <div className="flex flex-col gap-2">
-                                                                {/* Article Source Option */}
-                                                                <div className="flex items-center gap-4 mb-2">
-                                                                  <label className="ins-label">Article Source:</label>
-                                                                  <div className="flex items-center gap-4">
-                                                                    <div className="flex items-center gap-2">
-                                                                      <input
-                                                                        type="radio"
-                                                                        className="w-4 h-4"
-                                                                        id={`article-upload-${sectionIdx}-${itemIdx}`}
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                        checked={item.articleSource === 'upload'}
-                                                                        onChange={() => {
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                            'upload'
-                                                                          );
-                                                                          // Clear other sources when switching
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                            ''
-                                                                          );
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                            ''
-                                                                          );
-                                                                        }}
+                                                        <div>
+                                                          {/* LECTURE */}
+                                                          {item.type === "lecture" && (
+                                                            <div className={`${showContentType &&
+                                                              showContentType.sectionIdx === sectionIdx &&
+                                                              showContentType.itemIdx === itemIdx ? 'flex-col' : 'flex-row'} flex justify-between`}>
+                                                              <div className="flex w-full items-center gap-2 mb-2">
+                                                                {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
+                                                                  <>
+                                                                    <div className="w-full flex-2">
+                                                                      <Input
+                                                                        className="ins-control-border w-full"
+                                                                        //style={{ maxWidth: 300 }}
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].lectureName`}
+                                                                        value={item.lectureName}
+                                                                        onChange={formik.handleChange}
+                                                                        onBlur={() => setEditLecture(null)}
+                                                                        autoFocus
                                                                       />
-                                                                      <label className="font-bold" htmlFor={`article-upload-${sectionIdx}-${itemIdx}`}>
-                                                                        Document Upload
-                                                                      </label>
                                                                     </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                      <input
-                                                                        type="radio"
-                                                                        id={`article-link-${sectionIdx}-${itemIdx}`}
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                        checked={item.articleSource === 'link'}
-                                                                        className="w-4 h-4"
-                                                                        onChange={() => {
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                            'link'
-                                                                          );
-                                                                          // Clear other sources when switching
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                            []
-                                                                          );
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                            ''
-                                                                          );
-                                                                        }}
-                                                                      />
-                                                                      <label className="font-bold" htmlFor={`article-link-${sectionIdx}-${itemIdx}`}>
-                                                                        Via URL Link
-                                                                      </label>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                      <input
-                                                                        type="radio"
-                                                                        id={`article-write-${sectionIdx}-${itemIdx}`}
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                        checked={item.articleSource === 'write'}
-                                                                        className="w-4 h-4"
-                                                                        onChange={() => {
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                            'write'
-                                                                          );
-                                                                          // Clear other sources when switching
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                            []
-                                                                          );
-                                                                          formik.setFieldValue(
-                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                            ''
-                                                                          );
-                                                                        }}
-                                                                      />
-                                                                      <label className="font-bold" htmlFor={`article-write-${sectionIdx}-${itemIdx}`}>
-                                                                        Write
-                                                                      </label>
-                                                                    </div>
-                                                                  </div>
-                                                                </div>
-
-                                                                {/* Document Upload option */}
-                                                                {item.articleSource === 'upload' && (
-                                                                  <div className="flex flex-col gap-2 mb-2">
-                                                                    <Input
-                                                                      className="ins-control-border"
-                                                                      type="file"
-                                                                      accept=".pdf,.doc,.docx,.txt,.md"
-                                                                      onChange={async (e) => {
-                                                                        const files = Array.from(e.target.files || []);
-                                                                        if (files.length === 0) return;
-
-                                                                        const fileObjects = files.map((file) => ({
-                                                                          file,
-                                                                          url: URL.createObjectURL(file),
-                                                                          name: file.name,
-                                                                          status: 'uploaded' as VideoStatus,
-                                                                          uploadedAt: new Date()
-                                                                        }));
-
-                                                                        // Set lecture name to the first file's name (without extension)
-                                                                        const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
-                                                                          fileNameWithoutExt
-                                                                        );
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                          fileObjects
-                                                                        );
-                                                                      }}
-                                                                    />
-
-                                                                    {/* Display uploaded files */}
-                                                                    {item.contentFiles?.length > 0 && (
-                                                                      <div className="border rounded p-2 bg-white">
-                                                                        <h5 className="font-medium text-sm mb-2">Uploaded Documents:</h5>
-                                                                        {item.contentFiles.map((content, idx) => (
-                                                                          <div key={idx} className="flex items-center justify-between py-1">
-                                                                            <div className="flex items-center gap-2">
-                                                                              <File size={14} />
-                                                                              <span className="text-sm">{content.name}</span>
-                                                                            </div>
-                                                                            <Button
-                                                                              type="button"
-                                                                              size="sm"
-                                                                              variant="outline"
-                                                                              className="px-2 py-1 rounded-none"
-                                                                              onClick={() => {
-                                                                                const newFiles = [...item.contentFiles];
-                                                                                URL.revokeObjectURL(newFiles[idx].url);
-                                                                                newFiles.splice(idx, 1);
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                  newFiles
-                                                                                );
-                                                                              }}
-                                                                            >
-                                                                              <Trash2 size={14} className="text-red-500" />
-                                                                            </Button>
-                                                                          </div>
-                                                                        ))}
-                                                                      </div>
-                                                                    )}
-                                                                  </div>
-                                                                )}
-
-                                                                {/* URL Link option */}
-                                                                {item.articleSource === 'link' && (
-                                                                  <div className="flex flex-col gap-2 mb-2">
-                                                                    <Input
-                                                                      className="ins-control-border"
-                                                                      type="url"
-                                                                      placeholder="Enter article URL (Medium, blog, etc.)"
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
-                                                                      value={item.contentUrl}
-                                                                      onChange={formik.handleChange}
-                                                                    />
-                                                                    {formik.touched.sections &&
-                                                                      Array.isArray(formik.touched.sections) &&
-                                                                      formik.touched.sections[sectionIdx] &&
-                                                                      formik.touched.sections[sectionIdx]?.items &&
-                                                                      Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
-                                                                      formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                      (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
-                                                                      formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                      (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
-                                                                      formik.errors.sections &&
-                                                                      Array.isArray(formik.errors.sections) &&
-                                                                      (formik.errors.sections as any)[sectionIdx]?.items &&
-                                                                      Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
-                                                                      (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
-                                                                        <div className="text-red-500 text-xs">
-                                                                          {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
-                                                                        </div>
-                                                                      )}
-                                                                  </div>
-                                                                )}
-
-                                                                {/* Write option - ArticleEditor */}
-                                                                {item.articleSource === 'write' && (
-                                                                  <div className="border rounded-md overflow-hidden bg-white">
-                                                                    <ArticleEditor
-                                                                      sectionIdx={sectionIdx}
-                                                                      itemIdx={itemIdx}
-                                                                      content={item.contentText || ''}
-                                                                      onChange={(html) => {
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                          html
-                                                                        );
-                                                                      }}
-                                                                    />
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            )}
-                                                            {/* Video: Upload & Info */}
-                                                            {item.contentType === "video" && (
-                                                              <div className="flex flex-col gap-2">
-                                                                {/* Video Source Option */}
-                                                                <div className="flex items-center gap-4 mb-2">
-                                                                  <label className="ins-label">Video Source:</label>
-                                                                  <div className="flex items-center gap-2">
-                                                                    <input
-                                                                      type="radio"
-                                                                      className="w-4 h-4"
-                                                                      id={`video-upload-${sectionIdx}-${itemIdx}`}
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
-                                                                      checked={item.videoSource !== 'link'}
-                                                                      onChange={() => {
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
-                                                                          'upload'
-                                                                        );
-                                                                        // Clear link if switching
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                          ''
-                                                                        );
-                                                                      }}
-                                                                    />
-                                                                    <label className="font-bold" htmlFor={`video-upload-${sectionIdx}-${itemIdx}`}>Upload file</label>
-                                                                    <input
-                                                                      type="radio"
-                                                                      id={`video-link-${sectionIdx}-${itemIdx}`}
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
-                                                                      checked={item.videoSource === 'link'}
-                                                                      className="w-4 h-4"
-                                                                      onChange={() => {
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
-                                                                          'link'
-                                                                        );
-                                                                        // Clear files if switching
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                          []
-                                                                        );
-                                                                      }}
-                                                                    />
-                                                                    <label className="font-bold" htmlFor={`video-link-${sectionIdx}-${itemIdx}`}>Video link</label>
-                                                                  </div>
-                                                                </div>
-                                                                {/* Upload file option */}
-                                                                {(!item.videoSource || item.videoSource === 'upload') && (
-                                                                  <div className="flex items-center justify-between mb-2">
-                                                                    <Input
-                                                                      className="ins-control-border flex-1 mr-2"
-                                                                      type="file"
-                                                                      accept="video/*"
-                                                                      multiple
-                                                                      onChange={async (e) => {
-                                                                        const files = Array.from(e.target.files || []);
-                                                                        if (files.length === 0) return;
-
-                                                                        const fileObjects = await Promise.all(files.map(async (file) => {
-                                                                          const url = URL.createObjectURL(file);
-                                                                          // Get video duration
-                                                                          const duration = await new Promise<number>((resolve) => {
-                                                                            const video = document.createElement('video');
-                                                                            video.preload = 'metadata';
-                                                                            video.onloadedmetadata = () => {
-                                                                              resolve(video.duration);
-                                                                              video.remove();
-                                                                            };
-                                                                            video.src = url;
-                                                                          });
-                                                                          return {
-                                                                            file,
-                                                                            url,
-                                                                            name: file.name,
-                                                                            duration
-                                                                          };
-                                                                        }));
-
-                                                                        // Set lecture name to the first file's name (without extension)
-                                                                        const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
-                                                                          fileNameWithoutExt
-                                                                        );
-                                                                        formik.setFieldValue(
-                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                          fileObjects
-                                                                        );
-                                                                      }}
-                                                                    />
-                                                                  </div>
-                                                                )}
-                                                                {/* Video link option */}
-                                                                {item.videoSource === 'link' && (
-                                                                  <div className="flex flex-col gap-2 mb-2">
-                                                                    <Input
-                                                                      className="ins-control-border"
-                                                                      type="url"
-                                                                      placeholder="Enter video URL (YouTube, Vimeo, etc.)"
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
-                                                                      value={item.contentUrl}
-                                                                      onChange={formik.handleChange}
-                                                                    />
-                                                                    {formik.touched.sections &&
-                                                                      Array.isArray(formik.touched.sections) &&
-                                                                      formik.touched.sections[sectionIdx] &&
-                                                                      formik.touched.sections[sectionIdx]?.items &&
-                                                                      Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
-                                                                      formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                      (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
-                                                                      formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                      (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
-                                                                      formik.errors.sections &&
-                                                                      Array.isArray(formik.errors.sections) &&
-                                                                      (formik.errors.sections as any)[sectionIdx]?.items &&
-                                                                      Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
-                                                                      (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
-                                                                        <div className="text-red-500 text-xs">
-                                                                          {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
-                                                                        </div>
-                                                                      )}
-                                                                  </div>
-                                                                )}
-                                                                {item.contentFiles?.length > 0 && (
-                                                                  <div className="overflow-x-auto">
-                                                                    <table className="w-full border-collapse">
-                                                                      <thead>
-                                                                        <tr className="bg-gray-50 border-b">
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">File Name</th>
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th>
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">Duration</th>
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th>
-                                                                          <th className="text-left p-2 text-sm font-medium text-gray-600">Actions</th>
-                                                                        </tr>
-                                                                      </thead>
-                                                                      <tbody>
-                                                                        {item.contentFiles.map((content, idx) => (
-                                                                          <tr key={idx} className="border-b hover:bg-gray-50">
-                                                                            <td className="p-2">
-                                                                              <div className="flex items-center gap-2">
-                                                                                <UploadCloud size={14} />
-                                                                                <span className="text-sm">{content.name}</span>
-                                                                              </div>
-                                                                            </td>
-                                                                            <td className="p-2">
-                                                                              <span className="text-sm">{content.file.type}</span>
-                                                                            </td>
-                                                                            <td className="p-2">
-                                                                              <span className="text-sm">{formatDuration(content.duration || 0)}</span>
-                                                                            </td>
-                                                                            <td className="p-2">
-                                                                              {content.status === 'uploading' ? (
-                                                                                <div className="flex items-center gap-2">
-                                                                                  <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
-                                                                                    <div
-                                                                                      className="h-full bg-primary"
-                                                                                      style={{ width: `${content.uploadProgress}%` }}
-                                                                                    />
-                                                                                  </div>
-                                                                                  <span className="text-sm">{content.uploadProgress}%</span>
-                                                                                </div>
-                                                                              ) : (
-                                                                                <span className={`text-sm px-2 py-1 rounded-full ${content.status === 'uploaded' ? 'bg-green-100 text-green-800' :
-                                                                                  'bg-red-100 text-red-800'
-                                                                                  }`}>
-                                                                                  {content.status}
-                                                                                </span>
-                                                                              )}
-                                                                            </td>
-                                                                            <td className="p-2">
-                                                                              <span className="text-sm">
-                                                                                {/* {content.uploadedAt.toLocaleDateString()} */}
-                                                                              </span>
-                                                                            </td>
-                                                                            <td className="p-2">
-                                                                              <div className="flex items-center gap-2">
-                                                                                <Button
-                                                                                  type="button"
-                                                                                  size="sm"
-                                                                                  variant="ghost"
-                                                                                  className="p-1"
-                                                                                  onClick={() => {
-                                                                                    setShowContentType({ sectionIdx, itemIdx });
-                                                                                    setViewItem(null);
-                                                                                  }}
-                                                                                >
-                                                                                  <Pencil size={14} />
-                                                                                </Button>
-                                                                                <Button
-                                                                                  type="button"
-                                                                                  size="sm"
-                                                                                  variant="ghost"
-                                                                                  className="p-1"
-                                                                                  onClick={() => {
-                                                                                    const newFiles = [...item.contentFiles];
-                                                                                    URL.revokeObjectURL(newFiles[idx].url);
-                                                                                    newFiles.splice(idx, 1);
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                      newFiles
-                                                                                    );
-                                                                                  }}
-                                                                                >
-                                                                                  <Trash2 size={14} className="text-red-500" />
-                                                                                </Button>
-                                                                              </div>
-                                                                            </td>
-                                                                          </tr>
-                                                                        ))}
-                                                                      </tbody>
-                                                                    </table>
-                                                                  </div>
-                                                                )}
-
-                                                                {/* Resources Section */}
-                                                                <div className="mt-4">
-                                                                  <div className="flex items-center justify-between mb-2">
-                                                                    <h4 className="font-medium text-sm">Resources</h4>
                                                                     <Button
                                                                       type="button"
-                                                                      size="sm"
-                                                                      variant="outline"
-                                                                      onClick={() => {
-                                                                        const fileInput = document.createElement('input');
-                                                                        fileInput.type = 'file';
-                                                                        fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt';
-                                                                        fileInput.multiple = true;
-
-                                                                        fileInput.onchange = (e) => {
-                                                                          const files = (e.target as HTMLInputElement).files;
-                                                                          if (files) {
-                                                                            const currentResources = item.resources || [];
-                                                                            const newResources = Array.from(files).map(file => ({
-                                                                              name: file.name,
-                                                                              file: file
-                                                                            }));
-
-                                                                            formik.setFieldValue(
-                                                                              `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                              [...currentResources, ...newResources]
-                                                                            );
-                                                                          }
-                                                                        };
-
-                                                                        fileInput.click();
-                                                                      }}
+                                                                      //variant="ghost"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setEditLecture(null)}
+                                                                      title="Save"
                                                                     >
-                                                                      + Add Resources
+                                                                      Save
+                                                                    </Button>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => remove(itemIdx)}
+                                                                      title="Cancel"
+                                                                    >
+                                                                      Cancel
+                                                                    </Button>
+                                                                  </>
+                                                                ) : (
+                                                                  <div className="cursor-grab active:cursor-grabbing flex gap-2 items-center hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
+                                                                    <GripVertical size={16} className="text-gray-400" />
+                                                                    <span className="font-semibold">{item.lectureName}</span>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setEditLecture({ sectionIdx, itemIdx })}
+                                                                      title="Edit Lecture Name"
+                                                                    >
+                                                                      <Pencil size={16} />
+                                                                    </Button>
+
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => remove(itemIdx)}
+                                                                      title="Cancel"
+                                                                    >
+                                                                      <Trash2 size={16} className="text-red-500" />
                                                                     </Button>
                                                                   </div>
+                                                                )}
 
-                                                                  {item.resources?.length > 0 && (
-                                                                    <div className="border rounded p-2 bg-white">
-                                                                      {item.resources.map((resource, resourceIdx) => (
-                                                                        <div key={resourceIdx} className="flex items-center justify-between py-1">
+
+                                                              </div>
+                                                              {/* Content Type and Upload */}
+                                                              {showContentType &&
+                                                                showContentType.sectionIdx === sectionIdx &&
+                                                                showContentType.itemIdx === itemIdx ? (
+                                                                <div className="flex flex-col gap-2 mt-2 w-auto px-12">
+                                                                  <label className="ins-label">Content Type</label>
+                                                                  <Select
+                                                                    value={item.contentType}
+                                                                    onValueChange={value => {
+                                                                      formik.setFieldValue(
+                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentType`,
+                                                                        value
+                                                                      );
+                                                                    }}
+                                                                  >
+                                                                    <SelectTrigger className="ins-control-border">
+                                                                      <SelectValue placeholder="Select Content Type" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                      {CONTENT_TYPES.map(type => (
+                                                                        <SelectItem key={type.value} value={type.value}>
+                                                                          {type.label}
+                                                                        </SelectItem>
+                                                                      ))}
+                                                                    </SelectContent>
+                                                                  </Select>
+                                                                  {/* Article: Plain textarea for React 19 */}
+                                                                  {item.contentType === "article" && (
+                                                                    <div className="flex flex-col gap-2">
+                                                                      {/* Article Source Option */}
+                                                                      <div className="flex items-center gap-4 mb-2">
+                                                                        <label className="ins-label">Article Source:</label>
+                                                                        <div className="flex items-center gap-4">
                                                                           <div className="flex items-center gap-2">
-                                                                            <File size={14} />
-                                                                            <span className="text-sm">{resource.name}</span>
+                                                                            <input
+                                                                              type="radio"
+                                                                              className="w-4 h-4"
+                                                                              id={`article-upload-${sectionIdx}-${itemIdx}`}
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                              checked={item.articleSource === 'upload'}
+                                                                              onChange={() => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                  'upload'
+                                                                                );
+                                                                                // Clear other sources when switching
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                  ''
+                                                                                );
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                  ''
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <label className="font-bold" htmlFor={`article-upload-${sectionIdx}-${itemIdx}`}>
+                                                                              Document Upload
+                                                                            </label>
                                                                           </div>
+
+                                                                          <div className="flex items-center gap-2">
+                                                                            <input
+                                                                              type="radio"
+                                                                              id={`article-link-${sectionIdx}-${itemIdx}`}
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                              checked={item.articleSource === 'link'}
+                                                                              className="w-4 h-4"
+                                                                              onChange={() => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                  'link'
+                                                                                );
+                                                                                // Clear other sources when switching
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  []
+                                                                                );
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                  ''
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <label className="font-bold" htmlFor={`article-link-${sectionIdx}-${itemIdx}`}>
+                                                                              Via URL Link
+                                                                            </label>
+                                                                          </div>
+
+                                                                          <div className="flex items-center gap-2">
+                                                                            <input
+                                                                              type="radio"
+                                                                              id={`article-write-${sectionIdx}-${itemIdx}`}
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                              checked={item.articleSource === 'write'}
+                                                                              className="w-4 h-4"
+                                                                              onChange={() => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                  'write'
+                                                                                );
+                                                                                // Clear other sources when switching
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  []
+                                                                                );
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                  ''
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <label className="font-bold" htmlFor={`article-write-${sectionIdx}-${itemIdx}`}>
+                                                                              Write
+                                                                            </label>
+                                                                          </div>
+                                                                        </div>
+                                                                      </div>
+
+                                                                      {/* Document Upload option */}
+                                                                      {item.articleSource === 'upload' && (
+                                                                        <div className="flex flex-col gap-2 mb-2">
+                                                                          <Input
+                                                                            className="ins-control-border"
+                                                                            type="file"
+                                                                            accept=".pdf,.doc,.docx,.txt,.md"
+                                                                            onChange={async (e) => {
+                                                                              const files = Array.from(e.target.files || []);
+                                                                              if (files.length === 0) return;
+
+                                                                              const fileObjects = files.map((file) => ({
+                                                                                file,
+                                                                                url: URL.createObjectURL(file),
+                                                                                name: file.name,
+                                                                                status: 'uploaded' as VideoStatus,
+                                                                                uploadedAt: new Date()
+                                                                              }));
+
+                                                                              // Set lecture name to the first file's name (without extension)
+                                                                              const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
+                                                                                fileNameWithoutExt
+                                                                              );
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                fileObjects
+                                                                              );
+                                                                            }}
+                                                                          />
+
+                                                                          {/* Display uploaded files */}
+                                                                          {item.contentFiles?.length > 0 && (
+                                                                            <div className="border rounded p-2 bg-white">
+                                                                              <h5 className="font-medium text-sm mb-2">Uploaded Documents:</h5>
+                                                                              {item.contentFiles.map((content, idx) => (
+                                                                                <div key={idx} className="flex items-center justify-between py-1">
+                                                                                  <div className="flex items-center gap-2">
+                                                                                    <File size={14} />
+                                                                                    <span className="text-sm">{content.name}</span>
+                                                                                  </div>
+                                                                                  <Button
+                                                                                    type="button"
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    className="px-2 py-1 rounded-none"
+                                                                                    onClick={() => {
+                                                                                      const newFiles = [...item.contentFiles];
+                                                                                      URL.revokeObjectURL(newFiles[idx].url);
+                                                                                      newFiles.splice(idx, 1);
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                        newFiles
+                                                                                      );
+                                                                                    }}
+                                                                                  >
+                                                                                    <Trash2 size={14} className="text-red-500" />
+                                                                                  </Button>
+                                                                                </div>
+                                                                              ))}
+                                                                            </div>
+                                                                          )}
+                                                                        </div>
+                                                                      )}
+
+                                                                      {/* URL Link option */}
+                                                                      {item.articleSource === 'link' && (
+                                                                        <div className="flex flex-col gap-2 mb-2">
+                                                                          <Input
+                                                                            className="ins-control-border"
+                                                                            type="url"
+                                                                            placeholder="Enter article URL (Medium, blog, etc.)"
+                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
+                                                                            value={item.contentUrl}
+                                                                            onChange={formik.handleChange}
+                                                                          />
+                                                                          {formik.touched.sections &&
+                                                                            Array.isArray(formik.touched.sections) &&
+                                                                            formik.touched.sections[sectionIdx] &&
+                                                                            formik.touched.sections[sectionIdx]?.items &&
+                                                                            Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
+                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                            (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
+                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                            (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
+                                                                            formik.errors.sections &&
+                                                                            Array.isArray(formik.errors.sections) &&
+                                                                            (formik.errors.sections as any)[sectionIdx]?.items &&
+                                                                            Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
+                                                                            (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
+                                                                              <div className="text-red-500 text-xs">
+                                                                                {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
+                                                                              </div>
+                                                                            )}
+                                                                        </div>
+                                                                      )}
+
+                                                                      {/* Write option - ArticleEditor */}
+                                                                      {item.articleSource === 'write' && (
+                                                                        <div className="border rounded-md overflow-hidden bg-white">
+                                                                          <ArticleEditor
+                                                                            sectionIdx={sectionIdx}
+                                                                            itemIdx={itemIdx}
+                                                                            content={item.contentText || ''}
+                                                                            onChange={(html) => {
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                html
+                                                                              );
+                                                                            }}
+                                                                          />
+                                                                        </div>
+                                                                      )}
+                                                                    </div>
+                                                                  )}
+                                                                  {/* Video: Upload & Info */}
+                                                                  {item.contentType === "video" && (
+                                                                    <div className="flex flex-col gap-2">
+                                                                      {/* Video Source Option */}
+                                                                      <div className="flex items-center gap-4 mb-2">
+                                                                        <label className="ins-label">Video Source:</label>
+                                                                        <div className="flex items-center gap-2">
+                                                                          <input
+                                                                            type="radio"
+                                                                            className="w-4 h-4"
+                                                                            id={`video-upload-${sectionIdx}-${itemIdx}`}
+                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
+                                                                            checked={item.videoSource !== 'link'}
+                                                                            onChange={() => {
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
+                                                                                'upload'
+                                                                              );
+                                                                              // Clear link if switching
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                ''
+                                                                              );
+                                                                            }}
+                                                                          />
+                                                                          <label className="font-bold" htmlFor={`video-upload-${sectionIdx}-${itemIdx}`}>Upload file</label>
+                                                                          <input
+                                                                            type="radio"
+                                                                            id={`video-link-${sectionIdx}-${itemIdx}`}
+                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
+                                                                            checked={item.videoSource === 'link'}
+                                                                            className="w-4 h-4"
+                                                                            onChange={() => {
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
+                                                                                'link'
+                                                                              );
+                                                                              // Clear files if switching
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                []
+                                                                              );
+                                                                            }}
+                                                                          />
+                                                                          <label className="font-bold" htmlFor={`video-link-${sectionIdx}-${itemIdx}`}>Video link</label>
+                                                                        </div>
+                                                                      </div>
+                                                                      {/* Upload file option */}
+                                                                      {(!item.videoSource || item.videoSource === 'upload') && (
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                          <Input
+                                                                            className="ins-control-border flex-1 mr-2"
+                                                                            type="file"
+                                                                            accept="video/*"
+                                                                            multiple
+                                                                            onChange={async (e) => {
+                                                                              const files = Array.from(e.target.files || []);
+                                                                              if (files.length === 0) return;
+
+                                                                              const fileObjects = await Promise.all(files.map(async (file) => {
+                                                                                const url = URL.createObjectURL(file);
+                                                                                // Get video duration
+                                                                                const duration = await new Promise<number>((resolve) => {
+                                                                                  const video = document.createElement('video');
+                                                                                  video.preload = 'metadata';
+                                                                                  video.onloadedmetadata = () => {
+                                                                                    resolve(video.duration);
+                                                                                    video.remove();
+                                                                                  };
+                                                                                  video.src = url;
+                                                                                });
+                                                                                return {
+                                                                                  file,
+                                                                                  url,
+                                                                                  name: file.name,
+                                                                                  duration
+                                                                                };
+                                                                              }));
+
+                                                                              // Set lecture name to the first file's name (without extension)
+                                                                              const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
+                                                                                fileNameWithoutExt
+                                                                              );
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                fileObjects
+                                                                              );
+                                                                            }}
+                                                                          />
+                                                                        </div>
+                                                                      )}
+                                                                      {/* Video link option */}
+                                                                      {item.videoSource === 'link' && (
+                                                                        <div className="flex flex-col gap-2 mb-2">
+                                                                          <Input
+                                                                            className="ins-control-border"
+                                                                            type="url"
+                                                                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
+                                                                            value={item.contentUrl}
+                                                                            onChange={formik.handleChange}
+                                                                          />
+                                                                          {formik.touched.sections &&
+                                                                            Array.isArray(formik.touched.sections) &&
+                                                                            formik.touched.sections[sectionIdx] &&
+                                                                            formik.touched.sections[sectionIdx]?.items &&
+                                                                            Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
+                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                            (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
+                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                            (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
+                                                                            formik.errors.sections &&
+                                                                            Array.isArray(formik.errors.sections) &&
+                                                                            (formik.errors.sections as any)[sectionIdx]?.items &&
+                                                                            Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
+                                                                            (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
+                                                                              <div className="text-red-500 text-xs">
+                                                                                {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
+                                                                              </div>
+                                                                            )}
+                                                                        </div>
+                                                                      )}
+                                                                      {item.contentFiles?.length > 0 && (
+                                                                        <div className="overflow-x-auto">
+                                                                          <table className="w-full border-collapse">
+                                                                            <thead>
+                                                                              <tr className="bg-gray-50 border-b">
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">File Name</th>
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th>
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Duration</th>
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th>
+                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Actions</th>
+                                                                              </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                              {item.contentFiles.map((content, idx) => (
+                                                                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                                                                  <td className="p-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                      <UploadCloud size={14} />
+                                                                                      <span className="text-sm">{content.name}</span>
+                                                                                    </div>
+                                                                                  </td>
+                                                                                  <td className="p-2">
+                                                                                    <span className="text-sm">{content.file.type}</span>
+                                                                                  </td>
+                                                                                  <td className="p-2">
+                                                                                    <span className="text-sm">{formatDuration(content.duration || 0)}</span>
+                                                                                  </td>
+                                                                                  <td className="p-2">
+                                                                                    {content.status === 'uploading' ? (
+                                                                                      <div className="flex items-center gap-2">
+                                                                                        <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
+                                                                                          <div
+                                                                                            className="h-full bg-primary"
+                                                                                            style={{ width: `${content.uploadProgress}%` }}
+                                                                                          />
+                                                                                        </div>
+                                                                                        <span className="text-sm">{content.uploadProgress}%</span>
+                                                                                      </div>
+                                                                                    ) : (
+                                                                                      <span className={`text-sm px-2 py-1 rounded-full ${content.status === 'uploaded' ? 'bg-green-100 text-green-800' :
+                                                                                        'bg-red-100 text-red-800'
+                                                                                        }`}>
+                                                                                        {content.status}
+                                                                                      </span>
+                                                                                    )}
+                                                                                  </td>
+                                                                                  <td className="p-2">
+                                                                                    <span className="text-sm">
+                                                                                      {/* {content.uploadedAt.toLocaleDateString()} */}
+                                                                                    </span>
+                                                                                  </td>
+                                                                                  <td className="p-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="p-1"
+                                                                                        onClick={() => {
+                                                                                          setShowContentType({ sectionIdx, itemIdx });
+                                                                                          setViewItem(null);
+                                                                                        }}
+                                                                                      >
+                                                                                        <Pencil size={14} />
+                                                                                      </Button>
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="p-1"
+                                                                                        onClick={() => {
+                                                                                          const newFiles = [...item.contentFiles];
+                                                                                          URL.revokeObjectURL(newFiles[idx].url);
+                                                                                          newFiles.splice(idx, 1);
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                            newFiles
+                                                                                          );
+                                                                                        }}
+                                                                                      >
+                                                                                        <Trash2 size={14} className="text-red-500" />
+                                                                                      </Button>
+                                                                                    </div>
+                                                                                  </td>
+                                                                                </tr>
+                                                                              ))}
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </div>
+                                                                      )}
+
+                                                                      {/* Resources Section */}
+                                                                      <div className="mt-4">
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                          <h4 className="font-medium text-sm">Resources</h4>
                                                                           <Button
                                                                             type="button"
                                                                             size="sm"
                                                                             variant="outline"
-                                                                            className="px-2 py-1 rounded-none"
                                                                             onClick={() => {
-                                                                              const newResources = [...item.resources];
-                                                                              newResources.splice(resourceIdx, 1);
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                newResources
-                                                                              );
+                                                                              const fileInput = document.createElement('input');
+                                                                              fileInput.type = 'file';
+                                                                              fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt';
+                                                                              fileInput.multiple = true;
+
+                                                                              fileInput.onchange = (e) => {
+                                                                                const files = (e.target as HTMLInputElement).files;
+                                                                                if (files) {
+                                                                                  const currentResources = item.resources || [];
+                                                                                  const newResources = Array.from(files).map(file => ({
+                                                                                    name: file.name,
+                                                                                    file: file
+                                                                                  }));
+
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                    [...currentResources, ...newResources]
+                                                                                  );
+                                                                                }
+                                                                              };
+
+                                                                              fileInput.click();
                                                                             }}
                                                                           >
-                                                                            <Trash2 size={14} />
+                                                                            + Add Resources
                                                                           </Button>
                                                                         </div>
-                                                                      ))}
+
+                                                                        {item.resources?.length > 0 && (
+                                                                          <div className="border rounded p-2 bg-white">
+                                                                            {item.resources.map((resource, resourceIdx) => (
+                                                                              <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                                <div className="flex items-center gap-2">
+                                                                                  <File size={14} />
+                                                                                  <span className="text-sm">{resource.name}</span>
+                                                                                </div>
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  size="sm"
+                                                                                  variant="outline"
+                                                                                  className="px-2 py-1 rounded-none"
+                                                                                  onClick={() => {
+                                                                                    const newResources = [...item.resources];
+                                                                                    newResources.splice(resourceIdx, 1);
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                      newResources
+                                                                                    );
+                                                                                  }}
+                                                                                >
+                                                                                  <Trash2 size={14} />
+                                                                                </Button>
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        )}
+                                                                      </div>
                                                                     </div>
                                                                   )}
+                                                                  <Button
+                                                                    type="button"
+                                                                    className="rounded-none mt-2"
+                                                                    onClick={() => setShowContentType(null)}
+                                                                  >
+                                                                    Done
+                                                                  </Button>
                                                                 </div>
-                                                              </div>
-                                                            )}
-                                                            <Button
-                                                              type="button"
-                                                              className="rounded-none mt-2"
-                                                              onClick={() => setShowContentType(null)}
-                                                            >
-                                                              Done
-                                                            </Button>
-                                                          </div>
-                                                        ) : (
-                                                          <div className="flex items-center ml-2 mb-2 gap-2">
-                                                            {!editLecture && <Button
-                                                              className="h-[10] rounded-none text-sm"
-                                                              type="button"
-                                                              onClick={() => setShowContentType({ sectionIdx, itemIdx })}
-                                                            >
-                                                              Add Content
-                                                            </Button>}
-                                                            <Button
-                                                              type="button"
-                                                              variant="outline"
-                                                              className="px-2 py-1 rounded-none"
-                                                              onClick={() => setViewItem(
-                                                                viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                  ? null
-                                                                  : { sectionIdx, itemIdx }
+                                                              ) : (
+                                                                <div className="flex items-center ml-2 mb-2 gap-2">
+                                                                  {!editLecture && <Button
+                                                                    className="h-[10] rounded-none text-sm"
+                                                                    type="button"
+                                                                    onClick={() => setShowContentType({ sectionIdx, itemIdx })}
+                                                                  >
+                                                                    Add Content
+                                                                  </Button>}
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    className="px-2 py-1 rounded-none"
+                                                                    onClick={() => setViewItem(
+                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? null
+                                                                        : { sectionIdx, itemIdx }
+                                                                    )}
+                                                                  >
+                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                      ? <ChevronUp size={16} />
+                                                                      : <ChevronDown size={16} />}
+                                                                  </Button>
+                                                                </div>
                                                               )}
-                                                            >
-                                                              {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                ? <ChevronUp size={16} />
-                                                                : <ChevronDown size={16} />}
-                                                            </Button>
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                    {/* QUIZ */}
-                                                    {item.type === "quiz" && (
-                                                      <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center justify-between gap-2 mb-2">
-                                                          <div className="flex items-center gap-2">
-                                                            <span className="font-semibold">
-                                                              {item.quizTitle || "New Quiz"}
-                                                            </span>
-                                                            <Button
-                                                              type="button"
-                                                              variant="outline"
-                                                              className="px-2 py-1 rounded-none"
-                                                              onClick={() => remove(itemIdx)}
-                                                              title="Delete"
-                                                            >
-                                                              <Trash2 size={16} className="text-red-500" />
-                                                            </Button>
-                                                            {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                              <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => setEditQuiz({ sectionIdx, itemIdx })}
-                                                              >
-                                                                <Pencil size={16} />
-                                                              </Button>
-                                                            )}
-                                                          </div>
-                                                          {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                            <Button
-                                                              type="button"
-                                                              variant="outline"
-                                                              className="px-2 py-1 rounded-none"
-                                                              onClick={() => setViewItem(
-                                                                viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                  ? null
-                                                                  : { sectionIdx, itemIdx }
-                                                              )}
-                                                            >
-                                                              {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                ? <ChevronUp size={16} />
-                                                                : <ChevronDown size={16} />}
-                                                            </Button>
+                                                            </div>
                                                           )}
-                                                        </div>
+                                                          {/* QUIZ */}
+                                                          {item.type === "quiz" && (
+                                                            <div className="flex flex-col gap-2">
+                                                              <div className="flex items-center justify-between gap-2 mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="font-semibold">
+                                                                    {item.quizTitle || "New Quiz"}
+                                                                  </span>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    className="px-2 py-1 rounded-none"
+                                                                    onClick={() => remove(itemIdx)}
+                                                                    title="Delete"
+                                                                  >
+                                                                    <Trash2 size={16} className="text-red-500" />
+                                                                  </Button>
+                                                                  {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setEditQuiz({ sectionIdx, itemIdx })}
+                                                                    >
+                                                                      <Pencil size={16} />
+                                                                    </Button>
+                                                                  )}
+                                                                </div>
+                                                                {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    className="px-2 py-1 rounded-none"
+                                                                    onClick={() => setViewItem(
+                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? null
+                                                                        : { sectionIdx, itemIdx }
+                                                                    )}
+                                                                  >
+                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                      ? <ChevronUp size={16} />
+                                                                      : <ChevronDown size={16} />}
+                                                                  </Button>
+                                                                )}
+                                                              </div>
 
-                                                        {/* Quiz Edit Form - Shows automatically for new quiz or when edit clicked */}
-                                                        {(!isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ||
-                                                          editQuiz?.sectionIdx === sectionIdx && editQuiz?.itemIdx === itemIdx) && (
-                                                            <div className="border p-4 rounded bg-gray-50">
-                                                              <Input
-                                                                className="ins-control-border mb-2"
-                                                                placeholder="Quiz Title"
-                                                                name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
-                                                                value={item.quizTitle}
-                                                                onChange={formik.handleChange}
-                                                              />
-                                                              <Input
-                                                                className="ins-control-border mb-2"
-                                                                placeholder="Quiz Description"
-                                                                name={`sections[${sectionIdx}].items[${itemIdx}].quizDescription`}
-                                                                value={item.quizDescription}
-                                                                onChange={formik.handleChange}
-                                                              />
+                                                              {/* Quiz Edit Form - Shows automatically for new quiz or when edit clicked */}
+                                                              {(!isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ||
+                                                                editQuiz?.sectionIdx === sectionIdx && editQuiz?.itemIdx === itemIdx) && (
+                                                                  <div className="border p-4 rounded bg-gray-50">
+                                                                    <Input
+                                                                      className="ins-control-border mb-2"
+                                                                      placeholder="Quiz Title"
+                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
+                                                                      value={item.quizTitle}
+                                                                      onChange={formik.handleChange}
+                                                                    />
+                                                                    <Input
+                                                                      className="ins-control-border mb-2"
+                                                                      placeholder="Quiz Description"
+                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].quizDescription`}
+                                                                      value={item.quizDescription}
+                                                                      onChange={formik.handleChange}
+                                                                    />
 
-                                                              <div className="mt-4 mb-2">
-                                                                <h4 className="font-semibold mb-2">Questions</h4>
-                                                                <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
-                                                                  {({ push: pushQuestion, remove: removeQuestion }) => (
-                                                                    <div className="flex flex-col gap-4">
-                                                                      {item.questions.map((question, qIdx) => (
-                                                                        <div key={qIdx} className="border p-3 rounded">
-                                                                          <div className="flex justify-between mb-2">
-                                                                            <span className="font-medium">Question {qIdx + 1}</span>
-                                                                            {item.questions.length > 1 && (
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                className="px-2 py-1 rounded-none"
-                                                                                onClick={() => removeQuestion(qIdx)}
-                                                                              >
-                                                                                <Trash2 size={14} />
-                                                                              </Button>
-                                                                            )}
-                                                                          </div>
+                                                                    <div className="mt-4 mb-2">
+                                                                      <h4 className="font-semibold mb-2">Questions</h4>
+                                                                      <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
+                                                                        {({ push: pushQuestion, remove: removeQuestion }) => (
+                                                                          <div className="flex flex-col gap-4">
+                                                                            {item.questions.map((question, qIdx) => (
+                                                                              <div key={qIdx} className="border p-3 rounded">
+                                                                                <div className="flex justify-between mb-2">
+                                                                                  <span className="font-medium">Question {qIdx + 1}</span>
+                                                                                  {item.questions.length > 1 && (
+                                                                                    <Button
+                                                                                      type="button"
+                                                                                      variant="outline"
+                                                                                      size="sm"
+                                                                                      className="px-2 py-1 rounded-none"
+                                                                                      onClick={() => removeQuestion(qIdx)}
+                                                                                    >
+                                                                                      <Trash2 size={14} />
+                                                                                    </Button>
+                                                                                  )}
+                                                                                </div>
 
-                                                                          <Input
-                                                                            className="ins-control-border mb-2"
-                                                                            placeholder="Enter question"
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
-                                                                            value={question.question}
-                                                                            onChange={formik.handleChange}
-                                                                          />
+                                                                                <Input
+                                                                                  className="ins-control-border mb-2"
+                                                                                  placeholder="Enter question"
+                                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
+                                                                                  value={question.question}
+                                                                                  onChange={formik.handleChange}
+                                                                                />
 
-                                                                          <div className="ml-4">
-                                                                            {question.options.map((option, optIdx) => (
-                                                                              <div key={optIdx} className="flex items-center gap-2 mb-2">
-                                                                                {/* <input
+                                                                                <div className="ml-4">
+                                                                                  {question.options.map((option, optIdx) => (
+                                                                                    <div key={optIdx} className="flex items-center gap-2 mb-2">
+                                                                                      {/* <input
                                                               type="checkbox"
                                                               //checked={question.correctOption.push(optIdx)}
                                                               onChange={() => {
@@ -1233,380 +1232,380 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               }}
                                                               className="bg-primary text-primary focus:ring-0 h-4 w-4"
                                                             /> */}
-                                                                                <Checkbox
-                                                                                  checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
-                                                                                  onCheckedChange={(checked: boolean) => {
-                                                                                    const currentOptions = Array.isArray(question.correctOption)
-                                                                                      ? [...question.correctOption]
-                                                                                      : [];
+                                                                                      <Checkbox
+                                                                                        checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
+                                                                                        onCheckedChange={(checked: boolean) => {
+                                                                                          const currentOptions = Array.isArray(question.correctOption)
+                                                                                            ? [...question.correctOption]
+                                                                                            : [];
 
-                                                                                    const updatedOptions = checked
-                                                                                      ? [...currentOptions, optIdx]
-                                                                                      : currentOptions.filter(idx => idx !== optIdx);
+                                                                                          const updatedOptions = checked
+                                                                                            ? [...currentOptions, optIdx]
+                                                                                            : currentOptions.filter(idx => idx !== optIdx);
 
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.correctOption`,
-                                                                                      updatedOptions
-                                                                                    );
-                                                                                  }}
-                                                                                />
-                                                                                <Input
-                                                                                  className="ins-control-border flex-1"
-                                                                                  placeholder={`Option ${optIdx + 1}`}
-                                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options.${optIdx}`}
-                                                                                  value={option}
-                                                                                  onChange={formik.handleChange}
-                                                                                />
-                                                                                {question.options.length > 2 && (
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.correctOption`,
+                                                                                            updatedOptions
+                                                                                          );
+                                                                                        }}
+                                                                                      />
+                                                                                      <Input
+                                                                                        className="ins-control-border flex-1"
+                                                                                        placeholder={`Option ${optIdx + 1}`}
+                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options.${optIdx}`}
+                                                                                        value={option}
+                                                                                        onChange={formik.handleChange}
+                                                                                      />
+                                                                                      {question.options.length > 2 && (
+                                                                                        <Button
+                                                                                          type="button"
+                                                                                          variant="outline"
+                                                                                          className="px-2 py-1 rounded-none"
+                                                                                          size="sm"
+                                                                                          onClick={() => {
+                                                                                            const newOptions = [...question.options];
+                                                                                            newOptions.splice(optIdx, 1);
+                                                                                            formik.setFieldValue(
+                                                                                              `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options`,
+                                                                                              newOptions
+                                                                                            );
+                                                                                          }}
+                                                                                        >
+                                                                                          <Trash2 size={14} />
+                                                                                        </Button>
+                                                                                      )}
+                                                                                    </div>
+                                                                                  ))}
                                                                                   <Button
                                                                                     type="button"
-                                                                                    variant="outline"
-                                                                                    className="px-2 py-1 rounded-none"
                                                                                     size="sm"
+                                                                                    variant="outline"
                                                                                     onClick={() => {
-                                                                                      const newOptions = [...question.options];
-                                                                                      newOptions.splice(optIdx, 1);
+                                                                                      const newOptions = [...question.options, ""];
                                                                                       formik.setFieldValue(
                                                                                         `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options`,
                                                                                         newOptions
                                                                                       );
                                                                                     }}
                                                                                   >
-                                                                                    <Trash2 size={14} />
+                                                                                    Add Option
                                                                                   </Button>
-                                                                                )}
+                                                                                </div>
                                                                               </div>
                                                                             ))}
                                                                             <Button
                                                                               type="button"
-                                                                              size="sm"
                                                                               variant="outline"
-                                                                              onClick={() => {
-                                                                                const newOptions = [...question.options, ""];
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.options`,
-                                                                                  newOptions
-                                                                                );
-                                                                              }}
+                                                                              className="rounded-none"
+                                                                              onClick={() =>
+                                                                                pushQuestion({
+                                                                                  question: "",
+                                                                                  options: ["", ""],
+                                                                                  correctOption: 0,
+                                                                                })
+                                                                              }
                                                                             >
-                                                                              Add Option
+                                                                              Add Question
                                                                             </Button>
                                                                           </div>
-                                                                        </div>
-                                                                      ))}
+                                                                        )}
+                                                                      </FieldArray>
+                                                                    </div>
+
+                                                                    <div className="flex justify-end gap-2 mt-4">
+                                                                      {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                        <Button
+                                                                          type="button"
+                                                                          className="rounded-none"
+                                                                          variant="outline"
+                                                                          onClick={() => setEditQuiz(null)}
+                                                                        >
+                                                                          Cancel
+                                                                        </Button>
+                                                                      )}
                                                                       <Button
                                                                         type="button"
-                                                                        variant="outline"
                                                                         className="rounded-none"
-                                                                        onClick={() =>
-                                                                          pushQuestion({
-                                                                            question: "",
-                                                                            options: ["", ""],
-                                                                            correctOption: 0,
-                                                                          })
-                                                                        }
+                                                                        onClick={() => handleQuizSave(sectionIdx, itemIdx)}
                                                                       >
-                                                                        Add Question
+                                                                        Save Quiz
                                                                       </Button>
                                                                     </div>
-                                                                  )}
-                                                                </FieldArray>
-                                                              </div>
-
-                                                              <div className="flex justify-end gap-2 mt-4">
-                                                                {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                                  <Button
-                                                                    type="button"
-                                                                    className="rounded-none"
-                                                                    variant="outline"
-                                                                    onClick={() => setEditQuiz(null)}
-                                                                  >
-                                                                    Cancel
-                                                                  </Button>
+                                                                  </div>
                                                                 )}
-                                                                <Button
-                                                                  type="button"
-                                                                  className="rounded-none"
-                                                                  onClick={() => handleQuizSave(sectionIdx, itemIdx)}
-                                                                >
-                                                                  Save Quiz
-                                                                </Button>
-                                                              </div>
-                                                            </div>
-                                                          )}
 
-                                                        {/* Quiz View/Preview - Only show when quiz is submitted and expanded */}
-                                                        {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] &&
-                                                          viewItem?.sectionIdx === sectionIdx &&
-                                                          viewItem?.itemIdx === itemIdx &&
-                                                          !editQuiz && (
-                                                            <div className="border-t mt-3 pt-3">
-                                                              <div className="mb-2">
-                                                                <b>Description:</b> {item.quizDescription}
-                                                              </div>
-                                                              <div>
-                                                                <b>Questions:</b>
-                                                                <ol className="list-decimal ml-5 mt-2">
-                                                                  {item.questions.map((q, qIdx) => (
-                                                                    <li key={qIdx} className="mb-3">
-                                                                      <div className="font-medium mb-1">{q.question}</div>
-                                                                      <ul className="list-disc ml-5">
-                                                                        {q.options.map((opt, optIdx) => (
-                                                                          <li key={optIdx} className={
-                                                                            q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
-                                                                          }>
-                                                                            {opt}
+                                                              {/* Quiz View/Preview - Only show when quiz is submitted and expanded */}
+                                                              {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] &&
+                                                                viewItem?.sectionIdx === sectionIdx &&
+                                                                viewItem?.itemIdx === itemIdx &&
+                                                                !editQuiz && (
+                                                                  <div className="border-t mt-3 pt-3">
+                                                                    <div className="mb-2">
+                                                                      <b>Description:</b> {item.quizDescription}
+                                                                    </div>
+                                                                    <div>
+                                                                      <b>Questions:</b>
+                                                                      <ol className="list-decimal ml-5 mt-2">
+                                                                        {item.questions.map((q, qIdx) => (
+                                                                          <li key={qIdx} className="mb-3">
+                                                                            <div className="font-medium mb-1">{q.question}</div>
+                                                                            <ul className="list-disc ml-5">
+                                                                              {q.options.map((opt, optIdx) => (
+                                                                                <li key={optIdx} className={
+                                                                                  q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
+                                                                                }>
+                                                                                  {opt}
+                                                                                </li>
+                                                                              ))}
+                                                                            </ul>
                                                                           </li>
                                                                         ))}
-                                                                      </ul>
-                                                                    </li>
-                                                                  ))}
-                                                                </ol>
-                                                              </div>
+                                                                      </ol>
+                                                                    </div>
+                                                                  </div>
+                                                                )}
                                                             </div>
                                                           )}
-                                                      </div>
-                                                    )}
-                                                    {/* ASSIGNMENT */}
-                                                    {item.type === "assignment" && (
-                                                      <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center justify-between gap-2 mb-2">
-                                                          <div className="flex items-center gap-2">
-                                                            <span className="font-semibold">
-                                                              {item.title || "New Assignment"}
-                                                            </span>
-                                                            <Button
-                                                              type="button"
-                                                              variant="outline"
-                                                              className="px-2 py-1 rounded-none"
-                                                              onClick={() => remove(itemIdx)}
-                                                              title="Delete"
-                                                            >
-                                                              <Trash2 size={16} className="text-red-500" />
-                                                            </Button>
-                                                            {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                              <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                className="px-2 py-1 rounded-none"
-                                                                onClick={() => setEditAssignment({ sectionIdx, itemIdx })}
-                                                              >
-                                                                <Pencil size={16} />
-                                                              </Button>
-                                                            )}
-                                                          </div>
-                                                          {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                            <Button
-                                                              type="button"
-                                                              variant="ghost"
-                                                              className="p-1"
-                                                              onClick={() => setViewItem(
-                                                                viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                  ? null
-                                                                  : { sectionIdx, itemIdx }
-                                                              )}
-                                                            >
-                                                              {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                ? <ChevronUp size={16} />
-                                                                : <ChevronDown size={16} />}
-                                                            </Button>
-                                                          )}
-                                                        </div>
-
-                                                        {/* Assignment Edit Form */}
-                                                        {(!isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] ||
-                                                          editAssignment?.sectionIdx === sectionIdx && editAssignment?.itemIdx === itemIdx) && (
-                                                            <div className="border p-4 rounded bg-gray-50">
-                                                              <div>
-                                                                <label className="block text-sm font-medium mb-1">Assignment Title</label>
-                                                                <Input
-                                                                  className="ins-control-border mb-2"
-                                                                  placeholder="Assignment Title"
-                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].title`}
-                                                                  value={item.title}
-                                                                  onChange={formik.handleChange}
-                                                                />
-                                                              </div>
-                                                              <div>
-                                                                <label className="block text-sm font-medium mb-1">Assignment Description</label>
-                                                                <Input
-                                                                  className="ins-control-border mb-2"
-                                                                  placeholder="Assignment Description"
-                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].description`}
-                                                                  value={item.description}
-                                                                  onChange={formik.handleChange}
-                                                                />
-                                                              </div>
-                                                              <div>
-                                                                <label className="block text-sm font-medium mb-1">
-                                                                  Duration in minutes
-                                                                </label>
-                                                                <Input
-                                                                  className="ins-control-border w-20"
-                                                                  type="number"
-                                                                  placeholder="Duration (minutes)"
-                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
-                                                                  value={item.duration}
-                                                                  onChange={formik.handleChange}
-                                                                  min={1}
-                                                                />
-                                                              </div>
-
-                                                              {/* Replace the existing question section in the assignment edit form */}
-                                                              <div className="mt-4 mb-2">
-                                                                <h4 className="font-semibold mb-2">Questions</h4>
-                                                                <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
-                                                                  {({ push: pushQuestion, remove: removeQuestion }) => (
-                                                                    <div className="flex flex-col gap-4">
-                                                                      {item.questions.map((question, qIdx) => (
-                                                                        <div key={qIdx} className="border p-3 rounded">
-                                                                          <div className="flex justify-between mb-2">
-                                                                            <span className="font-medium">Question {qIdx + 1}</span>
-                                                                            {item.questions.length > 1 && (
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                onClick={() => removeQuestion(qIdx)}
-                                                                              >
-                                                                                <Trash2 size={14} />
-                                                                              </Button>
-                                                                            )}
-                                                                          </div>
-
-                                                                          <Input
-                                                                            className="ins-control-border mb-2"
-                                                                            placeholder="Enter question"
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
-                                                                            value={question.question}
-                                                                            onChange={formik.handleChange}
-                                                                          />
-
-                                                                          <div className="flex gap-4 mb-2">
-                                                                            <div className="flex-1">
-                                                                              <label className="block text-sm font-medium mb-1">Marks</label>
-                                                                              <Input
-                                                                                className="ins-control-border w-24"
-                                                                                type="number"
-                                                                                placeholder="Marks"
-                                                                                name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.marks`}
-                                                                                value={question.marks}
-                                                                                onChange={formik.handleChange}
-                                                                                min={1}
-                                                                              />
-                                                                            </div>
-                                                                            <div className="flex-1">
-                                                                              <label className="block text-sm font-medium mb-1">Word Limit</label>
-                                                                              <Input
-                                                                                className="ins-control-border w-32"
-                                                                                type="number"
-                                                                                placeholder="Max words"
-                                                                                name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.maxWordLimit`}
-                                                                                value={question.maxWordLimit}
-                                                                                onChange={formik.handleChange}
-                                                                                min={1}
-                                                                              />
-                                                                            </div>
-                                                                          </div>
-
-                                                                          <div>
-                                                                            <label className="block text-sm font-medium mb-1">Model Answer (Optional)</label>
-                                                                            <Textarea
-                                                                              className="ins-control-border w-full min-h-[100px]"
-                                                                              placeholder="Enter a model answer for grading reference"
-                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.answer`}
-                                                                              value={question.answer}
-                                                                              onChange={formik.handleChange}
-                                                                            />
-                                                                          </div>
-                                                                        </div>
-                                                                      ))}
-                                                                      <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        onClick={() =>
-                                                                          pushQuestion({
-                                                                            question: "",
-                                                                            marks: 0,
-                                                                            answer: "",
-                                                                            maxWordLimit: 500
-                                                                          })
-                                                                        }
-                                                                      >
-                                                                        Add Question
-                                                                      </Button>
-                                                                    </div>
+                                                          {/* ASSIGNMENT */}
+                                                          {item.type === "assignment" && (
+                                                            <div className="flex flex-col gap-2">
+                                                              <div className="flex items-center justify-between gap-2 mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="font-semibold">
+                                                                    {item.title || "New Assignment"}
+                                                                  </span>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    className="px-2 py-1 rounded-none"
+                                                                    onClick={() => remove(itemIdx)}
+                                                                    title="Delete"
+                                                                  >
+                                                                    <Trash2 size={16} className="text-red-500" />
+                                                                  </Button>
+                                                                  {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="ghost"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setEditAssignment({ sectionIdx, itemIdx })}
+                                                                    >
+                                                                      <Pencil size={16} />
+                                                                    </Button>
                                                                   )}
-                                                                </FieldArray>
-                                                              </div>
-
-                                                              <div className="flex justify-end gap-2 mt-4">
+                                                                </div>
                                                                 {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                   <Button
                                                                     type="button"
-                                                                    variant="outline"
-                                                                    onClick={() => setEditAssignment(null)}
+                                                                    variant="ghost"
+                                                                    className="p-1"
+                                                                    onClick={() => setViewItem(
+                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? null
+                                                                        : { sectionIdx, itemIdx }
+                                                                    )}
                                                                   >
-                                                                    Cancel
+                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                      ? <ChevronUp size={16} />
+                                                                      : <ChevronDown size={16} />}
                                                                   </Button>
                                                                 )}
-                                                                <Button
-                                                                  type="button"
-                                                                  onClick={() => handleAssignmentSave(sectionIdx, itemIdx)}
-                                                                >
-                                                                  Save Assignment
-                                                                </Button>
                                                               </div>
-                                                            </div>
-                                                          )}
-                                                        {/* Assignment View/Preview */}
-                                                        {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] &&
-                                                          viewItem?.sectionIdx === sectionIdx &&
-                                                          viewItem?.itemIdx === itemIdx &&
-                                                          !editAssignment && (
-                                                            <div className="border-t mt-3 pt-3">
-                                                              <div className="mb-2">
-                                                                <b>Description:</b> {item.description}
-                                                              </div>
-                                                              <div className="mb-2">
-                                                                <b>Duration:</b> {item.duration} minutes
-                                                              </div>
-                                                              <div>
-                                                                <b>Questions:</b>
-                                                                <ol className="list-decimal ml-5 mt-2">
-                                                                  {item.questions.map((q, qIdx) => (
-                                                                    <li key={qIdx} className="mb-3">
-                                                                      <div className="font-medium mb-1">{q.question}</div>
-                                                                      <div className="text-sm text-gray-600 space-y-1">
-                                                                        <div>Marks: {q.marks}</div>
-                                                                        {q.maxWordLimit && (
-                                                                          <div>Word Limit: {q.maxWordLimit} words</div>
-                                                                        )}
-                                                                        {q.answer && (
-                                                                          <div>
-                                                                            <b>Model Answer:</b>
-                                                                            <div className="ml-2 mt-1 text-gray-700">
-                                                                              {q.answer}
-                                                                            </div>
+
+                                                              {/* Assignment Edit Form */}
+                                                              {(!isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] ||
+                                                                editAssignment?.sectionIdx === sectionIdx && editAssignment?.itemIdx === itemIdx) && (
+                                                                  <div className="border p-4 rounded bg-gray-50">
+                                                                    <div>
+                                                                      <label className="block text-sm font-medium mb-1">Assignment Title</label>
+                                                                      <Input
+                                                                        className="ins-control-border mb-2"
+                                                                        placeholder="Assignment Title"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].title`}
+                                                                        value={item.title}
+                                                                        onChange={formik.handleChange}
+                                                                      />
+                                                                    </div>
+                                                                    <div>
+                                                                      <label className="block text-sm font-medium mb-1">Assignment Description</label>
+                                                                      <Input
+                                                                        className="ins-control-border mb-2"
+                                                                        placeholder="Assignment Description"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].description`}
+                                                                        value={item.description}
+                                                                        onChange={formik.handleChange}
+                                                                      />
+                                                                    </div>
+                                                                    <div>
+                                                                      <label className="block text-sm font-medium mb-1">
+                                                                        Duration in minutes
+                                                                      </label>
+                                                                      <Input
+                                                                        className="ins-control-border w-20"
+                                                                        type="number"
+                                                                        placeholder="Duration (minutes)"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
+                                                                        value={item.duration}
+                                                                        onChange={formik.handleChange}
+                                                                        min={1}
+                                                                      />
+                                                                    </div>
+
+                                                                    {/* Replace the existing question section in the assignment edit form */}
+                                                                    <div className="mt-4 mb-2">
+                                                                      <h4 className="font-semibold mb-2">Questions</h4>
+                                                                      <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
+                                                                        {({ push: pushQuestion, remove: removeQuestion }) => (
+                                                                          <div className="flex flex-col gap-4">
+                                                                            {item.questions.map((question, qIdx) => (
+                                                                              <div key={qIdx} className="border p-3 rounded">
+                                                                                <div className="flex justify-between mb-2">
+                                                                                  <span className="font-medium">Question {qIdx + 1}</span>
+                                                                                  {item.questions.length > 1 && (
+                                                                                    <Button
+                                                                                      type="button"
+                                                                                      variant="ghost"
+                                                                                      size="sm"
+                                                                                      onClick={() => removeQuestion(qIdx)}
+                                                                                    >
+                                                                                      <Trash2 size={14} />
+                                                                                    </Button>
+                                                                                  )}
+                                                                                </div>
+
+                                                                                <Input
+                                                                                  className="ins-control-border mb-2"
+                                                                                  placeholder="Enter question"
+                                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
+                                                                                  value={question.question}
+                                                                                  onChange={formik.handleChange}
+                                                                                />
+
+                                                                                <div className="flex gap-4 mb-2">
+                                                                                  <div className="flex-1">
+                                                                                    <label className="block text-sm font-medium mb-1">Marks</label>
+                                                                                    <Input
+                                                                                      className="ins-control-border w-24"
+                                                                                      type="number"
+                                                                                      placeholder="Marks"
+                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.marks`}
+                                                                                      value={question.marks}
+                                                                                      onChange={formik.handleChange}
+                                                                                      min={1}
+                                                                                    />
+                                                                                  </div>
+                                                                                  <div className="flex-1">
+                                                                                    <label className="block text-sm font-medium mb-1">Word Limit</label>
+                                                                                    <Input
+                                                                                      className="ins-control-border w-32"
+                                                                                      type="number"
+                                                                                      placeholder="Max words"
+                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.maxWordLimit`}
+                                                                                      value={question.maxWordLimit}
+                                                                                      onChange={formik.handleChange}
+                                                                                      min={1}
+                                                                                    />
+                                                                                  </div>
+                                                                                </div>
+
+                                                                                <div>
+                                                                                  <label className="block text-sm font-medium mb-1">Model Answer (Optional)</label>
+                                                                                  <Textarea
+                                                                                    className="ins-control-border w-full min-h-[100px]"
+                                                                                    placeholder="Enter a model answer for grading reference"
+                                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.answer`}
+                                                                                    value={question.answer}
+                                                                                    onChange={formik.handleChange}
+                                                                                  />
+                                                                                </div>
+                                                                              </div>
+                                                                            ))}
+                                                                            <Button
+                                                                              type="button"
+                                                                              variant="outline"
+                                                                              onClick={() =>
+                                                                                pushQuestion({
+                                                                                  question: "",
+                                                                                  marks: 0,
+                                                                                  answer: "",
+                                                                                  maxWordLimit: 500
+                                                                                })
+                                                                              }
+                                                                            >
+                                                                              Add Question
+                                                                            </Button>
                                                                           </div>
                                                                         )}
-                                                                      </div>
-                                                                    </li>
-                                                                  ))}
-                                                                </ol>
-                                                              </div>
+                                                                      </FieldArray>
+                                                                    </div>
+
+                                                                    <div className="flex justify-end gap-2 mt-4">
+                                                                      {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                        <Button
+                                                                          type="button"
+                                                                          variant="outline"
+                                                                          onClick={() => setEditAssignment(null)}
+                                                                        >
+                                                                          Cancel
+                                                                        </Button>
+                                                                      )}
+                                                                      <Button
+                                                                        type="button"
+                                                                        onClick={() => handleAssignmentSave(sectionIdx, itemIdx)}
+                                                                      >
+                                                                        Save Assignment
+                                                                      </Button>
+                                                                    </div>
+                                                                  </div>
+                                                                )}
+                                                              {/* Assignment View/Preview */}
+                                                              {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] &&
+                                                                viewItem?.sectionIdx === sectionIdx &&
+                                                                viewItem?.itemIdx === itemIdx &&
+                                                                !editAssignment && (
+                                                                  <div className="border-t mt-3 pt-3">
+                                                                    <div className="mb-2">
+                                                                      <b>Description:</b> {item.description}
+                                                                    </div>
+                                                                    <div className="mb-2">
+                                                                      <b>Duration:</b> {item.duration} minutes
+                                                                    </div>
+                                                                    <div>
+                                                                      <b>Questions:</b>
+                                                                      <ol className="list-decimal ml-5 mt-2">
+                                                                        {item.questions.map((q, qIdx) => (
+                                                                          <li key={qIdx} className="mb-3">
+                                                                            <div className="font-medium mb-1">{q.question}</div>
+                                                                            <div className="text-sm text-gray-600 space-y-1">
+                                                                              <div>Marks: {q.marks}</div>
+                                                                              {q.maxWordLimit && (
+                                                                                <div>Word Limit: {q.maxWordLimit} words</div>
+                                                                              )}
+                                                                              {q.answer && (
+                                                                                <div>
+                                                                                  <b>Model Answer:</b>
+                                                                                  <div className="ml-2 mt-1 text-gray-700">
+                                                                                    {q.answer}
+                                                                                  </div>
+                                                                                </div>
+                                                                              )}
+                                                                            </div>
+                                                                          </li>
+                                                                        ))}
+                                                                      </ol>
+                                                                    </div>
+                                                                  </div>
+                                                                )}
                                                             </div>
                                                           )}
-                                                      </div>
-                                                    )}
-                                                    {/* VIEW SUBMITTED CONTENT */}
-                                                    {viewItem && item.type != "quiz" && item.type != "assignment" &&
-                                                      viewItem.sectionIdx === sectionIdx &&
-                                                      viewItem.itemIdx === itemIdx && (
-                                                        <div className="border mt-3 p-3 rounded bg-white">
-                                                          <div className="flex justify-between items-center mb-2">
-                                                            <span className="font-semibold">Submitted Content</span>
-                                                            {/* <Button
+                                                          {/* VIEW SUBMITTED CONTENT */}
+                                                          {viewItem && item.type != "quiz" && item.type != "assignment" &&
+                                                            viewItem.sectionIdx === sectionIdx &&
+                                                            viewItem.itemIdx === itemIdx && (
+                                                              <div className="border mt-3 p-3 rounded bg-white">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                  <span className="font-semibold">Submitted Content</span>
+                                                                  {/* <Button
                                           type="button"
                                           size="sm"
                                           variant="ghost"
@@ -1615,159 +1614,159 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         >
                                           Close
                                         </Button> */}
-                                                          </div>
-                                                          {item.type === "lecture" && (
-                                                            <>
-                                                              <div>
-                                                                <b>Lecture Name:</b> {item.lectureName}
-                                                              </div>
-                                                              <div>
-                                                                <b>Content Type:</b> {item.contentType}
-                                                              </div>
-
-                                                              {item.contentType === "article" && (
-                                                                <div className="mt-2">
-                                                                  <b>Article:</b>
-
-                                                                  {/* Article Source: Write - Show HTML content */}
-                                                                  {item.articleSource === 'write' && item.contentText && (
-                                                                    <div
-                                                                      className="prose max-w-none border p-2 mt-1 rounded bg-gray-50"
-                                                                      dangerouslySetInnerHTML={{ __html: item.contentText }}
-                                                                    />
-                                                                  )}
-
-                                                                  {/* Article Source: Upload - Show uploaded files */}
-                                                                  {item.articleSource === 'upload' && item.contentFiles?.length > 0 && (
-                                                                    <div className="border p-2 mt-1 rounded bg-gray-50">
-                                                                      <div className="text-sm text-gray-600 mb-2">Uploaded Documents:</div>
-                                                                      {item.contentFiles.map((file, idx) => (
-                                                                        <div key={idx} className="flex items-center gap-2 py-1">
-                                                                          <File size={16} className="text-blue-500" />
-                                                                          <span className="text-sm font-medium">{file.name}</span>
-                                                                          <span className="text-xs text-gray-500">
-                                                                            ({(file.file.size / 1024 / 1024).toFixed(2)} MB)
-                                                                          </span>
-                                                                        </div>
-                                                                      ))}
+                                                                </div>
+                                                                {item.type === "lecture" && (
+                                                                  <>
+                                                                    <div>
+                                                                      <b>Lecture Name:</b> {item.lectureName}
                                                                     </div>
-                                                                  )}
-
-                                                                  {/* Article Source: Link - Show URL with preview */}
-                                                                  {item.articleSource === 'link' && item.contentUrl && (
-                                                                    <div className="border p-2 mt-1 rounded bg-gray-50">
-                                                                      <div className="flex items-center gap-2">
-                                                                        <ExternalLink size={16} className="text-blue-500" />
-                                                                        <a
-                                                                          href={item.contentUrl}
-                                                                          target="_blank"
-                                                                          rel="noopener noreferrer"
-                                                                          className="text-blue-600 hover:text-blue-800 underline text-sm break-all"
-                                                                        >
-                                                                          {item.contentUrl}
-                                                                        </a>
-                                                                      </div>
-                                                                      <div className="text-xs text-gray-500 mt-1">
-                                                                        External Article Link
-                                                                      </div>
+                                                                    <div>
+                                                                      <b>Content Type:</b> {item.contentType}
                                                                     </div>
-                                                                  )}
 
-                                                                  {/* No content message */}
-                                                                  {(!item.articleSource ||
-                                                                    (item.articleSource === 'write' && !item.contentText) ||
-                                                                    (item.articleSource === 'upload' && (!item.contentFiles || item.contentFiles.length === 0)) ||
-                                                                    (item.articleSource === 'link' && !item.contentUrl)
-                                                                  ) && (
-                                                                      <div className="border p-2 mt-1 rounded bg-gray-50 text-gray-500 text-sm italic">
-                                                                        No article content added yet
+                                                                    {item.contentType === "article" && (
+                                                                      <div className="mt-2">
+                                                                        <b>Article:</b>
+
+                                                                        {/* Article Source: Write - Show HTML content */}
+                                                                        {item.articleSource === 'write' && item.contentText && (
+                                                                          <div
+                                                                            className="prose max-w-none border p-2 mt-1 rounded bg-gray-50"
+                                                                            dangerouslySetInnerHTML={{ __html: item.contentText }}
+                                                                          />
+                                                                        )}
+
+                                                                        {/* Article Source: Upload - Show uploaded files */}
+                                                                        {item.articleSource === 'upload' && item.contentFiles?.length > 0 && (
+                                                                          <div className="border p-2 mt-1 rounded bg-gray-50">
+                                                                            <div className="text-sm text-gray-600 mb-2">Uploaded Documents:</div>
+                                                                            {item.contentFiles.map((file, idx) => (
+                                                                              <div key={idx} className="flex items-center gap-2 py-1">
+                                                                                <File size={16} className="text-blue-500" />
+                                                                                <span className="text-sm font-medium">{file.name}</span>
+                                                                                <span className="text-xs text-gray-500">
+                                                                                  ({(file.file.size / 1024 / 1024).toFixed(2)} MB)
+                                                                                </span>
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* Article Source: Link - Show URL with preview */}
+                                                                        {item.articleSource === 'link' && item.contentUrl && (
+                                                                          <div className="border p-2 mt-1 rounded bg-gray-50">
+                                                                            <div className="flex items-center gap-2">
+                                                                              <ExternalLink size={16} className="text-blue-500" />
+                                                                              <a
+                                                                                href={item.contentUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="text-blue-600 hover:text-blue-800 underline text-sm break-all"
+                                                                              >
+                                                                                {item.contentUrl}
+                                                                              </a>
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                              External Article Link
+                                                                            </div>
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* No content message */}
+                                                                        {(!item.articleSource ||
+                                                                          (item.articleSource === 'write' && !item.contentText) ||
+                                                                          (item.articleSource === 'upload' && (!item.contentFiles || item.contentFiles.length === 0)) ||
+                                                                          (item.articleSource === 'link' && !item.contentUrl)
+                                                                        ) && (
+                                                                            <div className="border p-2 mt-1 rounded bg-gray-50 text-gray-500 text-sm italic">
+                                                                              No article content added yet
+                                                                            </div>
+                                                                          )}
                                                                       </div>
                                                                     )}
-                                                                </div>
-                                                              )}
-                                                              {/* In your view content section, update the video part */}
-                                                              {item.contentType === "video" && (
-                                                                <div className="mt-2">
-                                                                  {item.contentFiles?.length > 0 && (
-                                                                    <>
-                                                                      <b>Videos:</b>
-                                                                      <div className="grid gap-4 mt-1">
-                                                                        {item.contentFiles.map((content, idx) => (
-                                                                          <div key={idx} className="border rounded p-2">
-                                                                            <div className="flex items-center justify-between mb-2">
-                                                                              <p className="text-sm font-medium">Video {idx + 1}: {content.name}</p>
-                                                                              <span className="text-sm text-gray-500">
-                                                                                {formatDuration(content.duration || 0)}
-                                                                              </span>
+                                                                    {/* In your view content section, update the video part */}
+                                                                    {item.contentType === "video" && (
+                                                                      <div className="mt-2">
+                                                                        {item.contentFiles?.length > 0 && (
+                                                                          <>
+                                                                            <b>Videos:</b>
+                                                                            <div className="grid gap-4 mt-1">
+                                                                              {item.contentFiles.map((content, idx) => (
+                                                                                <div key={idx} className="border rounded p-2">
+                                                                                  <div className="flex items-center justify-between mb-2">
+                                                                                    <p className="text-sm font-medium">Video {idx + 1}: {content.name}</p>
+                                                                                    <span className="text-sm text-gray-500">
+                                                                                      {formatDuration(content.duration || 0)}
+                                                                                    </span>
+                                                                                  </div>
+                                                                                  <video src={content.url} controls className="w-full max-w-xs" />
+                                                                                </div>
+                                                                              ))}
                                                                             </div>
-                                                                            <video src={content.url} controls className="w-full max-w-xs" />
+                                                                          </>
+                                                                        )}
+                                                                        {/* Show video link if present */}
+                                                                        {item.videoSource === "link" && item.contentUrl && (
+                                                                          <div className="mt-4">
+                                                                            <b>Video Link:</b>
+                                                                            <div className="border rounded p-2 mt-1 bg-gray-50 break-all">
+                                                                              <a href={item.contentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                                                                {item.contentUrl}
+                                                                              </a>
+                                                                            </div>
+                                                                            {/* Optionally, embed the video if it's a YouTube/Vimeo link */}
+                                                                            {(item.contentUrl.includes("youtube.com") || item.contentUrl.includes("youtu.be")) && (
+                                                                              <div className="mt-2">
+                                                                                <iframe
+                                                                                  width="420"
+                                                                                  height="236"
+                                                                                  src={`https://www.youtube.com/embed/${item.contentUrl.includes("youtube.com")
+                                                                                    ? item.contentUrl.split("v=")[1]?.split("&")[0]
+                                                                                    : item.contentUrl.split("/").pop()}`}
+                                                                                  title="YouTube video"
+                                                                                  frameBorder="0"
+                                                                                  allowFullScreen
+                                                                                />
+                                                                              </div>
+                                                                            )}
+                                                                            {item.contentUrl.includes("vimeo.com") && (
+                                                                              <div className="mt-2">
+                                                                                <iframe
+                                                                                  width="420"
+                                                                                  height="236"
+                                                                                  src={`https://player.vimeo.com/video/${item.contentUrl.split("/").pop()}`}
+                                                                                  title="Vimeo video"
+                                                                                  frameBorder="0"
+                                                                                  allowFullScreen
+                                                                                />
+                                                                              </div>
+                                                                            )}
                                                                           </div>
-                                                                        ))}
-                                                                      </div>
-                                                                    </>
-                                                                  )}
-                                                                  {/* Show video link if present */}
-                                                                  {item.videoSource === "link" && item.contentUrl && (
-                                                                    <div className="mt-4">
-                                                                      <b>Video Link:</b>
-                                                                      <div className="border rounded p-2 mt-1 bg-gray-50 break-all">
-                                                                        <a href={item.contentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                                                          {item.contentUrl}
-                                                                        </a>
-                                                                      </div>
-                                                                      {/* Optionally, embed the video if it's a YouTube/Vimeo link */}
-                                                                      {(item.contentUrl.includes("youtube.com") || item.contentUrl.includes("youtu.be")) && (
-                                                                        <div className="mt-2">
-                                                                          <iframe
-                                                                            width="420"
-                                                                            height="236"
-                                                                            src={`https://www.youtube.com/embed/${item.contentUrl.includes("youtube.com")
-                                                                              ? item.contentUrl.split("v=")[1]?.split("&")[0]
-                                                                              : item.contentUrl.split("/").pop()}`}
-                                                                            title="YouTube video"
-                                                                            frameBorder="0"
-                                                                            allowFullScreen
-                                                                          />
-                                                                        </div>
-                                                                      )}
-                                                                      {item.contentUrl.includes("vimeo.com") && (
-                                                                        <div className="mt-2">
-                                                                          <iframe
-                                                                            width="420"
-                                                                            height="236"
-                                                                            src={`https://player.vimeo.com/video/${item.contentUrl.split("/").pop()}`}
-                                                                            title="Vimeo video"
-                                                                            frameBorder="0"
-                                                                            allowFullScreen
-                                                                          />
-                                                                        </div>
-                                                                      )}
-                                                                    </div>
-                                                                  )}
-                                                                  {/* Resources */}
-                                                                  {item.resources?.length > 0 && (
-                                                                    <div className="mt-4">
-                                                                      <b>Resources:</b>
-                                                                      <div className="border rounded p-2 mt-1 bg-gray-50">
-                                                                        {item.resources.map((resource, idx) => (
-                                                                          <div key={idx} className="flex items-center gap-2 py-1">
-                                                                            <File size={14} />
-                                                                            <span className="text-sm">{resource.name}</span>
+                                                                        )}
+                                                                        {/* Resources */}
+                                                                        {item.resources?.length > 0 && (
+                                                                          <div className="mt-4">
+                                                                            <b>Resources:</b>
+                                                                            <div className="border rounded p-2 mt-1 bg-gray-50">
+                                                                              {item.resources.map((resource, idx) => (
+                                                                                <div key={idx} className="flex items-center gap-2 py-1">
+                                                                                  <File size={14} />
+                                                                                  <span className="text-sm">{resource.name}</span>
+                                                                                </div>
+                                                                              ))}
+                                                                            </div>
                                                                           </div>
-                                                                        ))}
+                                                                        )}
                                                                       </div>
-                                                                    </div>
-                                                                  )}
-                                                                </div>
-                                                              )}
-                                                            </>
-                                                          )}
+                                                                    )}
+                                                                  </>
+                                                                )}
 
+                                                              </div>
+                                                            )}
                                                         </div>
-                                                      )}
-                                                  </div>
-                                                  </div>
-                                          )}
+                                                      </div>
+                                                    )}
                                                   </Draggable>
                                                 ))}
                                               </div>)}
@@ -1880,24 +1879,24 @@ export function CourseCarriculam({ onSubmit }: any) {
       {/* Upload Content Modal */}
       <UploadContentModal
         open={uploadModal.open}
-        onClose={() => { 
+        onClose={() => {
           console.log('Modal closing');
-          setUploadModal({ open: false, sectionIdx: null }); 
-          setUploadType(null); 
+          setUploadModal({ open: false, sectionIdx: null });
+          setUploadType(null);
         }}
         uploadType={uploadType}
         setUploadType={setUploadType}
         onUpload={async (filesOrExcel, sectionIdx) => {
           console.log('onUpload called with:', { filesOrExcel, sectionIdx, uploadType });
-          
+
           // Get current section items from formik
           const currentSectionItems = formik.values.sections[sectionIdx]?.items || [];
           console.log('Current section items:', currentSectionItems);
 
           // Check for empty lecture
-          const emptyLectureIndex = currentSectionItems.findIndex(item => 
-            item.type === 'lecture' && 
-            item.contentType === '' && 
+          const emptyLectureIndex = currentSectionItems.findIndex(item =>
+            item.type === 'lecture' &&
+            item.contentType === '' &&
             (!item.contentFiles || item.contentFiles.length === 0)
           );
           console.log('Empty lecture index:', emptyLectureIndex);
@@ -1955,12 +1954,12 @@ export function CourseCarriculam({ onSubmit }: any) {
             if (emptyLectureIndex !== -1) {
               const updatedItems = [...currentSectionItems];
               updatedItems[emptyLectureIndex] = newLectures[0];
-              
+
               // Add remaining videos as new lectures
               if (newLectures.length > 1) {
                 updatedItems.push(...newLectures.slice(1));
               }
-              
+
               formik.setFieldValue(
                 `sections[${sectionIdx}].items`,
                 updatedItems
@@ -2000,12 +1999,12 @@ export function CourseCarriculam({ onSubmit }: any) {
             if (emptyLectureIndex !== -1) {
               const updatedItems = [...currentSectionItems];
               updatedItems[emptyLectureIndex] = newLectures[0];
-              
+
               // Add remaining documents as new lectures
               if (newLectures.length > 1) {
                 updatedItems.push(...newLectures.slice(1));
               }
-              
+
               formik.setFieldValue(
                 `sections[${sectionIdx}].items`,
                 updatedItems
@@ -2052,12 +2051,12 @@ export function CourseCarriculam({ onSubmit }: any) {
             if (emptyLectureIndex !== -1) {
               const updatedItems = [...currentSectionItems];
               updatedItems[emptyLectureIndex] = newLectures[0];
-              
+
               // Add remaining URLs as new lectures
               if (newLectures.length > 1) {
                 updatedItems.push(...newLectures.slice(1));
               }
-              
+
               formik.setFieldValue(
                 `sections[${sectionIdx}].items`,
                 updatedItems
@@ -2069,9 +2068,34 @@ export function CourseCarriculam({ onSubmit }: any) {
                 [...currentSectionItems, ...newLectures]
               );
             }
-          } else if (uploadType === 'write' && typeof filesOrExcel === 'string') {
-            // Handle written content
-            console.log('Processing written article');
+          } else if (uploadType === 'write' && isFile(filesOrExcel)) {
+            // Handle Excel file for paragraphs
+            const paragraphs: { text: string; heading?: string }[] = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                // Skip header row and map to paragraph objects
+                const paragraphList = (json as any[][]).slice(1).map(row => ({
+                  text: row[0] || '',
+                  heading: row[1] || undefined
+                })).filter(p => p.text);
+                resolve(paragraphList);
+              };
+              reader.onerror = reject;
+              reader.readAsArrayBuffer(filesOrExcel);
+            });
+
+            // Convert paragraphs to HTML
+            const htmlContent = paragraphs.map(p => {
+              if (p.heading) {
+                return `<h2>${p.heading}</h2><p>${p.text}</p>`;
+              }
+              return `<p>${p.text}</p>`;
+            }).join('');
+
             const newLecture = {
               type: 'lecture' as const,
               lectureName: 'Article',
@@ -2079,7 +2103,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               videoSource: 'upload' as const,
               contentFiles: [],
               contentUrl: '',
-              contentText: filesOrExcel,
+              contentText: htmlContent,
               articleSource: 'write' as const,
               resources: []
             };
@@ -2161,205 +2185,221 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
   onUpload: (filesOrExcel: FileList | File | string, sectionIdx: number) => void;
   sectionIdx: number | null;
 }) {
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [articleContent, setArticleContent] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<FileList | File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File change event triggered');
-    console.log('Files:', e.target.files);
+    const files = e.target.files;
+    if (!files) return;
+
+    if (uploadType === 'url' || uploadType === 'write') {
+      // For URL/Excel and Write/Excel, we only need the first file
+      setSelectedFiles(files[0]);
+    } else {
+      // For video and document, we can handle multiple files
+      setSelectedFiles(files);
+    }
+  };
+
+  const handleUpload = () => {
+
+    if (!selectedFiles || sectionIdx === null) return;
+
+    console.log('Uploading files:', selectedFiles);
     console.log('Upload type:', uploadType);
     console.log('Section index:', sectionIdx);
 
-    if (!e.target.files || e.target.files.length === 0) {
-      console.log('No files selected');
-      return;
+    try {
+      onUpload(selectedFiles, sectionIdx);
+      // Close modal and reset state after successful upload
+      setSelectedFiles(null);
+      setUploadType(null);
+      onClose();
+    } catch (error) {
+      console.error('Upload failed:', error);
     }
-
-    if (sectionIdx === null) {
-      console.log('No section index');
-      return;
-    }
-
-    if (uploadType === 'url') {
-      // For URL/Excel, we only need the first file
-      if (e.target.files[0]) {
-        console.log('Processing Excel file');
-        onUpload(e.target.files[0], sectionIdx);
-      }
-    } else {
-      // For video and document, we can handle multiple files
-      console.log('Processing multiple files');
-      onUpload(e.target.files, sectionIdx);
-    }
-
-    // Reset the file input
-    setFileInputKey(prev => prev + 1);
   };
 
-  const handleWriteSubmit = () => {
-    if (sectionIdx !== null && articleContent.trim()) {
-      onUpload(articleContent, sectionIdx);
-    }
+  // Reset selected files when modal closes
+  const handleClose = () => {
+    setSelectedFiles(null);
+    setUploadType(null);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Select Content Type to Upload</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-2">
-            <Button 
-              variant={uploadType === 'video' ? 'default' : 'outline'} 
-              onClick={() => {
-                console.log('Video type selected');
-                setUploadType('video');
-              }}
-            >
-              Video
-            </Button>
-            <Button 
-              variant={uploadType === 'document' ? 'default' : 'outline'} 
-              onClick={() => {
-                console.log('Document type selected');
-                setUploadType('document');
-              }}
-            >
-              Document
-            </Button>
-            <Button 
-              variant={uploadType === 'url' ? 'default' : 'outline'} 
-              onClick={() => {
-                console.log('URL type selected');
-                setUploadType('url');
-              }}
-            >
-              URL (Excel)
-            </Button>
-            <Button 
-              variant={uploadType === 'write' ? 'default' : 'outline'} 
-              onClick={() => {
-                console.log('Write type selected');
-                setUploadType('write');
-              }}
-            >
-              Write
-            </Button>
-          </div>
-
-          {uploadType === 'video' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Upload Video Files</label>
-              <input
-                key={fileInputKey}
-                type="file"
-                accept="video/*"
-                multiple
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-none file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-primary file:text-white
-                  hover:file:bg-primary/90"
-              />
-              <p className="text-xs text-gray-500">Select one or more video files to upload</p>
-            </div>
-          )}
-
-          {uploadType === 'document' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Upload Document Files</label>
-              <input
-                key={fileInputKey}
-                type="file"
-                accept=".pdf,.doc,.docx,.txt,.md"
-                multiple
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-none file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-primary file:text-white
-                  hover:file:bg-primary/90"
-              />
-              <p className="text-xs text-gray-500">Select one or more document files to upload</p>
-            </div>
-          )}
-
-          {uploadType === 'url' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Upload Excel File with URLs</label>
-              <input
-                key={fileInputKey}
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-none file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-primary file:text-white
-                  hover:file:bg-primary/90"
-              />
-              <div className="text-xs text-gray-500 space-y-2">
-                <p>Upload an Excel file with URLs in the first column.</p>
-                <p className="font-medium">Sample Excel Format:</p>
-                <pre className="bg-gray-100 p-2 rounded">
-                  A
-                  1 | URL
-                  2 | https://example.com/video1
-                  3 | https://example.com/video2
-                  4 | https://example.com/video3
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {uploadType === 'write' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Write Article Content</label>
-              <div className="border rounded-md">
-                <CKEditor
-                  editor={ClassicEditor}
-                  data={articleContent}
-                  onChange={(event, editor) => {
-                    const data = editor.getData();
-                    setArticleContent(data);
-                  }}
-                  config={{
-                    toolbar: [
-                      'heading',
-                      '|',
-                      'bold',
-                      'italic',
-                      'link',
-                      'bulletedList',
-                      'numberedList',
-                      '|',
-                      'outdent',
-                      'indent',
-                      '|',
-                      'blockQuote',
-                      'insertTable',
-                      'undo',
-                      'redo'
-                    ]
-                  }}
-                />
-              </div>
-              <Button 
-                onClick={handleWriteSubmit}
-                className="mt-2"
+        <div className="grid gap-4 py-4">
+          {!uploadType ? (
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => setUploadType('video')}
               >
-                Save Article
+                <Video className="h-8 w-8" />
+                <span>Video</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => setUploadType('document')}
+              >
+                <FileText className="h-8 w-8" />
+                <span>Document</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => setUploadType('url')}
+              >
+                <Link className="h-8 w-8" />
+                <span>URL</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => setUploadType('write')}
+              >
+                <PenLine className="h-8 w-8" />
+                <span>Write</span>
               </Button>
             </div>
-          )}
+          ) : uploadType === 'write' ? (
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium mb-2">Excel Format Instructions:</h4>
+                <p className="text-sm text-gray-500 mb-2">
+                  Create an Excel file with the following format:
+                </p>
+                <div className="bg-gray-50 p-2 rounded text-sm font-mono">
+                  <p>Column A: Paragraph</p>
+                  <p>Column B: Heading (optional)</p>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Each row will be converted into a paragraph in the article.
+                  If a heading is provided, it will be used as a section header.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Upload Excel File
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="w-full"
+                />
+                {selectedFiles && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Selected file: {(selectedFiles as File).name}
+                    </p>
+                    <Button onClick={handleUpload} className="w-full">
+                      Upload File
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : uploadType === 'video' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Upload Video Files
+                </label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="w-full"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Select one or more video files to upload
+                </p>
+                {selectedFiles && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Selected files: {(selectedFiles as FileList).length} video(s)
+                    </p>
+                    <Button onClick={handleUpload} className="w-full">
+                      Upload Videos
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : uploadType === 'document' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Upload Document Files
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                  multiple
+                  onChange={handleFileChange}
+                  className="w-full"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Select one or more document files to upload
+                </p>
+                {selectedFiles && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Selected files: {(selectedFiles as FileList).length} document(s)
+                    </p>
+                    <Button onClick={handleUpload} className="w-full">
+                      Upload Documents
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : uploadType === 'url' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Upload Excel File with URLs
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="w-full"
+                />
+                <div className="text-sm text-gray-500 mt-2 space-y-2">
+                  <p>Upload an Excel file with URLs in the first column.</p>
+                  <p className="font-medium">Sample Excel Format:</p>
+                  <pre className="bg-gray-50 p-2 rounded text-sm font-mono">
+                    A
+                    1 | URL
+                    2 | https://example.com/video1
+                    3 | https://example.com/video2                
+                  </pre>
+                </div>
+                {selectedFiles && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Selected file: {(selectedFiles as File).name}
+                    </p>
+                    <Button onClick={handleUpload} className="w-full">
+                      Upload URLs
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>Cancel</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
