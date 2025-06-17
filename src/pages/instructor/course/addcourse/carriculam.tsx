@@ -454,6 +454,33 @@ export function CourseCarriculam({ onSubmit }: any) {
     }
   };
 
+  const handleAddQuiz = (sectionIdx: number) => {
+    const newQuiz: QuizItem = {
+      type: "quiz",
+      quizTitle: "",
+      quizDescription: "",
+      questions: [
+        {
+          question: "",
+          options: ["", ""],
+          correctOption: [],
+        },
+      ],
+    };
+
+    const newItemIdx = formik.values.sections[sectionIdx].items.length;
+    
+    formik.setFieldValue(`sections.${sectionIdx}.items`, [
+      ...formik.values.sections[sectionIdx].items,
+      newQuiz,
+    ]);
+
+    // Set initial state for new quiz
+    setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
+    setViewItem({ sectionIdx, itemIdx: newItemIdx });
+    setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
+  };
+
   return (
     <FormikProvider value={formik}>
       <form onSubmit={formik.handleSubmit}>
@@ -1192,8 +1219,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               )}
                                                             </div>
                                                           )}
-                                                          {/* QUIZ */}
-                                                          {item.type === 'quiz' && (
+ {/* QUIZ */}
+ {item.type === 'quiz' && (
                                                             <div className="flex flex-col gap-2">
                                                               <div className="flex items-center justify-between gap-2 mb-2">
                                                                 <div className="flex items-center gap-2">
@@ -1305,8 +1332,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
+                                                                    className="px-2 py-1 rounded-none"
                                                                     onClick={() => setViewItem(
                                                                       viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
                                                                         ? null
