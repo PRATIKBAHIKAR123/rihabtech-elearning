@@ -31,7 +31,7 @@ const myLearningCourses: Course[] = [
   {
     id: 2,
     title: "Create An LMS Website With LearnPress",
-    description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
+    description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas. sample text for decription",
     students: 84,
     duration: 10,
     progress: 50,
@@ -41,7 +41,7 @@ const myLearningCourses: Course[] = [
   {
     id: 3,
     title: "How To Sell In-Person Course With LearnPress",
-    description: "This course is a detailed and easy tutorial to get you all setup and...",
+    description: "This course is a detailed and easy tutorial to get you all setup and...sample text for decription",
     students: 0,
     duration: 10,
     progress: 50,
@@ -51,7 +51,7 @@ const myLearningCourses: Course[] = [
   {
     id: 4,
     title: "How To Teach An Online Course",
-    description: "This tutorial will introduce you to PHP, a server-side scripting...",
+    description: "This tutorial will introduce you to PHP, a server-side scripting...sample text for decription",
     students: 28,
     duration: 10,
     progress: 50,

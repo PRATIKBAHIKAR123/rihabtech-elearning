@@ -47,7 +47,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
 <ProfileMenu /> */}
 </div>
     </div>
-      <div className="hidden md:flex mx-auto px-8 py-4 gap-12 items-center justify-between">
+      <div className="hidden md:flex mx-auto px-5 py-4 gap-12 items-center justify-between">
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
           <img src="Logos/brand-name-img.png" alt="Logo" className="h-[18px] w-[181px] mt-1" />
@@ -58,7 +58,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
 
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-          {!isLearnerPath && <a href="/#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>}
+          {!isLearnerPath && <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>}
         </nav>
 
         <div className="hidden md:block relative flex-grow">
@@ -75,7 +75,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
             // Show "Teach With Us" button when the path contains "learner"
             <Button
               className="px-4 py-2 text-sm rounded-none font-medium text-white hover:opacity-50"
-              onClick={() => window.location.href = '/#/instructor/course-test-selection'}
+              onClick={() => window.location.href = '/#/instructor-signup'}
             >
               Teach With Us
             </Button>
@@ -99,18 +99,18 @@ const countdown = useCountdown(subscriptionEndTimestamp);
           )}
         </div>
         {isLearnerPath && (
-  <div className=" flex items-center gap-3 px-4 py-1 border border-yellow-500 rounded-md bg-yellow-50 text-yellow-800 text-sm font-semibold">
+  <div className=" flex items-center gap-2 px-2 py-1 border border-yellow-500 rounded-md bg-yellow-50 text-yellow-800 text-xs font-semibold">
     {countdown.expired ? (
       <span className="text-red-600 font-semibold">Subscription expired</span>
     ) : (
       <>
-        <span>Ends in:</span>
+        <span>Subscription Ends in:</span>
         <span>
           {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
         </span>
         <Button
           variant="outline"
-          className="border-yellow-500 text-yellow-800 hover:bg-yellow-100 px-3 py-1 text-xs rounded"
+          className="border-yellow-500 text-yellow-800 hover:bg-yellow-100 px-2 py-1 text-xs rounded"
           onClick={() => window.location.href = '/#/pricing'}
         >
           Renew

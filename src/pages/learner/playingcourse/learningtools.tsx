@@ -1,7 +1,9 @@
 import { Play, Plus } from "lucide-react";
 import { useState } from "react";
+import LearningReminderDialog from "./learningReminderDialog";
 
 export default function LearningTools() {
+  const [isOpenAddDialog, setisOpenAddDialog] = useState(false);
      const [notes] = useState([
             {
               id: 1,
@@ -12,11 +14,12 @@ export default function LearningTools() {
     return (
         <div className="container mx-auto px-2 py-2">
       <div className="mb-6">
-              <button className="border border-primary text-primary text- text-primary px-4 py-2 rounded flex items-center">
+              <button className="border border-primary text-primary text- text-primary px-4 py-2 rounded flex items-center" onClick={()=>setisOpenAddDialog(true)}>
               <Plus size={16} className="mr-2" />
                 <span>Add a learning Reminder</span>
                 
               </button>
+              <LearningReminderDialog isOpen={isOpenAddDialog} setIsOpen={setisOpenAddDialog}/>
             </div>
             <div className="space-y-6">
               {notes.map((note) => (

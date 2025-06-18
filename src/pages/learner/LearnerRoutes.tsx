@@ -13,6 +13,7 @@ import ProfilePhoto from './profile/profile-photo';
 import TermsOfUse from './profile/terms-of-use';
 import ProfilePaymentMethod from './profile/payment-method';
 import Profile from './profile/page';
+import QuizPage from './playingcourse/quizPageQn';
 
 export default function LearnerRoutes() {
   return (
@@ -22,6 +23,7 @@ export default function LearnerRoutes() {
       <Route path="my-wishlist" element={<MyWishlist />} />
       <Route path="payment" element={<PaymentMethod />} />
       <Route path="current-course" element={<CourseDetailsPage />} />
+      <Route path="quiz" element={<QuizPage />} />
       <Route path="shopping-cart" element={<ShoppingCart />} />
       <Route path="chat" element={<ChatInterface />} />
       <Route path="profile/account&security" element={<AccountSecurity />} />

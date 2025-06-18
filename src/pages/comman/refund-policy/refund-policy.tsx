@@ -36,7 +36,7 @@ const RefundPolicy = () => {
           {refundPoints.map((point, idx) => (
             <div key={idx}>
               <h2 className="text-2xl font-semibold text-[#181818] mb-3 flex items-center">
-                <span className="inline-block w-6 h-6 bg-primary rounded-full text-white flex items-center justify-center mr-2 font-bold">{idx + 1}</span>
+                <span className="inline-block w-6 h-6 bg-primary rounded-full text-sm text-white flex items-center justify-center mr-2 font-bold">{idx + 1}</span>
                 {point.title}
               </h2>
               <ul className="list-disc pl-10 text-gray-700 space-y-2">

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import "../../../styles/temp.css";
+import Divider from '../../../components/ui/divider';
+import { Clock, User2 } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 
 interface Course {
   id: number;
@@ -20,7 +23,7 @@ const sampleWishlist: Course[] = [
     description: "A WordPress LMS Plugin to create WordPress Learning Management System.",
     students: 314,
     duration: 10,
-    price: 0,
+    price: 69.00,
     image: "Images/courses/Link.jpg"
   },
   {
@@ -29,13 +32,13 @@ const sampleWishlist: Course[] = [
     description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
     students: 84,
     duration: 10,
-    price: 0,
+    price: 69.00,
     image: "Images/courses/create-an-lms-website-with-learnpress 4.jpg"
   },
   {
     id: 3,
     title: "How To Sell In-Person Course With LearnPress",
-    description: "This course is a detailed and easy tutorial to get you all setup and going...",
+    description: "This course is a detailed and easy tutorial to get you all setup and going... ",
     students: 0,
     duration: 10,
     price: 69.00,
@@ -63,67 +66,66 @@ const tags = [
   "Lorem Ipsum"
 ];
 
+const coursecategories = [{'id':1,'title':'Data Science',},{'id':2,'title':'IT Certifications',},{'id':3,'title':'Communication',},{'id':4,'title':'Deep Learning',},{'id':5,'title':'Chat GPT',},{'id':6,'title':'Development',},{'id':7,'title':'Cloude Computing',},{'id':8,'title':'Mathematics',},]
+
 function CourseCard({ course }: { course: Course }) {
   // For demo, assign categories based on id
   const category = course.id <= 2 ? "3D & Animation" : "Business";
   const isFree = course.price === 0;
   return (
 
-    <div className="wishlist-course-udemy-style" onClick={()=>{
-      
-      window.location.href = '/#/courseDetails';
-    
-    }}>
-      <div className="wishlist-image-container">
-        <img className="wishlist-course-image" src={course.image} alt={course.title} />
-        <div className="wishlist-image-overlay" />
-        
-        <div className="wishlist-category-label-udemy">{category}</div>
+    <div
+  className="course-card-alt"
+  onClick={() => {
+    window.location.href = '/#/courseDetails';
+  }}
+>
+  <div className="relative">
+    <img src={course.image} alt={course.title} />
+  </div>
+  <div className="course-body">
+    <h3 className="course-title">{course.title}</h3>
+    <div className="course-meta">
+      <div className="flex items-center gap-2">
+        <User2 size={16} />
+        <span>{course.students} Students</span>
       </div>
-      <div className="wishlist-course-details">
-        <h3 className="wishlist-course-title">{course.title}</h3>
-        <div className="wishlist-meta-udemy" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <img src="/icons/profile.png" alt="students" style={{ width: '18px', height: '18px', verticalAlign: 'middle' }} />
-            {course.students} Students
-          </span>
-          <span className="price-divider" style={{ height: '18px', margin: '0 8px', background: '#e5e7eb', width: '1px', display: 'inline-block' }}></span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <img src="/icons/clock.png" alt="weeks" style={{ width: '24px', height: '18px', verticalAlign: 'middle' }} />
-            {course.duration} Hrs
-          </span>
-        </div>
-        <p className="wishlist-course-description">{course.description}</p>
-        <div className="wishlist-course-bottom">
-          {isFree ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span className="price-free">Free</span>
-              <span className="price-divider" style={{ height: '18px', margin: '0 4px', background: '#e5e7eb', width: '1px', display: 'inline-block' }}></span>
-              <span className="price-action-label">Start Learning</span>
-            </span>
-          ) : (
-            course.id === 3 ? (
-              <span>
-                From <span className="course-price">₹{course.price?.toFixed(2)}</span> ph
-              </span>
-            ) : (
-              <span>
-                Only <span className="course-price">₹{course.price?.toFixed(2)}</span>
-              </span>
-            )
-          )}
-        </div>
-        <button className="wishlist-action-btn">
-          {isFree ? "Start Learning" : "Purchase Now"}
-        </button>
+      <Divider />
+      <div className="flex items-center gap-2">
+        <Clock size={16} />
+        <span>{course.duration} Hrs</span>
       </div>
     </div>
+    <p className="course-description">{course.description}</p>
+
+    {course.price !== undefined && (
+      <div className="course-pricing flex-col gap-2">
+        {!course.price ? (
+          <span className="course-free">
+            Free 
+            {/* <Divider /> <a className="course-cta">Start learning</a> */}
+          </span>
+        ) : (
+          <div className="course-paid">
+            <div className="flex items-start gap-2">
+              {/* <span className="course-price-label">From</span> */}
+              <span className="course-price-value">Included in Subscription</span>
+            </div>
+            {/* <Divider /> <a className="course-cta">Start learning</a> */}
+          </div>
+        )}
+        <Button className='rounded-none w-full'>Start learning</Button>
+      </div>
+    )}
+  </div>
+</div>
   );
 }
 
 export default function MyWishlist() {
   const [wishlist] = useState<Course[]>(sampleWishlist);
   const [activeTab, setActiveTab] = useState<'learnings' | 'wishlist'>('wishlist');
+  const [selectedCategory, setSelectedCategory] = useState(1);
 
   return (
     <div className="wishlist-bg">
@@ -154,10 +156,12 @@ export default function MyWishlist() {
       <div className="container mx-auto px-4 py-8">
         {/* Tag/Filter Bar */}
         <h1 className="wishlist-title">My Wishlist</h1>
-        <div className="wishlist-tags-bar">
-          {tags.map((tag, idx) => (
-            <span className="wishlist-tag" key={idx}>{tag}</span>
-          ))}
+        <div className="grid grid-cols-3 md:grid-cols-8 gap-2 justify-start mb-8">
+          {coursecategories.map((category,index)=>(
+      <div key={index} className={`"bg-white rounded-[35px] px-2 md:px-4 flex items-center justify-center" ${selectedCategory === category.id ? 'bg-primary text-white ' : 'bg-white text-primary '} cursor-pointer`} onClick={() => setSelectedCategory(category.id)}>
+        <h2 className="flex flex-row justify-center text-center text-sm md:text-md font-medium font-['Archivo'] capitalize">{category.title}</h2>
+        </div>
+        ))}
         </div>
         {wishlist.length === 0 ? (
           <div className="text-center py-8">

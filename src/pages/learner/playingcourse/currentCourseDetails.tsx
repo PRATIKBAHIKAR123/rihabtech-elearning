@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Star, User, Globe, Bell, ShoppingCart, Search, Plus, Pause, SkipBack, SkipForward, Fullscreen } from "lucide-react";
+import { Play, Star, User, Globe, Bell, ShoppingCart, Search, Plus, Pause, SkipBack, SkipForward, Fullscreen, HelpCircle, FileText, CheckCircle, LockKeyhole, Clock, LockIcon, FastForwardIcon, Rewind } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import Overview from './overview';
 import Notes from './notes';
@@ -45,13 +45,122 @@ export default function CourseDetailsPage() {
       completed: false
     }
   ]);
+    const [courseData] = useState({
+    title: "Complete UX Research Masterclass",
+    sections: [
+      {
+        id: 1,
+        title: "Introduction to UX Research",
+        isExpanded: true,
+        modules: [
+          {
+            id: 1,
+            type: 'video',
+            title: "Emily - The power of UX research",
+            description: "Understanding the fundamentals of UX research and its impact on product design.",
+            duration: "15:30",
+            completed: true,
+            videoUrl: "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf",
+            thumbnail: "Images/Banners/Person.jpg",
+            instructor: "Emilie Bryant",
+            category: "Motivation"
+          },
+          {
+            id: 2,
+            type: 'video',
+            title: "Research Methods Overview",
+            description: "Comprehensive overview of qualitative and quantitative research methods.",
+            duration: "22:45",
+            completed: true,
+            videoUrl: "https://example.com/video2",
+            thumbnail: "Images/thumbnails/methods.jpg"
+          },
+          {
+            id: 3,
+            type: 'quiz',
+            title: "Knowledge Check: Research Basics",
+            description: "Test your understanding of basic UX research concepts.",
+            questions: 10,
+            timeLimit: "15 minutes",
+            completed: false,
+            passingScore: 80
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "User Interview Techniques",
+        isExpanded: false,
+        modules: [
+          {
+            id: 4,
+            type: 'document',
+            title: "Interview Planning Template",
+            description: "Downloadable template for planning effective user interviews.",
+            fileType: "PDF",
+            fileSize: "2.3 MB",
+            completed: false,
+            downloadUrl: "/documents/interview-template.pdf"
+          },
+          {
+            id: 5,
+            type: 'video',
+            title: "Conducting User Interviews",
+            description: "Best practices for conducting insightful user interviews.",
+            duration: "28:15",
+            completed: false,
+            videoUrl: "https://example.com/video3",
+            thumbnail: "Images/thumbnails/interviews.jpg"
+          },
+          {
+            id: 6,
+            type: 'quiz',
+            title: "Interview Scenarios Quiz",
+            description: "Practice with real-world interview scenarios.",
+            questions: 15,
+            timeLimit: "20 minutes",
+            completed: false,
+            passingScore: 85
+          }
+        ]
+      },
+      {
+        id: 3,
+        title: "Data Analysis & Insights",
+        isExpanded: false,
+        modules: [
+          {
+            id: 7,
+            type: 'video',
+            title: "Analyzing Qualitative Data",
+            description: "Techniques for analyzing and interpreting qualitative research data.",
+            duration: "35:20",
+            completed: false,
+            videoUrl: "https://example.com/video4",
+            thumbnail: "Images/thumbnails/analysis.jpg"
+          },
+          {
+            id: 8,
+            type: 'document',
+            title: "Data Analysis Worksheet",
+            description: "Structured worksheet for organizing your research findings.",
+            fileType: "Excel",
+            fileSize: "1.8 MB",
+            completed: false,
+            downloadUrl: "/documents/analysis-worksheet.xlsx"
+          }
+        ]
+      }
+    ]
+  });
   
      const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
-  
+    const [activeModule, setActiveModule] = useState(courseData.sections[0].modules[0]);
+  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   // Watch time tracking states
   const [totalWatched, setTotalWatched] = useState(0); // in seconds
   type WatchSession = {
@@ -71,6 +180,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   const lastPlayTimeRef = useRef<number | null>(null);
   const watchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastReportTimeRef = useRef(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
 
     // Course info (for demonstration)
@@ -79,17 +189,22 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   const studentId = "student-789";
 
 
-  // Course sessions data
-  const [sessions, setSessions] = useState([
-    { id: 1, title: "Introduction to the Course", start: 0, end: 120, completed: false },
-    { id: 2, title: "Core Concepts & Fundamentals", start: 120, end: 160, completed: false },
-    { id: 3, title: "Advanced Techniques", start: 220, end: 280, completed: false },
-    { id: 4, title: "Practical Application", start: 310, end: 360, completed: false },
-    { id: 5, title: "Conclusion & Next Steps", start: 420, end: 444, completed: false }
-  ]);
 
-  //   const playerRef = useRef<ReactPlayer>(null);
-  // const progressBarRef = useRef<HTMLDivElement>(null);
+  const toggleSection = (sectionId:any) => {
+    setExpandedSections((prev:any) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
+
+  const selectModule = (module:any) => {
+    setActiveModule(module);
+    // Reset video state when switching modules
+    if (module.type === 'video') {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+  };
 
   // Format time to MM:SS
   const formatTime = (timeInSeconds: number) => {
@@ -208,27 +323,19 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     
     // Update every second while playing
     watchIntervalRef.current = setInterval(() => {
-      if (!playerRef.current || !isPlaying) return;
+      if (!playerRef.current) return;
       
       const currentPosition = playerRef.current.getCurrentTime();
       
-      // Only update if we have a valid last position and the video is playing
+      // Add to watched segments (for analytics on which parts were watched)
       if (lastPlayTimeRef.current !== null) {
-        // Calculate the time difference since last update
-        const timeDiff = currentPosition - lastPlayTimeRef.current;
-        
-        // Only add time if we have a positive difference (video is playing forward)
-        if (timeDiff > 0) {
-          // Add to watched segments
-          addWatchedSegment(lastPlayTimeRef.current, currentPosition);
-          
-          // Update total watched time
-          setTotalWatched(prev => prev + timeDiff);
-        }
+        addWatchedSegment(lastPlayTimeRef.current, currentPosition);
       }
       
+      // Update total watched time
+      setTotalWatched(prev => prev + 1); // Add one second
       lastPlayTimeRef.current = currentPosition;
-    }, 100); // Update more frequently for smoother tracking
+    }, 1000);
   };
 
   // Stop tracking watch time
@@ -333,38 +440,16 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         playerRef!.current!.seekTo(playerRef!.current!.getCurrentTime() - 10);
     };
 
+         const increaseSpeed = () => {
+    setPlaybackRate(prev => Math.min(prev + 0.25, 2)); // max speed 2x
+  };
+
+  const decreaseSpeed = () => {
+    setPlaybackRate(prev => Math.max(prev - 0.25, 0.25)); // min speed 0.25x
+  };
+
   // Generate watch time analytics
-  const generateWatchTimeAnalytics = () => {
-    // Calculate unique seconds watched (accounting for rewatching segments)
-    let uniqueSecondsWatched = 0;
-    const sortedSegments = [...watchedSegments].sort((a, b) => a.start - b.start);
-    
-    // Merge overlapping segments
-    const mergedSegments = [];
-    let currentSegment = null;
-    
-    for (const segment of sortedSegments) {
-      if (!currentSegment) {
-        currentSegment = {...segment};
-        continue;
-      }
-      
-      if (segment.start <= currentSegment.end) {
-        // Segments overlap, merge them
-        currentSegment.end = Math.max(currentSegment.end, segment.end);
-      } else {
-        // No overlap, add current segment and start a new one
-        mergedSegments.push(currentSegment);
-        uniqueSecondsWatched += currentSegment.end - currentSegment.start;
-        currentSegment = {...segment};
-      }
-    }
-    
-    // Add the last segment
-    if (currentSegment) {
-      mergedSegments.push(currentSegment);
-      uniqueSecondsWatched += currentSegment.end - currentSegment.start;
-    }
+
     
     // return {
     //   totalWatchTime: totalWatched,
@@ -383,58 +468,8 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     duration: formatTime(segment.end - segment.start),
   });
 
-  return {
-    totalWatchTime: formatTime(totalWatched),
-    uniqueSecondsWatched: formatTime(uniqueSecondsWatched),
-    completionPercentage: duration > 0 ? (uniqueSecondsWatched / duration) * 100 : 0,
-    watchSessions: watchSessions.length,
-    averageSessionLength: formatTime(
-    watchSessions.length > 0
-      ? watchSessions.reduce((sum, session) => sum + (session.duration || 0), 0) / watchSessions.length
-      : 0
-    ),
-    watchedSegments: mergedSegments.map(formatSegment),
-  };
-}
-
-  // Example of downloading analytics (for testing)
-  const downloadAnalytics = () => {
-    const analytics = generateWatchTimeAnalytics();
-    const dataStr = JSON.stringify(analytics, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `watch-analytics-${courseId}-${studentId}.json`);
-    linkElement.click();
-  };
-
-  // Add onProgress handler to ReactPlayer component
-  const handleProgress = (state: { playedSeconds: number }) => {
-    setCurrentTime(state.playedSeconds);
-    
-    // Update total watched time when video is playing
-    if (isPlaying && lastPlayTimeRef.current !== null) {
-      const timeDiff = state.playedSeconds - lastPlayTimeRef.current;
-      if (timeDiff > 0) {
-        setTotalWatched(prev => prev + timeDiff);
-      }
-    }
-    lastPlayTimeRef.current = state.playedSeconds;
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      
-      
-      
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Video and Course Info */}
-          <div className="md:col-span-2">
-            {/* Video Section */}
-            <div className="relative overflow-hidden mb-6 border-b rounded-lg pb-4"
+    const renderVideoPlayer = (module:any) => (
+    <div className="relative overflow-hidden mb-6 border-b rounded-lg pb-4"
               onMouseEnter={() => setIsHovered(true)}
   onMouseLeave={() => setIsHovered(false)}>
               <div   ref={playerContainerRef}
@@ -443,11 +478,12 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
             ref={playerRef}
             url="https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf" // Replace with your video URL
             playing={isPlaying}
+            playbackRate={playbackRate}
             controls={false}
             width="100%"
             height={document.fullscreenEnabled ? "100%" : "450px"} // Fullscreen height if enabled
             volume={volume}
-            onProgress={handleProgress}
+            onProgress={({ playedSeconds }) => setCurrentTime(playedSeconds)}
             onDuration={setDuration}
             onPlay={handlePlay}
             onPause={handlePause}
@@ -510,10 +546,17 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
               <button
     onClick={seekBackward}
     className="focus:outline-none ml-2"
-    title="Fast Forward 10s"
+    title="Backword 10s"
   >
     {/* Fast Forward Icon */}
     <SkipBack size={24} />
+  </button><button
+    onClick={decreaseSpeed}
+    className="focus:outline-none ml-2"
+    title="Fast Forward 10s"
+  >
+    {/* Fast Forward Icon */}
+    <Rewind size={24} />
   </button>
               <button 
                 onClick={isPlaying ? handlePause : handlePlay}
@@ -522,9 +565,16 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
                 {isPlaying ? <Pause size={24} /> : <Play size={24} />}
               </button>
               <button
+    onClick={increaseSpeed}
+    className="focus:outline-none ml-2"
+    title="Forward 10s"
+  >
+    <FastForwardIcon size={24} />
+  </button>
+              <button
     onClick={seekForward}
     className="focus:outline-none ml-2"
-    title="Fast Forward 10s"
+    title="Forward 10s"
   >
     {/* Fast Forward Icon */}
     <SkipForward size={24} />
@@ -532,6 +582,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
               <span className="text-sm">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
+              <span>{playbackRate}x</span>
             </div>
 
             {/* Volume Control */}
@@ -625,67 +676,316 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
                 </div>
               </div>
             </div>
-            
-            {/* Tabs */}
-            <div className="mb-6">
-              <div className="flex space-x-2 ">
-                {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools" ,"QNA"].map((tab) => (
-                  <button
-                    key={tab}
-                    className={`px-4 py-2 text-[15px] font-medium font-['Archivo'] rounded-[35px] shadow-[0px_1px_1.600000023841858px_0px_rgba(0,0,0,0.25)] border border-primary ${
-                      activeTab === tab
-                        ? "bg-primary text-white"
-                        : "text-gray-600 border border-primary border-b-0"
-                    }`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Tab Content */}
-            {activeTab=='Overview'&&<Overview />}
-            {activeTab === 'Notes' && <Notes />}
-            {activeTab === 'Instructor' && <Instructor />}
-            {activeTab === 'Reviews' && <CourseReviews />}
-            {activeTab === 'Learning Tools' && <LearningTools />}
-                 {activeTab === 'QNA' && <QNA />}
-            
-          </div>
-          
-          {/* Course Content Sidebar */}
-          <div className="bg-[#fcf3ec] rounded-tl-[15px] p-6">
-      <h2 className="details-title mb-8">Course Content</h2>
-      
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-3 top-0 bottom-0 w-px bg-orange-200"></div>
-        
-        <div className="space-y-8">
-          {courseModules.map((module, index) => (
-            <div key={index} className="relative pl-10">
-              {/* Play button circle - filled for completed, outline for incomplete */}
-              <div className='absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center border-2 border-primary'>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center
-                ${module.completed ? 'bg-primary' : 'bg-white'}`}>
-                <Play 
-                  size={12} 
-                  className={`${module.completed ? 'text-white' : 'text-primary'} ml-0.5`} 
-                />
-              </div>
-              </div>
-              <div>
-                <p className="text-gray-700 mb-4">{module.text}</p>
-                {index < courseModules.length - 1 && (
-                  <div className="border-b border-gray-200 mt-4"></div>
-                )}
-              </div>
-            </div>
-          ))}
+  );
+
+  const renderQuiz = (module:any) => (
+    <div className="bg-white border rounded-lg p-6 mb-6">
+      <div className="flex items-center mb-4">
+        <HelpCircle className="text-blue-500 mr-3" size={32} />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">{module.title}</h2>
+          <p className="text-gray-600 text-sm">{module.description}</p>
         </div>
       </div>
+      
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="bg-blue-50 p-3 rounded">
+          <p className="text-sm text-blue-600">Questions</p>
+          <p className="font-bold text-lg">{module.questions}</p>
+        </div>
+        <div className="bg-green-50 p-3 rounded">
+          <p className="text-sm text-green-600">Time Limit</p>
+          <p className="font-bold text-lg">{module.timeLimit}</p>
+        </div>
+        <div className="bg-purple-50 p-3 rounded">
+          <p className="text-sm text-purple-600">Passing Score</p>
+          <p className="font-bold text-lg">{module.passingScore}%</p>
+        </div>
+      </div>
+
+      <button className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors" onClick={()=>window.location.hash='#/learner/quiz'}>
+        {module.completed ? 'Retake Quiz' : 'Start Quiz'}
+      </button>
     </div>
+  );
+
+  const renderDocument = (module:any) => (
+    <div className="bg-white border rounded-lg p-6 mb-6">
+      <div className="flex items-center mb-4">
+        <FileText className="text-green-500 mr-3" size={32} />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">{module.title}</h2>
+          <p className="text-gray-600 text-sm">{module.description}</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-sm text-gray-600">File Type</p>
+          <p className="font-bold text-lg">{module.fileType}</p>
+        </div>
+        <div className="bg-gray-50 p-3 rounded">
+          <p className="text-sm text-gray-600">File Size</p>
+          <p className="font-bold text-lg">{module.fileSize}</p>
+        </div>
+      </div>
+
+      <button className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
+        Download Resource
+      </button>
+    </div>
+  );
+
+  const renderModuleContent = () => {
+    switch (activeModule.type) {
+      case 'video':
+        return renderVideoPlayer(activeModule);
+      case 'quiz':
+        return renderQuiz(activeModule);
+      case 'document':
+        return renderDocument(activeModule);
+      default:
+        return <div>Unsupported module type</div>;
+    }
+  };
+
+  const getModuleIcon = (type: any, completed: any) => {
+    const iconProps = { size: 12, className: `${completed ? 'text-white' : 'text-orange-500'} ml-0.5` };
+    
+    switch (type) {
+      case 'video':
+        return <Play {...iconProps} />;
+      case 'quiz':
+        return <HelpCircle {...iconProps} />;
+      case 'document':
+        return <FileText {...iconProps} />;
+      default:
+        return <Play {...iconProps} />;
+    }
+  };
+
+    const renderCourseContent = () => (
+    <div className="space-y-4">
+      {courseData.sections.map((section) => (
+        <div key={section.id} className="mb-4">
+          <button
+            onClick={() => toggleSection(section.id)}
+            className="w-full flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className="font-medium text-gray-800">{section.title}</span>
+            <span className="text-gray-500">
+              {expandedSections[section.id] ? '−' : '+'}
+            </span>
+          </button>
+
+          {expandedSections[section.id] && (
+            <div className="mt-2 space-y-2">
+              {section.modules.map((module) => (
+                <div
+                  key={module.id}
+                  onClick={() => selectModule(module)}
+                  className={`relative pl-10 p-3 rounded-lg cursor-pointer transition-colors ${
+                    activeModule.id === module.id ? 'bg-orange-50 border-l-4 border-orange-500' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {/* Module icon */}
+                  <div className="absolute left-2 top-4 w-6 h-6 rounded-full flex items-center justify-center border-2 border-orange-500">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      module.completed ? 'bg-orange-500' : 'bg-white'
+                    }`}>
+                      {getModuleIcon(module.type, module.completed)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-800 text-sm mb-1">{module.title}</h4>
+                    <p className="text-gray-600 text-xs mb-2">{module.description}</p>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span className="capitalize">{module.type}</span>
+                      <div className="flex items-center space-x-2">
+                        {module.duration && (
+                          <span className="flex items-center">
+                            <Clock size={10} className="mr-1" />
+                            {module.duration}
+                          </span>
+                        )}
+                        {module.completed ? (
+                          <CheckCircle size={12} className="text-green-500" />
+                        ) : (
+                          <LockIcon size={10} className="text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+    const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Course Content':
+        return renderCourseContent();
+      case 'Overview':
+        return (
+          <Overview/>
+        );
+      case 'Notes':
+        return (
+          <Notes/>
+        );
+      case 'Instructor':
+        return (
+          <Instructor/>
+        );
+      case 'Reviews':
+        return (
+          <CourseReviews/>
+        );
+      case 'Learning Tools':
+        return (
+          <LearningTools/>
+        );
+      case 'QNA':
+        return (
+      <QNA/>
+        );
+      default:
+        return <div>Select a tab</div>;
+    }
+  };
+
+    const generateWatchTimeAnalytics = () => {
+    // Calculate unique seconds watched (accounting for rewatching segments)
+    let uniqueSecondsWatched = 0;
+    const sortedSegments = [...watchedSegments].sort((a, b) => a.start - b.start);
+    
+    // Merge overlapping segments
+    const mergedSegments = [];
+    let currentSegment = null;
+    
+    for (const segment of sortedSegments) {
+      if (!currentSegment) {
+        currentSegment = {...segment};
+        continue;
+      }
+      
+      if (segment.start <= currentSegment.end) {
+        // Segments overlap, merge them
+        currentSegment.end = Math.max(currentSegment.end, segment.end);
+      } else {
+        // No overlap, add current segment and start a new one
+        mergedSegments.push(currentSegment);
+        uniqueSecondsWatched += currentSegment.end - currentSegment.start;
+        currentSegment = {...segment};
+      }
+    }
+    
+    // Add the last segment
+    if (currentSegment) {
+      mergedSegments.push(currentSegment);
+      uniqueSecondsWatched += currentSegment.end - currentSegment.start;
+    }
+
+  return {
+    totalWatchTime: formatTime(totalWatched),
+    uniqueSecondsWatched: formatTime(uniqueSecondsWatched),
+    completionPercentage: duration > 0 ? (uniqueSecondsWatched / duration) * 100 : 0,
+    watchSessions: watchSessions.length,
+    averageSessionLength: formatTime(
+    watchSessions.length > 0
+      ? watchSessions.reduce((sum, session) => sum + (session.duration || 0), 0) / watchSessions.length
+      : 0
+    ),
+    watchedSegments: mergedSegments.map(formatSegment),
+  };
+}
+
+  // Example of downloading analytics (for testing)
+  const downloadAnalytics = () => {
+    const analytics = generateWatchTimeAnalytics();
+    const dataStr = JSON.stringify(analytics, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', `watch-analytics-${courseId}-${studentId}.json`);
+    linkElement.click();
+  };
+
+
+
+  return (
+  <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2">
+            {/* Video/Content Section */}
+            {renderModuleContent()}
+            
+            {/* Tabs - Mobile: includes Course Content, Desktop: excludes it */}
+            <div className="mb-6">
+              <div className="flex space-x-2 overflow-x-auto pb-2">
+                {/* Mobile tabs (includes Course Content) */}
+                <div className="lg:hidden flex space-x-2">
+                  {["Course Content", "Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "QNA"].map((tab) => (
+                    <button
+                      key={tab}
+                      className={`px-4 py-2 text-sm font-medium rounded-full shadow-sm border whitespace-nowrap ${
+                        activeTab === tab
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "text-gray-600 border-orange-500 bg-white hover:bg-orange-50"
+                      }`}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Desktop tabs (excludes Course Content) */}
+                <div className="hidden lg:flex space-x-2">
+                  {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "QNA"].map((tab) => (
+                    <button
+                      key={tab}
+                      className={`px-4 py-2 text-sm font-medium rounded-full shadow-sm border whitespace-nowrap ${
+                        activeTab === tab
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "text-gray-600 border-orange-500 bg-white hover:bg-orange-50"
+                      }`}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Tab Content */}
+            <div className="mb-6">
+              {renderTabContent()}
+            </div>
+          </div>
+          
+          {/* Fixed Sidebar - Desktop Only */}
+          <div className="hidden lg:block">
+            <div className="fixed top-8 right-8 w-80 bg-white rounded-lg shadow-lg h-[calc(100vh-4rem)] flex flex-col">
+              <div className="p-4 border-b">
+                <h2 className="text-lg font-semibold text-gray-800">Course Content</h2>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4">
+                {renderCourseContent()}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

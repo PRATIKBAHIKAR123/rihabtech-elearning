@@ -25,7 +25,8 @@ export default function SignUpPage() {
       }),
       onSubmit: (values) => {
         console.log(values);
-        setLoginModeIsOpen(true)
+        window.location.hash='#/login'
+        //setLoginModeIsOpen(true)
       },
     });
     
