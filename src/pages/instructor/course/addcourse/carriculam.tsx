@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -14,6 +14,7 @@ import { Textarea } from "../../../../components/ui/textarea";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../../components/ui/dialog";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../components/ui/hover-card";
 // @ts-ignore
 import * as XLSX from 'xlsx';
 
@@ -72,11 +73,13 @@ interface LectureItem {
     name: string;
     file: File;
   }[];
+  published: boolean; // Add published property
 }
 
 export interface Section {
   name: string;
   items: (LectureItem | QuizItem | Assignment)[];
+  published: boolean; // Add published property
 }
 
 export interface CurriculumFormValues {
@@ -135,7 +138,8 @@ const getInitialLecture = (index: number): LectureItem => ({
   contentFiles: [],
   contentText: "",
   resources: [],
-  contentUrl: ""
+  contentUrl: "",
+  published: false // Default to unpublished
 });
 
 
@@ -208,6 +212,7 @@ export function CourseCarriculam({ onSubmit }: any) {
       {
         name: "Introduction",
         items: [getInitialLecture(1)],
+        published: false // Default to unpublished
       },
     ],
   };
@@ -571,6 +576,26 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         >
                                           <UploadCloud size={18} />
                                         </Button>
+                                        <HoverCard>
+                                          <HoverCardTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => formik.setFieldValue(`sections[${sectionIdx}].published`, !section.published)}
+                                              aria-label={section.published ? "Unpublish Section" : "Publish Section"}
+                                            >
+                                              {section.published ? (
+                                                <CheckCircle className="text-green-500" />
+                                              ) : (
+                                                <XCircle className="text-red-500" />
+                                              )}
+                                            </Button>
+                                          </HoverCardTrigger>
+                                          <HoverCardContent side="top" className="p-2 text-xs">
+                                            {section.published ? "Unpublish Section" : "Publish Section"}
+                                          </HoverCardContent>
+                                        </HoverCard>
                                         {formik.values.sections.length > 1 && (
                                           <Button
                                             type="button"
@@ -682,7 +707,26 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   </div>
                                                                 )}
 
-
+                                                                <HoverCard>
+                                                                  <HoverCardTrigger asChild>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="ghost"
+                                                                      size="icon"
+                                                                      onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !item.published)}
+                                                                      aria-label={item.published ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                    >
+                                                                      {item.published ? (
+                                                                        <CheckCircle className="text-green-500" />
+                                                                      ) : (
+                                                                        <XCircle className="text-red-500" />
+                                                                      )}
+                                                                    </Button>
+                                                                  </HoverCardTrigger>
+                                                                  <HoverCardContent side="top" className="p-2 text-xs">
+                                                                    {item.published ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                  </HoverCardContent>
+                                                                </HoverCard>
                                                               </div>
                                                               {/* Content Type and Upload */}
                                                               {showContentType &&
@@ -2042,6 +2086,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                     contentFile: null,
                                                     contentUrl: "",
                                                     contentText: "",
+                                                    published: false // Default to unpublished
                                                   });
                                                   setAddType(null);
                                                 }}
@@ -2113,8 +2158,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                               contentFile: null,
                               contentUrl: "",
                               contentText: "",
+                              published: false // Default to unpublished
                             },
                           ],
+                          published: false // Default to unpublished
                         })
                       }
                     >
@@ -2202,7 +2249,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   contentUrl: '',
                   contentText: '',
                   articleSource: 'upload' as const,
-                  resources: []
+                  resources: [],
+                  published: false // Default to unpublished
                 };
               })
             );
@@ -2248,7 +2296,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                 contentUrl: '',
                 contentText: '',
                 articleSource: 'upload' as const,
-                resources: []
+                resources: [],
+                published: false // Default to unpublished
               };
             });
 
@@ -2301,7 +2350,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentUrl: url,
               contentText: '',
               articleSource: 'upload' as const,
-              resources: []
+              resources: [],
+              published: false // Default to unpublished
             }));
 
             // If there's an empty lecture, update it with the first URL
@@ -2362,7 +2412,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentUrl: '',
               contentText: htmlContent,
               articleSource: 'write' as const,
-              resources: []
+              resources: [],
+              published: false // Default to unpublished
             };
 
             if (emptyLectureIndex !== -1) {
