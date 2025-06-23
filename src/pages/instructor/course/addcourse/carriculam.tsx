@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -206,6 +206,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [sectionIdx, setSectionIdx] = useState<number | null>(null);
   const [articleContent, setArticleContent] = useState('');
+  const [coursePublished, setCoursePublished] = useState(false);
 
   const initialValues: CurriculumFormValues = {
     sections: [
@@ -505,6 +506,31 @@ export function CourseCarriculam({ onSubmit }: any) {
     }
   };
 
+  // 1. At the top of the curriculum (above FieldArray):
+  const getLectureDuration = (lecture: LectureItem): number => {
+    if (lecture.type === 'lecture' && lecture.contentType === 'video' && Array.isArray(lecture.contentFiles)) {
+      return lecture.contentFiles.reduce((sum: number, file: VideoContent) => sum + (file.duration || 0), 0);
+    }
+    return 0;
+  };
+
+  const getAssignmentDuration = (item: Assignment | LectureItem | QuizItem): number => {
+    if ((item as Assignment).type === 'assignment') {
+      return ((item as Assignment).duration || 0) * 60; // convert minutes to seconds
+    }
+    return 0;
+  };
+
+  const getSectionDuration = (section: Section): number => {
+    return section.items.reduce((sum: number, item: LectureItem | QuizItem | Assignment) => {
+      if (item.type === 'lecture') return sum + getLectureDuration(item as LectureItem);
+      if (item.type === 'assignment') return sum + getAssignmentDuration(item as Assignment);
+      return sum;
+    }, 0);
+  };
+
+  const totalCourseDuration = formik.values.sections.reduce((sum: number, section: Section) => sum + getSectionDuration(section), 0);
+
   return (
     <FormikProvider value={formik}>
       <form onSubmit={formik.handleSubmit}>
@@ -520,6 +546,31 @@ export function CourseCarriculam({ onSubmit }: any) {
             <p className="course-sectional-descrption mb-4">
               The following descriptions will be publicly visible on your Course Landing Page and will have a direct impact on your course performance. These descriptions will help learners decide if your course is right for them.
             </p> */}
+
+            <div className="flex items-center gap-2 mb-6">
+              <Clock className="text-primary" size={22} />
+              <span className="font-bold text-xl">Total Course Duration:</span>
+              <span className="font-bold text-primary text-xl">{formatDuration(totalCourseDuration)}</span>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <button
+                    type="button"
+                    className="ml-2 p-1 rounded-full border border-gray-200 bg-white hover:bg-gray-100"
+                    onClick={() => setCoursePublished((prev) => !prev)}
+                    aria-label={coursePublished ? "Unpublish Course" : "Publish Course"}
+                  >
+                    {coursePublished ? (
+                      <CheckCircle className="text-green-500" size={22} />
+                    ) : (
+                      <XCircle className="text-red-500" size={22} />
+                    )}
+                  </button>
+                </HoverCardTrigger>
+                <HoverCardContent side="top" className="p-2 text-xs">
+                  {coursePublished ? "Unpublish Course" : "Publish Course"}
+                </HoverCardContent>
+              </HoverCard>
+            </div>
 
             <FieldArray name="sections">
               {({ push: pushSection, remove: removeSection }) => (
@@ -616,6 +667,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                             {(formik.errors.sections as any)[sectionIdx]?.name}
                                           </div>
                                         )}
+                                      <span className="ml-2 flex items-center text-xs font-bold text-gray-700">
+                                        <Clock className="mr-1" size={16} />
+                                        {formatDuration(getSectionDuration(section))}
+                                      </span>
                                     </div>
                                     <FieldArray name={`sections[${sectionIdx}].items`}>
                                       {({ push, remove, replace }) => (
@@ -707,6 +762,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   </div>
                                                                 )}
 
+                                                                {/* Publish/Unpublish HoverCard for lecture */}
                                                                 <HoverCard>
                                                                   <HoverCardTrigger asChild>
                                                                     <Button
@@ -727,6 +783,12 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     {item.published ? "Unpublish Lecture" : "Publish Lecture"}
                                                                   </HoverCardContent>
                                                                 </HoverCard>
+                                                                {item.type === 'lecture' && item.contentType === 'video' && (
+                                                                  <div className="flex items-center gap-2 mb-2">
+                                                                    <Clock size={16} />
+                                                                    <span className="font-bold">{formatDuration(getLectureDuration(item))}</span>
+                                                                  </div>
+                                                                )}
                                                               </div>
                                                               {/* Content Type and Upload */}
                                                               {showContentType &&
@@ -1996,9 +2058,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 <div key={idx} className="border rounded p-2">
                                                                                   <div className="flex items-center justify-between mb-2">
                                                                                     <p className="text-sm font-medium">Video {idx + 1}: {content.name}</p>
-                                                                                    <span className="text-sm text-gray-500">
-                                                                                      {formatDuration(content.duration || 0)}
-                                                                                    </span>
+                                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                                      <Clock className="text-primary" size={16} />
+                                                                                      <span className="font-bold text-primary"> {formatDuration(content.duration || 0)}</span>
+                                                                                    </div>
                                                                                   </div>
                                                                                   <video src={content.url} controls className="w-full max-w-xs" />
                                                                                 </div>
