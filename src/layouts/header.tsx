@@ -7,6 +7,7 @@ import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
 import { useCountdown } from "../utils/countdown_subscribtion";
+import NotificationsDialog from "../modals/notifications";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -122,11 +123,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
         {isLearnerPath && <div className="flex items-center">
 
           <MyCartMenu />
-          <div className="ml-4 relative">
-            <button className="relative">
-              <BellIcon />
-            </button>
-          </div>
+          <NotificationsDialog/>
           <ProfileMenu />
         </div>}
 

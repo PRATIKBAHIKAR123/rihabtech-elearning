@@ -9,6 +9,7 @@ import ChatInterface from "./chat/chat";
 import Dashboard from "./dashboard/dashboard";
 import { LearnerProfile } from "./dashboard/learnerProfile";
 import { MonthlyReports } from "./dashboard/monthWiseRevenue";
+import Profile from "../learner/profile/page";
 
 export default function InstructorRoutes() {
     return (
@@ -23,6 +24,7 @@ export default function InstructorRoutes() {
         <Route path="learner-profile" element={<LearnerProfile />} />
         <Route path="monthly-revenue" element={<MonthlyReports />} />
         <Route path="chat" element={<ChatInterface />} />
+        <Route path="profile" element={<Profile />} />
       </Routes>
     );
   }

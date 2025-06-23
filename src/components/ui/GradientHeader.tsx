@@ -7,7 +7,7 @@ interface GradientHeaderProps {
 }
 
 const GradientHeader: React.FC<GradientHeaderProps> = ({ subtitle, title, className = '' }) => (
-  <section className={`gradient-header relative z-10 w-full ${className}`}>
+  <section className={`gradient-header static z-10 w-full ${className}`}>
     <div className="container mx-auto px-6">
       <div className="public-profile-banner-content py-8">
         {subtitle && (

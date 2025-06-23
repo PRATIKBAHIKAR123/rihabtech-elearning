@@ -23,9 +23,9 @@ const Profile = () => {
   { label: 'Profile Photo', tab: 'profile-photo' },
   { label: 'Account & Security', tab: 'account&security' },
   { label: 'Payment Method', tab: 'payment-method' },
-  { label: 'Terms Of Use', tab: 'terms-of-use' },
-    { label: 'Privacy Policy', tab: 'privacy-policy' },
-    { label: 'Refund Policy', tab: 'refund-policy' },
+  // { label: 'Terms Of Use', tab: 'terms-of-use' },
+  //   { label: 'Privacy Policy', tab: 'privacy-policy' },
+  //   { label: 'Refund Policy', tab: 'refund-policy' },
   { label: 'Logout', tab: 'logout' },
 ];
 

@@ -1,6 +1,7 @@
 
 import { BellIcon, Menu } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { ProfileMenu } from "../modals/profileHoverCard";
 
 type InstructorHeaderProps = {
     onMenuClick: () => void;
@@ -29,11 +30,7 @@ function InstructorHeader({ onMenuClick }: InstructorHeaderProps) {
                             <BellIcon />
                         </button>
                     </div>
-                    <div className="ml-4">
-                        <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
-                            MA
-                        </div>
-                    </div>
+                    <ProfileMenu />
                 </div>
             </div>
         </header>

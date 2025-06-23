@@ -14,6 +14,7 @@ import TermsOfUse from './profile/terms-of-use';
 import ProfilePaymentMethod from './profile/payment-method';
 import Profile from './profile/page';
 import QuizPage from './playingcourse/quizPageQn';
+import NotificationList from './notifications/page';
 
 export default function LearnerRoutes() {
   return (
@@ -33,6 +34,7 @@ export default function LearnerRoutes() {
       <Route path="Profile" element={<Profile />} />
       <Route path="profile/profile-photo" element={<ProfilePhoto />} />
       <Route path="profile/terms-of-use" element={<TermsOfUse />} />
+      <Route path="notifications" element={<NotificationList />} />
     </Routes>
   );
 }

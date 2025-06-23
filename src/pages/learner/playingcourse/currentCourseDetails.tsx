@@ -550,27 +550,27 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   >
     {/* Fast Forward Icon */}
     <SkipBack size={24} />
-  </button><button
+  </button>
+  {/* <button
     onClick={decreaseSpeed}
     className="focus:outline-none ml-2"
     title="Fast Forward 10s"
   >
-    {/* Fast Forward Icon */}
     <Rewind size={24} />
-  </button>
+  </button> */}
               <button 
                 onClick={isPlaying ? handlePause : handlePlay}
                 className="focus:outline-none"
               >
                 {isPlaying ? <Pause size={24} /> : <Play size={24} />}
               </button>
-              <button
+              {/* <button
     onClick={increaseSpeed}
     className="focus:outline-none ml-2"
     title="Forward 10s"
   >
     <FastForwardIcon size={24} />
-  </button>
+  </button> */}
               <button
     onClick={seekForward}
     className="focus:outline-none ml-2"
@@ -582,7 +582,14 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
               <span className="text-sm">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
-              <span>{playbackRate}x</span>
+              <select value={playbackRate} onChange={(e) => setPlaybackRate(parseFloat(e.target.value))} className="bg-gray-700 text-white rounded px-2 py-1">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+              </select>
+              {/* <span>{playbackRate}x</span> */}
             </div>
 
             {/* Volume Control */}
