@@ -1,55 +1,279 @@
+"use client";
+import { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../../components/ui/select";
+import { Checkbox } from "../../../../components/ui/checkbox";
+import { X, UserPlus, Globe, Smartphone, Lock, Users } from "lucide-react";
 
-export function CoursePricing({onSubmit}:any){
-    return(
-         <div>
-            <div className="mb-3">
-                <div className="border-[#cfcfcf] border rounded-md flex items-center justify-left gap-2 p-4 mb-2">
-                <div className="py-1 px-3 bg-[#9a0000] text-white" >New</div>
-                <span className="text-[#9a0000] text-md font-semibold font-['Raleway']">Please finish your premium application</span>
-                </div>
-        <h3 className="course-sectional-question mb-2">Set a price for your course</h3>
-        <p className="course-sectional-descrption mb-4">
-        Please select the currency and the price tier for your course. If you’d like to offer your course for free, it must have a total video length of less than 2 hours. Also, courses with practice tests can not be free.
-        </p>
-        <div className="mt-8 gap-2 flex items-center">
-                <div className="gap-2 flex flex-col">
-                    <label className="ins-label">Currency</label>
-                    
-                        <Select defaultValue="usd">
-                            <SelectTrigger className="ins-control-border rounded-none">
-                                <SelectValue placeholder="Choose a Currency" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                                <SelectItem value="usd">USD</SelectItem>
-                                <SelectItem value="r">RUPEES</SelectItem>
+interface Member {
+  id: string;
+  email: string;
+  role: string;
+}
 
-                            </SelectContent>
-                        </Select>
-                
-                </div>
-                <div className="gap-2 flex flex-col">
-                    <label className="ins-label">Price Tier</label>
-                    
-                    <Select defaultValue="usd">
-                            <SelectTrigger className="ins-control-border rounded-none">
-                                <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                                <SelectItem value="usd">Tier</SelectItem>
-                                <SelectItem value="r">Tier</SelectItem>
+interface CourseAccess {
+  website: boolean;
+  app: boolean;
+  private: boolean;
+}
 
-                            </SelectContent>
-                        </Select>
-                </div>
-                
-                </div>
-                <div className="flex justify-end items-end mt-2">
-                        <Button className="rounded-none" onClick={onSubmit}>Save</Button>
-                    </div>
+export default function Pricing({ onSubmit }: any) {
+  const [access, setAccess] = useState<CourseAccess>({
+    website: true,
+    app: false,
+    private: false
+  });
+  
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("student");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [emailError, setEmailError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleAccessChange = (accessType: keyof CourseAccess, checked: boolean) => {
+    setAccess(prev => ({
+      ...prev,
+      [accessType]: checked
+    }));
+    
+    // Clear members if private access is disabled
+    if (accessType === 'private' && !checked) {
+      setMembers([]);
+    }
+  };
+
+  const addMember = () => {
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
+    // Check if email already exists
+    if (members.some(member => member.email === email)) {
+      setEmailError("This email is already added");
+      return;
+    }
+    
+    const newMember: Member = {
+      id: Date.now().toString(),
+      email: email,
+      role: role
+    };
+    
+    setMembers(prev => [...prev, newMember]);
+    setEmail("");
+    setEmailError("");
+  };
+
+  const removeMember = (memberId: string) => {
+    setMembers(prev => prev.filter(member => member.id !== memberId));
+  };
+
+  const handleSubmit = async () => {
+    if (!access.website && !access.app && !access.private) {
+      alert("Please select at least one access option");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const courseSettings = {
+      access,
+      members: access.private ? members : []
+    };
+    
+    console.log("Course settings saved:", courseSettings);
+    alert("Course access settings saved successfully!");
+    
+    setIsSubmitting(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      addMember();
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-sm border">
+      <div className="mb-6">
+        <h3 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <Users className="h-6 w-6 text-blue-600" />
+          Set Access for your Course
+        </h3>
+        <p className="text-gray-600 text-sm">Choose how students can access your course content</p>
       </div>
-         </div>
-    )
+
+      {/* Access Options */}
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-700 mb-4">Access Platforms</h4>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Checkbox 
+              checked={access.website}
+              onCheckedChange={(checked:any) => handleAccessChange('website', checked as boolean)}
+            />
+            <Globe className="h-5 w-5 text-blue-600" />
+            <div className="flex-1">
+              <label className="font-medium text-gray-700 cursor-pointer">Website</label>
+              <p className="text-sm text-gray-500">Access through web browser</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Checkbox 
+              checked={access.app}
+              onCheckedChange={(checked:any) => handleAccessChange('app', checked as boolean)}
+            />
+            <Smartphone className="h-5 w-5 text-green-600" />
+            <div className="flex-1">
+              <label className="font-medium text-gray-700 cursor-pointer">Mobile App</label>
+              <p className="text-sm text-gray-500">Access through mobile application</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Checkbox
+              checked={access.private}
+              onCheckedChange={(checked:any) => handleAccessChange('private', checked as boolean)}
+            />
+            <Lock className="h-5 w-5 text-purple-600" />
+            <div className="flex-1">
+              <label className="font-medium text-gray-700 cursor-pointer">Private Access</label>
+              <p className="text-sm text-gray-500">Restrict access to specific members only</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Private Access Settings */}
+      {access.private && (
+        <div className="mb-6 p-4 border border-purple-200 rounded-lg bg-purple-50">
+          <div className="flex items-center gap-2 mb-4">
+            <UserPlus className="h-5 w-5 text-purple-600" />
+            <h4 className="font-medium text-gray-800">Manage Private Access</h4>
+          </div>
+          
+          {/* Add Member Form */}
+          <div className="space-y-3 mb-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="email"
+                  placeholder="Enter member's email address"
+                  value={email}
+                  onChange={(e:any) => {
+                    setEmail(e.target.value);
+                    setEmailError("");
+                  }}
+                  onKeyPress={handleKeyPress}
+                  className={emailError ? "border-red-500 focus:border-red-500" : ""}
+                />
+                {emailError && (
+                  <p className="text-red-500 text-xs mt-1">{emailError}</p>
+                )}
+              </div>
+              
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                onClick={addMember}
+                className="px-4"
+                disabled={!email.trim()}
+              >
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Members List */}
+          {members.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="font-medium text-gray-700 text-sm mb-2">
+                Added Members ({members.length})
+              </h5>
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-2 bg-white rounded border"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm text-gray-800">{member.email}</p>
+                      <p className="text-xs text-gray-500 capitalize">{member.role}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeMember(member.id)}
+                      className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Summary */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h4 className="font-medium text-gray-800 mb-2">Access Summary</h4>
+        <div className="text-sm text-gray-600 space-y-1">
+          <p>• Website Access: <span className="font-medium">{access.website ? 'Enabled' : 'Disabled'}</span></p>
+          <p>• App Access: <span className="font-medium">{access.app ? 'Enabled' : 'Disabled'}</span></p>
+          <p>• Private Access: <span className="font-medium">{access.private ? `Enabled (${members.length} members)` : 'Disabled'}</span></p>
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleSubmit}
+          disabled={isSubmitting || (!access.website && !access.app && !access.private)}
+          className="px-8"
+        >
+          {isSubmitting ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Saving...
+            </>
+          ) : (
+            'Save Settings'
+          )}
+        </Button>
+      </div>
+    </div>
+  );
 }

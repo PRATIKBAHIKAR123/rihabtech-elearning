@@ -76,7 +76,7 @@ export const ProfileMenu: React.FC = () => {
           </div>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 h-auto w-96 z-999">
+      <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 h-auto w-96">
         <div className="flex flex-col gap-2 justify-between">
           {profileMenuList.map((item, idx) => (
             <div

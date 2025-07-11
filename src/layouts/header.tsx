@@ -59,7 +59,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
 
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-          {!isLearnerPath && <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>}
+          {/* {!isLearnerPath && <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>} */}
         </nav>
 
         <div className="hidden md:block relative flex-grow">

@@ -8,13 +8,13 @@ import { CourseCarriculam } from "./carriculam";
 import { CourseCaptions } from "./captions";
 import { Accessibility } from "./accessibility";
 import { CourseLandingPage } from "./coursePage";
-import { CoursePricing } from "./pricing";
 import { CoursePromotions } from "./coursePromotions";
 import { CourseMessages } from "./messages";
 import { Button } from "../../../../components/ui/button";
 import PracticeTest from "../addPracticetest/practiceMCQ";
 import { SubmitReviewDialog } from "../../../../components/ui/submitReviewDialog";
 import { SubmitRequirementsDialog } from "../../../../components/ui/submitrequiremntdialog";
+import Pricing from "./pricing";
 
 const CourseContent = () => {
     const [selectedItem, setSelectedItem] = useState("intended-learners");
@@ -144,7 +144,7 @@ const CourseContent = () => {
                 <CourseLandingPage onSubmit={()=>{setSelectedItem('pricing')}}/>
             )}
             {selectedItem === "pricing"&&(
-                <CoursePricing onSubmit={()=>{setSelectedItem('course-messages')}}/>
+                <Pricing onSubmit={()=>{setSelectedItem('course-messages')}}/>
             )}
             {selectedItem === "promotions" && (
               <div>

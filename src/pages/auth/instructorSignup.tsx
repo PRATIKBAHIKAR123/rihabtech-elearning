@@ -3,6 +3,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
+import { toast } from "sonner";
 
 export default function InstructorSignupPage() {
   const [aadharImage, setAadharImage] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function InstructorSignupPage() {
     return;
   }
   window.location.href = '#/instructor/course-test-selection';
+  toast.message('Register Successfully');
       console.log({ ...values, aadharImage, panImage });
     },
   });
@@ -58,7 +60,7 @@ export default function InstructorSignupPage() {
             Share What You Love. Help Others Grow.
           </h2>
           <p className="text-neutral-100 text-base font-normal font-['Zen_Kaku_Gothic_Antique'] leading-7">
-            Turn your passion into purpose by teaching online with Rihab Technologies.
+            Turn your passion into purpose by teaching online with ZK Tutorials.
           </p>
         </div>
       </div>
@@ -68,6 +70,7 @@ export default function InstructorSignupPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold">Create. Teach. Connect.</h1>
+          <h1 className="text-2xl font-bold">as a Instrcutor</h1>
           </div>
 
           <form onSubmit={signupSchema.handleSubmit} className="space-y-4" noValidate>
@@ -260,13 +263,13 @@ export default function InstructorSignupPage() {
                 className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4"
                 type="submit"
               >
-                SIGN UP
+                Submit
               </Button>
             </div>
 
-            <div className="text-center text-sm mt-6">
+            {/* <div className="text-center text-sm mt-6">
               Own an Account? <a href="/#/login" className="text-blue-600 font-medium">JUMP RIGHT IN</a>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>

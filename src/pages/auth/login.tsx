@@ -5,6 +5,7 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
+import { toast } from "sonner";
 
 
 
@@ -21,6 +22,7 @@ export default function LoginPage() {
     onSubmit: (values) => {
       console.log(values);
       window.location.href = '/#/learner/homepage';
+      toast.message('Login Successfully');
     },
   });
 
