@@ -23,7 +23,7 @@ export function CourseLandingPage({ onSubmit }: any) {
     level: Yup.string().required("Level is required"),
     category: Yup.string().required("Category is required"),
     subcategory: Yup.string().required("Subcategory is required"),
-    primaryTopic: Yup.string().required("Primary topic is required"),
+    primaryTopic: Yup.string(),
     thumbnail: Yup.mixed().required("Course image is required"),
     promoVideo: Yup.mixed().required("Promotional video is required"),
   });
@@ -86,7 +86,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Course Title */}
         <div className="mt-8 gap-2 flex flex-col">
-          <label className="ins-label">Course title</label>
+          <label className="ins-label">Course title<span className="text-[#ff0000]"> *</span></label>
           <Input
             className="ins-control-border"
             placeholder="Photoshop"
@@ -102,7 +102,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Course Subtitle */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Course subtitle</label>
+          <label className="ins-label">Course subtitle<span className="text-[#ff0000]"> *</span></label>
           <Input
             className="ins-control-border"
             placeholder="Insert your course subtitle"
@@ -118,7 +118,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Course Description */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Course Description</label>
+          <label className="ins-label">Course Description<span className="text-[#ff0000]"> *</span></label>
           <Textarea
             className="ins-control-border"
             placeholder="Insert your course Description"
@@ -134,7 +134,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Basic Info */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Basic Info</label>
+          <label className="ins-label">Basic Info<span className="text-[#ff0000]"> *</span></label>
           <div className="flex justify-between gap-2">
             <Select
               value={formik.values.language}
@@ -215,7 +215,7 @@ export function CourseLandingPage({ onSubmit }: any) {
         </div>
 
         {/* Primary Topic */}
-        <div className="mt-4 gap-2 flex flex-col">
+        {/* <div className="mt-4 gap-2 flex flex-col">
           <label className="ins-label">What is primarily taught in your course?</label>
           <Input
             className="ins-control-border"
@@ -228,11 +228,11 @@ export function CourseLandingPage({ onSubmit }: any) {
           {formik.touched.primaryTopic && formik.errors.primaryTopic && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.primaryTopic}</div>
           )}
-        </div>
+        </div> */}
 
         {/* Course Image */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Course Image</label>
+          <label className="ins-label">Course Image<span className="text-[#ff0000]"> *</span></label>
           <div className="ins-control-border gap-3 items-center justify-center flex flex-col">
             {thumbnailImage ? (
               <img
@@ -273,7 +273,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Promotional Video Upload */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Promotional Video</label>
+          <label className="ins-label">Promotional Video<span className="text-[#ff0000]"> *</span></label>
           <div className="ins-control-border gap-3 items-center justify-center flex flex-col">
             {promoVideo ? (
               <video

@@ -15,7 +15,7 @@ const CourseCategory = () => {
         const draft = JSON.parse(localStorage.getItem("courseDraft") || "{}");
   draft.category = values.category;
   localStorage.setItem("courseDraft", JSON.stringify(draft));
-      window.location.hash = "#/instructor/course-timespend";
+      window.location.hash = "#/instructor/course-sections";
     },
   });
 

@@ -115,12 +115,39 @@ export default function Pricing({ onSubmit }: any) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-sm border">
+    <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-sm border">
       <div className="mb-6">
         <h3 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
           <Users className="h-6 w-6 text-blue-600" />
           Set Access for your Course
         </h3>
+        {/* Pricing Selection */}
+        <div className="mt-4 mb-2 flex items-center gap-4">
+          <label className="font-medium text-gray-700">Pricing:</label>
+          <Select >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="free">Free</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* {accessType === "paid" && (
+          <div className="mb-2 flex items-center gap-4">
+            <label className="font-medium text-gray-700">Price:</label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Enter price"
+              // value={price}
+              // onChange={(e: any) => setPrice(e.target.value)}
+              className="w-32"
+            />
+          </div>
+        )} */}
         <p className="text-gray-600 text-sm">Choose how students can access your course content</p>
       </div>
 

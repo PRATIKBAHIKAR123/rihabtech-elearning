@@ -38,7 +38,7 @@ export function IntendentLearners({ onSubmit }: any) {
       <form onSubmit={formik.handleSubmit} className="space-y-8">
         {/* What will students learn */}
         <div className="mb-3">
-          <h3 className="course-sectional-question mb-2">What will students learn in your course?</h3>
+          <h3 className="course-sectional-question mb-2">What will students learn in your course?<span className="text-[#ff0000]"> *</span></h3>
           <p className="course-sectional-descrption mb-4">
             The following descriptions will be publicly visible on your Course Landing Page and will have a direct impact on your course performance. These descriptions will help learners decide if your course is right for them.
           </p>
@@ -91,7 +91,7 @@ export function IntendentLearners({ onSubmit }: any) {
 
         {/* Requirements */}
         <div className="mb-3">
-          <h3 className="course-sectional-question mb-2">Are there any course requirements or prerequisites?</h3>
+          <h3 className="course-sectional-question mb-2">Are there any course requirements or prerequisites?<span className="text-[#ff0000]"> *</span></h3>
           <p className="course-sectional-descrption mb-4">
             List any required skills, experience, tools or equipment learners should have prior to taking your course.
           </p>
@@ -144,7 +144,7 @@ export function IntendentLearners({ onSubmit }: any) {
 
         {/* Target Learners */}
         <div className="mb-3">
-          <h3 className="course-sectional-question mb-2">Who is this course for?</h3>
+          <h3 className="course-sectional-question mb-2">Who is this course for?<span className="text-[#ff0000]"> *</span></h3>
           <p className="course-sectional-descrption mb-4">
             Write a clear description of the intended learners for your course.
           </p>

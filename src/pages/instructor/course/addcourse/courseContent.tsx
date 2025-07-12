@@ -35,8 +35,8 @@ const CourseContent = () => {
     const fullItems: CreationItem[] = [
         { id: "intended-learners", icon: <Users size={18} />, label: "Intended learners" },
         { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
-        { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
-        { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
+        // { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
+        // { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
         { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
         // { id: "captions", icon: <Type size={18} />, label: "Captions" },
         // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
@@ -64,8 +64,8 @@ const CourseContent = () => {
             setcreationItems([
                 { id: "intended-learners", icon: <Users size={18} />, label: "Intended learners" },
                 { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
-                { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
-                { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
+                // { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
+                // { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
                 { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
                 // { id: "captions", icon: <Type size={18} />, label: "Captions" },
                 // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
@@ -117,7 +117,7 @@ const CourseContent = () => {
                 <CourseStructure onSubmit={()=>{setSelectedItem('setup-test-video')}}/>
               </div>
             )}
-            {selectedItem === "setup-test-video" && (
+            {/* {selectedItem === "setup-test-video" && (
               <div>
                 <SetupTestVideo onSubmit={()=>{setSelectedItem('film-edit')}}/>
               </div>
@@ -126,7 +126,7 @@ const CourseContent = () => {
               <div>
                 <SetupTestVideo onSubmit={()=>{setSelectedItem('curriculum')}}/>
               </div>
-            )}
+            )} */}
             {selectedItem === "curriculum" && (
               <div>
                 <CourseCarriculam onSubmit={()=>{setSelectedItem('course-landing-page')}}/>
