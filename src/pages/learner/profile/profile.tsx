@@ -10,15 +10,14 @@ import * as Yup from 'yup';
 const EditProfile: React.FC = () => {
   const formik = useFormik({
     initialValues: {
-      firstName: 'Manas',
+      name: 'Manas',
       lastName: 'Agrawal',
       email: 'manasuiux@icloud.com',
       phone: '9956333666',
       gender: 'Male',
     },
     validationSchema: Yup.object({
-      firstName: Yup.string().required('First Name is required'),
-      lastName: Yup.string().required('Last Name is required'),
+      name: Yup.string().required('Full Name is required'),
       email: Yup.string().email('Invalid email address').required('Email is required'),
       phone: Yup.string()
         .matches(/^\d{10}$/, 'Phone number must be 10 digits')
@@ -43,33 +42,20 @@ const EditProfile: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-base font-medium text-[#888] mb-1 font-barlow">First Name</label>
+                  <label className="block text-base font-medium text-[#888] mb-1 font-barlow">Full Name</label>
                   <Input
                     type="text"
-                    name="firstName"
-                    value={formik.values.firstName}
+                    name="name"
+                    value={formik.values.name}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     className="profile-input bg-white border border-[#E6E6E6] rounded-md focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
                   />
-                  {formik.touched.firstName && formik.errors.firstName && (
-                    <div className="text-red-500 text-xs mt-1">{formik.errors.firstName}</div>
+                  {formik.touched.name && formik.errors.name && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.name}</div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-base font-medium text-[#888] mb-1 font-barlow">Last Name</label>
-                  <Input
-                    type="text"
-                    name="lastName"
-                    value={formik.values.lastName}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    className="profile-input bg-white border border-[#E6E6E6] rounded-md focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
-                  />
-                  {formik.touched.lastName && formik.errors.lastName && (
-                    <div className="text-red-500 text-xs mt-1">{formik.errors.lastName}</div>
-                  )}
-                </div>
+               
                 <div>
                   <label className="block text-base font-medium text-[#888] mb-1 font-barlow">Email</label>
                   <Input

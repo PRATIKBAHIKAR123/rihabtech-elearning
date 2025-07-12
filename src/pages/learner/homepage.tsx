@@ -10,13 +10,13 @@ export default function HomePage() {
      
 {/* Hero Section */}
 <section className="landing-gradient py-12 md:py-16">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-start">
           <div className="flex flex-col gap-6 md:w-1/2">
           <p className="banner-section-subtitle">
           Professional & Lifelong Learning
             </p>
             <h1 className="banner-section-title">
-            Welcome Back, Manas Agrawal!
+            Welcome Back, <span className="text-primary">Manas Agrawal!</span>
             </h1>
             
             <div className="flex flex-col sm:flex-row gap-4">

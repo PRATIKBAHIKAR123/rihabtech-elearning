@@ -12,6 +12,8 @@ import Logout from './logout';
 import PrivacyPolicy from '../../comman/privacy-policy/privacy-policy';
 import RefundPolicy from '../../comman/refund-policy/refund-policy';
 import TermsOfUse from '../../comman/terms-and-condition/terms-of-use';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../../../components/ui/dialog"; // adjust import path if needed
+import { Button } from '../../../components/ui/button';
 
 const Profile = () => {
 
@@ -26,7 +28,7 @@ const Profile = () => {
   // { label: 'Terms Of Use', tab: 'terms-of-use' },
   //   { label: 'Privacy Policy', tab: 'privacy-policy' },
   //   { label: 'Refund Policy', tab: 'refund-policy' },
-  { label: 'Logout', tab: 'logout' },
+  // { label: 'Logout', tab: 'logout' },
 ];
 
 
@@ -67,6 +69,43 @@ const Profile = () => {
               {item.label}
             </a>
           ))}
+          <Dialog>
+            <DialogTrigger asChild>
+              <a
+                className={`
+                  flex-shrink-0
+                  px-4 md:px-6 py-3 md:py-4
+                  text-base font-barlow transition-colors duration-150
+                  text-[#222] font-medium hover:bg-[#f8f8f8]
+                  border-r border-[#eee] md:border-r-0
+                  text-center md:text-left
+                  min-w-[140px] md:min-w-0
+                  cursor-pointer
+                `}
+              >
+                Log Out
+              </a>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Logout</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to log out?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  className="btn btn-primary"
+                  onClick={() => setActiveTab('logout')}
+                >
+                  Yes, Log Out
+                </Button>
+                <Button className="btn btn-secondary" type="button">
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           
         </nav>
       </div>

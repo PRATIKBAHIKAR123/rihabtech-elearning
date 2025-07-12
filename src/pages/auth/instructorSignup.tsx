@@ -11,14 +11,13 @@ export default function InstructorSignupPage() {
 
   const signupSchema = useFormik({
     initialValues: {
-      fullname: '',
       experties: '',
       topic: '',
       adhaarnumber: '',
       PANnumber: '',
     },
     validationSchema: Yup.object({
-      fullname: Yup.string().required('Full Name is required'),
+      // fullname: Yup.string().required('Full Name is required'),
       experties: Yup.string().required('Area of Expertise is required'),
       topic: Yup.string().required('Teaching Topics are required'),
       adhaarnumber: Yup.string()
@@ -75,9 +74,9 @@ export default function InstructorSignupPage() {
 
           <form onSubmit={signupSchema.handleSubmit} className="space-y-4" noValidate>
             {/* Full Name */}
-            <div>
+            {/* <div>
               <label htmlFor="fullname" className="text-sm text-gray-600 block mb-1">
-                Full Name
+                Full Name<span className="text-[#ff0000]"> *</span>
               </label>
               <Input
                 id="fullname"
@@ -91,13 +90,13 @@ export default function InstructorSignupPage() {
               {signupSchema.touched.fullname && signupSchema.errors.fullname && (
                 <div className="text-red-500 text-xs mt-1">{signupSchema.errors.fullname}</div>
               )}
-            </div>
+            </div> */}
 
             {/* Area of Expertise & Teaching Topics */}
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="experties" className="text-sm text-gray-600 block mb-1">
-                  Area Of Expertise
+                  Area Of Expertise<span className="text-[#ff0000]"> *</span>
                 </label>
                 <Input
                   id="experties"
@@ -114,7 +113,7 @@ export default function InstructorSignupPage() {
               </div>
               <div>
                 <label htmlFor="topic" className="text-sm text-gray-600 block mb-1">
-                  Teaching Topics
+                  Teaching Topics<span className="text-[#ff0000]"> *</span>
                 </label>
                 <Input
                   id="topic"
@@ -135,7 +134,7 @@ export default function InstructorSignupPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="aadharImage" className="text-sm text-gray-600 block mb-1">
-                  Aadhaar Card Image
+                  Aadhaar Card Image<span className="text-[#ff0000]"> *</span>
                 </label>
                 {!aadharImage ? (
                     <div>
@@ -178,7 +177,7 @@ export default function InstructorSignupPage() {
               </div>
               <div>
                 <label htmlFor="panImage" className="text-sm text-gray-600 block mb-1">
-                  PAN Card Image
+                  PAN Card Image<span className="text-[#ff0000]"> *</span>
                 </label>
                 {!panImage ? (
                  <div><input
@@ -224,7 +223,7 @@ export default function InstructorSignupPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="adhaarnumber" className="text-sm text-gray-600 block mb-1">
-                  Enter Your Aadhaar Card Number
+                  Enter Your Aadhaar Card Number<span className="text-[#ff0000]"> *</span>
                 </label>
                 <Input
                   id="adhaarnumber"
@@ -241,7 +240,7 @@ export default function InstructorSignupPage() {
               </div>
               <div>
                 <label htmlFor="PANnumber" className="text-sm text-gray-600 block mb-1">
-                  Enter Your PAN Card Number
+                  Enter Your PAN Card Number<span className="text-[#ff0000]"> *</span>
                 </label>
                 <Input
                   id="PANnumber"
