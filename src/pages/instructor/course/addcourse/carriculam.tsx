@@ -6,10 +6,6 @@ import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { MenuBar } from "../../../../components/ui/tiptapmenubar";
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
 import { Textarea } from "../../../../components/ui/textarea";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -17,6 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../components/ui/hover-card";
 // @ts-ignore
 import * as XLSX from 'xlsx';
+// Add Tiptap imports:
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 
 
 export interface Question {
@@ -74,6 +75,7 @@ interface LectureItem {
     file: File;
   }[];
   published: boolean; // Add published property
+  description?: string; // Add description field
 }
 
 export interface Section {
@@ -139,7 +141,8 @@ const getInitialLecture = (index: number): LectureItem => ({
   contentText: "",
   resources: [],
   contentUrl: "",
-  published: false // Default to unpublished
+  published: false, // Default to unpublished
+  description: "" // Add description field
 });
 
 
@@ -230,6 +233,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                 return Yup.object({
                   type: Yup.string().oneOf(["lecture"]).required(),
                   lectureName: Yup.string().required("Lecture name is required"),
+                  description: Yup.string().required("Description is required"), // Add validation
                   contentText: Yup.string().when(["contentType", "articleSource"], {
                     is: (contentType: string, articleSource: string) =>
                       contentType === "article" && articleSource === "write",
@@ -795,6 +799,19 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                 showContentType.sectionIdx === sectionIdx &&
                                                                 showContentType.itemIdx === itemIdx ? (
                                                                 <div className="flex flex-col gap-2 mt-2 w-auto px-12">
+                                                                  {/* Add Description field above content type selection */}
+                                                                  <label className="ins-label font-bold">Description</label>
+                                                                  <ArticleEditor
+                                                                    sectionIdx={sectionIdx}
+                                                                    itemIdx={itemIdx}
+                                                                    content={item.description || ''}
+                                                                    onChange={(html) => {
+                                                                      formik.setFieldValue(
+                                                                        `sections[${sectionIdx}].items[${itemIdx}].description`,
+                                                                        html
+                                                                      );
+                                                                    }}
+                                                                  />
                                                                   <label className="ins-label">Content Type</label>
                                                                   <Select
                                                                     value={item.contentType}
@@ -2149,7 +2166,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                     contentFile: null,
                                                     contentUrl: "",
                                                     contentText: "",
-                                                    published: false // Default to unpublished
+                                                    published: false, // Default to unpublished
+                                                    description: "" // Add description field
                                                   });
                                                   setAddType(null);
                                                 }}
@@ -2221,7 +2239,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                               contentFile: null,
                               contentUrl: "",
                               contentText: "",
-                              published: false // Default to unpublished
+                              published: false, // Default to unpublished
+                              description: "" // Add description field
                             },
                           ],
                           published: false // Default to unpublished
@@ -2515,29 +2534,13 @@ function ArticleEditor({
   content: string;
   onChange: (html: string) => void;
 }) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-    ],
-    content,
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      onChange(html);
-    },
-  });
-
   return (
-    <>
-      <MenuBar editor={editor} />
-      <EditorContent
-        editor={editor}
-        className="min-h-[200px] p-4"
-      />
-    </>
+    <Textarea
+      className="min-h-[120px] p-4 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+      value={content}
+      onChange={e => onChange(e.target.value)}
+      placeholder="Enter description..."
+    />
   );
 }
 
