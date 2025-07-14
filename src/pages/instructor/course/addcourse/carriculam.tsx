@@ -799,19 +799,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                 showContentType.sectionIdx === sectionIdx &&
                                                                 showContentType.itemIdx === itemIdx ? (
                                                                 <div className="flex flex-col gap-2 mt-2 w-auto px-12">
-                                                                  {/* Add Description field above content type selection */}
-                                                                  <label className="ins-label font-bold">Description</label>
-                                                                  <ArticleEditor
-                                                                    sectionIdx={sectionIdx}
-                                                                    itemIdx={itemIdx}
-                                                                    content={item.description || ''}
-                                                                    onChange={(html) => {
-                                                                      formik.setFieldValue(
-                                                                        `sections[${sectionIdx}].items[${itemIdx}].description`,
-                                                                        html
-                                                                      );
-                                                                    }}
-                                                                  />
+                                                                  {/* Move Content Type above Description */}
                                                                   <label className="ins-label">Content Type</label>
                                                                   <Select
                                                                     value={item.contentType}
@@ -833,6 +821,19 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       ))}
                                                                     </SelectContent>
                                                                   </Select>
+                                                                  {/* Description below Content Type */}
+                                                                  <label className="ins-label font-bold">Description</label>
+                                                                  <ArticleEditor
+                                                                    sectionIdx={sectionIdx}
+                                                                    itemIdx={itemIdx}
+                                                                    content={item.description || ''}
+                                                                    onChange={(html) => {
+                                                                      formik.setFieldValue(
+                                                                        `sections[${sectionIdx}].items[${itemIdx}].description`,
+                                                                        html
+                                                                      );
+                                                                    }}
+                                                                  />
                                                                   {/* Article: Plain textarea for React 19 */}
                                                                   {item.contentType === "article" && (
                                                                     <div className="flex flex-col gap-2">
