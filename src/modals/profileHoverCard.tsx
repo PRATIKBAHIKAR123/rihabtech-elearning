@@ -3,6 +3,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/
 import { BarChart3, LayoutGrid, User, Settings, FileText } from "lucide-react";
 import { title } from "process";
 import path from "path";
+import { useAuth } from '../context/AuthContext';
 
 const profileMenuList = [
   {
@@ -50,21 +51,29 @@ const profileMenuList = [
   },
   {
     title: "Logout",
-    description: "Sign out of your account",    
+    description: "Sign out of your account",
     icon: <User className="w-6 h-6 text-orange-500" />,
-path: "/",
+    path: "/#/",
   }
 
 ];
 
 export const ProfileMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { logout } = useAuth();
 
-  const handleItemClick = (path: string) => {
+  const handleItemClick = (item: typeof profileMenuList[0]) => {
     setIsOpen(false); // close popover
-    setTimeout(() => {
-      window.location.href = path;
-    }, 100); // slight delay for smoother UX
+    if (item.title === 'Logout') {
+      logout();
+      setTimeout(() => {
+        window.location.replace('/#/');
+      });
+    } else {
+      setTimeout(() => {
+        window.location.href = item.path;
+      }, 100);
+    }
   };
 
   return (
@@ -81,7 +90,7 @@ export const ProfileMenu: React.FC = () => {
           {profileMenuList.map((item, idx) => (
             <div
               key={idx}
-              onClick={() => handleItemClick(item.path)}
+              onClick={() => handleItemClick(item)}
               className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-50 transition cursor-pointer"
             >
               <div>{item.icon}</div>

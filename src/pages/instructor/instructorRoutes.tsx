@@ -10,6 +10,7 @@ import Dashboard from "./dashboard/dashboard";
 import { LearnerProfile } from "./dashboard/learnerProfile";
 import { MonthlyReports } from "./dashboard/monthWiseRevenue";
 import Profile from "../learner/profile/page";
+import PreviewCourse from './course/addcourse/preview';
 
 export default function InstructorRoutes() {
     return (
@@ -25,6 +26,7 @@ export default function InstructorRoutes() {
         <Route path="monthly-revenue" element={<MonthlyReports />} />
         <Route path="chat" element={<ChatInterface />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="course-preview" element={<PreviewCourse />} />
       </Routes>
     );
   }

@@ -151,9 +151,16 @@ const CourseContent = () => {
                 <CoursePromotions/>
               </div>
             )}
-            {selectedItem === "course-messages"&&(
-                <CourseMessages/>
-            )}
+            {selectedItem === "course-messages" && (
+  <div>
+    <CourseMessages />
+    <div className="flex justify-end mt-6">
+      <Button className="bg-primary text-white px-6 py-2 rounded" onClick={() => { window.location.hash = '#/instructor/course-preview'; }}>
+        Preview Course
+      </Button>
+    </div>
+  </div>
+)}
             {/* Add content for other steps */}
           </div>
         </div>

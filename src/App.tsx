@@ -23,6 +23,7 @@ import PrivacyPolicy from './pages/comman/privacy-policy/privacy-policy';
 import RefundPolicy from './pages/comman/refund-policy/refund-policy';
 import InstructorSignupPage from './pages/auth/instructorSignup';
 import ForgetPasswordPage from './pages/auth/forgot-password';
+import ProtectedRoute from './components/ui/ProtectedRoute';
 
 function App() {
   useEffect(() => {
@@ -54,8 +55,16 @@ function App() {
       <Route path="/courselist" element={<CommanLayout><CourseList /></CommanLayout> } />
       <Route path="/courseDetails" element={<CommanLayout><CourseDetails /></CommanLayout> } />
       <Route path="/instructorDetails" element={<CommanLayout><InstructorDetails /></CommanLayout> } />
-      <Route path="/learner/*" element={<CommanLayout><LearnerRoutes /></CommanLayout>} />
-      <Route path="/instructor/*" element={<InstructorLayout><InstructorRoutes /></InstructorLayout>} />
+      <Route path="/learner/*" element={
+        <ProtectedRoute>
+          <CommanLayout><LearnerRoutes /></CommanLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/instructor/*" element={
+        <ProtectedRoute>
+          <InstructorLayout><InstructorRoutes /></InstructorLayout>
+        </ProtectedRoute>
+      } />
 
     </Routes>
   </Router>

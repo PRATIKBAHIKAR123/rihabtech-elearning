@@ -9,10 +9,25 @@ import NewCourses from './landingPage/new-courses';
 import TestimonialsSection from './landingPage/testimonials';
 import CareerSkillsSections from './landingPage/skillsForGrowth';
 import { Fade } from 'react-awesome-reveal';
+import { useAuth } from '../../context/AuthContext';
+import { useEffect } from 'react';
 
 const EducationLandingPage: React.FC = () => {
+  const { logoutSuccess, setLogoutSuccess } = useAuth();
+  useEffect(() => {
+    if (logoutSuccess) {
+      const timer = setTimeout(() => setLogoutSuccess(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [logoutSuccess, setLogoutSuccess]);
   return (
     <div className="min-h-screen bg-white font-sans">
+      {logoutSuccess && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded relative mt-6 mb-6 w-full max-w-2xl mx-auto text-center text-lg font-semibold flex items-center justify-center" style={{gap: '8px'}}>
+          <svg className="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          You’ve successfully logged out. Come back soon!
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="landing-gradient py-12 md:py-16">

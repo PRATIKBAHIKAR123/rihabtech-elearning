@@ -6,10 +6,12 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
 import { toast } from "sonner";
-
+import { useAuth } from '../../context/AuthContext';
 
 
 export default function LoginPage() {
+    const { login } = useAuth();
+    const [loading, setLoading] = useState(false);
     const loginSchema = useFormik({
     initialValues: {
       email: '',
@@ -19,10 +21,30 @@ export default function LoginPage() {
       email: Yup.string().email('Invalid email').required('Email is Required'),
       password: Yup.string().required('Password is Required'),
     }),
-    onSubmit: (values) => {
-      console.log(values);
-      window.location.href = '/#/learner/homepage';
-      toast.message('Login Successfully');
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        const response = await fetch('https://reqres.in/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'reqres-free-v1',
+          },
+          body: JSON.stringify({ email: values.email, password: values.password })
+        });
+        const data = await response.json();
+        if (response.ok && data.token) {
+          login(data.token);
+          toast.success('Login Successfully');
+          window.location.href = '/#/learner/homepage';
+        } else {
+          toast.error(data.error || 'Login failed. Please try again.');
+        }
+      } catch (error) {
+        toast.error('Network error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     },
   });
 
@@ -122,8 +144,8 @@ export default function LoginPage() {
               </label>
             </div> */}
 
-            <Button type="submit" className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4">
-            Log In
+            <Button type="submit" className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4" disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
             </Button>
             </div>
 

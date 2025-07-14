@@ -8,6 +8,7 @@ import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
 import { useCountdown } from "../utils/countdown_subscribtion";
 import NotificationsDialog from "../modals/notifications";
+import { useAuth } from '../context/AuthContext';
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -24,6 +25,7 @@ const subscriptionEndTimestamp = useMemo(() => {
 }, []);
 
 const countdown = useCountdown(subscriptionEndTimestamp);
+const { isAuthenticated } = useAuth();
 
 
   return (
@@ -46,6 +48,23 @@ const countdown = useCountdown(subscriptionEndTimestamp);
   </button>
 </div>
 <ProfileMenu /> */}
+{!isAuthenticated && (
+  <>
+    <Button
+      variant="outline"
+      className="border-primary text-primary rounded-none px-2 py-1 text-xs font-medium hover:bg-blue-50"
+      onClick={() => window.location.href = '/#/login'}
+    >
+      Sign In
+    </Button>
+    <Button
+      className="px-2 py-1 text-xs rounded-none font-medium text-white hover:bg-blue-700"
+      onClick={() => window.location.href = '/#/sign-up'}
+    >
+      Sign Up
+    </Button>
+  </>
+)}
 </div>
     </div>
       <div className="hidden md:flex mx-auto px-5 py-4 gap-12 items-center justify-between">
@@ -72,16 +91,7 @@ const countdown = useCountdown(subscriptionEndTimestamp);
         <Search className="flex md:hidden" size={22} />
 
         <div className="hidden md:flex items-center space-x-4">
-          {window.location.hash.includes("learner") ? (
-            // Show "Teach With Us" button when the path contains "learner"
-            <Button
-              className="px-4 py-2 text-sm rounded-none font-medium text-white hover:opacity-50"
-              onClick={() => window.location.href = '/#/instructor-signup'}
-            >
-              Teach With Us
-            </Button>
-          ) : (
-            // Show other buttons when the path does not contain "learner"
+          {isAuthenticated ? null : (
             <>
               <Button
                 variant="outline"

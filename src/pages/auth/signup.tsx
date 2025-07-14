@@ -7,36 +7,58 @@ import { LoginModeDialog } from "./loginMode";
 import * as Yup from 'yup';
 import { useFormik } from "formik";
 import { toast } from "sonner";
+import { useAuth } from '../../context/AuthContext';
 
 export default function SignUpPage() {
-      const signupSchema = useFormik({
-      initialValues: {
-        name:'',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        number: '',
-        address: '',
-        termsconditions: false,
-      },
-      validationSchema: Yup.object({
-        name: Yup.string().required('Name is Required'),
-        email: Yup.string().email('Invalid email').required('Email is Required'),
-          confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password'), ''], 'Passwords must match')
-    .required('Confirm Password is Required'),
-        password: Yup.string().matches(/^\d{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
-        number: Yup.string().matches(/^\d{10}$/,'Contact Number Must be 10 Digits').required('Contact Number is Required'),
-        address: Yup.string().required('Address is Required'),
-        termsconditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
-      }),
-      onSubmit: (values) => {
-        console.log(values);
-        window.location.hash='/#/learner/homepage';
-        toast.message('Login Successfully');
-        //setLoginModeIsOpen(true)
-      },
-    });
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const signupSchema = useFormik({
+    initialValues: {
+      name:'',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      number: '',
+      address: '',
+      termsconditions: false,
+    },
+    validationSchema: Yup.object({
+      name: Yup.string().required('Name is Required'),
+      email: Yup.string().email('Invalid email').required('Email is Required'),
+      confirmPassword: Yup.string()
+        .oneOf([Yup.ref('password'), ''], 'Passwords must match')
+        .required('Confirm Password is Required'),
+      password: Yup.string().matches(/^\d{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
+      number: Yup.string().matches(/^\d{10}$/,'Contact Number Must be 10 Digits').required('Contact Number is Required'),
+      address: Yup.string().required('Address is Required'),
+      termsconditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
+    }),
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        const response = await fetch('https://reqres.in/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'reqres-free-v1',
+          },
+          body: JSON.stringify({ email: values.email, password: values.password })
+        });
+        const data = await response.json();
+        if (response.ok && data.token) {
+          login(data.token);
+          toast.success('Registration Successful');
+          window.location.hash = '/#/learner/homepage';
+        } else {
+          toast.error(data.error || 'Registration failed. Please try again.');
+        }
+      } catch (error) {
+        toast.error('Network error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
     
   const [showPassword, setShowPassword] = useState(false);
   const [isLoginModeOpen, setLoginModeIsOpen] = useState(false);
@@ -220,8 +242,8 @@ export default function SignUpPage() {
               </label>
             </div>
 
-            <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4">
-              SIGN UP
+            <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" disabled={loading}>
+              {loading ? 'Signing up...' : 'SIGN UP'}
             </Button>
             </div>
 
