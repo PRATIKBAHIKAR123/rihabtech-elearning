@@ -7,10 +7,11 @@ import { LoginModeDialog } from "./loginMode";
 import * as Yup from 'yup';
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { useAuth } from '../../context/AuthContext';
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from '../../lib/firebase';
 
 export default function SignUpPage() {
-  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const signupSchema = useFormik({
     initialValues: {
@@ -36,41 +37,39 @@ export default function SignUpPage() {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        const response = await fetch('https://reqres.in/api/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': 'reqres-free-v1',
-          },
-          body: JSON.stringify({ email: values.email, password: values.password })
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
+        // Save user profile to Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: values.name,
+          email: values.email,
+          number: values.number,
+          address: values.address,
+          role: "student", // or "tutor" if you have a role selector
+          createdAt: new Date().toISOString(),
         });
-        const data = await response.json();
-        if (response.ok && data.token) {
-          login(data.token);
-          toast.success('Registration Successful');
-          window.location.hash = '/#/learner/homepage';
-        } else {
-          toast.error(data.error || 'Registration failed. Please try again.');
-        }
-      } catch (error) {
-        toast.error('Network error. Please try again.');
+        toast.success('Registration Successful');
+        window.location.hash = '/#/learner/homepage';
+      } catch (error: any) {
+        toast.error(error.message || 'Registration failed. Please try again.');
       } finally {
         setLoading(false);
       }
     },
   });
-    
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoginModeOpen, setLoginModeIsOpen] = useState(false);
   const [isInstructorloginMode, setLoginMode] = useState(false);
 
- const handleLoginModeOpen = () => {
-  if (isInstructorloginMode) {
-    setLoginModeIsOpen(true);
-  }else{
-    window.location.href = '/#/login';
-  }
-  }
+  const handleLoginModeOpen = () => {
+    if (isInstructorloginMode) {
+      setLoginModeIsOpen(true);
+    } else {
+      window.location.href = '/#/login';
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full">

@@ -18,7 +18,7 @@ export function SubmitRequirementsDialog({
 }: SubmitRequirementsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex flex-col items-start">
             <div className="flex items-center gap-2 mb-4">
@@ -72,9 +72,9 @@ export function SubmitRequirementsDialog({
                 </div>
               </div>
 
-              <p className="mt-4">
+              <div className="mt-4">
                 Once you complete these steps, you will be able to successfully submit your course for review.
-              </p>
+              </div>
             </DialogDescription>
           </div>
         </DialogHeader>

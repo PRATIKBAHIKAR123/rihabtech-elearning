@@ -9,11 +9,11 @@ import NewCourses from './landingPage/new-courses';
 import TestimonialsSection from './landingPage/testimonials';
 import CareerSkillsSections from './landingPage/skillsForGrowth';
 import { Fade } from 'react-awesome-reveal';
-import { useAuth } from '../../context/AuthContext';
 import { useEffect } from 'react';
 
 const EducationLandingPage: React.FC = () => {
-  const { logoutSuccess, setLogoutSuccess } = useAuth();
+  // If you want to show a logout message, use local state:
+  const [logoutSuccess, setLogoutSuccess] = React.useState(false);
   useEffect(() => {
     if (logoutSuccess) {
       const timer = setTimeout(() => setLogoutSuccess(false), 5000);

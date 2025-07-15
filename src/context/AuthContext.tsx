@@ -1,50 +1,41 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 interface AuthContextType {
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (token: string) => void;
-  logout: () => void;
-  logoutSuccess: boolean;
-  setLogoutSuccess: (val: boolean) => void;
+  user: FirebaseUser | null;
+  loading: boolean;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  logout: async () => {},
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [logoutSuccess, setLogoutSuccess] = useState(false);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [token]);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const login = (newToken: string) => {
-    setToken(newToken);
-    setLogoutSuccess(false);
-  };
-
-  const logout = () => {
-    setToken(null);
-    localStorage.removeItem('token');
-    setLogoutSuccess(true);
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated: !!token, login, logout, logoutSuccess, setLogoutSuccess }}>
+    <AuthContext.Provider value={{ user, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}; 
+export const useAuth = () => useContext(AuthContext); 

@@ -4,6 +4,7 @@ import { BarChart3, LayoutGrid, User, Settings, FileText } from "lucide-react";
 import { title } from "process";
 import path from "path";
 import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 
 const profileMenuList = [
   {
@@ -60,7 +61,24 @@ const profileMenuList = [
 
 export const ProfileMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const [initials, setInitials] = useState('U');
+
+  useEffect(() => {
+    let name = '';
+    const cached = localStorage.getItem('profile');
+    if (cached) {
+      const profile = JSON.parse(cached);
+      name = profile.name || '';
+    }
+    if (!name && user?.displayName) name = user.displayName;
+    if (!name && user?.email) name = user.email.split('@')[0];
+    if (name) {
+      const parts = name.trim().split(' ');
+      if (parts.length === 1) setInitials(parts[0][0].toUpperCase());
+      else setInitials((parts[0][0] + parts[1][0]).toUpperCase());
+    }
+  }, [user]);
 
   const handleItemClick = (item: typeof profileMenuList[0]) => {
     setIsOpen(false); // close popover
@@ -81,7 +99,7 @@ export const ProfileMenu: React.FC = () => {
       <HoverCardTrigger asChild>
         <div className="ml-0 md:ml-4 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
           <div className="w-7 md:w-10 h-7 md:h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
-            MA
+            {initials}
           </div>
         </div>
       </HoverCardTrigger>

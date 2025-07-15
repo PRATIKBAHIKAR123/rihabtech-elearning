@@ -25,7 +25,8 @@ const subscriptionEndTimestamp = useMemo(() => {
 }, []);
 
 const countdown = useCountdown(subscriptionEndTimestamp);
-const { isAuthenticated } = useAuth();
+const { user } = useAuth();
+const isAuthenticated = !!user;
 
 
   return (
@@ -63,6 +64,12 @@ const { isAuthenticated } = useAuth();
     >
       Sign Up
     </Button>
+  </>
+)}
+{isAuthenticated && (
+  <>
+    <NotificationsDialog />
+    <ProfileMenu />
   </>
 )}
 </div>
@@ -109,33 +116,13 @@ const { isAuthenticated } = useAuth();
             </>
           )}
         </div>
-        {isLearnerPath && (
-  <div className=" flex items-center gap-2 px-2 py-1 border border-yellow-500 rounded-md bg-yellow-50 text-yellow-800 text-xs font-semibold">
-    {countdown.expired ? (
-      <span className="text-red-600 font-semibold">Subscription expired</span>
-    ) : (
-      <>
-        <span>Subscription Ends in:</span>
-        <span>
-          {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
-        </span>
-        <Button
-          variant="outline"
-          className="border-yellow-500 text-yellow-800 hover:bg-yellow-100 px-2 py-1 text-xs rounded"
-          onClick={() => window.location.href = '/#/pricing'}
-        >
-          Renew
-        </Button>
-      </>
-    )}
-  </div>
-)}
-        {isLearnerPath && <div className="flex items-center">
-
-          <MyCartMenu />
-          <NotificationsDialog/>
-          <ProfileMenu />
-        </div>}
+        {isAuthenticated && (
+          <div className="flex items-center">
+            <MyCartMenu />
+            <NotificationsDialog/>
+            <ProfileMenu />
+          </div>
+        )}
 
       </div>
       {/* <SearchWithPopup open={isSearchPopupOpen} setOpen={setSearchPopupIsOpen}/> */}

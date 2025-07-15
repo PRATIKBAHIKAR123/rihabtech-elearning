@@ -6,17 +6,25 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { LoginModeDialog } from "./loginMode";
 import * as Yup from 'yup';
 import { useFormik } from "formik";
+import { toast } from "sonner";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from '../../lib/firebase';
 
 export default function ForgetPasswordPage() {
-      const signupSchema = useFormik({
+      const forgotSchema = useFormik({
       initialValues: {
         email: '',
       },
       validationSchema: Yup.object({
         email: Yup.string().email('Invalid email').required('Email is Required'),
       }),
-      onSubmit: (values) => {
-        console.log(values);
+      onSubmit: async (values) => {
+        try {
+          await sendPasswordResetEmail(auth, values.email);
+          toast.success('Check your email for password reset instructions.');
+        } catch (error: any) {
+          toast.error(error.message || 'Failed to send reset email.');
+        }
       },
     });
     
@@ -50,18 +58,18 @@ export default function ForgetPasswordPage() {
           </div>
 
 
-          <form onSubmit={signupSchema.handleSubmit} className="space-y-4">
+          <form onSubmit={forgotSchema.handleSubmit} className="space-y-4">
 
             <div>
               <label htmlFor="email" className="text-sm text-gray-600 block mb-1">
                 Email
               </label>
               <Input id="email" type="email" 
-              value={signupSchema.values.email}
-          onChange={signupSchema.handleChange}
-          onBlur={signupSchema.handleBlur} placeholder="johndoe@email.com" />
-          {signupSchema.touched.email && signupSchema.errors.email && (
-          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.email}</p>
+              value={forgotSchema.values.email}
+          onChange={forgotSchema.handleChange}
+          onBlur={forgotSchema.handleBlur} placeholder="johndoe@email.com" />
+          {forgotSchema.touched.email && forgotSchema.errors.email && (
+          <p className="text-red-500 text-sm mt-1">{forgotSchema.errors.email}</p>
         )}
             </div>
             <div className="flex items-center justify-between space-x-2 mt-4">

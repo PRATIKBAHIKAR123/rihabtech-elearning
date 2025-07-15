@@ -6,11 +6,11 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
 import { toast } from "sonner";
-import { useAuth } from '../../context/AuthContext';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from '../../lib/firebase';
 
 
 export default function LoginPage() {
-    const { login } = useAuth();
     const [loading, setLoading] = useState(false);
     const loginSchema = useFormik({
     initialValues: {
@@ -24,24 +24,11 @@ export default function LoginPage() {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        const response = await fetch('https://reqres.in/api/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': 'reqres-free-v1',
-          },
-          body: JSON.stringify({ email: values.email, password: values.password })
-        });
-        const data = await response.json();
-        if (response.ok && data.token) {
-          login(data.token);
-          toast.success('Login Successfully');
-          window.location.href = '/#/learner/homepage';
-        } else {
-          toast.error(data.error || 'Login failed. Please try again.');
-        }
-      } catch (error) {
-        toast.error('Network error. Please try again.');
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast.success('Login Successfully');
+        window.location.href = '/#/learner/homepage';
+      } catch (error: any) {
+        toast.error(error.message || 'Login failed. Please try again.');
       } finally {
         setLoading(false);
       }

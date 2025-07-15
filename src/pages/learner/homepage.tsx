@@ -3,8 +3,35 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { ChevronRight, Search, ShoppingCart, Bell, ChevronDown, List } from "lucide-react";
 import { Course } from "../../types/course";
+import { useAuth } from '../../context/AuthContext';
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export default function HomePage() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<{ name?: string } | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        // Try to get from localStorage first
+        const cached = localStorage.getItem('profile');
+        if (cached) {
+          setProfile(JSON.parse(cached));
+        } else {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+            localStorage.setItem('profile', JSON.stringify(docSnap.data()));
+          }
+        }
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
   return (
     <div className="flex flex-col min-h-screen">
      
@@ -16,7 +43,7 @@ export default function HomePage() {
           Professional & Lifelong Learning
             </p>
             <h1 className="banner-section-title">
-            Welcome Back, <span className="text-primary">Manas Agrawal!</span>
+            Welcome Back, <span className="text-primary">{profile?.name || user?.displayName || user?.email || 'Learner'}!</span>
             </h1>
             
             <div className="flex flex-col sm:flex-row gap-4">
