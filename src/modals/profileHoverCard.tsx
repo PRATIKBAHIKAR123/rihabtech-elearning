@@ -66,23 +66,24 @@ export const ProfileMenu: React.FC = () => {
 
   useEffect(() => {
     let name = '';
-    const cached = localStorage.getItem('profile');
+    const cached = localStorage.getItem('token');
     if (cached) {
       const profile = JSON.parse(cached);
-      name = profile.name || '';
+      name = profile.Name || profile.name || '';
     }
     if (!name && user?.displayName) name = user.displayName;
     if (!name && user?.email) name = user.email.split('@')[0];
     if (name) {
-      const parts = name.trim().split(' ');
+      const parts = name.trim().split(/\s+/);
       if (parts.length === 1) setInitials(parts[0][0].toUpperCase());
-      else setInitials((parts[0][0] + parts[1][0]).toUpperCase());
+      else setInitials((parts[0][0] + parts[parts.length-1][0]).toUpperCase());
     }
   }, [user]);
 
   const handleItemClick = (item: typeof profileMenuList[0]) => {
     setIsOpen(false); // close popover
     if (item.title === 'Logout') {
+      localStorage.setItem('logoutSuccess', 'true');
       logout();
       setTimeout(() => {
         window.location.replace('/#/');

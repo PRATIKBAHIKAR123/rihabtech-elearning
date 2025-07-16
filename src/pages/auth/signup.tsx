@@ -7,12 +7,14 @@ import { LoginModeDialog } from "./loginMode";
 import * as Yup from 'yup';
 import { useFormik } from "formik";
 import { toast } from "sonner";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from '../../lib/firebase';
+import { API_BASE_URL } from '../../lib/api';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+import { isValidPhoneNumber, parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
 
 export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState('IN'); // Default to India
   const signupSchema = useFormik({
     initialValues: {
       name:'',
@@ -29,30 +31,50 @@ export default function SignUpPage() {
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), ''], 'Passwords must match')
         .required('Confirm Password is Required'),
-      password: Yup.string().matches(/^\d{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
-      number: Yup.string().matches(/^\d{10}$/,'Contact Number Must be 10 Digits').required('Contact Number is Required'),
+      password: Yup.string().matches(/^[0-9]{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
+      number: Yup.string()
+        .test('is-valid-phone', 'Invalid phone number for selected country.', function(value) {
+          const { parent } = this;
+          if (!value) return false;
+          try {
+            const phoneNumber = parsePhoneNumberFromString('+' + value, phoneCountry as CountryCode);
+            return phoneNumber && phoneNumber.isValid();
+          } catch {
+            return false;
+          }
+        })
+        .required('Contact Number is Required'),
       address: Yup.string().required('Address is Required'),
       termsconditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
     }),
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const user = userCredential.user;
-        // Save user profile to Firestore
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: values.name,
-          email: values.email,
-          number: values.number,
-          address: values.address,
-          role: "student", // or "tutor" if you have a role selector
-          createdAt: new Date().toISOString(),
+        const response = await fetch(API_BASE_URL + 'register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: 0,
+            name: values.name,
+            emailId: values.email,
+            phoneNumber: values.number,
+            address: values.address,
+            password: values.password,
+          }),
         });
-        toast.success('Registration Successful');
-        window.location.hash = '/#/learner/homepage';
-      } catch (error: any) {
-        toast.error(error.message || 'Registration failed. Please try again.');
+        const data = await response.json();
+        if (response.ok && data) {
+          // If data is a string, parse it (API may return object or stringified object)
+          let userObj = typeof data === 'string' ? JSON.parse(data) : data;
+          localStorage.setItem('token', JSON.stringify(userObj));
+          toast.success('Registration Successful');
+          window.location.hash = '#/learner/homepage';
+          window.location.reload();
+        } else {
+          toast.error(data.message || 'Registration failed. Please try again.');
+        }
+      } catch (error) {
+        toast.error('Registration failed. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -136,13 +158,32 @@ export default function SignUpPage() {
                 Contact Number<span className="text-[#ff0000]"> *</span>
               </label>
               <div className="relative">
-                <Input id="number" type="number" maxLength={10}
-                value={signupSchema.values.number}
-          onChange={signupSchema.handleChange}
-                 placeholder="Enter Contact Number" />
-                 {signupSchema.touched.number && signupSchema.errors.number && (
-          <p className="text-red-500 text-sm mt-1">{signupSchema.errors.number}</p>
-        )}
+                <PhoneInput
+                  country={'in'}
+                  value={signupSchema.values.number}
+                  onChange={(value, country) => {
+                    signupSchema.setFieldValue('number', value);
+                    const c = country as { iso2?: string };
+                    if (c && c.iso2) {
+                      setPhoneCountry(c.iso2.toUpperCase());
+                    }
+                  }}
+                  inputClass="!h-[42px] md:!h-[48px] !pl-[60px] !w-full !border !border-gray-300 !rounded-md !text-sm md:!text-base"
+                  buttonClass="!border !border-gray-300 !rounded-l-md !rounded-r-none"
+                  containerClass="!w-full"
+                  inputProps={{
+                    name: 'number',
+                    required: true,
+                    autoFocus: false,
+                    placeholder: 'Enter your number',
+                  }}
+                  enableSearch={true}
+                  searchPlaceholder="Search country..."
+                  searchNotFound="No country found"
+                />
+                {signupSchema.touched.number && signupSchema.errors.number && (
+                  <p className="text-red-500 text-sm mt-1">{signupSchema.errors.number}</p>
+                )}
               </div>
             </div>
 

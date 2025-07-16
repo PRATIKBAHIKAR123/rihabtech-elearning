@@ -10,23 +10,18 @@ import { db } from '../../lib/firebase';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<{ name?: string } | null>(null);
+  const [profile, setProfile] = useState<{ Name?: string } | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (user) {
-        // Try to get from localStorage first
-        const cached = localStorage.getItem('profile');
-        if (cached) {
-          setProfile(JSON.parse(cached));
-        } else {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            setProfile(docSnap.data());
-            localStorage.setItem('profile', JSON.stringify(docSnap.data()));
-          }
-        }
+      // Try to get from localStorage first
+      const cached = localStorage.getItem('token');
+      if (cached) {
+        setProfile(JSON.parse(cached));
+      } else if (user) {
+        setProfile({ Name: user.displayName || user.email || undefined });
+      } else {
+        setProfile({});
       }
     };
     fetchProfile();
@@ -43,7 +38,7 @@ export default function HomePage() {
           Professional & Lifelong Learning
             </p>
             <h1 className="banner-section-title">
-            Welcome Back, <span className="text-primary">{profile?.name || user?.displayName || user?.email || 'Learner'}!</span>
+            Welcome Back, <span className="text-primary">{profile?.Name || user?.displayName || user?.email || 'Learner'}!</span>
             </h1>
             
             <div className="flex flex-col sm:flex-row gap-4">

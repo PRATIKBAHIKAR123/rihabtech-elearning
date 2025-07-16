@@ -26,7 +26,8 @@ const subscriptionEndTimestamp = useMemo(() => {
 
 const countdown = useCountdown(subscriptionEndTimestamp);
 const { user } = useAuth();
-const isAuthenticated = !!user;
+const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+const isAuthenticated = !!user || !!token;
 
 
   return (
@@ -85,7 +86,9 @@ const isAuthenticated = !!user;
 
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-          {/* {!isLearnerPath && <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>} */}
+          {isAuthenticated && (
+            <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
+          )}
         </nav>
 
         <div className="hidden md:block relative flex-grow">

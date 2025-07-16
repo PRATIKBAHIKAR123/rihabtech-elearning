@@ -21,6 +21,7 @@ const Logout = () => {
                 <p className="mt-2">Please note, if you want to reinstate your account after submitting a deletion request, you will have 14 days after the initial submission date to reach out to privacy@help.com to cancel this request.</p>
               </div>
               <Button variant={'outline'} className="mt-4 px-8 py-2 border border-primary text-primary  font-semibold hover:bg-primary hover:text-white self-start transition-colors w-fit" onClick={() => {
+                localStorage.setItem('logoutSuccess', 'true');
                 logout();
                 setTimeout(() => {
                   window.location.replace('/#/');

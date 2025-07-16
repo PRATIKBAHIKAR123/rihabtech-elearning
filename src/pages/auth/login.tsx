@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Checkbox } from "../../components/ui/checkbox";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
 import { toast } from "sonner";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../../lib/firebase';
+import { API_BASE_URL } from '../../lib/api';
 
 
 export default function LoginPage() {
@@ -24,11 +22,37 @@ export default function LoginPage() {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        await signInWithEmailAndPassword(auth, values.email, values.password);
-        toast.success('Login Successfully');
-        window.location.href = '/#/learner/homepage';
-      } catch (error: any) {
-        toast.error(error.message || 'Login failed. Please try again.');
+        const response = await fetch(API_BASE_URL + 'login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: values.email,
+            password: values.password,
+          }),
+        });
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          data = await response.text();
+        }
+        if (response.ok && data) {
+          // If data is a string, parse it (API may return object or stringified object)
+          let userObj = typeof data === 'string' ? JSON.parse(data) : data;
+          localStorage.setItem('token', JSON.stringify(userObj));
+          toast.success('Login Successfully');
+          window.location.hash = '/learner/homepage';
+          window.location.reload();
+        } else {
+          const errorMsg = typeof data === 'string'
+            ? data
+            : data.message || data.error || data.msg || 'Login failed. Please try again.';
+          toast.error(errorMsg);
+        }
+      } catch (error) {
+        console.log('error', error);
+        toast.error('Login failed. Please try again.');
       } finally {
         setLoading(false);
       }

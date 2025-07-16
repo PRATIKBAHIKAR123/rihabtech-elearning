@@ -15,11 +15,16 @@ const EducationLandingPage: React.FC = () => {
   // If you want to show a logout message, use local state:
   const [logoutSuccess, setLogoutSuccess] = React.useState(false);
   useEffect(() => {
+    console.log('LandingPage mounted, logoutSuccess in localStorage:', localStorage.getItem('logoutSuccess'));
+    if (localStorage.getItem('logoutSuccess') === 'true') {
+      setLogoutSuccess(true);
+      localStorage.removeItem('logoutSuccess');
+    }
     if (logoutSuccess) {
       const timer = setTimeout(() => setLogoutSuccess(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [logoutSuccess, setLogoutSuccess]);
+  }, [logoutSuccess]);
   return (
     <div className="min-h-screen bg-white font-sans">
       {logoutSuccess && (
