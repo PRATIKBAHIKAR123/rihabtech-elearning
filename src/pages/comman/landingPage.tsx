@@ -1,5 +1,5 @@
 import React from 'react';
-import {  List, Search } from 'lucide-react';
+import {  CheckCircle2Icon, List, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import Certifications from './landingPage/certifications';
 import Courses from './landingPage/courses';
@@ -10,18 +10,26 @@ import TestimonialsSection from './landingPage/testimonials';
 import CareerSkillsSections from './landingPage/skillsForGrowth';
 import { Fade } from 'react-awesome-reveal';
 import { useEffect } from 'react';
+import { Alert, AlertTitle } from '../../components/ui/alert';
 
 const EducationLandingPage: React.FC = () => {
   // If you want to show a logout message, use local state:
   const [logoutSuccess, setLogoutSuccess] = React.useState(false);
   useEffect(() => {
-    console.log('LandingPage mounted, logoutSuccess in localStorage:', localStorage.getItem('logoutSuccess'));
-    if (localStorage.getItem('logoutSuccess') === 'true') {
-      setLogoutSuccess(true);
-      localStorage.removeItem('logoutSuccess');
+    const flag = localStorage.getItem("logoutSuccess");
+    console.log("Check logoutSuccess from localStorage:", flag);
+    if (flag === "true") {
+      setLogoutSuccess(true); // this triggers the second useEffect
+      
     }
+  }, []);
+
+  useEffect(() => {
     if (logoutSuccess) {
-      const timer = setTimeout(() => setLogoutSuccess(false), 5000);
+      const timer = setTimeout(() => {
+        setLogoutSuccess(false);
+        localStorage.removeItem("logoutSuccess");
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [logoutSuccess]);
@@ -32,6 +40,13 @@ const EducationLandingPage: React.FC = () => {
           <svg className="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
           You’ve successfully logged out. Come back soon!
         </div>
+        // <div className='w-full max-w-2xl mx-auto'>
+        //   <Alert variant="success">
+        //     <CheckCircle2Icon />
+        //     <AlertTitle>You’ve successfully logged out. Come back soon!</AlertTitle>
+
+        //   </Alert>
+        // </div>
       )}
 
       {/* Hero Section */}
