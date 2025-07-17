@@ -24,6 +24,7 @@ import RefundPolicy from './pages/comman/refund-policy/refund-policy';
 import InstructorSignupPage from './pages/auth/instructorSignup';
 import ForgetPasswordPage from './pages/auth/forgot-password';
 import ProtectedRoute from './components/ui/ProtectedRoute';
+import InstructorSignupSuccess from './pages/auth/instructorSignupSuccess';
 
 function App() {
   useEffect(() => {
@@ -44,6 +45,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgetPasswordPage />} />
       <Route path="/instructor-signup" element={<InstructorSignupPage />} />
+      <Route path="/instructor-signup-success" element={<InstructorSignupSuccess />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
       <Route path="/aboutUs" element={<CommanLayout><AboutUs /></CommanLayout> } />
       <Route path="/contactUs" element={<CommanLayout><ContactUs /></CommanLayout> } />

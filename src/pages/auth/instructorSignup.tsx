@@ -4,10 +4,23 @@ import { Button } from "../../components/ui/button";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
 import { toast } from "sonner";
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { useNavigate } from 'react-router-dom';
+// import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 export default function InstructorSignupPage() {
   const [aadharImage, setAadharImage] = useState<string | null>(null);
   const [panImage, setPanImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  // const storage = getStorage();
+
+  // const uploadImageAndGetUrl = async (fileString: string, path: string) => {
+  //   const storageRef = ref(storage, path);
+  //   await uploadString(storageRef, fileString, 'data_url');
+  //   return await getDownloadURL(storageRef);
+  // };
 
   const signupSchema = useFormik({
     initialValues: {
@@ -17,7 +30,6 @@ export default function InstructorSignupPage() {
       PANnumber: '',
     },
     validationSchema: Yup.object({
-      // fullname: Yup.string().required('Full Name is required'),
       experties: Yup.string().required('Area of Expertise is required'),
       topic: Yup.string().required('Teaching Topics are required'),
       adhaarnumber: Yup.string()
@@ -27,19 +39,37 @@ export default function InstructorSignupPage() {
         .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN Number must be 10 characters (e.g. ABCDE1234F)')
         .required('PAN Number is required'),
     }),
-    onSubmit: (values, { setSubmitting, setErrors }) => {
-        if (!aadharImage || !panImage) {
-    const errors: Record<string, string> = {};
-    if (!aadharImage) errors.aadharImage = "Aadhaar Card Image is required";
-    if (!panImage) errors.panImage = "PAN Card Image is required";
-    setErrors(errors);
-    setSubmitting(false);
-    
-    return;
-  }
-  window.location.href = '#/instructor/course-test-selection';
-  toast.message('Register Successfully');
-      console.log({ ...values, aadharImage, panImage });
+    onSubmit: async (values, { setSubmitting, setErrors }) => {
+      if (!aadharImage || !panImage) {
+        const errors: Record<string, string> = {};
+        if (!aadharImage) errors.aadharImage = "Aadhaar Card Image is required";
+        if (!panImage) errors.panImage = "PAN Card Image is required";
+        setErrors(errors);
+        setSubmitting(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        // Skip file upload, just store a placeholder string for now
+        const requestId = `${values.adhaarnumber}_${Date.now()}`;
+        await setDoc(doc(db, 'instructor_requests', requestId), {
+          experties: values.experties,
+          topic: values.topic,
+          adhaarnumber: values.adhaarnumber,
+          PANnumber: values.PANnumber,
+          aadharImage: 'skipped-for-now',
+          panImage: 'skipped-for-now',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        });
+        toast.success('Your request has been sent to admin.');
+        navigate('/instructor-signup-success');
+      } catch (error: any) {
+        toast.error(error.message || 'Submission failed. Please try again.');
+      } finally {
+        setLoading(false);
+        setSubmitting(false);
+      }
     },
   });
 
@@ -69,30 +99,11 @@ export default function InstructorSignupPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold">Create. Teach. Connect.</h1>
-          <h1 className="text-2xl font-bold">as a Instrcutor</h1>
+            <h1 className="text-2xl font-bold">as a Instructor</h1>
+            <p className="text-sm text-gray-600 mt-2">Fields marked (<span className="text-[#ff0000]">*</span>) are mandatory.</p>
           </div>
 
           <form onSubmit={signupSchema.handleSubmit} className="space-y-4" noValidate>
-            {/* Full Name */}
-            {/* <div>
-              <label htmlFor="fullname" className="text-sm text-gray-600 block mb-1">
-                Full Name<span className="text-[#ff0000]"> *</span>
-              </label>
-              <Input
-                id="fullname"
-                name="fullname"
-                type="text"
-                placeholder="Full Name"
-                value={signupSchema.values.fullname}
-                onChange={signupSchema.handleChange}
-                onBlur={signupSchema.handleBlur}
-              />
-              {signupSchema.touched.fullname && signupSchema.errors.fullname && (
-                <div className="text-red-500 text-xs mt-1">{signupSchema.errors.fullname}</div>
-              )}
-            </div> */}
-
-            {/* Area of Expertise & Teaching Topics */}
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="experties" className="text-sm text-gray-600 block mb-1">
@@ -129,34 +140,32 @@ export default function InstructorSignupPage() {
                 )}
               </div>
             </div>
-
-            {/* Aadhaar & PAN Card Image Upload */}
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="aadharImage" className="text-sm text-gray-600 block mb-1">
                   Aadhaar Card Image<span className="text-[#ff0000]"> *</span>
                 </label>
                 {!aadharImage ? (
-                    <div>
-                  <input
-                    id="aadharImage"
-                    type="file"
-                    accept="image/*"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = ev => setAadharImage(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    placeholder="Upload Your Aadhaar Card For KYC"
-                  />
-                  {(signupSchema.errors as any).aadharImage && (
-  <div className="text-red-500 text-xs mt-1">{(signupSchema.errors as any).aadharImage}</div>
-)}
-</div>
+                  <div>
+                    <input
+                      id="aadharImage"
+                      type="file"
+                      accept="image/*"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setAadharImage(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      placeholder="Upload Your Aadhaar Card For KYC"
+                    />
+                    {(signupSchema.errors as any).aadharImage && (
+                      <div className="text-red-500 text-xs mt-1">{(signupSchema.errors as any).aadharImage}</div>
+                    )}
+                  </div>
                 ) : (
                   <div className="relative inline-block mt-2">
                     <img
@@ -180,25 +189,26 @@ export default function InstructorSignupPage() {
                   PAN Card Image<span className="text-[#ff0000]"> *</span>
                 </label>
                 {!panImage ? (
-                 <div><input
-                    id="panImage"
-                    type="file"
-                    accept="image/*"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                    placeholder="Upload Your PAN Card For KYC"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = ev => setPanImage(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                  {(signupSchema.errors as any).panImage && (
-  <div className="text-red-500 text-xs mt-1">{(signupSchema.errors as any).panImage}</div>
-)}
-</div>
+                  <div>
+                    <input
+                      id="panImage"
+                      type="file"
+                      accept="image/*"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                      placeholder="Upload Your PAN Card For KYC"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setPanImage(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    {(signupSchema.errors as any).panImage && (
+                      <div className="text-red-500 text-xs mt-1">{(signupSchema.errors as any).panImage}</div>
+                    )}
+                  </div>
                 ) : (
                   <div className="relative inline-block mt-2">
                     <img
@@ -218,8 +228,6 @@ export default function InstructorSignupPage() {
                 )}
               </div>
             </div>
-
-            {/* Aadhaar & PAN Number */}
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="adhaarnumber" className="text-sm text-gray-600 block mb-1">
@@ -256,19 +264,13 @@ export default function InstructorSignupPage() {
                 )}
               </div>
             </div>
-
-            <div className="flex items-center justify-end space-x-2 mt-4">
-              <Button
-                className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4"
-                type="submit"
-              >
-                Submit
-              </Button>
-            </div>
-
-            {/* <div className="text-center text-sm mt-6">
-              Own an Account? <a href="/#/login" className="text-blue-600 font-medium">JUMP RIGHT IN</a>
-            </div> */}
+            <Button
+              className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Submitting...' : 'Submit'}
+            </Button>
           </form>
         </div>
       </div>

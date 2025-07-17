@@ -117,6 +117,7 @@ export default function SignUpPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold">Sign Up. Dive In. Learn Freely.</h1>
+            <p className="text-sm text-gray-600 mt-2">Fields marked (<span className="text-[#ff0000]">*</span>) are mandatory.</p>
           </div>
 
           {/* <div className="flex gap-2 mb-6">
