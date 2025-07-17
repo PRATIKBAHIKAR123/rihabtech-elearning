@@ -2,7 +2,7 @@ import LearnerProfileSidebar from '../../../components/ui/LearnerProfileSidebar'
 import GradientHeader from '../../../components/ui/GradientHeader';
 import PublicProfile from './public-profile';
 import EditProfile from './profile';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProfilePhoto from './profile-photo';
 import AccountSecurity from './account&security';
 import ProfilePaymentMethod from './payment-method';
@@ -14,10 +14,34 @@ import RefundPolicy from '../../comman/refund-policy/refund-policy';
 import TermsOfUse from '../../comman/terms-and-condition/terms-of-use';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../../../components/ui/dialog"; // adjust import path if needed
 import { Button } from '../../../components/ui/button';
+import axiosClient from '../../../utils/axiosClient';
 
 const Profile = () => {
 
     const [activeTab, setActiveTab] = useState('profile');
+    const [userName, setUserName] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    useEffect(() => {
+      const fetchProfile = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          // If API version is 1, adjust as needed
+          const res = await axiosClient.get('/user-profile');
+          // If API is versioned, use `/1/user-profile` or `/v1/user-profile`
+          // const res = await axiosClient.get('/1/user-profile');
+          const data = res.data;
+          setUserName(data.Name || data.name || '');
+        } catch (err) {
+          setError('Failed to load profile');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProfile();
+    }, []);
 
     const sidebarItems = [
   //{ label: 'Public Profile', tab: 'public-Profile' },
@@ -34,7 +58,8 @@ const Profile = () => {
 
   return (
     <div className="public-profile-root min-h-screen">
-      <GradientHeader subtitle="My Profile / Learner" title="Manas Agrawal" />
+      <GradientHeader subtitle="My Profile / Learner" title={loading ? "Loading..." : (userName || "My Profile")} />
+      {error && <div className="text-red-500 text-center my-2">{error}</div>}
       <div className="container flex flex-col md:flex-row">
         <div className="public-profile-content">
           <aside className="w-full md:w-80 max-w-xs mb-2">
