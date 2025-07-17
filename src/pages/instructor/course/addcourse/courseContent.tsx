@@ -114,7 +114,7 @@ const CourseContent = () => {
             )}
             {selectedItem === "course-structure" && (
               <div>
-                <CourseStructure onSubmit={()=>{setSelectedItem('setup-test-video')}}/>
+                <CourseStructure onSubmit={()=>{setSelectedItem('curriculum')}}/>
               </div>
             )}
             {/* {selectedItem === "setup-test-video" && (

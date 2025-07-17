@@ -3,8 +3,12 @@ import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
+import { useRef } from "react";
+import { saveCourseDraft } from "../../../../fakeAPI/course";
 
 export function IntendentLearners({ onSubmit }: any) {
+  const draftId = useRef<string>(localStorage.getItem("draftId") || "");
+  
   const initialValues = {
     learn: ["", ""],
     requirements: [""],
@@ -26,9 +30,12 @@ export function IntendentLearners({ onSubmit }: any) {
   const formik = useFormik({
     initialValues,
     validationSchema,
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
       // Handle submit (API call, etc.)
-      console.log("Form values:", values);
+            await saveCourseDraft(draftId.current, {
+        ...values,
+        progress: 12, // You decide the step weight
+      });
       onSubmit(values);
     },
   });

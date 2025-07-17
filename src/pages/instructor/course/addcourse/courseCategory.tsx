@@ -1,9 +1,15 @@
+import { useRef } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { saveCourseDraft } from "../../../../fakeAPI/course";
 
 const CourseCategory = () => {
+  
+    const draftId = useRef<string>(
+    localStorage.getItem("draftId") || ""
+  );
   const formik = useFormik({
     initialValues: {
       category: "",
@@ -11,10 +17,11 @@ const CourseCategory = () => {
     validationSchema: Yup.object({
       category: Yup.string().required("Category is required"),
     }),
-    onSubmit: (values) => {
-        const draft = JSON.parse(localStorage.getItem("courseDraft") || "{}");
-  draft.category = values.category;
-  localStorage.setItem("courseDraft", JSON.stringify(draft));
+    onSubmit: async (values) => {
+       await saveCourseDraft(draftId.current, {
+        category: values.category,
+        progress: 2, // Mark 50% progress after this step
+      });
       window.location.hash = "#/instructor/course-sections";
     },
   });

@@ -1,9 +1,21 @@
+import { useEffect, useRef } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik } from "formik";
+import { v4 as uuidv4 } from 'uuid';
 import * as Yup from "yup";
+import { saveCourseDraft } from "../../../../fakeAPI/course";
 
 const CourseTitle = () => {
+  const draftId = useRef<string>(localStorage.getItem("draftId") || uuidv4() || "");
+
+  useEffect(() => {
+    if (draftId.current) {
+      localStorage.setItem("draftId", draftId.current);
+    }
+  }, []);
+
+  
   const formik = useFormik({
     initialValues: {
       title: "",
@@ -11,12 +23,12 @@ const CourseTitle = () => {
     validationSchema: Yup.object({
       title: Yup.string().required("Course Title is required"),
     }),
-    onSubmit: (values) => {
-  const draft = JSON.parse(localStorage.getItem("courseDraft") || "{}");
-
-  draft.title = values.title;
-  localStorage.setItem("courseDraft", JSON.stringify(draft));
-  window.location.hash = "#/instructor/course-category";
+    onSubmit: async(values) => {
+        await saveCourseDraft(draftId.current, {
+        title: values.title,
+        progress: 2, // You can decide how much this step is worth
+      });
+      window.location.hash = "#/instructor/course-category";
     },
   });
 
@@ -27,9 +39,9 @@ const CourseTitle = () => {
       noValidate
     >
       <div className="p-8">
-        <h1 className="ins-heading mb-3">What’s the Course Tittle</h1>
+        <h1 className="ins-heading mb-3">What’s the Course Tittle?</h1>
         <p className="justify-start text-[#1e1e1e] text-sm font-medium font-['Nunito']">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse laoreet, nulla vitae ultrices iaculis, tortor lorem maximus sem, eu luctus orci dui id sem.
+          Set a title of your course
         </p>
         <div className="mt-8">
           <Input
@@ -65,3 +77,4 @@ const CourseTitle = () => {
 };
 
 export default CourseTitle;
+
