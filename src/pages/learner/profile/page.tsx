@@ -19,7 +19,7 @@ import axiosClient from '../../../utils/axiosClient';
 const Profile = () => {
 
     const [activeTab, setActiveTab] = useState('profile');
-    const [userName, setUserName] = useState('');
+    const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
@@ -28,12 +28,8 @@ const Profile = () => {
         setLoading(true);
         setError('');
         try {
-          // If API version is 1, adjust as needed
           const res = await axiosClient.get('/user-profile');
-          // If API is versioned, use `/1/user-profile` or `/v1/user-profile`
-          // const res = await axiosClient.get('/1/user-profile');
-          const data = res.data;
-          setUserName(data.Name || data.name || '');
+          setProfile(res.data);
         } catch (err) {
           setError('Failed to load profile');
         } finally {
@@ -58,7 +54,7 @@ const Profile = () => {
 
   return (
     <div className="public-profile-root min-h-screen">
-      <GradientHeader subtitle="My Profile / Learner" title={loading ? "Loading..." : (userName || "My Profile")} />
+      <GradientHeader subtitle="My Profile / Learner" title={loading ? "Loading..." : (profile?.name || "My Profile")} />
       {error && <div className="text-red-500 text-center my-2">{error}</div>}
       <div className="container flex flex-col md:flex-row">
         <div className="public-profile-content">
@@ -140,7 +136,9 @@ const Profile = () => {
             {activeTab=='public-Profile'&&<PublicProfile/>}
           {/* Profile Card */}
           <div className='w-full'>
-          {activeTab=='profile'&&<EditProfile/>}
+            {activeTab=='profile' && profile && (
+              <EditProfile profile={profile} loading={loading} error={error} onProfileUpdate={setProfile} />
+            )}
           {activeTab=='profile-photo'&&<ProfilePhoto/>}
           {activeTab=='account&security'&&<AccountSecurity/>}
           {activeTab=='payment-method'&&<ProfilePaymentMethod/>}

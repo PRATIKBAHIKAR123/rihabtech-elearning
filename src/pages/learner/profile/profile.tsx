@@ -11,64 +11,45 @@ import { API_BASE_URL } from '../../../lib/api';
 import { toast } from 'sonner';
 import axiosClient from '../../../utils/axiosClient';
 
-const EditProfile: React.FC = () => {
+const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onProfileUpdate: (profile: any) => void }> = ({ profile, loading, error, onProfileUpdate }) => {
   const [phoneCountry, setPhoneCountry] = useState('IN');
   const formik = useFormik({
     initialValues: {
-      id:null,
-      name: '',
-      email: '',
-      phone: '',
-      gender: 'Male',
-      address: '',
+      id: profile?.id || '',
+      name: profile?.name || '',
+      email: profile?.emailId || '',
+      phone: profile?.phoneNumber || '',
+      gender: profile?.gender || '',
+      address: profile?.address || '',
     },
+    enableReinitialize: true,
     validationSchema: Yup.object({
       name: Yup.string().required('Full Name is required'),
       email: Yup.string().email('Invalid email address').required('Email is required'),
       phone: Yup.string().required('Phone No. is Required'),
       address: Yup.string().required('Address is Required'),
-      gender: Yup.string().oneOf(['Male', 'Female', 'Other'], 'Select a valid gender').required('Gender is required'),
+      gender: Yup.string().oneOf(['Male', 'Female', 'Other', ''], 'Select a valid gender').required('Gender is required'),
     }),
     onSubmit: async (values) => {
-        try {
-    const response = await axiosClient.post('/update-profile', {
-      name: values.name,
-      emailId: values.email,
-      phoneNumber: values.phone,
-      gender: values.gender,
-      address: values.address
-    });
-
-    const data = response.data;
-    toast.success('Profile updated successfully');
-  } catch (error: any) {
-    toast.error(error.response?.data?.message || 'Profile update failed');
-  }
+      try {
+        const response = await axiosClient.post('/update-profile', {
+          name: values.name,
+          emailId: values.email,
+          phoneNumber: values.phone,
+          gender: values.gender,
+          address: values.address
+        });
+        const data = response.data;
+        toast.success('Profile updated successfully');
+        onProfileUpdate(data); // update parent state
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Profile update failed');
+      }
     },
   });
 
-    useEffect(() => {
-      const cached = localStorage.getItem('token');
-      if (cached) {
-        try {
-          const userData = JSON.parse(cached);
-          if (userData && userData.Name) {
-            formik.setFieldValue('name', userData.Name);
-          }
-          if (userData && userData.UserName) {
-            formik.setFieldValue('email', userData.UserName);
-          }
-          if (userData && userData.phone) {
-            formik.setFieldValue('phone', userData.phone);
-          }
-          if (userData && userData.gender) {
-            formik.setFieldValue('gender', userData.gender);
-          }
-        } catch (e) {
-          // handle parse error if needed
-        }
-      }
-    }, []);
+  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (error && typeof error === 'string') return <div className="text-red-500 text-center py-8">{error}</div>;
 
   return (
     
@@ -91,7 +72,7 @@ const EditProfile: React.FC = () => {
                     onBlur={formik.handleBlur}
                     className="profile-input bg-white border border-[#E6E6E6] rounded-md focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
                   />
-                  {formik.touched.name && formik.errors.name && (
+                  {formik.touched.name && typeof formik.errors.name === 'string' && (
                     <div className="text-red-500 text-xs mt-1">{formik.errors.name}</div>
                   )}
                 </div>
@@ -107,7 +88,7 @@ const EditProfile: React.FC = () => {
                     readOnly
                     className="profile-input bg-white border border-[#E6E6E6] rounded-md font-bold focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
                   />
-                  {formik.touched.email && formik.errors.email && (
+                  {formik.touched.email && typeof formik.errors.email === 'string' && (
                     <div className="text-red-500 text-xs mt-1">{formik.errors.email}</div>
                   )}
                 </div>
@@ -147,7 +128,7 @@ const EditProfile: React.FC = () => {
                 />
                 
               
-                  {formik.touched.phone && formik.errors.phone && (
+                  {formik.touched.phone && typeof formik.errors.phone === 'string' && (
                     <div className="text-red-500 text-xs mt-1">{formik.errors.phone}</div>
                   )}
                 </div>
@@ -161,7 +142,7 @@ const EditProfile: React.FC = () => {
                     onBlur={formik.handleBlur}
                     className="profile-input bg-white border border-[#E6E6E6] rounded-md focus:border-[#ff7700] focus:ring-2 focus:ring-[#ff7700] font-barlow"
                   />
-                  {formik.touched.address && formik.errors.address && (
+                  {formik.touched.address && typeof formik.errors.address === 'string' && (
                     <div className="text-red-500 text-xs mt-1">{formik.errors.address}</div>
                   )}
                 </div>
@@ -185,7 +166,7 @@ const EditProfile: React.FC = () => {
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  {formik.touched.gender && formik.errors.gender && (
+                  {formik.touched.gender && typeof formik.errors.gender === 'string' && (
                     <div className="text-red-500 text-xs mt-1">{formik.errors.gender}</div>
                   )}
                 </div>
