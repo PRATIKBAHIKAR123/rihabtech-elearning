@@ -630,7 +630,10 @@ export function CourseCarriculam({ onSubmit }: any) {
               if (itemError && typeof itemError === 'object') {
                 const item = formik.values.sections[sectionIdx]?.items[itemIdx];
                 if (item) {
-                  if (item.type === 'lecture') setEditLecture({ sectionIdx, itemIdx });
+                  if (item.type === 'lecture') {
+                    setEditLecture({ sectionIdx, itemIdx });
+                    setShowContentType({ sectionIdx, itemIdx }); // Open Edit Content form for lecture errors
+                  }
                   else if (item.type === 'quiz') setEditQuiz({ sectionIdx, itemIdx });
                   else if (item.type === 'assignment') setEditAssignment({ sectionIdx, itemIdx });
                 }
@@ -684,6 +687,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   }
 
   return (
+    
     <FormikProvider value={formik}>
       <form onSubmit={formik.handleSubmit}>
         {/* Error summary */}
@@ -976,18 +980,33 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   </Select>
                                                                   {/* Description below Content Type */}
                                                                   <label className="ins-label font-bold">Description</label>
-                                                                  <Input
-                                                                    className={`ins-control-border w-full${itemError && itemError.description ? ' border-red-500 ring-2 ring-red-300' : ''}`}
-                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].description`}
-                                                                    value={item.description}
-                                                                    onChange={formik.handleChange}
-                                                                    onBlur={formik.handleBlur}
-                                                                    placeholder="Enter lecture description"
-                                                                    autoFocus={!!(itemError && itemError.description)}
-                                                                  />
-                                                                  {itemError && itemError.description && (
-                                                                    <div className="text-red-500 text-xs mt-1">{itemError.description}</div>
-                                                                  )}
+                                                                  {(() => {
+                                                                    // Extract itemError for this item
+                                                                    const itemError = (
+                                                                      formik.errors.sections &&
+                                                                      Array.isArray(formik.errors.sections) &&
+                                                                      formik.errors.sections[sectionIdx] &&
+                                                                      (formik.errors.sections[sectionIdx] as any).items &&
+                                                                      Array.isArray((formik.errors.sections[sectionIdx] as any).items) &&
+                                                                      (formik.errors.sections[sectionIdx] as any).items[itemIdx]
+                                                                    ) ? (formik.errors.sections[sectionIdx] as any).items[itemIdx] : {};
+                                                                    return (
+                                                                      <>
+                                                                        <Input
+                                                                          className={`ins-control-border w-full${itemError && itemError.description ? ' border-red-500 ring-2 ring-red-300' : ''}`}
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].description`}
+                                                                          value={item.description}
+                                                                          onChange={formik.handleChange}
+                                                                          onBlur={formik.handleBlur}
+                                                                          placeholder="Enter lecture description"
+                                                                          autoFocus={!!(itemError && itemError.description)}
+                                                                        />
+                                                                        {itemError && itemError.description && (
+                                                                          <div className="text-red-500 text-xs mt-1">{itemError.description}</div>
+                                                                        )}
+                                                                      </>
+                                                                    );
+                                                                  })()}
                                                                   {/* Article: Plain textarea for React 19 */}
                                                                   {item.contentType === "article" && (
                                                                     <div className="flex flex-col gap-2">
@@ -1496,7 +1515,16 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     type="button"
                                                                     onClick={() => setShowContentType({ sectionIdx, itemIdx })}
                                                                   >
-                                                                    Add Content
+                                                                    {(
+                                                                      item.contentType && (
+                                                                        (item.contentType === "video" && (item.contentFiles?.length > 0 || item.contentUrl)) ||
+                                                                        (item.contentType === "article" && (
+                                                                          (item.articleSource === "upload" && item.contentFiles?.length > 0) ||
+                                                                          (item.articleSource === "link" && item.contentUrl) ||
+                                                                          (item.articleSource === "write" && item.contentText)
+                                                                        ))
+                                                                      )
+                                                                    ) ? "Edit Content" : "Add Content"}
                                                                   </Button>}
                                                                   <Button
                                                                     type="button"
