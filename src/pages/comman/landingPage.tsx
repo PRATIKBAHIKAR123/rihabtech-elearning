@@ -13,14 +13,14 @@ import { useEffect } from 'react';
 import { Alert, AlertTitle } from '../../components/ui/alert';
 
 const EducationLandingPage: React.FC = () => {
-  // If you want to show a logout message, use local state:
   const [logoutSuccess, setLogoutSuccess] = React.useState(false);
+
   useEffect(() => {
+    // Only check and clear the flag on mount
     const flag = localStorage.getItem("logoutSuccess");
-    console.log("Check logoutSuccess from localStorage:", flag);
     if (flag === "true") {
-      setLogoutSuccess(true); // this triggers the second useEffect
-      
+      setLogoutSuccess(true);
+      localStorage.removeItem("logoutSuccess"); // Remove immediately to prevent re-showing
     }
   }, []);
 
@@ -28,7 +28,6 @@ const EducationLandingPage: React.FC = () => {
     if (logoutSuccess) {
       const timer = setTimeout(() => {
         setLogoutSuccess(false);
-        localStorage.removeItem("logoutSuccess");
       }, 5000);
       return () => clearTimeout(timer);
     }

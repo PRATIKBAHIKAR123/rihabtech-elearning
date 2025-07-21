@@ -13,6 +13,7 @@ import axiosClient from '../../../utils/axiosClient';
 
 const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onProfileUpdate: (profile: any) => void }> = ({ profile, loading, error, onProfileUpdate }) => {
   const [phoneCountry, setPhoneCountry] = useState('IN');
+  const [success, setSuccess] = useState('');
   const formik = useFormik({
     initialValues: {
       id: profile?.id || '',
@@ -41,9 +42,11 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
         });
         const data = response.data;
         toast.success('Profile updated successfully');
+        setSuccess('Profile updated successfully!');
         onProfileUpdate(data); // update parent state
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Profile update failed');
+        setSuccess('');
       }
     },
   });
@@ -55,6 +58,9 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
     
           <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm px-0 py-0 mt-[32px] mb-2">
             <form className="px-8 py-8 flex flex-col gap-8" onSubmit={formik.handleSubmit} noValidate>
+              {success && (
+                <div className="text-green-600 text-center font-semibold mb-2">{success}</div>
+              )}
               <div>
                 <div className="flex items-center gap-4 mb-2">
                   <span className="text-xl font-bold text-[#ff7700] font-barlow">Edit Profile</span>

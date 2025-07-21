@@ -80,14 +80,12 @@ export const ProfileMenu: React.FC = () => {
     }
   }, [user]);
 
-  const handleItemClick = (item: typeof profileMenuList[0]) => {
+  const handleItemClick = async (item: typeof profileMenuList[0]) => {
     setIsOpen(false); // close popover
     if (item.title === 'Logout') {
       localStorage.setItem('logoutSuccess', 'true');
-      logout();
-      setTimeout(() => {
-        window.location.replace('/#/');
-      });
+      await logout();
+      window.location.href = '/'; // Redirect to landing page
     } else {
       setTimeout(() => {
         window.location.href = item.path;
