@@ -27,4 +27,6 @@ type CourseDraft = {
   requirements?: string[];
   target?: string[];
   isIntendedLearnersFinal?: boolean;
+  curriculum?: any; // CurriculumFormValues type, but use any for now for compatibility
+  isCurriculumFinal?: boolean;
 };

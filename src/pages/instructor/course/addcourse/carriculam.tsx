@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -18,6 +18,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
+import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
 
 
 export interface Question {
@@ -195,7 +196,53 @@ const downloadQuizSampleExcel = () => {
   XLSX.writeFile(wb, 'quiz_template.xlsx');
 };
 
+// Helper to recursively remove File objects and undefined values from curriculum data
+function stripFilesFromCurriculum(curriculum: any): any {
+  if (!curriculum) return curriculum;
+  // Deep clone to avoid mutating original
+  const clone = JSON.parse(JSON.stringify(curriculum));
+  function clean(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(clean).filter(v => v !== undefined);
+    } else if (obj && typeof obj === 'object') {
+      const newObj: any = {};
+      for (const key in obj) {
+        if (obj[key] !== undefined) {
+          // Special handling for contentFiles
+          if (key === 'contentFiles' && Array.isArray(obj[key])) {
+            newObj[key] = obj[key].map((cf: any) => {
+              const { name, url, duration, status, uploadedAt } = cf || {};
+              // Only add defined fields
+              const result: any = {};
+              if (name !== undefined) result.name = name;
+              if (url !== undefined) result.url = url;
+              if (duration !== undefined) result.duration = duration;
+              if (status !== undefined) result.status = status;
+              if (uploadedAt !== undefined) result.uploadedAt = uploadedAt;
+              return result;
+            });
+          } else if (key === 'resources' && Array.isArray(obj[key])) {
+            newObj[key] = obj[key].map((res: any) => {
+              const { name } = res || {};
+              const result: any = {};
+              if (name !== undefined) result.name = name;
+              return result;
+            });
+          } else {
+            newObj[key] = clean(obj[key]);
+          }
+        }
+      }
+      return newObj;
+    }
+    return obj;
+  }
+  return clean(clone);
+}
+
 export function CourseCarriculam({ onSubmit }: any) {
+  const draftId = useRef<string>(localStorage.getItem("draftId") || "");
+  const [loading, setLoading] = useState(true);
   const [showContentType, setShowContentType] = useState<ViewItemState | null>(null);
   const [editLecture, setEditLecture] = useState<ViewItemState | null>(null);
   const [addType, setAddType] = useState<AddTypeState | null>(null);
@@ -221,6 +268,21 @@ export function CourseCarriculam({ onSubmit }: any) {
     ],
   };
 
+  const [formInitialValues, setFormInitialValues] = useState(initialValues);
+
+  useEffect(() => {
+    async function fetchDraft() {
+      setLoading(true);
+      if (draftId.current) {
+        const draft = await getCourseDraft(draftId.current);
+        if (draft && draft.curriculum) {
+          setFormInitialValues(draft.curriculum);
+        }
+      }
+      setLoading(false);
+    }
+    fetchDraft();
+  }, []);
 
   const validationSchema = Yup.object({
     sections: Yup.array().of(
@@ -317,13 +379,34 @@ export function CourseCarriculam({ onSubmit }: any) {
   });
 
   const formik = useFormik<CurriculumFormValues>({
-    initialValues,
+    enableReinitialize: true,
+    initialValues: formInitialValues,
     validationSchema,
-    onSubmit: (values) => {
-      console.log("Curriculum values:", values);
+    onSubmit: async (values) => {
+      const serializableCurriculum = stripFilesFromCurriculum(values);
+      await saveCourseDraft(draftId.current, {
+        curriculum: serializableCurriculum,
+        progress: 24, // or next step value
+        isCurriculumFinal: true,
+      });
       onSubmit(values);
     },
   });
+
+  // Autosave on change (debounced)
+  useEffect(() => {
+    if (!loading) {
+      const timeout = setTimeout(() => {
+        const serializableCurriculum = stripFilesFromCurriculum(formik.values);
+        saveCourseDraft(draftId.current, {
+          curriculum: serializableCurriculum,
+          progress: 24,
+          isCurriculumFinal: false,
+        });
+      }, 800);
+      return () => clearTimeout(timeout);
+    }
+  }, [formik.values, loading]);
 
   const handleQuizExcelUpload = async (file: File, sectionIdx: number, itemIdx: number) => {
     const reader = new FileReader();
@@ -535,9 +618,87 @@ export function CourseCarriculam({ onSubmit }: any) {
 
   const totalCourseDuration = formik.values.sections.reduce((sum: number, section: Section) => sum + getSectionDuration(section), 0);
 
+  // Helper to find and open the first error, scroll, and focus
+  useEffect(() => {
+    if (formik.submitCount > 0 && Object.keys(formik.errors).length > 0) {
+      if (formik.errors.sections && Array.isArray(formik.errors.sections)) {
+        for (let sectionIdx = 0; sectionIdx < formik.errors.sections.length; sectionIdx++) {
+          const sectionError = formik.errors.sections[sectionIdx];
+          if (sectionError && typeof sectionError === 'object' && sectionError.items && Array.isArray(sectionError.items)) {
+            for (let itemIdx = 0; itemIdx < sectionError.items.length; itemIdx++) {
+              const itemError = sectionError.items[itemIdx];
+              if (itemError && typeof itemError === 'object') {
+                const item = formik.values.sections[sectionIdx]?.items[itemIdx];
+                if (item) {
+                  if (item.type === 'lecture') setEditLecture({ sectionIdx, itemIdx });
+                  else if (item.type === 'quiz') setEditQuiz({ sectionIdx, itemIdx });
+                  else if (item.type === 'assignment') setEditAssignment({ sectionIdx, itemIdx });
+                }
+                setViewItem({ sectionIdx, itemIdx });
+                // Scroll and focus first invalid input
+                setTimeout(() => {
+                  const el = document.getElementById(`section-${sectionIdx}-item-${itemIdx}`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Try to focus the first input with error
+                  if ('description' in itemError && itemError.description) {
+                    const input = document.querySelector(`#section-${sectionIdx}-item-${itemIdx} input[name*='description'], #section-${sectionIdx}-item-${itemIdx} textarea[name*='description']`);
+                    if (input) (input as HTMLElement).focus();
+                  }
+                  // Add more fields as needed
+                }, 300);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+  }, [formik.submitCount, formik.errors]);
+
+  // Helper to render user-friendly error summary
+  function renderErrorSummary(errors: any) {
+    if (!errors.sections || !Array.isArray(errors.sections)) return null;
+    const messages: string[] = [];
+    errors.sections.forEach((sectionErr: any, sectionIdx: number) => {
+      if (sectionErr && sectionErr.items && Array.isArray(sectionErr.items)) {
+        sectionErr.items.forEach((itemErr: any, itemIdx: number) => {
+          if (itemErr && typeof itemErr === 'object') {
+            Object.entries(itemErr).forEach(([field, msg]) => {
+              if (typeof msg === 'string') {
+                messages.push(`Section ${sectionIdx + 1}, Item ${itemIdx + 1}: ${msg}`);
+              }
+            });
+          }
+        });
+      }
+    });
+    return (
+      <ul className="list-disc ml-6 mt-2 text-sm">
+        {messages.map((msg, i) => <li key={i}>{msg}</li>)}
+      </ul>
+    );
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <FormikProvider value={formik}>
       <form onSubmit={formik.handleSubmit}>
+        {/* Error summary */}
+        {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <b>Please fix the following errors:</b>
+            {renderErrorSummary(formik.errors) || (
+              <ul className="list-disc ml-6 mt-2 text-sm">
+                {Object.entries(formik.errors).map(([key, value]) => (
+                  <li key={key}>{typeof value === 'string' ? value : JSON.stringify(value)}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         <div>
           <div className="mb-3">
             {/* <div className="border-[#cfcfcf] border rounded-md flex items-center justify-between gap-2 p-4 mb-2">
@@ -597,18 +758,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
-                                  className={`mb-8 border rounded p-4 bg-white ${snapshot.isDragging ? 'shadow-lg rotate-2' : ''
-                                    }`}
+                                  className={`mb-8 border rounded p-4 bg-white ${snapshot.isDragging ? 'shadow-lg rotate-2' : ''}`}
                                 >
-                                  <div >
-
+                                  <div>
                                     <div className="flex items-center gap-2 mb-2">
-                                      {/* <div
-                              {...provided.dragHandleProps}
-                              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
-                            >
-                              <GripVertical size={20} className="text-gray-400" />
-                            </div> */}
                                       <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
                                         <GripVertical size={20} className="text-gray-400" />
                                         <label className="text-primary text-md font-bold whitespace-nowrap" style={{ width: 'auto' }}>
@@ -687,7 +840,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                 className={`space-y-2 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-green-50 border-2 border-green-200 border-dashed rounded' : ''
                                                   }`}
                                               >
-                                                {section.items.map((item, itemIdx) => (
+                                                {/* Defensive filter for undefined/null items */}
+                                                {Array.isArray(section.items) && section.items.filter(Boolean).map((item, itemIdx) => (
                                                   <Draggable
                                                     key={`item-${sectionIdx}-${itemIdx}`}
                                                     draggableId={`item-${sectionIdx}-${itemIdx}`}
@@ -695,12 +849,11 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                   >
                                                     {(provided, snapshot) => (
                                                       <div
+                                                        id={`section-${sectionIdx}-item-${itemIdx}`}
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
-                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''
-                                                          }`}
+                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''}`}
                                                       >
-
                                                         <div>
                                                           {/* LECTURE */}
                                                           {item.type === "lecture" && (
@@ -823,17 +976,18 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   </Select>
                                                                   {/* Description below Content Type */}
                                                                   <label className="ins-label font-bold">Description</label>
-                                                                  <ArticleEditor
-                                                                    sectionIdx={sectionIdx}
-                                                                    itemIdx={itemIdx}
-                                                                    content={item.description || ''}
-                                                                    onChange={(html) => {
-                                                                      formik.setFieldValue(
-                                                                        `sections[${sectionIdx}].items[${itemIdx}].description`,
-                                                                        html
-                                                                      );
-                                                                    }}
+                                                                  <Input
+                                                                    className={`ins-control-border w-full${itemError && itemError.description ? ' border-red-500 ring-2 ring-red-300' : ''}`}
+                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].description`}
+                                                                    value={item.description}
+                                                                    onChange={formik.handleChange}
+                                                                    onBlur={formik.handleBlur}
+                                                                    placeholder="Enter lecture description"
+                                                                    autoFocus={!!(itemError && itemError.description)}
                                                                   />
+                                                                  {itemError && itemError.description && (
+                                                                    <div className="text-red-500 text-xs mt-1">{itemError.description}</div>
+                                                                  )}
                                                                   {/* Article: Plain textarea for React 19 */}
                                                                   {item.contentType === "article" && (
                                                                     <div className="flex flex-col gap-2">
@@ -1190,7 +1344,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                     </div>
                                                                                   </td>
                                                                                   <td className="p-2">
-                                                                                    <span className="text-sm">{content.file.type}</span>
+                                                                                    <span className="text-sm">{content.file && content.file.type ? content.file.type : 'N/A'}</span>
                                                                                   </td>
                                                                                   <td className="p-2">
                                                                                     <span className="text-sm">{formatDuration(content.duration || 0)}</span>
@@ -2026,7 +2180,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 <File size={16} className="text-blue-500" />
                                                                                 <span className="text-sm font-medium">{file.name}</span>
                                                                                 <span className="text-xs text-gray-500">
-                                                                                  ({(file.file.size / 1024 / 1024).toFixed(2)} MB)
+                                                                                  {file.file && typeof file.file.size === 'number'
+                                                                                    ? `(${(file.file.size / 1024 / 1024).toFixed(2)} MB)`
+                                                                                    : ''}
                                                                                 </span>
                                                                               </div>
                                                                             ))}
