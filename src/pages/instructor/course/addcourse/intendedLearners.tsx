@@ -3,17 +3,38 @@ import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
-import { useRef } from "react";
-import { saveCourseDraft } from "../../../../fakeAPI/course";
+import { useEffect, useState, useRef } from "react";
+import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
 
 export function IntendentLearners({ onSubmit }: any) {
   const draftId = useRef<string>(localStorage.getItem("draftId") || "");
-  
+  const [loading, setLoading] = useState(true);
+
   const initialValues = {
     learn: ["", ""],
     requirements: [""],
     target: [""],
   };
+
+  const [formInitialValues, setFormInitialValues] = useState(initialValues);
+
+  useEffect(() => {
+    async function fetchDraft() {
+      setLoading(true);
+      if (draftId.current) {
+        const draft = await getCourseDraft(draftId.current);
+        if (draft && (draft.learn || draft.requirements || draft.target)) {
+          setFormInitialValues({
+            learn: draft.learn || ["", ""],
+            requirements: draft.requirements || [""],
+            target: draft.target || [""],
+          });
+        }
+      }
+      setLoading(false);
+    }
+    fetchDraft();
+  }, []);
 
   const validationSchema = Yup.object({
     learn: Yup.array()
@@ -28,17 +49,36 @@ export function IntendentLearners({ onSubmit }: any) {
   });
 
   const formik = useFormik({
-    initialValues,
+    enableReinitialize: true,
+    initialValues: formInitialValues,
     validationSchema,
     onSubmit: async (values) => {
-      // Handle submit (API call, etc.)
-            await saveCourseDraft(draftId.current, {
+      await saveCourseDraft(draftId.current, {
         ...values,
         progress: 12, // You decide the step weight
+        isIntendedLearnersFinal: true, // Mark as final
       });
       onSubmit(values);
     },
   });
+
+  // Autosave on change (debounced)
+  useEffect(() => {
+    if (!loading) {
+      const timeout = setTimeout(() => {
+        saveCourseDraft(draftId.current, {
+          ...formik.values,
+          progress: 12,
+          isIntendedLearnersFinal: false,
+        });
+      }, 800);
+      return () => clearTimeout(timeout);
+    }
+  }, [formik.values, loading]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <FormikProvider value={formik}>

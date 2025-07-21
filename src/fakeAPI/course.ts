@@ -23,4 +23,8 @@ type CourseDraft = {
     content: string;
   }[];
   progress: number; // percentage or steps completed
+  learn?: string[];
+  requirements?: string[];
+  target?: string[];
+  isIntendedLearnersFinal?: boolean;
 };
