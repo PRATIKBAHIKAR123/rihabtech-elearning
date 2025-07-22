@@ -1,5 +1,5 @@
 // OTP Verification page for forgot password flow
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import * as Yup from 'yup';
@@ -13,41 +13,95 @@ function getEmailFromHash() {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+const OTP_LENGTH = 6;
+
 export default function VerifyResetOtpPage() {
   const [loading, setLoading] = useState(false);
   const email = getEmailFromHash();
-  const otpSchema = useFormik({
-    initialValues: {
-      otp: '',
-    },
-    validationSchema: Yup.object({
-      otp: Yup.string().required('OTP is required'),
-    }),
-    onSubmit: async (values) => {
-      setLoading(true);
-      try {
-        const response = await fetch(API_BASE_URL + 'verify-reset-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token: values.otp,
-            email: email,
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          toast.success('OTP verified. Please reset your password.');
-          window.location.hash = `#/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(values.otp)}`;
-        } else {
-          toast.error(data.message || 'Invalid OTP.');
-        }
-      } catch (error) {
-        toast.error('Failed to verify OTP.');
-      } finally {
-        setLoading(false);
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    const val = e.target.value.replace(/[^0-9]/g, '');
+    if (!val) return;
+    const newOtp = [...otp];
+    newOtp[idx] = val[val.length - 1];
+    setOtp(newOtp);
+    if (idx < OTP_LENGTH - 1 && val) {
+      inputRefs.current[idx + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
+    if (e.key === 'Backspace') {
+      if (otp[idx]) {
+        const newOtp = [...otp];
+        newOtp[idx] = '';
+        setOtp(newOtp);
+      } else if (idx > 0) {
+        inputRefs.current[idx - 1]?.focus();
       }
-    },
-  });
+    } else if (e.key === 'ArrowLeft' && idx > 0) {
+      inputRefs.current[idx - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && idx < OTP_LENGTH - 1) {
+      inputRefs.current[idx + 1]?.focus();
+    } else if (e.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const paste = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
+    if (paste.length === OTP_LENGTH) {
+      setOtp(paste.split(''));
+      setTimeout(() => {
+        inputRefs.current[OTP_LENGTH - 1]?.focus();
+      }, 10);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const otpValue = otp.join('');
+    if (otpValue.length !== OTP_LENGTH) {
+      toast.error('Please enter the complete OTP.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(API_BASE_URL + 'verify-reset-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: otpValue,
+          email: email,
+        }),
+      });
+      let data;
+      let errorMsg = 'Invalid OTP.';
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (e) { data = {}; }
+        errorMsg = data.message || data.error || data.msg || errorMsg;
+      } else {
+        try {
+          data = await response.text();
+          if (data && typeof data === 'string') errorMsg = data;
+        } catch (e) {}
+      }
+      if (response.ok) {
+        toast.success('OTP verified. Please reset your password.');
+        window.location.hash = `#/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(otpValue)}`;
+      } else {
+        toast.error(errorMsg);
+      }
+    } catch (error) {
+      toast.error('Failed to verify OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full">
@@ -71,21 +125,29 @@ export default function VerifyResetOtpPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold">Verify OTP</h1>
           </div>
-          <form onSubmit={otpSchema.handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="otp" className="text-sm text-gray-600 block mb-1">
-                OTP
-              </label>
-              <Input id="otp" type="text"
-                value={otpSchema.values.otp}
-                onChange={otpSchema.handleChange}
-                onBlur={otpSchema.handleBlur} placeholder="Enter OTP" />
-              {otpSchema.touched.otp && otpSchema.errors.otp && (
-                <p className="text-red-500 text-sm mt-1">{otpSchema.errors.otp}</p>
-              )}
+          <form onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
+            <div className="flex justify-center gap-2 mb-4">
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={el => { inputRefs.current[idx] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => handleChange(e, idx)}
+                  onKeyDown={e => handleKeyDown(e, idx)}
+                  onPaste={handlePaste}
+                  className={`w-12 h-12 text-2xl text-center border border-gray-600 bg-gray-50 rounded-lg focus:outline-none focus:border-orange-500 transition-all`}
+                  autoFocus={idx === 0}
+                />
+              ))}
+            </div>
+            <div className="text-center text-sm mb-2">
+              Didn't get the OTP? <span className="text-gray-400">Resend SMS in 19s</span>
             </div>
             <div className="flex items-center justify-between space-x-2 mt-4">
-              <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4" disabled={loading}>
+              <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4 w-full" disabled={loading}>
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </Button>
             </div>
