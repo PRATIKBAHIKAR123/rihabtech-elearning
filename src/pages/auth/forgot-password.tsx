@@ -43,7 +43,7 @@ export default function ForgetPasswordPage() {
           } catch (e) {}
         }
         if (response.ok) {
-          toast.success('OTP sent to your email.');
+          toast.success(errorMsg); // Show the API's message
           window.location.hash = `#/verify-reset-otp?email=${encodeURIComponent(values.email)}`;
         } else {
           toast.error(errorMsg);

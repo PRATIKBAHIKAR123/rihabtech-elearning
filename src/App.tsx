@@ -25,6 +25,8 @@ import InstructorSignupPage from './pages/auth/instructorSignup';
 import ForgetPasswordPage from './pages/auth/forgot-password';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import InstructorSignupSuccess from './pages/auth/instructorSignupSuccess';
+import VerifyResetOtpPage from './pages/auth/verify-reset-otp';
+import ResetPasswordPage from './pages/auth/reset-password';
 
 function App() {
   useEffect(() => {
@@ -44,6 +46,8 @@ function App() {
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgetPasswordPage />} />
+      <Route path="/verify-reset-otp" element={<VerifyResetOtpPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/instructor-signup" element={<InstructorSignupPage />} />
       <Route path="/instructor-signup-success" element={<InstructorSignupSuccess />} />
       <Route path="/" element={<CommanLayout><EducationLandingPage /></CommanLayout> } />
