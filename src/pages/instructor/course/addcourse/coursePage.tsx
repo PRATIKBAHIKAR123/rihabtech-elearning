@@ -5,12 +5,45 @@ import { Input } from "../../../../components/ui/input";
 import { Textarea } from "../../../../components/ui/textarea";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { saveCourseDraft } from '../../../../fakeAPI/course';
+import { storage } from '../../../../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+
+// NOTE: Set your Cloudinary credentials here:
+const CLOUDINARY_CLOUD_NAME = 'dg9yh82rf'; // <-- Replace with your Cloudinary cloud name
+const CLOUDINARY_UPLOAD_PRESET = 'rihaab'; // <-- Replace with your unsigned upload preset
+
+// Helper to upload image to Cloudinary
+async function uploadToCloudinaryImage(file: File) {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(url, { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!data.secure_url) throw new Error(data.error?.message || 'Image upload failed');
+  return data.secure_url;
+}
+// Helper to upload video to Cloudinary
+async function uploadToCloudinaryVideo(file: File) {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(url, { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!data.secure_url) throw new Error(data.error?.message || 'Video upload failed');
+  return data.secure_url;
+}
 
 export function CourseLandingPage({ onSubmit }: any) {
   const [thumbnailImage, setThumbnailImage] = useState<string | null>(null);
   const [promoVideo, setPromoVideo] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const draftId = useRef<string>(localStorage.getItem('draftId') || '');
 
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -42,16 +75,32 @@ export function CourseLandingPage({ onSubmit }: any) {
       promoVideo: null,
     },
     validationSchema,
-    onSubmit: (values) => {
-      // Save title and category to localStorage draft
-      const draft = JSON.parse(localStorage.getItem('courseDraft') || '{}');
-      draft.title = values.title;
-      draft.category = values.category;
-      localStorage.setItem('courseDraft', JSON.stringify(draft));
-      // Handle submit (API call, etc.)
-      console.log("Form values:", values);
-      // You can send thumbnailFile and promoVideoFile to your backend here
-      onSubmit(values);
+    onSubmit: async (values) => {
+      setUploading(true);
+      setUploadError(null);
+      try {
+        // Upload thumbnail to Cloudinary
+        let thumbnailUrl = null;
+        if (thumbnailFile) {
+          thumbnailUrl = await uploadToCloudinaryImage(thumbnailFile);
+        }
+        // Upload promo video to Cloudinary
+        let promoVideoUrl = null;
+        if (promoVideoFile) {
+          promoVideoUrl = await uploadToCloudinaryVideo(promoVideoFile);
+        }
+        // Save to Firestore
+        await saveCourseDraft(draftId.current, {
+          title: values.title,
+          category: values.category,
+          progress: 40, // or whatever step this is
+        });
+        setUploading(false);
+        onSubmit({ ...values, thumbnail: thumbnailUrl, promoVideo: promoVideoUrl });
+      } catch (err: any) {
+        setUploadError(err.message || 'Upload failed');
+        setUploading(false);
+      }
     },
   });
 
@@ -309,10 +358,11 @@ export function CourseLandingPage({ onSubmit }: any) {
         </div>
 
         <div className="flex justify-end mt-8">
-          <Button className="rounded-none" type="submit">
-            Save & Continue
+          <Button className="rounded-none" type="submit" disabled={uploading}>
+            {uploading ? 'Saving...' : 'Save & Continue'}
           </Button>
         </div>
+        {uploadError && <div className="text-red-500 text-xs mt-2">{uploadError}</div>}
       </div>
     </form>
   );
