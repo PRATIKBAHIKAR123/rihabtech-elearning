@@ -1,5 +1,5 @@
 // OTP Verification page for forgot password flow
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import * as Yup from 'yup';
@@ -14,12 +14,22 @@ function getEmailFromHash() {
 }
 
 const OTP_LENGTH = 6;
+const RESEND_INTERVAL = 30; // seconds
 
 export default function VerifyResetOtpPage() {
   const [loading, setLoading] = useState(false);
   const email = getEmailFromHash();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [timer, setTimer] = useState(RESEND_INTERVAL);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer(t => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
     const val = e.target.value.replace(/[^0-9]/g, '');
@@ -103,6 +113,41 @@ export default function VerifyResetOtpPage() {
     }
   };
 
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const response = await fetch(API_BASE_URL + 'forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: email }),
+      });
+      let data;
+      let msg = 'OTP resent.';
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (e) { data = {}; }
+        msg = data.message || data.error || data.msg || msg;
+      } else {
+        try {
+          data = await response.text();
+          if (data && typeof data === 'string') msg = data;
+        } catch (e) {}
+      }
+      if (response.ok) {
+        toast.success(msg);
+        setTimer(RESEND_INTERVAL);
+      } else {
+        toast.error(msg);
+      }
+    } catch (error) {
+      toast.error('Failed to resend OTP.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full">
       <div className="hidden md:flex md:w-1/2 App-Gradient-Angular flex-col items-center justify-center px-[110px] relative">
@@ -144,7 +189,18 @@ export default function VerifyResetOtpPage() {
               ))}
             </div>
             <div className="text-center text-sm mb-2">
-              Didn't get the OTP? <span className="text-gray-400">Resend SMS in 19s</span>
+              {timer > 0 ? (
+                <span className="text-gray-400">Didn't get the OTP? <span>Resend in {timer}s</span></span>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="ml-2 px-4 py-1 rounded-full bg-orange-500 text-white font-semibold shadow hover:bg-orange-600 transition-all"
+                >
+                  {resending ? 'Resending...' : 'Resend Now'}
+                </Button>
+              )}
             </div>
             <div className="flex items-center justify-between space-x-2 mt-4">
               <Button type="submit" className="px-8 btn-rouded bg-orange-500 hover:bg-orange-600 mt-4 w-full" disabled={loading}>
