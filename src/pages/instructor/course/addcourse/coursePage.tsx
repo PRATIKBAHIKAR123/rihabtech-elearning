@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -61,6 +62,18 @@ export function CourseLandingPage({ onSubmit }: any) {
     promoVideo: Yup.mixed().required("Promotional video is required"),
   });
 
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [subCategories, setSubCategories] = useState<{id: string, name: string, categoryId: string}[]>([]);
+
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" })));
+    });
+    getSubCategories().then((data) => {
+      setSubCategories(data.map((sub: any) => ({ id: sub.id, name: sub.name ?? "", categoryId: sub.categoryId ?? "" })));
+    });
+  }, []);
+
   const formik = useFormik({
     initialValues: {
       title: "",
@@ -68,7 +81,7 @@ export function CourseLandingPage({ onSubmit }: any) {
       description: "",
       language: "",
       level: "",
-      category: "",
+      category: localStorage.getItem('selectedCategory') || "",
       subcategory: "",
       primaryTopic: "",
       thumbnail: null,
@@ -93,6 +106,7 @@ export function CourseLandingPage({ onSubmit }: any) {
         await saveCourseDraft(draftId.current, {
           title: values.title,
           category: values.category,
+          subcategory: values.subcategory,
           progress: 40, // or whatever step this is
         });
         setUploading(false);
@@ -217,7 +231,11 @@ export function CourseLandingPage({ onSubmit }: any) {
             </Select>
             <Select
               value={formik.values.category}
-              onValueChange={value => formik.setFieldValue("category", value)}
+              onValueChange={value => {
+                formik.setFieldValue("category", value);
+                // Reset subcategory when category changes
+                formik.setFieldValue("subcategory", "");
+              }}
             >
               <SelectTrigger
                 className="ins-control-border rounded-none"
@@ -226,8 +244,9 @@ export function CourseLandingPage({ onSubmit }: any) {
                 <SelectValue placeholder="Choose a Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cat1">Category 1</SelectItem>
-                <SelectItem value="cat2">Category 2</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select
@@ -241,8 +260,11 @@ export function CourseLandingPage({ onSubmit }: any) {
                 <SelectValue placeholder="Choose a SubCategory" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="subcat1">Sub Category 1</SelectItem>
-                <SelectItem value="subcat2">Sub Category 2</SelectItem>
+                {subCategories
+                  .filter(sub => sub.categoryId === formik.values.category)
+                  .map(sub => (
+                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

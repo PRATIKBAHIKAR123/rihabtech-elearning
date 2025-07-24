@@ -1,15 +1,24 @@
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { saveCourseDraft } from "../../../../fakeAPI/course";
+import { getCategories } from "../../../../utils/firebaseCategory";
 
 const CourseCategory = () => {
   
     const draftId = useRef<string>(
     localStorage.getItem("draftId") || ""
   );
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  useEffect(() => {
+    getCategories().then((data) => {
+      // Map to ensure each category has id and name
+      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" }))); 
+    });
+  }, []);
+
   const formik = useFormik({
     initialValues: {
       category: "",
@@ -18,10 +27,12 @@ const CourseCategory = () => {
       category: Yup.string().required("Category is required"),
     }),
     onSubmit: async (values) => {
-       await saveCourseDraft(draftId.current, {
+      await saveCourseDraft(draftId.current, {
         category: values.category,
-        progress: 2, // Mark 50% progress after this step
+        progress: 2,
       });
+      // Also save to localStorage for prefill on next page
+      localStorage.setItem('selectedCategory', values.category);
       window.location.hash = "#/instructor/course-sections";
     },
   });
@@ -45,8 +56,9 @@ const CourseCategory = () => {
               <SelectValue placeholder="Choose a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="design">Design</SelectItem>
-              <SelectItem value="development">Development</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {formik.touched.category && formik.errors.category && (
