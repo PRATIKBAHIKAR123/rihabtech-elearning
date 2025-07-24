@@ -58,8 +58,21 @@ export function CourseLandingPage({ onSubmit }: any) {
     category: Yup.string().required("Category is required"),
     subcategory: Yup.string().required("Subcategory is required"),
     primaryTopic: Yup.string(),
-    thumbnail: Yup.mixed().required("Course image is required"),
-    promoVideo: Yup.mixed().required("Promotional video is required"),
+    thumbnail: Yup.mixed().test(
+      "thumbnail-required",
+      "Course image is required",
+      function (value) {
+        // If a file is uploaded or a Cloudinary URL exists, pass
+        return !!value || !!this.parent.thumbnailUrl;
+      }
+    ),
+    promoVideo: Yup.mixed().test(
+      "promoVideo-required",
+      "Promotional video is required",
+      function (value) {
+        return !!value || !!this.parent.promoVideoUrl;
+      }
+    ),
   });
 
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
@@ -108,6 +121,8 @@ export function CourseLandingPage({ onSubmit }: any) {
           category: values.category,
           subcategory: values.subcategory,
           progress: 40, // or whatever step this is
+          thumbnailUrl,
+          promoVideoUrl,
         });
         setUploading(false);
         onSubmit({ ...values, thumbnail: thumbnailUrl, promoVideo: promoVideoUrl });
@@ -119,10 +134,21 @@ export function CourseLandingPage({ onSubmit }: any) {
   });
 
   useEffect(() => {
-    // Prefill from localStorage if available
-    const draft = JSON.parse(localStorage.getItem('courseDraft') || '{}');
-    if (draft.title) formik.setFieldValue('title', draft.title);
-    if (draft.category) formik.setFieldValue('category', draft.category);
+    // Prefill from Firestore if available
+    const draftIdLS = localStorage.getItem('draftId') || '';
+    if (draftIdLS) {
+      import('../../../../fakeAPI/course').then(api => {
+        api.getCourseDraft(draftIdLS).then(draft => {
+          if (draft) {
+            if (draft.title) formik.setFieldValue('title', draft.title);
+            if (draft.category) formik.setFieldValue('category', draft.category);
+            if (draft.subcategory) formik.setFieldValue('subcategory', draft.subcategory);
+            if (draft.thumbnailUrl) setThumbnailImage(draft.thumbnailUrl);
+            if (draft.promoVideoUrl) setPromoVideo(draft.promoVideoUrl);
+          }
+        });
+      });
+    }
   }, []);
 
   // Handlers for file/image/video
