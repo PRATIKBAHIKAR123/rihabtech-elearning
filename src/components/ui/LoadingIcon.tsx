@@ -1,5 +1,5 @@
 import React from "react";
-import loadingGif from "../../../public/icons/loader.gif";
+import loadingGif from "../../assets/loader.gif";
 
 const LoadingIcon: React.FC<{className?: string}> = ({className}) => (
   <div className={className || "flex justify-center items-center py-8"}>
