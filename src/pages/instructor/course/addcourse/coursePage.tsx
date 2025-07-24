@@ -97,8 +97,8 @@ export function CourseLandingPage({ onSubmit }: any) {
       category: localStorage.getItem('selectedCategory') || "",
       subcategory: "",
       primaryTopic: "",
-      thumbnail: null,
-      promoVideo: null,
+      thumbnail: undefined,
+      promoVideo: undefined,
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -106,23 +106,27 @@ export function CourseLandingPage({ onSubmit }: any) {
       setUploadError(null);
       try {
         // Upload thumbnail to Cloudinary
-        let thumbnailUrl = null;
+        let thumbnailUrl = thumbnailImage;
         if (thumbnailFile) {
           thumbnailUrl = await uploadToCloudinaryImage(thumbnailFile);
         }
         // Upload promo video to Cloudinary
-        let promoVideoUrl = null;
+        let promoVideoUrl = promoVideo;
         if (promoVideoFile) {
           promoVideoUrl = await uploadToCloudinaryVideo(promoVideoFile);
         }
         // Save to Firestore
         await saveCourseDraft(draftId.current, {
           title: values.title,
+          subtitle: values.subtitle,
+          description: values.description,
+          language: values.language,
+          level: values.level,
           category: values.category,
           subcategory: values.subcategory,
           progress: 40, // or whatever step this is
-          thumbnailUrl,
-          promoVideoUrl,
+          thumbnailUrl: thumbnailUrl === null ? undefined : thumbnailUrl,
+          promoVideoUrl: promoVideoUrl === null ? undefined : promoVideoUrl,
         });
         setUploading(false);
         onSubmit({ ...values, thumbnail: thumbnailUrl, promoVideo: promoVideoUrl });
@@ -141,10 +145,27 @@ export function CourseLandingPage({ onSubmit }: any) {
         api.getCourseDraft(draftIdLS).then(draft => {
           if (draft) {
             if (draft.title) formik.setFieldValue('title', draft.title);
-            if (draft.category) formik.setFieldValue('category', draft.category);
-            if (draft.subcategory) formik.setFieldValue('subcategory', draft.subcategory);
-            if (draft.thumbnailUrl) setThumbnailImage(draft.thumbnailUrl);
-            if (draft.promoVideoUrl) setPromoVideo(draft.promoVideoUrl);
+            if (draft.subtitle) formik.setFieldValue('subtitle', draft.subtitle);
+            if (draft.description) formik.setFieldValue('description', draft.description);
+            if (draft.language) formik.setFieldValue('language', draft.language);
+            if (draft.level) formik.setFieldValue('level', draft.level);
+            // Set category first, then subcategory after a short delay to ensure options are loaded
+            if (draft.category) {
+              formik.setFieldValue('category', draft.category);
+              setTimeout(() => {
+                if (draft.subcategory) formik.setFieldValue('subcategory', draft.subcategory);
+              }, 0);
+            } else if (draft.subcategory) {
+              formik.setFieldValue('subcategory', draft.subcategory);
+            }
+            if (draft.thumbnailUrl) {
+              setThumbnailImage(draft.thumbnailUrl);
+              formik.setFieldValue('thumbnail', draft.thumbnailUrl);
+            }
+            if (draft.promoVideoUrl) {
+              setPromoVideo(draft.promoVideoUrl);
+              formik.setFieldValue('promoVideo', draft.promoVideoUrl);
+            }
           }
         });
       });
