@@ -1,4 +1,5 @@
 import LearnerProfileSidebar from '../../../components/ui/LearnerProfileSidebar';
+import LoadingIcon from '../../../components/ui/LoadingIcon';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
@@ -51,7 +52,7 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
     },
   });
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return <LoadingIcon />;
   if (error && typeof error === 'string') return <div className="text-red-500 text-center py-8">{error}</div>;
 
   return (

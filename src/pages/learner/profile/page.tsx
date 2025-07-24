@@ -3,6 +3,7 @@ import GradientHeader from '../../../components/ui/GradientHeader';
 import PublicProfile from './public-profile';
 import EditProfile from './profile';
 import { useState, useEffect } from 'react';
+import LoadingIcon from '../../../components/ui/LoadingIcon';
 import ProfilePhoto from './profile-photo';
 import AccountSecurity from './account&security';
 import ProfilePaymentMethod from './payment-method';
@@ -54,7 +55,7 @@ const Profile = () => {
 
   return (
     <div className="public-profile-root min-h-screen">
-      <GradientHeader subtitle="My Profile / Learner" title={loading ? "Loading..." : (profile?.name || "My Profile")} />
+      <GradientHeader subtitle="My Profile / Learner" title={loading ? <LoadingIcon className="inline-block" /> : (profile?.name || "My Profile")} />
       {error && <div className="text-red-500 text-center my-2">{error}</div>}
       <div className="container flex flex-col md:flex-row">
         <div className="public-profile-content">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import LoadingIcon from "../../../../components/ui/LoadingIcon";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -683,7 +684,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingIcon />;
   }
 
   return (

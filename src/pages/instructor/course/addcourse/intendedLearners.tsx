@@ -4,6 +4,7 @@ import { Input } from "../../../../components/ui/input";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { useEffect, useState, useRef } from "react";
+import LoadingIcon from "../../../../components/ui/LoadingIcon";
 import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
 
 export function IntendentLearners({ onSubmit }: any) {
@@ -77,7 +78,7 @@ export function IntendentLearners({ onSubmit }: any) {
   }, [formik.values, loading]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingIcon />;
   }
 
   return (
