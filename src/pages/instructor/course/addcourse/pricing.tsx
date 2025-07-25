@@ -123,7 +123,7 @@ export default function Pricing({ courseId, onSubmit }: { courseId: string, onSu
         access,
         members: access.private ? members : [],
       });
-      alert("Course access settings saved successfully!");
+      if (onSubmit) onSubmit();
     } catch (e) {
       alert("Failed to save settings. Please try again.");
     }
