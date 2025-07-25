@@ -8,7 +8,7 @@ import { saveCourseTitle, getCourseTitle } from "../../../../utils/firebaseCours
 
 
 const CourseTitle = () => {
-  const courseId = localStorage.getItem('courseId') || 'test-course-id';
+   const draftId = useRef<string>(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
   const formik = useFormik({
     initialValues: {
@@ -19,7 +19,7 @@ const CourseTitle = () => {
     }),
     onSubmit: async(values) => {
       setLoading(true);
-      await saveCourseTitle(courseId, values.title);
+      await saveCourseTitle(draftId.current, values.title);
       setLoading(false);
       window.location.hash = "#/instructor/course-category";
     },
@@ -29,13 +29,13 @@ const CourseTitle = () => {
   useEffect(() => {
     const fetchTitle = async () => {
       setLoading(true);
-      const title = await getCourseTitle(courseId);
+      const title = await getCourseTitle(draftId.current);
       formik.setFieldValue('title', title);
       setLoading(false);
     };
     fetchTitle();
     // eslint-disable-next-line
-  }, [courseId]);
+  }, [draftId.current]);
 
   return (
     <form

@@ -6,7 +6,7 @@ import { SelectContent, SelectItem } from "../../../../components/ui/select";
 
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveCourseMessages, getCourseMessages } from "../../../../utils/firebaseCourseMessages";
 
 // Define the form values interface
@@ -17,7 +17,7 @@ interface CourseMessagesForm {
 
 
 export function CourseMessages() {
-  const courseId = localStorage.getItem('courseId') || 'test-course-id';
+  const draftId = useRef<string>(localStorage.getItem('draftId') || '');
   const [loading, setLoading] = useState(true);
   const formik = useFormik<CourseMessagesForm>({
     initialValues: {
@@ -36,7 +36,7 @@ export function CourseMessages() {
       setLoading(true);
       try {
         await saveCourseMessages({
-          courseId,
+          draftId: draftId.current,
           welcomeMessage: values.welcomeMessage,
           congratulationsMessage: values.congratulationsMessage,
         });
@@ -53,7 +53,7 @@ export function CourseMessages() {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const data = await getCourseMessages(courseId);
+        const data = await getCourseMessages(draftId.current);
         formik.setValues({
           welcomeMessage: data.welcomeMessage,
           congratulationsMessage: data.congratulationsMessage,
@@ -65,7 +65,7 @@ export function CourseMessages() {
     };
     fetchMessages();
     // eslint-disable-next-line
-  }, [courseId]);
+  }, [draftId.current]);
 
   return (
     <form onSubmit={formik.handleSubmit}>
@@ -82,11 +82,10 @@ export function CourseMessages() {
           <div className="mt-8 gap-2 flex flex-col">
             <label className="ins-label">Welcome Message</label>
             <Textarea
-              className={`ins-control-border ${
-                formik.touched.welcomeMessage && formik.errors.welcomeMessage
+              className={`ins-control-border ${formik.touched.welcomeMessage && formik.errors.welcomeMessage
                   ? "border-red-500"
                   : ""
-              }`}
+                }`}
               placeholder="Write a welcome message for your students..."
               {...formik.getFieldProps("welcomeMessage")}
             />
@@ -100,12 +99,11 @@ export function CourseMessages() {
           <div className="mt-4 gap-2 flex flex-col">
             <label className="ins-label">Congratulations Message</label>
             <Textarea
-              className={`ins-control-border ${
-                formik.touched.congratulationsMessage &&
-                formik.errors.congratulationsMessage
+              className={`ins-control-border ${formik.touched.congratulationsMessage &&
+                  formik.errors.congratulationsMessage
                   ? "border-red-500"
                   : ""
-              }`}
+                }`}
               placeholder="Write a congratulations message for course completion..."
               {...formik.getFieldProps("congratulationsMessage")}
             />

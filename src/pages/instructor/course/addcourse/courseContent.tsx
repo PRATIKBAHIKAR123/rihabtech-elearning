@@ -145,7 +145,7 @@ const CourseContent = () => {
             )}
             {selectedItem === "pricing"&&(
                 <Pricing 
-                  courseId={localStorage.getItem('courseId') || 'test-course-id'}
+                  draftId={localStorage.getItem('draftId') || 'test-draft-id'}
                   onSubmit={()=>{setSelectedItem('course-messages')}}
                 />
             )}

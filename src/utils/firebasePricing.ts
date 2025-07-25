@@ -13,12 +13,12 @@ export interface PricingData {
     email: string;
     role: string;
   }>;
-  courseId: string;
+  draftId: string;
 }
 
 export const savePricingData = async (data: PricingData) => {
   // Store pricing data under a course document
-  const courseRef = doc(db, "courseDrafts", data.courseId);
+  const courseRef = doc(db, "courseDrafts", data.draftId);
   await setDoc(courseRef, {
     pricing: data.pricing,
     access: data.access,

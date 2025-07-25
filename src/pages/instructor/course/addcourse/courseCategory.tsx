@@ -8,7 +8,7 @@ import { saveCourseCategory, getCourseCategory } from "../../../../utils/firebas
 
 const CourseCategory = () => {
   
-    const courseId = localStorage.getItem('courseId') || 'test-course-id';
+    const draftId = useRef<string>(localStorage.getItem('draftId') || '');
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   useEffect(() => {
     getCategories().then((data) => {
@@ -27,7 +27,7 @@ const CourseCategory = () => {
     }),
     onSubmit: async (values) => {
       setLoading(true);
-      await saveCourseCategory(courseId, values.category);
+      await saveCourseCategory(draftId.current, values.category);
       setLoading(false);
       window.location.hash = "#/instructor/course-sections";
     },
@@ -37,13 +37,13 @@ const CourseCategory = () => {
   useEffect(() => {
     const fetchCategory = async () => {
       setLoading(true);
-      const cat = await getCourseCategory(courseId);
+      const cat = await getCourseCategory(draftId.current);
       formik.setFieldValue('category', cat);
       setLoading(false);
     };
     fetchCategory();
     // eslint-disable-next-line
-  }, [courseId]);
+  }, [draftId.current]);
 
   return (
     <form className="flex flex-col justify-between h-full" onSubmit={formik.handleSubmit} noValidate>

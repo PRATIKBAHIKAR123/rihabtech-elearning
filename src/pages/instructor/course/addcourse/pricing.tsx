@@ -28,7 +28,7 @@ interface CourseAccess {
 
 
 // Accept courseId as prop
-export default function Pricing({ courseId, onSubmit }: { courseId: string, onSubmit?: any }) {
+export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubmit?: any }) {
   const [access, setAccess] = useState<CourseAccess>({
     website: true,
     app: false,
@@ -96,7 +96,7 @@ export default function Pricing({ courseId, onSubmit }: { courseId: string, onSu
     const fetchData = async () => {
       setLoading(true);
       try {
-        const data = await getPricingData(courseId);
+        const data = await getPricingData(draftId);
         if (data) {
           setPricing(data.pricing || 'free');
           setAccess(data.access || { website: true, app: false, private: false });
@@ -108,7 +108,7 @@ export default function Pricing({ courseId, onSubmit }: { courseId: string, onSu
       setLoading(false);
     };
     fetchData();
-  }, [courseId]);
+  }, [draftId]);
 
   const handleSubmit = async () => {
     if (!access.website && !access.app && !access.private) {
@@ -118,7 +118,7 @@ export default function Pricing({ courseId, onSubmit }: { courseId: string, onSu
     setIsSubmitting(true);
     try {
       await savePricingData({
-        courseId,
+        draftId: draftId,
         pricing,
         access,
         members: access.private ? members : [],

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { getFullCourseData } from '../../../../utils/firebaseCoursePreview';
 import {
@@ -18,21 +18,21 @@ const PreviewCourse = () => {
   const [landingPage, setLandingPage] = useState<any>({});
   const [intendedLearners, setIntendedLearners] = useState<any[]>([]);
   const [structure, setStructure] = useState<any[]>([]);
-  const courseId = localStorage.getItem('courseId') || 'test-course-id';
+  const draftId = useRef<string>(localStorage.getItem('draftId') || '');
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const data = await getFullCourseData(courseId);
+      const data = await getFullCourseData(draftId.current);
       setCourse(data);
-      setCurriculum(await getCourseCurriculum(courseId));
-      setLandingPage(await getCourseLandingPage(courseId));
-      setIntendedLearners(await getCourseIntendedLearners(courseId));
-      setStructure(await getCourseStructure(courseId));
+      setCurriculum(await getCourseCurriculum(draftId.current));
+      setLandingPage(await getCourseLandingPage(draftId.current));
+      setIntendedLearners(await getCourseIntendedLearners(draftId.current));
+      setStructure(await getCourseStructure(draftId.current));
       setLoading(false);
     };
     fetchData();
-  }, [courseId]);
+  }, [draftId.current]);
 
   const goToDashboard = () => {
     window.location.hash = '#/instructor/dashboard';
@@ -71,7 +71,7 @@ const PreviewCourse = () => {
         </div>
         <div className="flex flex-col items-end">
           <span className="text-xs text-gray-400">Course ID</span>
-          <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{courseId}</span>
+          <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{draftId.current}</span>
         </div>
       </div>
 
