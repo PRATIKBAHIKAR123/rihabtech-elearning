@@ -1,21 +1,15 @@
-import { useEffect, useRef } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik } from "formik";
-import { v4 as uuidv4 } from 'uuid';
 import * as Yup from "yup";
-import { saveCourseDraft } from "../../../../fakeAPI/course";
+import { saveCourseTitle, getCourseTitle } from "../../../../utils/firebaseCourseTitle";
+
 
 const CourseTitle = () => {
-  const draftId = useRef<string>(localStorage.getItem("draftId") || uuidv4() || "");
-
-  useEffect(() => {
-    if (draftId.current) {
-      localStorage.setItem("draftId", draftId.current);
-    }
-  }, []);
-
-  
+  const courseId = localStorage.getItem('courseId') || 'test-course-id';
+  const [loading, setLoading] = useState(true);
   const formik = useFormik({
     initialValues: {
       title: "",
@@ -24,13 +18,24 @@ const CourseTitle = () => {
       title: Yup.string().required("Course Title is required"),
     }),
     onSubmit: async(values) => {
-        await saveCourseDraft(draftId.current, {
-        title: values.title,
-        progress: 2, // You can decide how much this step is worth
-      });
+      setLoading(true);
+      await saveCourseTitle(courseId, values.title);
+      setLoading(false);
       window.location.hash = "#/instructor/course-category";
     },
+    enableReinitialize: true,
   });
+
+  useEffect(() => {
+    const fetchTitle = async () => {
+      setLoading(true);
+      const title = await getCourseTitle(courseId);
+      formik.setFieldValue('title', title);
+      setLoading(false);
+    };
+    fetchTitle();
+    // eslint-disable-next-line
+  }, [courseId]);
 
   return (
     <form
@@ -68,8 +73,8 @@ const CourseTitle = () => {
         >
           Previous
         </Button>
-        <Button className="rounded-none" type="submit">
-          Continue
+        <Button className="rounded-none" type="submit" disabled={loading || !formik.dirty || !formik.isValid}>
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </form>

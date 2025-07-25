@@ -3,14 +3,12 @@ import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { saveCourseDraft } from "../../../../fakeAPI/course";
 import { getCategories } from "../../../../utils/firebaseCategory";
+import { saveCourseCategory, getCourseCategory } from "../../../../utils/firebaseCourseCategory";
 
 const CourseCategory = () => {
   
-    const draftId = useRef<string>(
-    localStorage.getItem("draftId") || ""
-  );
+    const courseId = localStorage.getItem('courseId') || 'test-course-id';
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   useEffect(() => {
     getCategories().then((data) => {
@@ -19,6 +17,7 @@ const CourseCategory = () => {
     });
   }, []);
 
+  const [loading, setLoading] = useState(true);
   const formik = useFormik({
     initialValues: {
       category: "",
@@ -27,15 +26,24 @@ const CourseCategory = () => {
       category: Yup.string().required("Category is required"),
     }),
     onSubmit: async (values) => {
-      await saveCourseDraft(draftId.current, {
-        category: values.category,
-        progress: 2,
-      });
-      // Also save to localStorage for prefill on next page
-      localStorage.setItem('selectedCategory', values.category);
+      setLoading(true);
+      await saveCourseCategory(courseId, values.category);
+      setLoading(false);
       window.location.hash = "#/instructor/course-sections";
     },
+    enableReinitialize: true,
   });
+
+  useEffect(() => {
+    const fetchCategory = async () => {
+      setLoading(true);
+      const cat = await getCourseCategory(courseId);
+      formik.setFieldValue('category', cat);
+      setLoading(false);
+    };
+    fetchCategory();
+    // eslint-disable-next-line
+  }, [courseId]);
 
   return (
     <form className="flex flex-col justify-between h-full" onSubmit={formik.handleSubmit} noValidate>
@@ -77,8 +85,8 @@ const CourseCategory = () => {
         >
           Previous
         </Button>
-        <Button className="rounded-none" type="submit">
-          Continue
+        <Button className="rounded-none" type="submit" disabled={loading || !formik.dirty || !formik.isValid}>
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </form>
