@@ -8,7 +8,7 @@ export interface CourseMessagesData {
 }
 
 export const saveCourseMessages = async (data: CourseMessagesData) => {
-  const courseRef = doc(db, "courses", data.courseId);
+  const courseRef = doc(db, "courseDrafts", data.courseId);
   await setDoc(courseRef, {
     welcomeMessage: data.welcomeMessage,
     congratulationsMessage: data.congratulationsMessage,
@@ -16,7 +16,7 @@ export const saveCourseMessages = async (data: CourseMessagesData) => {
 };
 
 export const getCourseMessages = async (courseId: string) => {
-  const courseRef = doc(db, "courses", courseId);
+  const courseRef = doc(db, "courseDrafts", courseId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {
     const data = docSnap.data();
