@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../../../lib/firebase';
 import { Button } from '../../../../components/ui/button';
 import { getFullCourseData } from '../../../../utils/firebaseCoursePreview';
 import {
@@ -34,18 +36,37 @@ const PreviewCourse = () => {
     fetchData();
   }, [draftId.current]);
 
+
   const goToDashboard = () => {
     window.location.hash = '#/instructor/dashboard';
+  };
+
+  // Submit for Review handler
+  const handleSubmitForReview = async () => {
+    if (!draftId.current) return;
+    const draftRef = doc(db, 'courseDrafts', draftId.current);
+    await updateDoc(draftRef, { submittedForReview: true, submittedAt: new Date().toISOString() });
+    setSubmitted(true);
   };
 
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-        <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded relative mt-10 mb-6 w-full max-w-lg text-center">
-          <strong className="font-bold">Course submitted for review!</strong>
-          <span className="block mt-2">We will notify you once your course is approved.</span>
+        <div className="bg-gradient-to-br from-green-200 via-green-100 to-white border border-green-400 text-green-800 px-8 py-8 rounded-2xl shadow-lg mt-16 mb-8 w-full max-w-xl text-center animate-fade-in">
+          <svg className="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2l4-4"/></svg>
+          <h2 className="text-2xl font-bold mb-2">Course Submitted for Review!</h2>
+          <p className="mb-4 text-lg">Thank you for submitting your course. Our admin team will review your course soon.</p>
+          <div className="mb-4 text-green-700 bg-green-50 border border-green-200 rounded p-3">
+            <span className="font-semibold">What happens next?</span>
+            <ul className="list-disc ml-6 mt-2 text-left text-green-800">
+              <li>You will receive a notification and email once your course is approved or if any changes are required.</li>
+              <li>While under review, you can still edit your course but cannot publish it until approved.</li>
+            </ul>
+          </div>
+          <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow" onClick={goToDashboard}>
+            Go to Dashboard
+          </Button>
         </div>
-        <Button onClick={goToDashboard}>Go to Dashboard</Button>
       </div>
     );
   }
@@ -297,7 +318,7 @@ const PreviewCourse = () => {
       </div>
 
       <div className="mt-8 flex justify-end">
-        <Button className="bg-primary text-white px-6 py-2 rounded" onClick={() => setSubmitted(true)}>
+        <Button className="bg-primary text-white px-6 py-2 rounded shadow-lg" onClick={handleSubmitForReview}>
           Submit for Review
         </Button>
       </div>
