@@ -3,8 +3,11 @@ import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Textarea } from "../../../../components/ui/textarea";
 import { SelectContent, SelectItem } from "../../../../components/ui/select";
+
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { useEffect, useState } from "react";
+import { saveCourseMessages, getCourseMessages } from "../../../../utils/firebaseCourseMessages";
 
 // Define the form values interface
 interface CourseMessagesForm {
@@ -12,7 +15,10 @@ interface CourseMessagesForm {
   congratulationsMessage: string;
 }
 
+
 export function CourseMessages() {
+  const courseId = localStorage.getItem('courseId') || 'test-course-id';
+  const [loading, setLoading] = useState(true);
   const formik = useFormik<CourseMessagesForm>({
     initialValues: {
       welcomeMessage: "",
@@ -26,11 +32,40 @@ export function CourseMessages() {
         .min(10, "Congratulations message should be at least 10 characters")
         .max(500, "Congratulations message cannot exceed 500 characters"),
     }),
-    onSubmit: (values) => {
-      console.log("Form values:", values);
-      // Handle form submission here
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        await saveCourseMessages({
+          courseId,
+          welcomeMessage: values.welcomeMessage,
+          congratulationsMessage: values.congratulationsMessage,
+        });
+        // Optionally show a toast or feedback
+      } catch (e) {
+        alert("Failed to save messages. Please try again.");
+      }
+      setLoading(false);
     },
+    enableReinitialize: true,
   });
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      setLoading(true);
+      try {
+        const data = await getCourseMessages(courseId);
+        formik.setValues({
+          welcomeMessage: data.welcomeMessage,
+          congratulationsMessage: data.congratulationsMessage,
+        });
+      } catch (e) {
+        // Optionally handle error
+      }
+      setLoading(false);
+    };
+    fetchMessages();
+    // eslint-disable-next-line
+  }, [courseId]);
 
   return (
     <form onSubmit={formik.handleSubmit}>
@@ -83,8 +118,8 @@ export function CourseMessages() {
           </div>
 
           <div className="flex justify-end mt-8">
-            <Button type="submit" className="rounded-none">
-              Save Messages
+            <Button type="submit" className="rounded-none" disabled={loading || !formik.dirty || !formik.isValid}>
+              {loading ? 'Saving...' : 'Save Messages'}
             </Button>
           </div>
         </div>
