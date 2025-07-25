@@ -144,7 +144,10 @@ const CourseContent = () => {
                 <CourseLandingPage onSubmit={()=>{setSelectedItem('pricing')}}/>
             )}
             {selectedItem === "pricing"&&(
-                <Pricing onSubmit={()=>{setSelectedItem('course-messages')}}/>
+                <Pricing 
+                  courseId={localStorage.getItem('courseId') || 'test-course-id'}
+                  onSubmit={()=>{setSelectedItem('course-messages')}}
+                />
             )}
             {selectedItem === "promotions" && (
               <div>

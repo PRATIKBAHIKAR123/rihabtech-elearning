@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { savePricingData, getPricingData, PricingData } from "../../../../utils/firebasePricing";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import {
@@ -18,24 +19,28 @@ interface Member {
   role: string;
 }
 
+
 interface CourseAccess {
   website: boolean;
   app: boolean;
   private: boolean;
 }
 
-export default function Pricing({ onSubmit }: any) {
+
+// Accept courseId as prop
+export default function Pricing({ courseId, onSubmit }: { courseId: string, onSubmit?: any }) {
   const [access, setAccess] = useState<CourseAccess>({
     website: true,
     app: false,
     private: false
   });
-  
+  const [pricing, setPricing] = useState<'free' | 'paid'>('free');
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("student");
   const [members, setMembers] = useState<Member[]>([]);
   const [emailError, setEmailError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,25 +91,42 @@ export default function Pricing({ onSubmit }: any) {
     setMembers(prev => prev.filter(member => member.id !== memberId));
   };
 
+  // Load data from Firebase on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await getPricingData(courseId);
+        if (data) {
+          setPricing(data.pricing || 'free');
+          setAccess(data.access || { website: true, app: false, private: false });
+          setMembers(data.members || []);
+        }
+      } catch (e) {
+        // Optionally handle error
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, [courseId]);
+
   const handleSubmit = async () => {
     if (!access.website && !access.app && !access.private) {
       alert("Please select at least one access option");
       return;
     }
-    
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const courseSettings = {
-      access,
-      members: access.private ? members : []
-    };
-    
-    console.log("Course settings saved:", courseSettings);
-    alert("Course access settings saved successfully!");
-    
+    try {
+      await savePricingData({
+        courseId,
+        pricing,
+        access,
+        members: access.private ? members : [],
+      });
+      alert("Course access settings saved successfully!");
+    } catch (e) {
+      alert("Failed to save settings. Please try again.");
+    }
     setIsSubmitting(false);
   };
 
@@ -124,7 +146,7 @@ export default function Pricing({ onSubmit }: any) {
         {/* Pricing Selection */}
         <div className="mt-4 mb-2 flex items-center gap-4">
           <label className="font-medium text-gray-700">Pricing:</label>
-          <Select >
+          <Select value={pricing} onValueChange={v => setPricing(v as 'free' | 'paid')}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
@@ -288,7 +310,7 @@ export default function Pricing({ onSubmit }: any) {
       <div className="flex justify-end">
         <Button 
           onClick={handleSubmit}
-          disabled={isSubmitting || (!access.website && !access.app && !access.private)}
+          disabled={isSubmitting || loading || (!access.website && !access.app && !access.private)}
           className="px-8"
         >
           {isSubmitting ? (
@@ -296,6 +318,8 @@ export default function Pricing({ onSubmit }: any) {
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               Saving...
             </>
+          ) : loading ? (
+            'Loading...'
           ) : (
             'Save Settings'
           )}
