@@ -13,9 +13,10 @@ import Logout from './logout';
 import PrivacyPolicy from '../../comman/privacy-policy/privacy-policy';
 import RefundPolicy from '../../comman/refund-policy/refund-policy';
 import TermsOfUse from '../../comman/terms-and-condition/terms-of-use';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../../../components/ui/dialog"; // adjust import path if needed
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from "../../../components/ui/dialog"; // adjust import path if needed
 import { Button } from '../../../components/ui/button';
 import axiosClient from '../../../utils/axiosClient';
+import { useAuth } from '../../../context/AuthContext';
 
 const Profile = () => {
 
@@ -23,6 +24,7 @@ const Profile = () => {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const { logout, user } = useAuth();
     
     useEffect(() => {
       const fetchProfile = async () => {
@@ -39,6 +41,12 @@ const Profile = () => {
       };
       fetchProfile();
     }, []);
+
+      const handleLogOutClick = async () => {
+        localStorage.setItem('logoutSuccess', 'true');
+        await logout();
+          window.location.href = '/';
+      };
 
     const sidebarItems = [
   //{ label: 'Public Profile', tab: 'public-Profile' },
@@ -118,13 +126,15 @@ const Profile = () => {
               <DialogFooter>
                 <Button
                   className="btn btn-primary"
-                  onClick={() => setActiveTab('logout')}
+                  onClick={() => handleLogOutClick()}
                 >
                   Yes, Log Out
                 </Button>
+                <DialogClose asChild>
                 <Button className="btn btn-secondary" type="button">
                   Cancel
                 </Button>
+                </DialogClose>
               </DialogFooter>
             </DialogContent>
           </Dialog>

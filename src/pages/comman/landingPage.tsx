@@ -20,7 +20,7 @@ const EducationLandingPage: React.FC = () => {
     const flag = localStorage.getItem("logoutSuccess");
     if (flag === "true") {
       setLogoutSuccess(true);
-      localStorage.removeItem("logoutSuccess"); // Remove immediately to prevent re-showing
+      //localStorage.removeItem("logoutSuccess"); // Remove immediately to prevent re-showing
     }
   }, []);
 
@@ -29,6 +29,7 @@ const EducationLandingPage: React.FC = () => {
       const timer = setTimeout(() => {
         setLogoutSuccess(false);
       }, 5000);
+      localStorage.removeItem("logoutSuccess");
       return () => clearTimeout(timer);
     }
   }, [logoutSuccess]);
