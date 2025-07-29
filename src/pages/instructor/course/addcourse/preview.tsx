@@ -283,7 +283,7 @@ const PreviewCourse = () => {
           <strong>Access Platforms:</strong>
           <ul className="list-disc ml-6">
             {course.access?.website && <li>Website</li>}
-            {course.access?.app && <li>Mobile App</li>}
+            {/* {course.access?.app && <li>Mobile App</li>} */}
             {course.access?.private && <li>Private (Members Only)</li>}
           </ul>
         </div>

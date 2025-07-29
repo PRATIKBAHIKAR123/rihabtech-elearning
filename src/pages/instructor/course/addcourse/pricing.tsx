@@ -189,7 +189,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
             </div>
           </div>
           
-          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+          {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox 
               checked={access.app}
               onCheckedChange={(checked:any) => handleAccessChange('app', checked as boolean)}
@@ -199,7 +199,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
               <label className="font-medium text-gray-700 cursor-pointer">Mobile App</label>
               <p className="text-sm text-gray-500">Access through mobile application</p>
             </div>
-          </div>
+          </div> */}
           
           <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox
