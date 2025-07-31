@@ -78,6 +78,7 @@ interface LectureItem {
   }[];
   published: boolean; // Add published property
   description?: string; // Add description field
+  isPromotional?: boolean; // Add promotional property for free videos
 }
 
 export interface Section {
@@ -144,7 +145,8 @@ const getInitialLecture = (index: number): LectureItem => ({
   resources: [],
   contentUrl: "",
   published: false, // Default to unpublished
-  description: "" // Add description field
+  description: "", // Add description field
+  isPromotional: false, // Default to non-promotional
 });
 
 
@@ -945,6 +947,36 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     {item.published ? "Unpublish Lecture" : "Publish Lecture"}
                                                                   </HoverCardContent>
                                                                 </HoverCard>
+                                                                
+                                                                {/* Promotional Video Toggle for Video Lectures */}
+                                                                {item.type === 'lecture' && item.contentType === 'video' && (
+                                                                  <HoverCard>
+                                                                    <HoverCardTrigger asChild>
+                                                                      <div className="flex items-center gap-2">
+                                                                        <Checkbox
+                                                                          id={`promotional-${sectionIdx}-${itemIdx}`}
+                                                                          checked={item.isPromotional || false}
+                                                                          onCheckedChange={(checked) => 
+                                                                            formik.setFieldValue(
+                                                                              `sections[${sectionIdx}].items[${itemIdx}].isPromotional`, 
+                                                                              checked === true
+                                                                            )
+                                                                          }
+                                                                        />
+                                                                        <label 
+                                                                          htmlFor={`promotional-${sectionIdx}-${itemIdx}`}
+                                                                          className="text-xs font-medium text-gray-700 cursor-pointer"
+                                                                        >
+                                                                          Free Preview
+                                                                        </label>
+                                                                      </div>
+                                                                    </HoverCardTrigger>
+                                                                    <HoverCardContent side="top" className="p-2 text-xs">
+                                                                      Mark this video as a free promotional preview that students can watch without purchasing the course
+                                                                    </HoverCardContent>
+                                                                  </HoverCard>
+                                                                )}
+                                                                
                                                                 {item.type === 'lecture' && item.contentType === 'video' && (
                                                                   <div className="flex items-center gap-2 mb-2">
                                                                     <Clock size={16} />
@@ -2349,11 +2381,15 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                     type: "lecture",
                                                     lectureName: `Lecture ${section.items.length + 1}`,
                                                     contentType: "",
-                                                    contentFile: null,
+                                                    videoSource: "upload",
+                                                    articleSource: "upload",
+                                                    contentFiles: [],
                                                     contentUrl: "",
                                                     contentText: "",
+                                                    resources: [],
                                                     published: false, // Default to unpublished
-                                                    description: "" // Add description field
+                                                    description: "", // Add description field
+                                                    isPromotional: false, // Default to non-promotional
                                                   });
                                                   setAddType(null);
                                                 }}
@@ -2518,7 +2554,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   contentText: '',
                   articleSource: 'upload' as const,
                   resources: [],
-                  published: false // Default to unpublished
+                  published: false, // Default to unpublished
+                  isPromotional: false, // Default to non-promotional
                 };
               })
             );
@@ -2565,7 +2602,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                 contentText: '',
                 articleSource: 'upload' as const,
                 resources: [],
-                published: false // Default to unpublished
+                published: false, // Default to unpublished
+                isPromotional: false, // Default to non-promotional
               };
             });
 
@@ -2619,7 +2657,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentText: '',
               articleSource: 'upload' as const,
               resources: [],
-              published: false // Default to unpublished
+              published: false, // Default to unpublished
+              isPromotional: false, // Default to non-promotional
             }));
 
             // If there's an empty lecture, update it with the first URL
@@ -2681,7 +2720,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentText: htmlContent,
               articleSource: 'write' as const,
               resources: [],
-              published: false // Default to unpublished
+              published: false, // Default to unpublished
+              isPromotional: false, // Default to non-promotional
             };
 
             if (emptyLectureIndex !== -1) {

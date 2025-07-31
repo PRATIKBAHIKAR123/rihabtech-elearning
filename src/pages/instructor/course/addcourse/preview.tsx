@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 import { Button } from '../../../../components/ui/button';
+import LoadingIcon from '../../../../components/ui/LoadingIcon';
 import { getFullCourseData } from '../../../../utils/firebaseCoursePreview';
 import {
   getCourseCurriculum,
@@ -10,7 +11,8 @@ import {
   getCourseIntendedLearners,
   getCourseStructure
 } from '../../../../utils/firebaseCoursePreviewHelpers';
-import { BookOpen, Users, Layers, Info, DollarSign, MessageSquare } from 'lucide-react';
+import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
+import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -20,6 +22,9 @@ const PreviewCourse = () => {
   const [landingPage, setLandingPage] = useState<any>({});
   const [intendedLearners, setIntendedLearners] = useState<any[]>([]);
   const [structure, setStructure] = useState<any[]>([]);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [categoryName, setCategoryName] = useState<string>('');
+  const [subcategoryName, setSubcategoryName] = useState<string>('');
   const draftId = useRef<string>(localStorage.getItem('draftId') || '');
 
   useEffect(() => {
@@ -31,10 +36,29 @@ const PreviewCourse = () => {
       setLandingPage(await getCourseLandingPage(draftId.current));
       setIntendedLearners(await getCourseIntendedLearners(draftId.current));
       setStructure(await getCourseStructure(draftId.current));
+      
+      // Fetch category and subcategory names
+      if (data && (data.category || data.subcategory)) {
+        const [categories, subcategories] = await Promise.all([
+          getCategories(),
+          getSubCategories()
+        ]);
+        
+        if (data.category) {
+          const category = categories.find((cat: any) => cat.id === data.category);
+          setCategoryName((category as any)?.name || data.category);
+        }
+        
+        if (data.subcategory) {
+          const subcategory = subcategories.find((sub: any) => sub.id === data.subcategory);
+          setSubcategoryName((subcategory as any)?.name || data.subcategory);
+        }
+      }
+      
       setLoading(false);
     };
     fetchData();
-  }, [draftId.current]);
+  }, []);
 
 
   const goToDashboard = () => {
@@ -72,7 +96,7 @@ const PreviewCourse = () => {
   }
 
   if (loading) {
-    return <div className="text-center py-16 text-lg">Loading course preview...</div>;
+    return <div className="flex justify-center items-center min-h-screen"><LoadingIcon /></div>;
   }
 
   if (!course) {
@@ -88,14 +112,14 @@ const PreviewCourse = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <span className="text-xl font-semibold">{course.title || 'Course Title'}</span>
-            {course.category && (
-              <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full ml-4 text-sm">{course.category}</span>
+            {categoryName && (
+              <span className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full ml-4 text-sm">{categoryName}</span>
             )}
           </div>
-          <div className="flex flex-col items-end">
+          {/* <div className="flex flex-col items-end">
             <span className="text-xs text-gray-400">Course ID</span>
             <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">{draftId.current}</span>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -144,7 +168,11 @@ const PreviewCourse = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-bold text-lg text-primary">Section {sectionIdx + 1}:</span>
                   <span className="font-semibold text-gray-700">{section.name}</span>
-                  {section.published && <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">Published</span>}
+                  {section.published ? (
+                    <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">Published</span>
+                  ) : (
+                    <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">Unpublished</span>
+                  )}
                 </div>
                 {section.description && <div className="mb-2 text-gray-600">{section.description}</div>}
                 <div className="ml-4">
@@ -152,7 +180,17 @@ const PreviewCourse = () => {
                     <ul className="list-disc ml-4">
                       {section.items.map((item: any, itemIdx: number) => (
                         <li key={itemIdx} className="mb-2">
-                          <div className="font-semibold text-gray-800 capitalize">{item.type === 'lecture' ? 'Lecture' : item.type === 'quiz' ? 'Quiz' : item.type === 'assignment' ? 'Assignment' : 'Item'}: {item.lectureName || item.quizTitle || item.title || ''}</div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-semibold text-gray-800 capitalize">{item.type === 'lecture' ? 'Lecture' : item.type === 'quiz' ? 'Quiz' : item.type === 'assignment' ? 'Assignment' : 'Item'}: {item.lectureName || item.quizTitle || item.title || ''}</div>
+                            {item.published ? (
+                              <span className="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Published</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-orange-200 text-orange-700 rounded text-xs">Unpublished</span>
+                            )}
+                            {item.type === 'lecture' && item.contentType === 'video' && item.isPromotional && (
+                              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">Free Preview</span>
+                            )}
+                          </div>
                           {item.type === 'lecture' && (
                             <div className="text-gray-600">
                               {item.description && <div>Description: {item.description}</div>}
@@ -247,15 +285,15 @@ const PreviewCourse = () => {
           </div>
         ) : (
           // Fallback: Show top-level fields if landingPage is empty
-          (course.title || course.subtitle || course.description || course.language || course.level || course.category || course.subcategory || course.thumbnailUrl || course.promoVideoUrl) ? (
+          (course.title || course.subtitle || course.description || course.language || course.level || categoryName || subcategoryName || course.thumbnailUrl || course.promoVideoUrl) ? (
             <div className="bg-gray-50 border rounded p-4">
               {course.title && <div className="mb-2"><span className="font-semibold">Title:</span> <span className="text-gray-700">{course.title}</span></div>}
               {course.subtitle && <div className="mb-2"><span className="font-semibold">Subtitle:</span> <span className="text-gray-700">{course.subtitle}</span></div>}
               {course.description && <div className="mb-2"><span className="font-semibold">Description:</span> <span className="text-gray-700">{course.description}</span></div>}
               {course.language && <div className="mb-2"><span className="font-semibold">Language:</span> <span className="text-gray-700">{course.language}</span></div>}
               {course.level && <div className="mb-2"><span className="font-semibold">Level:</span> <span className="text-gray-700">{course.level}</span></div>}
-              {course.category && <div className="mb-2"><span className="font-semibold">Category:</span> <span className="text-gray-700">{course.category}</span></div>}
-              {course.subcategory && <div className="mb-2"><span className="font-semibold">Subcategory:</span> <span className="text-gray-700">{course.subcategory}</span></div>}
+              {categoryName && <div className="mb-2"><span className="font-semibold">Category:</span> <span className="text-gray-700">{categoryName}</span></div>}
+              {subcategoryName && <div className="mb-2"><span className="font-semibold">Subcategory:</span> <span className="text-gray-700">{subcategoryName}</span></div>}
               {course.thumbnailUrl && (
                 <div className="mb-2">
                   <span className="font-semibold">Course Image:</span><br />
@@ -290,11 +328,16 @@ const PreviewCourse = () => {
         {course.members && course.members.length > 0 && (
           <div className="mb-2">
             <strong>Private Members:</strong>
-            <ul className="list-disc ml-6">
-              {course.members.map((m: any) => (
-                <li key={m.id}>{m.email} ({m.role})</li>
-              ))}
-            </ul>
+            <div className="flex items-center gap-2">
+              <span>{course.members.length} member{course.members.length > 1 ? 's' : ''}</span>
+              <button
+                onClick={() => setShowMembersModal(true)}
+                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                title="View members"
+              >
+                <Eye size={16} className="text-gray-600" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -322,6 +365,33 @@ const PreviewCourse = () => {
           Submit for Review
         </Button>
       </div>
+
+      {/* Members Modal */}
+      {showMembersModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Private Members</h3>
+              <button
+                onClick={() => setShowMembersModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2">
+              {course.members?.map((m: any) => (
+                <div key={m.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <span className="font-medium">{m.email}</span>
+                  <span className="text-sm text-gray-600 capitalize px-2 py-1 bg-gray-200 rounded">
+                    {m.role}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

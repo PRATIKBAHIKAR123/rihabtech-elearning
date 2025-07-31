@@ -167,17 +167,19 @@ export default function InstructorSignupPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="relative inline-block mt-2">
-                    <img
-                      src={aadharImage}
-                      alt="Aadhaar Preview"
-                      className="max-h-32 rounded border"
-                    />
+                  <div className="relative mt-2">
+                    <div className="w-full h-32 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                      <img
+                        src={aadharImage}
+                        alt="Aadhaar Preview"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
                     <button
                       type="button"
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
                       onClick={() => setAadharImage(null)}
-                      title="Remove"
+                      title="Remove Image"
                     >
                       &times;
                     </button>
@@ -210,17 +212,19 @@ export default function InstructorSignupPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="relative inline-block mt-2">
-                    <img
-                      src={panImage}
-                      alt="PAN Preview"
-                      className="max-h-32 rounded border"
-                    />
+                  <div className="relative mt-2">
+                    <div className="w-full h-32 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                      <img
+                        src={panImage}
+                        alt="PAN Preview"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
                     <button
                       type="button"
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
                       onClick={() => setPanImage(null)}
-                      title="Remove"
+                      title="Remove Image"
                     >
                       &times;
                     </button>

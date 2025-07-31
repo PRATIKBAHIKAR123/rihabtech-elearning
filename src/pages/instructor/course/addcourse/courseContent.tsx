@@ -34,7 +34,7 @@ const CourseContent = () => {
 
     const fullItems: CreationItem[] = [
         { id: "intended-learners", icon: <Users size={18} />, label: "Intended learners" },
-        { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
+        // { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
         // { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
         // { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
         { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
@@ -63,7 +63,7 @@ const CourseContent = () => {
             //setcreationItems([]);
             setcreationItems([
                 { id: "intended-learners", icon: <Users size={18} />, label: "Intended learners" },
-                { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
+                // { id: "course-structure", icon: <Layout size={18} />, label: "Course structure" },
                 // { id: "setup-test-video", icon: <Film size={18} />, label: "Setup & test video" },
                 // { id: "film-edit", icon: <Film size={18} />, label: "Film & edit" },
                 { id: "curriculum", icon: <FileText size={18} />, label: "Curriculum" },
@@ -106,7 +106,7 @@ const CourseContent = () => {
           <div className="flex-col md:flex-1 p-0 md:pl-6">
             {selectedItem === "intended-learners" && (
               <div>
-                <IntendentLearners onSubmit={()=>{setSelectedItem('course-structure')}}/>
+                <IntendentLearners onSubmit={()=>{setSelectedItem('curriculum')}}/>
               </div>
             )}
             {selectedItem === "practice-test"&&(
