@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { useFormik } from "formik";
 import * as Yup from 'yup';
 import { toast } from "sonner";
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, getDocs, query, where, collection } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 // import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
@@ -13,8 +13,84 @@ export default function InstructorSignupPage() {
   const [aadharImage, setAadharImage] = useState<string | null>(null);
   const [panImage, setPanImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
   const navigate = useNavigate();
   // const storage = getStorage();
+
+  // Check if user is logged in and if they already applied
+  useEffect(() => {
+    const checkUserAndApplicationStatus = async () => {
+      try {
+        // Get user info from localStorage
+        const tokenData = localStorage.getItem('token');
+        if (!tokenData) {
+          toast.error('Please login first to apply as instructor');
+          navigate('/login');
+          return;
+        }
+
+        const userData = JSON.parse(tokenData);
+        console.log('User data found:', userData);
+        setUserInfo(userData);
+
+        // Check if user already applied
+        const userEmail = userData.UserName || userData.email;
+        console.log('Checking for existing applications with email:', userEmail);
+        
+        if (userEmail) {
+          // Check both possible field names (userEmail and instructorId)
+          const q1 = query(
+            collection(db, 'instructor_requests'), 
+            where('userEmail', '==', userEmail)
+          );
+          const q2 = query(
+            collection(db, 'instructor_requests'), 
+            where('instructorId', '==', userEmail)
+          );
+          
+          const [querySnapshot1, querySnapshot2] = await Promise.all([
+            getDocs(q1),
+            getDocs(q2)
+          ]);
+          
+          console.log('Query results:', {
+            userEmailQuery: querySnapshot1.size,
+            instructorIdQuery: querySnapshot2.size
+          });
+          
+          if (!querySnapshot1.empty || !querySnapshot2.empty) {
+            // User already applied, redirect to success page
+            const existingApplication = (!querySnapshot1.empty 
+              ? querySnapshot1.docs[0].data() 
+              : querySnapshot2.docs[0].data());
+            
+            console.log('Existing application found:', existingApplication);
+            
+            // Store application status in localStorage
+            localStorage.setItem('instructorApplicationStatus', JSON.stringify({
+              status: existingApplication.status,
+              appliedAt: existingApplication.createdAt,
+              email: userEmail,
+              applicationId: existingApplication.applicationId || 'unknown'
+            }));
+            
+            toast.info('You have already applied to become an instructor');
+            setTimeout(() => {
+              navigate('/instructor-signup-success');
+            }, 1000);
+            return;
+          }
+        }
+        
+        console.log('No existing application found, showing signup form');
+      } catch (error) {
+        console.error('Error checking application status:', error);
+        toast.error('Error checking application status');
+      }
+    };
+
+    checkUserAndApplicationStatus();
+  }, [navigate]);
 
   // const uploadImageAndGetUrl = async (fileString: string, path: string) => {
   //   const storageRef = ref(storage, path);
@@ -48,23 +124,59 @@ export default function InstructorSignupPage() {
         setSubmitting(false);
         return;
       }
+
+      if (!userInfo) {
+        toast.error('User information not found. Please login again.');
+        navigate('/login');
+        return;
+      }
+
       setLoading(true);
       try {
-        // Skip file upload, just store a placeholder string for now
-        const requestId = `${values.adhaarnumber}_${Date.now()}`;
+        const userEmail = userInfo.UserName || userInfo.email;
+        const userName = userInfo.Name || userInfo.name || 'Unknown User';
+        
+        // Create request ID using user email and timestamp
+        const requestId = `${userEmail.replace('@', '_').replace('.', '_')}_${Date.now()}`;
+        
+        // Store instructor request with user information
         await setDoc(doc(db, 'instructor_requests', requestId), {
+          // User Information
+          userEmail: userEmail,
+          userName: userName,
+          userToken: userInfo.AccessToken || '',
+          instructorId: userEmail, // Add instructorId field for admin panel compatibility
+          
+          // Application Data
           experties: values.experties,
           topic: values.topic,
           adhaarnumber: values.adhaarnumber,
           PANnumber: values.PANnumber,
-          aadharImage: 'skipped-for-now',
-          panImage: 'skipped-for-now',
+          aadharImage: 'skipped-for-now', // TODO: Implement file upload
+          panImage: 'skipped-for-now', // TODO: Implement file upload
+          
+          // Status and Metadata
           status: 'pending',
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          
+          // Additional fields for admin reference
+          role: 'instructor',
+          applicationId: requestId
         });
+
+        // Store application status in localStorage
+        localStorage.setItem('instructorApplicationStatus', JSON.stringify({
+          status: 'pending',
+          appliedAt: new Date().toISOString(),
+          email: userEmail,
+          applicationId: requestId
+        }));
+
         toast.success('Your request has been sent to admin.');
         navigate('/instructor-signup-success');
       } catch (error: any) {
+        console.error('Submission error:', error);
         toast.error(error.message || 'Submission failed. Please try again.');
       } finally {
         setLoading(false);
@@ -72,6 +184,18 @@ export default function InstructorSignupPage() {
       }
     },
   });
+
+  // Show loading if user info is not loaded yet
+  if (!userInfo) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full">
@@ -100,7 +224,10 @@ export default function InstructorSignupPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold">Create. Teach. Connect.</h1>
             <h1 className="text-2xl font-bold">as a Instructor</h1>
-            <p className="text-sm text-gray-600 mt-2">Fields marked (<span className="text-[#ff0000]">*</span>) are mandatory.</p>
+            <p className="text-sm text-gray-600 mt-2">
+              Welcome, <strong>{userInfo.Name}</strong>! Complete your instructor application below.
+            </p>
+            <p className="text-sm text-gray-600 mt-1">Fields marked (<span className="text-[#ff0000]">*</span>) are mandatory.</p>
           </div>
 
           <form onSubmit={signupSchema.handleSubmit} className="space-y-4" noValidate>
