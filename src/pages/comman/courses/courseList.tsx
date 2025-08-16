@@ -1,126 +1,110 @@
 import { BookOpen, ChevronDown, ChevronRight, Filter, User2, X } from "lucide-react";
-import { Course } from "../../../types/course";
+import { Course, getAllCourses, calculateCourseDuration } from "../../../utils/firebaseCourses";
 import { Button } from "../../../components/ui/button";
 import Divider from "../../../components/ui/divider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
 
 export default function CourseList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  
+  // Filter states
+  const [selectedRating, setSelectedRating] = useState<string>("");
+  const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
+  const [selectedDuration, setSelectedDuration] = useState<string[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
-  const courses = [
-    {
-      id: 1,
-      title: "Introduction LearnPress - LMS Plugin",
-      description: "A WordPress LMS Plugin to create WordPress Learning Management System.",
-      students: 76,
-      duration: 10,
-      price: 0,
-      image: "Images/courses/Link.jpg"
-    },
-    {
-      id: 2,
-      title: "Create An LMS Website With WordPress",
-      description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
-      students: 25,
-      duration: 12,
-      price: 0,
-      image: "Images/courses/create-an-lms-website-with-learnpress 4.jpg"
-    },
-    {
-      id: 3,
-      title: "How To Sell In-Person Course With LearnPress",
-      description: "This course is a detailed and easy roadmap to get you all setup and...",
-      students: 5,
-      duration: 8,
-      price: 129.00,
-      image: "Images/courses/course-offline-01.jpg"
-    },
-    {
-      id: 4,
-      title: "How To Teach An Online Course",
-      description: "This tutorial will introduce you to PHP, a server-side scripting...",
-      students: 28,
-      duration: 10,
-      price: 79.00,
-      image: "Images/courses/eduma-learnpress-lms 4.jpg"
-    },
-    {
-      id: 5,
-      title: "How To Create An Online Course",
-      description: "The iStudy team knows all about cross-browser issues, and they're...",
-      students: 76,
-      duration: 10,
-      price: 70.00,
-      originalPrice: 115.99,
-      image: "Images/courses/course 4.jpg"
-    },
-    {
-      id: 6,
-      title: "The Complete Online Teaching Masterclass",
-      description: "In this course, We'll learn how to create websites by structuring and...",
-      students: 28,
-      duration: 12,
-      price: 80.00,
-      originalPrice: 125.00,
-      image: "Images/courses/course 5.jpg"
-    },
-    {
-      id: 7,
-      title: "Online Course Creation Secrets",
-      description: "Many of the most powerful, memorable and effective...",
-      students: 27,
-      duration: 10,
-      price: 65.00,
-      image: "Images/courses/course 6.jpg"
-    },
-    {
-      id: 8,
-      title: "Launch Your Own Online School And Increase Your Income",
-      description: "Photography Masterclass: Your Complete Guide to Photography...",
-      students: 81,
-      duration: 10,
-      price: 50.00,
-      image: "Images/courses/course 7.jpg"
-    },
-    {
-      id: 9,
-      title: "How To Teach Online Courses Effectively",
-      description: "Build and deploy a live NodeJs, React.JS & Express sites while...",
-      students: 45,
-      duration: 10,
-      price: 0,
-      image: "Images/courses/course 8.jpg"
-    },
-    {
-      id: 10,
-      title: "Accelerate Your Course Creation Speed",
-      description: "Lorem ipsum is simply dummy text of the printing and typesetting...",
-      students: 11,
-      duration: 8,
-      price: 65.00,
-      image: "Images/courses/course 9.jpg"
-    },
-    {
-      id: 11,
-      title: "Instructional Design For Learning And Development",
-      description: "This tutorial will introduce you to PHP, a server-side scripting...",
-      students: 17,
-      duration: 4,
-      price: 50.00,
-      image: "Images/courses/course 16.jpg"
-    },
-    {
-      id: 12,
-      title: "How To Teach English Online And Get Paid",
-      description: "In this course, We'll learn how to create websites by structuring and...",
-      students: 14,
-      duration: 6,
-      price: 39.00,
-      image: "Images/courses/course 18.jpg"
+
+  // Fetch courses from Firebase
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const firebaseCourses = await getAllCourses();
+        // Filter only published and approved courses
+        const publishedCourses = firebaseCourses.filter(course => 
+          course.isPublished && course.status === "approved"
+        );
+        setCourses(publishedCourses);
+        setFilteredCourses(publishedCourses);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        setCourses([]);
+        setFilteredCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  // Apply filters to courses
+  const applyFilters = () => {
+    let filtered = [...courses];
+
+    // Price filter
+    if (selectedPrice.length > 0) {
+      filtered = filtered.filter(course => {
+        const isFree = course.pricing === "Free" || course.pricing === "0";
+        if (selectedPrice.includes('free') && isFree) return true;
+        if (selectedPrice.includes('paid') && !isFree) return true;
+        return false;
+      });
     }
-  ];
+
+    // Duration filter
+    if (selectedDuration.length > 0) {
+      filtered = filtered.filter(course => {
+        const duration = calculateCourseDuration(course);
+        if (selectedDuration.includes('duration-0-1') && duration >= 0 && duration <= 1) return true;
+        if (selectedDuration.includes('duration-1-3') && duration > 1 && duration <= 3) return true;
+        if (selectedDuration.includes('duration-3-6') && duration > 3 && duration <= 6) return true;
+        if (selectedDuration.includes('duration-6-17') && duration > 6 && duration <= 17) return true;
+        if (selectedDuration.includes('duration-17-plus') && duration > 17) return true;
+        return false;
+      });
+    }
+
+    // Topic filter (using course title for now since category doesn't exist)
+    if (selectedTopics.length > 0) {
+      filtered = filtered.filter(course => {
+        return selectedTopics.some(topic => 
+          course.title.toLowerCase().includes(topic.toLowerCase())
+        );
+      });
+    }
+
+    setFilteredCourses(filtered);
+  };
+
+  // Apply filters whenever filter states change
+  useEffect(() => {
+    applyFilters();
+  }, [selectedRating, selectedPrice, selectedDuration, selectedTopics, courses]);
+
+  // Initialize filtered courses on component mount
+  useEffect(() => {
+    if (courses.length > 0) {
+      setFilteredCourses(courses);
+    }
+  }, [courses]);
+
+  // Calculate total students across all courses
+  const totalStudents = courses.reduce((total, course) => {
+    const studentCount = course.members ? course.members.filter(m => m.role === 'student').length : 0;
+    return total + studentCount;
+  }, 0);
+
+  // Count free courses
+  const freeCoursesCount = courses.filter(course => 
+    course.pricing === "Free" || course.pricing === "0"
+  ).length;
 
   return (
     <section className="min-h-screen bg-white font-sans relative">
@@ -129,7 +113,16 @@ export default function CourseList() {
       <div className="flex flex-row w-full justify-center">
         {/* Filter Sidebar - Desktop */}
         <div className={`hidden lg:block lg:w-1/4 xl:w-1/5 pr-8 ${isFilterOpen ? '' : 'lg:hidden'}`}>
-          <FilterContent />
+          <FilterContent 
+            selectedRating={selectedRating}
+            setSelectedRating={setSelectedRating}
+            selectedPrice={selectedPrice}
+            setSelectedPrice={setSelectedPrice}
+            selectedDuration={selectedDuration}
+            setSelectedDuration={setSelectedDuration}
+            selectedTopics={selectedTopics}
+            setSelectedTopics={setSelectedTopics}
+          />
         </div>
         <div>
           <div className="container mx-auto px-4 py-4">
@@ -144,39 +137,50 @@ export default function CourseList() {
 
           {/* Design Category Header */}
           <div className="container mx-auto px-4 py-2">
-            <h1 className="page-title mb-6">Design</h1>
+            <h1 className="page-title mb-6">All Courses</h1>
 
-            <div className="flex items-center space-x-8 mb-6">
-              <div className="flex items-center text-[#666666] text-sm font-normal font-['Barlow'] leading-snug">
-                <BookOpen className="mr-2" color="#666666" size={16} />
-                <span>8 Free Courses</span>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2 text-gray-600">Loading courses...</span>
               </div>
-              <div className="flex items-center text-[#666666] text-sm font-normal font-['Barlow'] leading-snug">
-                <User2 className="mr-2" color="#666666" size={16} />
-                <span>318 Students</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center space-x-8 mb-6">
+                  <div className="flex items-center text-[#666666] text-sm font-normal font-['Barlow'] leading-snug">
+                    <BookOpen className="mr-2" color="#666666" size={16} />
+                    <span>{freeCoursesCount} Free Courses</span>
+                  </div>
+                  <div className="flex items-center text-[#666666] text-sm font-normal font-['Barlow'] leading-snug">
+                    <User2 className="mr-2" color="#666666" size={16} />
+                    <span>{totalStudents} Students</span>
+                  </div>
+                </div>
 
-            <p className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed mb-8 max-w-6xl">
-              Step into a world of endless learning opportunities with our online course marketplace. Browse a wide range of expertly crafted courses that help you build new skills, grow professionally, and follow your passions. Whether you're aiming to level up your career or dive into a personal hobby, find the perfect course that fits your goals and sparks your curiosity.
-            </p>
+                <p className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed mb-8 max-w-6xl">
+                  Step into a world of endless learning opportunities with our online course marketplace. Browse a wide range of expertly crafted courses that help you build new skills, grow professionally, and follow your passions. Whether you're aiming to level up your career or dive into a personal hobby, find the perfect course that fits your goals and sparks your curiosity.
+                </p>
 
-            {/* Filter and Results */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-              <Button
-                className="mb-4 md:mb-0 px-8 py-2 rounded-none flex items-center justify-center"
-                onClick={toggleFilter}
-              >
-                <Filter size={20} className="mr-2" />
-                Filter
-              </Button>
+                {/* Filter and Results */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                  <Button
+                    className="mb-4 md:mb-0 px-8 py-2 rounded-none flex items-center justify-center"
+                    onClick={toggleFilter}
+                  >
+                    <Filter size={20} className="mr-2" />
+                    Filter
+                  </Button>
 
-              <div className="flex items-center space-x-3">
-                <span className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed">Showing 1 - 15 of 15 results</span>
-                <div className="h-4 w-px bg-gray-300"></div>
-                <div className="text-[#666666] text-base font-normal font-['Barlow'] leading-[19px]">Newly published</div>
-              </div>
-            </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed">
+                      Showing 1 - {filteredCourses.length} of {courses.length} results
+                    </span>
+                    <div className="h-4 w-px bg-gray-300"></div>
+                    <div className="text-[#666666] text-base font-normal font-['Barlow'] leading-[19px]">Newly published</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="container mx-auto px-4">
@@ -191,7 +195,16 @@ export default function CourseList() {
                     </Button>
                   </div>
 
-                  <FilterContent />
+                  <FilterContent 
+                    selectedRating={selectedRating}
+                    setSelectedRating={setSelectedRating}
+                    selectedPrice={selectedPrice}
+                    setSelectedPrice={setSelectedPrice}
+                    selectedDuration={selectedDuration}
+                    setSelectedDuration={setSelectedDuration}
+                    selectedTopics={selectedTopics}
+                    setSelectedTopics={setSelectedTopics}
+                  />
                 </div>
               </div>
 
@@ -207,19 +220,33 @@ export default function CourseList() {
 
               {/* Course Grid */}
               <div className={`w-full`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2 mb-6">
-                  {courses.map((course, index) => (
-                    <CourseCard key={index} course={course} />
-                  ))}
-                </div>
-                <div className="w-full flex justify-center mb-3">
-                  <Button
-                    variant="outline"
-                    className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50"
-                  >
-                    Load More
-                  </Button>
-                </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <span className="ml-3 text-gray-600 text-lg">Loading courses...</span>
+                  </div>
+                ) : filteredCourses.length === 0 ? (
+                  <div className="text-center py-16">
+                    <p className="text-gray-500 text-lg mb-4">No courses match your current filters.</p>
+                    <p className="text-gray-400">Please try adjusting your filter selections.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2 mb-6">
+                      {filteredCourses.map((course, index) => (
+                        <CourseCard key={course.id} course={course} />
+                      ))}
+                    </div>
+                    <div className="w-full flex justify-center mb-3">
+                      <Button
+                        variant="outline"
+                        className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50"
+                      >
+                        Load More
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -261,7 +288,25 @@ function FilterAccordion({ title, children, defaultOpen = true }: FilterAccordio
 }
 
 // Filter Content Component with Accordions
-function FilterContent() {
+function FilterContent({ 
+  selectedRating, 
+  setSelectedRating, 
+  selectedPrice, 
+  setSelectedPrice, 
+  selectedDuration, 
+  setSelectedDuration, 
+  selectedTopics, 
+  setSelectedTopics 
+}: {
+  selectedRating: string;
+  setSelectedRating: (value: string) => void;
+  selectedPrice: string[];
+  setSelectedPrice: (value: string[]) => void;
+  selectedDuration: string[];
+  setSelectedDuration: (value: string[]) => void;
+  selectedTopics: string[];
+  setSelectedTopics: (value: string[]) => void;
+}) {
   // State for expanded sections
   const [showMoreDuration, setShowMoreDuration] = useState(false);
   const [showMoreTopics, setShowMoreTopics] = useState(false);
@@ -279,13 +324,39 @@ function FilterContent() {
     { id: "topic-typescript", label: "TypeScript (475)" }
   ];
 
+  // Handle price filter changes
+  const handlePriceChange = (priceType: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPrice([...selectedPrice, priceType]);
+    } else {
+      setSelectedPrice(selectedPrice.filter(p => p !== priceType));
+    }
+  };
+
+  // Handle duration filter changes
+  const handleDurationChange = (durationId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDuration([...selectedDuration, durationId]);
+    } else {
+      setSelectedDuration(selectedDuration.filter(d => d !== durationId));
+    }
+  };
+
+  // Handle topic filter changes
+  const handleTopicChange = (topicId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedTopics([...selectedTopics, topicId]);
+    } else {
+      setSelectedTopics(selectedTopics.filter(t => t !== topicId));
+    }
+  };
+
   return (
     <div className="space-y-2">
       {/* Ratings Filter */}
-      
       <FilterAccordion title="Ratings">
         <div className="space-y-3">
-          <RadioGroup>
+          <RadioGroup value={selectedRating} onValueChange={setSelectedRating}>
           <div className="flex items-center">
             <RadioGroupItem id="rating-4.5" value={"4.5"} className="mr-3" />
             <label htmlFor="rating-4.5" className="flex items-center font-bold">
@@ -296,9 +367,7 @@ function FilterContent() {
             </label>
           </div>
           <div className="flex items-center">
-            
             <RadioGroupItem id="rating-4.0" value={"4.0"} className="mr-3" />
-            
             <label htmlFor="rating-4.0" className="flex items-center font-bold">
               <div className="flex text-yellow-400">
                 ★★★★<span className="text-gray-300">★</span>
@@ -329,36 +398,65 @@ function FilterContent() {
       </FilterAccordion>
 
       <FilterAccordion title="Price">
-<div className="space-y-3 font-bold">
+        <div className="space-y-3 font-bold">
           <div className="flex items-center">
-            <Checkbox id="free" className="mr-3" />
+            <Checkbox 
+              id="free" 
+              className="mr-3" 
+              checked={selectedPrice.includes('free')}
+              onCheckedChange={(checked) => handlePriceChange('free', checked as boolean)}
+            />
             <label htmlFor="free">Free</label>
           </div>
           <div className="flex items-center">
-            <Checkbox id="paid" className="mr-3" />
+            <Checkbox 
+              id="paid" 
+              className="mr-3" 
+              checked={selectedPrice.includes('paid')}
+              onCheckedChange={(checked) => handlePriceChange('paid', checked as boolean)}
+            />
             <label htmlFor="paid">Paid</label>
           </div>
-          
-          </div>
+        </div>
       </FilterAccordion>
 
       {/* Video Duration Filter */}
       <FilterAccordion title="Video Duration">
         <div className="space-y-3 font-bold">
           <div className="flex items-center">
-            <Checkbox id="duration-0-1" className="mr-3" />
+            <Checkbox 
+              id="duration-0-1" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-0-1')}
+              onCheckedChange={(checked) => handleDurationChange('duration-0-1', checked as boolean)}
+            />
             <label htmlFor="duration-0-1">0-1 Hour (72)</label>
           </div>
           <div className="flex items-center">
-            <Checkbox id="duration-1-3" className="mr-3" />
+            <Checkbox 
+              id="duration-1-3" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-1-3')}
+              onCheckedChange={(checked) => handleDurationChange('duration-1-3', checked as boolean)}
+            />
             <label htmlFor="duration-1-3">1-3 Hours (168)</label>
           </div>
           <div className="flex items-center">
-            <Checkbox id="duration-3-6" className="mr-3" />
+            <Checkbox 
+              id="duration-3-6" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-3-6')}
+              onCheckedChange={(checked) => handleDurationChange('duration-3-6', checked as boolean)}
+            />
             <label htmlFor="duration-3-6">3-6 Hours (141)</label>
           </div>
           <div className="flex items-center">
-            <Checkbox id="duration-6-17" className="mr-3" />
+            <Checkbox 
+              id="duration-6-17" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-6-17')}
+              onCheckedChange={(checked) => handleDurationChange('duration-6-17', checked as boolean)}
+            />
             <label htmlFor="duration-6-17">6-17 Hours (279)</label>
           </div>
           
@@ -367,7 +465,12 @@ function FilterContent() {
             <>
               {additionalDurations.map(duration => (
                 <div key={duration.id} className="flex items-center">
-                  <Checkbox id={duration.id} className="mr-3" />
+                  <Checkbox 
+                    id={duration.id} 
+                    className="mr-3" 
+                    checked={selectedDuration.includes(duration.id)}
+                    onCheckedChange={(checked) => handleDurationChange(duration.id, checked as boolean)}
+                  />
                   <label htmlFor={duration.id}>{duration.label}</label>
                 </div>
               ))}
@@ -386,7 +489,12 @@ function FilterContent() {
       <FilterAccordion title="Topic">
         <div className="space-y-3 font-bold">
           <div className="flex items-center">
-            <Checkbox id="topic-react" className="mr-3" />
+            <Checkbox 
+              id="topic-react" 
+              className="mr-3" 
+              checked={selectedTopics.includes('topic-react')}
+              onCheckedChange={(checked) => handleTopicChange('topic-react', checked as boolean)}
+            />
             <label htmlFor="topic-react">React JS (838)</label>
           </div>
           
@@ -395,7 +503,12 @@ function FilterContent() {
             <>
               {additionalTopics.map(topic => (
                 <div key={topic.id} className="flex items-center">
-                  <Checkbox id={topic.id} className="mr-3" />
+                  <Checkbox 
+                    id={topic.id} 
+                    className="mr-3" 
+                    checked={selectedTopics.includes(topic.id)}
+                    onCheckedChange={(checked) => handleTopicChange(topic.id, checked as boolean)}
+                  />
                   <label htmlFor={topic.id}>{topic.label}</label>
                 </div>
               ))}
@@ -416,30 +529,61 @@ function FilterContent() {
 }
 
 
-export function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
+export function CourseCard({ course, progress = false }: { 
+  course: Course | {
+    id: string | number;
+    title: string;
+    description: string;
+    students?: number;
+    duration?: number;
+    progress?: number;
+    price?: number;
+    originalPrice?: number;
+    image?: string;
+    thumbnailUrl?: string;
+    pricing?: string;
+    members?: Array<{ role: string }>;
+  }; 
+  progress?: boolean 
+}) {
+  // Calculate student count - handle both interfaces
+  const studentCount = course.members 
+    ? course.members.filter(m => m.role === 'student').length 
+    : (course as any).students || 0;
+  
+  // Calculate course duration - handle both interfaces
+  const courseDuration = course.members 
+    ? calculateCourseDuration(course as Course)
+    : (course as any).duration || 0;
+  
+  // Get image source - handle both interfaces
+  const imageSrc = (course as any).thumbnailUrl || (course as any).image || "Images/courses/default-course.jpg";
+  
+  // Get pricing - handle both interfaces
+  const pricing = (course as any).pricing || (course as any).price;
+  const isFree = pricing === "Free" || pricing === "0" || pricing === 0;
+  
   return (
     <div className="course-card overflow-hidden" onClick={() => {
       if(course.progress){
         window.location.href = '/#/learner/current-course';
       }else{
-      window.location.href = '/#/courseDetails';
-    }
+        // Navigate to course details with the course ID
+        window.location.hash = `#/courseDetails?courseId=${course.id}`;
+        window.location.reload();
+      }
     }}>
       <div className="relative">
-        <img src={course.image} alt={course.title} />
-
+        <img src={imageSrc} alt={course.title} />
       </div>
 
       <div className="course-details-section">
         <div className="course-students">
           <div className=" py-0.5 flex gap-2 items-center">
-            {/* <User2 size={16}/> */}
-            <span>{course.students} Students</span>
+            <span>{studentCount} Students</span>
           </div>
-          {/* <Divider/> */}
           <div className="py-0.5 flex items-center gap-2">
-            {/* <Clock size={16}/> */}
-            <span>{course.duration} Weeks</span>
+            <span>{courseDuration} {course.members ? 'Hours' : 'Weeks'}</span>
           </div>
         </div>
         <h3 className="course-title">{course.title}</h3>
@@ -457,20 +601,18 @@ export function CourseCard({ course, progress = false }: { course: Course; progr
           </div>
         )}
 
-        {course.price !== undefined && (
-          <div className="course-price-section">
-            {course.price === 0 ? (
-              <span className="price-free">Free</span>
-            ) : (
-              <div>
-                <span className="course-price">Included in Subscription</span>
-                {/* {course.originalPrice && (
-                    <span className="course-original-price">₹{course.originalPrice}</span>
-                  )} */}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="course-price-section">
+          {isFree ? (
+            <span className="price-free">Free</span>
+          ) : (
+            <div>
+              <span className="course-price">₹{pricing}</span>
+              {(course as any).originalPrice && (
+                <span className="course-original-price">₹{(course as any).originalPrice}</span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
