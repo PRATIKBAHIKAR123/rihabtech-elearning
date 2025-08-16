@@ -787,7 +787,7 @@ export default function CourseDetails() {
 
         </div>
       </section>
-      <SuggestedCourses/>
+      <SuggestedCourses courses={availableCourses} currentCourseId={course.id} />
       <CartModal 
         isOpen={isCartModalOpen}
         setIsOpen={setIsCartModalOpen}
