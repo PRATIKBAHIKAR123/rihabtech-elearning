@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Video, FileText } from 'lucide-react';
+import { Course } from '../../../utils/firebaseCourses';
 
 interface Lecture {
   title: string;
@@ -14,40 +15,11 @@ interface Section {
   totalDuration: string;
 }
 
-const courseSections: Section[] = [
-  {
-    title: 'Front-End Web Development',
-    totalDuration: '37min',
-    lectures: [
-      { title: "What You'll Get in This Course", type: 'video', duration: '03:08', preview: true },
-      { title: 'Download the Course Syllabus', type: 'file', duration: '00:12', preview: true },
-      { title: 'Download the 12 Rules to Learn to Code eBook [Latest Edition]', type: 'file', duration: '00:42' },
-      { title: 'Download the Required Software', type: 'file', duration: '00:43' },
-      { title: 'How Does the Internet Actually Work?', type: 'video', duration: '05:27', preview: true },
-      { title: 'How Do Websites Actually Work?', type: 'video', duration: '08:22', preview: true },
-      { title: 'How to Get the Most Out of the Course', type: 'video', duration: '09:33' },
-      { title: "How to Get Help When You're Stuck", type: 'video', duration: '06:39' },
-      { title: 'Pathfinder', type: 'file', duration: '02:23' },
-    ],
-  },
-  {
-    title: 'Introduction to HTML',
-    totalDuration: '49min',
-    lectures: Array(8).fill({ title: 'Sample Lecture', type: 'video', duration: '06:00' }),
-  },
-  {
-    title: 'Intermediate HTML',
-    totalDuration: '52min',
-    lectures: Array(7).fill({ title: 'Sample Lecture', type: 'video', duration: '07:00' }),
-  },
-  {
-    title: 'Multi-Page Websites',
-    totalDuration: '1hr 10min',
-    lectures: Array(7).fill({ title: 'Sample Lecture', type: 'video', duration: '10:00' }),
-  },
-];
+interface CurriculumProps {
+  course: Course;
+}
 
-export default function Curriculum() {
+export default function Curriculum({ course }: CurriculumProps) {
   const [openSections, setOpenSections] = useState<number[]>([0]);
 
   const toggleSection = (index: number) => {
@@ -55,6 +27,66 @@ export default function Curriculum() {
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
   };
+
+  // Transform Firebase curriculum data to match the expected format
+  const transformCurriculumData = (): Section[] => {
+    if (!course.curriculum?.sections || course.curriculum.sections.length === 0) {
+      // Return default sections if no curriculum data
+      return [
+        {
+          title: 'Course Content',
+          totalDuration: '0min',
+          lectures: [
+            { title: 'No curriculum available yet', type: 'file' as const, duration: '00:00' }
+          ],
+        }
+      ];
+    }
+
+    return course.curriculum.sections.map((section, index) => {
+      // Calculate total duration for this section
+      let totalDurationSeconds = 0;
+      if (section.items) {
+        section.items.forEach(item => {
+          if (item.contentFiles && item.contentFiles[0]?.duration) {
+            totalDurationSeconds += Math.round(item.contentFiles[0].duration); // Round each duration
+          }
+        });
+      }
+      
+      const totalDuration = totalDurationSeconds > 0 
+        ? Math.round(totalDurationSeconds / 60) + 'min'
+        : '0min';
+
+      // Transform items to lectures
+      const lectures: Lecture[] = section.items ? section.items.map(item => {
+        const contentType = item.contentType === 'video' ? 'video' : 'file';
+        let duration = '00:00';
+        
+        if (item.contentFiles && item.contentFiles[0]?.duration) {
+          const totalSeconds = Math.round(item.contentFiles[0].duration); // Round to nearest second
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        return {
+          title: item.lectureName || 'Untitled Lecture',
+          type: contentType,
+          duration: duration,
+          preview: item.published || false
+        };
+      }) : [];
+
+      return {
+        title: section.name || `Section ${index + 1}`,
+        lectures: lectures,
+        totalDuration: totalDuration
+      };
+    });
+  };
+
+  const courseSections = transformCurriculumData();
 
   return (
     <div className="w-full max-w-3xl mx-auto text-sm">

@@ -55,7 +55,7 @@ export const calculateCourseDuration = (course: Course): number => {
         if (item.published && item.contentFiles) {
           item.contentFiles.forEach(file => {
             if (file.duration) {
-              totalDuration += file.duration;
+              totalDuration += Math.round(file.duration); // Round to nearest second
             }
           });
         }
@@ -63,8 +63,9 @@ export const calculateCourseDuration = (course: Course): number => {
     }
   });
 
-  // Convert seconds to hours and round to nearest hour
-  return Math.round(totalDuration / 3600);
+  // Convert seconds to hours and round to nearest 0.1 hour
+  const hours = totalDuration / 3600;
+  return Math.round(hours * 10) / 10; // Round to 1 decimal place
 };
 
 // Get all courses without any filters
