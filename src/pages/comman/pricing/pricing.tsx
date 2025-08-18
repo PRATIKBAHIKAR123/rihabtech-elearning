@@ -3,6 +3,10 @@ import TrustAndEducationSections from "../landingPage/trustedcustomers";
 import BestEducationSections from "../landingPage/besteducation";
 import NewCourses from "./new-courses";
 import PracticeAdvice from "./besteducation";
+import { useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
+import { toast } from "sonner";
+import CheckoutModal from "../../../components/ui/CheckoutModal";
 
 type Feature = {
     text: string;
@@ -95,36 +99,55 @@ type PricingPlan = {
 
 
     export default function Pricing() {
+        const { user } = useAuth();
+        const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+        const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+
+        // Handle subscription purchase
+        const handleStartSubscription = (plan: PricingPlan) => {
+            if (!user) {
+                toast.error('Please log in to purchase a subscription');
+                window.location.hash = '#/login';
+                return;
+            }
+
+            // Set selected plan and open checkout modal
+            setSelectedPlan(plan);
+            setIsCheckoutModalOpen(true);
+        };
+
+        // Convert plan to course format for checkout modal
+        const getPlanAsCourse = (plan: PricingPlan) => {
+            if (!plan) return null;
+            
+            // Extract numeric price from string like "₹5000"
+            const numericPrice = plan.price.replace('₹', '').replace(',', '');
+            
+            return {
+                id: `subscription-${plan.id}`,
+                title: `${plan.name} Subscription - ${plan.duration}`,
+                pricing: numericPrice,
+                thumbnailUrl: "Images/icons/course-Icon.png",
+                description: `${plan.description} - Full access to all courses and features for ${plan.duration.toLowerCase()}.`
+            };
+        };
+
         return (
             <div className="flex flex-col min-h-screen">
                 <h1 className="banner-section-title text-center my-12">
                     Choose the plan that fits your needs.
                 </h1>
+                
+
                 <section className="p-4 md:px-16">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:-gap-8">
                         {pricingPlans.map((plan) => (
                             <div
                                 key={plan.id}
-                                className={`rounded-3xl p-16 cursor-pointer ${plan.highlighted
+                                className={`rounded-3xl p-16 ${plan.highlighted
                                         ? 'bg-white rounded-[44px] shadow-[0px_24px_83px_0px_rgba(0,0,0,0.10)] shadow-[0px_5px_18px_0px_rgba(0,0,0,0.06)] shadow-[0px_2px_6px_0px_rgba(0,0,0,0.04)] transform md:scale-105 z-10'
                                         : 'bg-orange-50 rounded-[44px]'
                                     }`}
-                                    onMouseEnter={(e) => {
-                                        if (!plan.highlighted) {
-                                            plan.highlighted = true;
-                                            e.currentTarget.classList.add('bg-white', 'shadow-xl', 'transform', 'scale-105', 'z-10');
-                                        }else{
-                                            plan.highlighted = false;
-                                            e.currentTarget.classList.remove('bg-white', 'shadow-xl', 'transform', 'scale-105', 'z-10');
-                                        }
-                                    }}
-
-                                    onMouseLeave={(e => {
-                                        if (plan.highlighted) {
-                                            plan.highlighted = false;
-                                            e.currentTarget.classList.remove('bg-white', 'shadow-xl', 'transform', 'scale-105', 'z-10');
-                                        }
-                                    })}
                             >
                                 {/* <h2 className={`text-3xl font-bold ${plan.highlighted ? 'text-gray-900' : 'text-purple-900'}`}>
                                     {plan.name}
@@ -137,7 +160,10 @@ type PricingPlan = {
                                     </h3>
                                 </div>
 
-                                <button className="mt-6 bg-primary border border-4 border-[#EFF0FF] text-white py-3 px-6 rounded-full font-medium hover:shadow-lg transition duration-300">
+                                <button 
+                                    className="mt-6 bg-primary border border-4 border-[#EFF0FF] text-white py-3 px-6 rounded-full font-medium hover:shadow-lg transition duration-300"
+                                    onClick={() => handleStartSubscription(plan)}
+                                >
                                     Start Subscription
                                 </button>
 
@@ -179,6 +205,18 @@ type PricingPlan = {
       <PracticeAdvice/>
 
       <NewCourses/>
+
+      {/* Checkout Modal */}
+      {selectedPlan && (
+        <CheckoutModal
+          isOpen={isCheckoutModalOpen}
+          onClose={() => {
+            setIsCheckoutModalOpen(false);
+            setSelectedPlan(null);
+          }}
+          course={getPlanAsCourse(selectedPlan)!}
+        />
+      )}
             </div>
         )
     }

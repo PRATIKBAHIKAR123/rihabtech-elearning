@@ -5,6 +5,7 @@ import { Button } from "../../../components/ui/button";
 import SuggestedCourses from "./courses";
 import Curriculum from "./coursecurriculam";
 import CartModal from "../../../modals/cartModal";
+import CheckoutModal from "../../../components/ui/CheckoutModal";
 import React, { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
@@ -12,6 +13,9 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { Course, calculateCourseDuration } from "../../../utils/firebaseCourses";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useAuth } from "../../../context/AuthContext";
+import { isUserEnrolledInCourse } from "../../../utils/paymentService";
+import { toast } from "sonner";
 
 // Extended Course interface with additional properties from Firebase
 interface ExtendedCourse extends Course {
@@ -23,10 +27,14 @@ interface ExtendedCourse extends Course {
 
 export default function CourseDetails() {
   const [isCartModalOpen, setIsCartModalOpen] = React.useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = React.useState(false);
   const [course, setCourse] = useState<ExtendedCourse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableCourses, setAvailableCourses] = useState<ExtendedCourse[]>([]);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   
   // Get course ID from multiple sources
   const { courseId } = useParams<{ courseId: string }>();
@@ -76,6 +84,21 @@ export default function CourseDetails() {
     }
   };
   
+  // Check enrollment status
+  const checkEnrollmentStatus = async (courseId: string) => {
+    if (!user) return;
+    
+    setCheckingEnrollment(true);
+    try {
+      const enrolled = await isUserEnrolledInCourse(courseId, user.uid);
+      setIsEnrolled(enrolled);
+    } catch (error) {
+      console.error('Error checking enrollment:', error);
+    } finally {
+      setCheckingEnrollment(false);
+    }
+  };
+
   // Fetch course data from Firebase
   useEffect(() => {
     const fetchCourse = async () => {
@@ -95,10 +118,16 @@ export default function CourseDetails() {
 
         if (courseSnap.exists()) {
           const courseData = courseSnap.data() as ExtendedCourse;
-          setCourse({
+          const courseWithId = {
             ...courseData,
             id: courseSnap.id
-          });
+          };
+          setCourse(courseWithId);
+          
+          // Check enrollment status
+          if (user) {
+            await checkEnrollmentStatus(courseWithId.id);
+          }
         } else {
           setError("Course not found");
         }
@@ -111,7 +140,7 @@ export default function CourseDetails() {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, user]);
 
   // Function to count students (members with student role)
   const countStudents = (members?: Course['members']): number => {
@@ -179,6 +208,101 @@ export default function CourseDetails() {
     }
     
     return "Duration not available";
+  };
+
+  // Handle Buy Now click
+  const handleBuyNow = () => {
+    if (!user) {
+      toast.error('Please log in to purchase this course');
+      window.location.hash = '#/login';
+      return;
+    }
+
+    if (isEnrolled) {
+      toast.info('You are already enrolled in this course');
+      window.location.hash = '#/learner/my-learnings';
+      return;
+    }
+
+    // Check if this is a subscription-based course
+    if (course?.pricing === "paid") {
+      // Redirect to pricing page for subscription selection
+      window.location.hash = '#/pricing';
+      return;
+    }
+
+    // For direct purchase courses (Free or specific price)
+    setIsCheckoutModalOpen(true);
+  };
+
+  // Handle Go to Course (for enrolled users)
+  const handleGoToCourse = () => {
+    if (!user) {
+      toast.error('Please log in to access your courses');
+      return;
+    }
+    
+    window.location.hash = '#/learner/current-course?courseId=' + course?.id;
+  };
+
+  // Get button text and action
+  const getButtonConfig = () => {
+
+    // Show loading state while auth is loading
+    if (authLoading) {
+      return {
+        text: "Loading...",
+        action: () => {},
+        disabled: true,
+        variant: "default" as const
+      };
+    }
+
+    if (!user) {
+      return {
+        text: course?.pricing === "Free" ? "Login to Enroll" : "Login to Buy",
+        action: () => {
+          window.location.hash = '#/login';
+        },
+        disabled: false,
+        variant: "default" as const
+      };
+    }
+
+    if (checkingEnrollment) {
+      return {
+        text: "Checking...",
+        action: () => {},
+        disabled: true,
+        variant: "default" as const
+      };
+    }
+
+    if (isEnrolled) {
+      return {
+        text: "Go to Course",
+        action: handleGoToCourse,
+        disabled: false,
+        variant: "outline" as const
+      };
+    }
+
+    // Determine button text based on pricing type
+    let buttonText = "Buy Now";
+    if (course?.pricing === "Free") {
+      buttonText = "Enroll Now";
+    } else if (course?.pricing === "paid") {
+      buttonText = "Buy Now"; // Will redirect to pricing page
+    } else {
+      buttonText = `Buy for ₹${course?.pricing}`;
+    }
+
+    return {
+      text: buttonText,
+      action: handleBuyNow,
+      disabled: false,
+      variant: "default" as const
+    };
   };
 
   // Loading state
@@ -710,7 +834,7 @@ export default function CourseDetails() {
         <img src="Images/icons/course-Icon.png" className="h-6" /> Price:
       </span>
       <span className="text-primary text-lg font-semibold font-['Poppins'] leading-[34.60px] font-semibold">
-        {course.pricing === "Free" ? "Free" : `₹${course.pricing}`}
+        {course.pricing === "Free" ? "Free" : course.pricing === "paid" ? "₹paid" : `₹${course.pricing}`}
       </span>
     </li>
     <hr className="w-full bg-[#E5E5E5]" />
@@ -770,9 +894,19 @@ export default function CourseDetails() {
   </ul>
 </div>
 
-              <Button className="w-full py-6 text-sm font-normal font-['Spartan'] text-white" onClick={() => {window.location.hash = '#/pricing'}}>
-                {course.pricing === "Free" ? "Start Learning" : "Buy Now"}
-              </Button>
+              {(() => {
+                const buttonConfig = getButtonConfig();
+                return (
+                  <Button 
+                    className="w-full py-6 text-sm font-normal font-['Spartan'] text-white" 
+                    variant={buttonConfig.variant}
+                    onClick={buttonConfig.action}
+                    disabled={buttonConfig.disabled}
+                  >
+                    {buttonConfig.text}
+                  </Button>
+                );
+              })()}
 
               <div className="mt-6">
                 <p className="details-title mb-2">Share On:</p>
@@ -793,6 +927,21 @@ export default function CourseDetails() {
         setIsOpen={setIsCartModalOpen}
         cartItem={sampleCartItem}
       />
+      
+      {/* Checkout Modal */}
+      {course && (
+        <CheckoutModal
+          isOpen={isCheckoutModalOpen}
+          onClose={() => setIsCheckoutModalOpen(false)}
+          course={{
+            id: course.id,
+            title: course.title,
+            pricing: course.pricing,
+            thumbnailUrl: course.thumbnailUrl,
+            description: course.description
+          }}
+        />
+      )}
         </div>
     )
 }

@@ -15,6 +15,8 @@ import ProfilePaymentMethod from './profile/payment-method';
 import Profile from './profile/page';
 import QuizPage from './playingcourse/quizPageQn';
 import NotificationList from './notifications/page';
+import PaymentSuccess from './payment-success/PaymentSuccess';
+import OrderHistory from './orders/OrderHistory';
 
 export default function LearnerRoutes() {
   return (
@@ -35,6 +37,8 @@ export default function LearnerRoutes() {
       <Route path="profile/profile-photo" element={<ProfilePhoto />} />
       <Route path="profile/terms-of-use" element={<TermsOfUse />} />
       <Route path="notifications" element={<NotificationList />} />
+      <Route path="payment-success" element={<PaymentSuccess />} />
+      <Route path="order-history" element={<OrderHistory />} />
     </Routes>
   );
 }
