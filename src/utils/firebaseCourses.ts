@@ -21,9 +21,11 @@ export interface Course {
   approvedAt?: string;
   curriculum?: {
     sections: Array<{
+      id?: string;
       name: string;
       published: boolean;
       items: Array<{
+        id?: string;
         contentType: string;
         lectureName: string;
         description: string;
