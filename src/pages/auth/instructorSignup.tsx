@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { setDoc, doc, getDocs, query, where, collection } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../lib/api';
 // import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 export default function InstructorSignupPage() {
@@ -36,36 +37,36 @@ export default function InstructorSignupPage() {
         // Check if user already applied
         const userEmail = userData.UserName || userData.email;
         console.log('Checking for existing applications with email:', userEmail);
-        
+
         if (userEmail) {
           // Check both possible field names (userEmail and instructorId)
           const q1 = query(
-            collection(db, 'instructor_requests'), 
+            collection(db, 'instructor_requests'),
             where('userEmail', '==', userEmail)
           );
           const q2 = query(
-            collection(db, 'instructor_requests'), 
+            collection(db, 'instructor_requests'),
             where('instructorId', '==', userEmail)
           );
-          
+
           const [querySnapshot1, querySnapshot2] = await Promise.all([
             getDocs(q1),
             getDocs(q2)
           ]);
-          
+
           console.log('Query results:', {
             userEmailQuery: querySnapshot1.size,
             instructorIdQuery: querySnapshot2.size
           });
-          
+
           if (!querySnapshot1.empty || !querySnapshot2.empty) {
             // User already applied, redirect to success page
-            const existingApplication = (!querySnapshot1.empty 
-              ? querySnapshot1.docs[0].data() 
+            const existingApplication = (!querySnapshot1.empty
+              ? querySnapshot1.docs[0].data()
               : querySnapshot2.docs[0].data());
-            
+
             console.log('Existing application found:', existingApplication);
-            
+
             // Store application status in localStorage
             localStorage.setItem('instructorApplicationStatus', JSON.stringify({
               status: existingApplication.status,
@@ -73,7 +74,7 @@ export default function InstructorSignupPage() {
               email: userEmail,
               applicationId: existingApplication.applicationId || 'unknown'
             }));
-            
+
             toast.info('You have already applied to become an instructor');
             setTimeout(() => {
               navigate('/instructor-signup-success');
@@ -81,7 +82,7 @@ export default function InstructorSignupPage() {
             return;
           }
         }
-        
+
         console.log('No existing application found, showing signup form');
       } catch (error) {
         console.error('Error checking application status:', error);
@@ -102,6 +103,7 @@ export default function InstructorSignupPage() {
     initialValues: {
       experties: '',
       topic: '',
+      bio: '',
       adhaarnumber: '',
       PANnumber: '',
     },
@@ -114,6 +116,12 @@ export default function InstructorSignupPage() {
       PANnumber: Yup.string()
         .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN Number must be 10 characters (e.g. ABCDE1234F)')
         .required('PAN Number is required'),
+      // bankName: Yup.string().required('Bank Name is required'),
+      // bankBranch: Yup.string().required('Bank Branch is required'),
+      // bankAccountNo: Yup.string().required('Bank Account Number is required'),
+      // bankIFSCCode: Yup.string()
+      //   .matches(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'IFSC Code must be in correct format (e.g. SBIN0123456)')
+      //   .required('Bank IFSC Code is required'),
     }),
     onSubmit: async (values, { setSubmitting, setErrors }) => {
       if (!aadharImage || !panImage) {
@@ -134,47 +142,73 @@ export default function InstructorSignupPage() {
       setLoading(true);
       try {
         const userEmail = userInfo.UserName || userInfo.email;
-        const userName = userInfo.Name || userInfo.name || 'Unknown User';
-        
-        // Create request ID using user email and timestamp
-        const requestId = `${userEmail.replace('@', '_').replace('.', '_')}_${Date.now()}`;
-        
-        // Store instructor request with user information
-        await setDoc(doc(db, 'instructor_requests', requestId), {
-          // User Information
-          userEmail: userEmail,
-          userName: userName,
-          userToken: userInfo.AccessToken || '',
-          instructorId: userEmail, // Add instructorId field for admin panel compatibility
-          
-          // Application Data
-          experties: values.experties,
-          topic: values.topic,
-          adhaarnumber: values.adhaarnumber,
-          PANnumber: values.PANnumber,
-          aadharImage: 'skipped-for-now', // TODO: Implement file upload
-          panImage: 'skipped-for-now', // TODO: Implement file upload
-          
-          // Status and Metadata
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          
-          // Additional fields for admin reference
-          role: 'instructor',
-          applicationId: requestId
+        const userId = userInfo.Id || userInfo.id || 0;
+
+        // Create FormData for multipart/form-data submission
+        const formData = new FormData();
+
+        // Add form fields
+        formData.append('areaOfExpertise', values.experties);
+        formData.append('teachingTopics', values.topic);
+        formData.append('bio', values.bio);
+        formData.append('panNo', values.PANnumber);
+        formData.append('aadhaarNo', values.adhaarnumber);
+        formData.append('bankName', "");
+        formData.append('bankBranch', "");
+        formData.append('bankAccountNo', "");
+        formData.append('bankIFSCCode', "");
+        formData.append('id', "");
+
+        // Convert base64 images to files and append
+        if (aadharImage) {
+          const aadharBlob = await fetch(aadharImage).then(r => r.blob());
+          formData.append('aadhaarNoFile', aadharBlob, 'aadhaar.jpg');
+        }
+
+        if (panImage) {
+          const panBlob = await fetch(panImage).then(r => r.blob());
+          formData.append('panNoFile', panBlob, 'pan.jpg');
+        }
+
+        // Get token for authorization
+        const token = userInfo.AccessToken;
+        const headers: HeadersInit = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}instructor/register`, {
+          method: 'POST',
+          headers,
+          body: formData,
         });
 
-        // Store application status in localStorage
-        localStorage.setItem('instructorApplicationStatus', JSON.stringify({
-          status: 'pending',
-          appliedAt: new Date().toISOString(),
-          email: userEmail,
-          applicationId: requestId
-        }));
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          data = await response.text();
+        }
 
-        toast.success('Your request has been sent to admin.');
-        navigate('/instructor-signup-success');
+        if (response.ok) {
+          toast.success('Your instructor registration has been submitted successfully!');
+
+          // Store application status in localStorage
+          localStorage.setItem('instructorApplicationStatus', JSON.stringify({
+            status: 'pending',
+            appliedAt: new Date().toISOString(),
+            email: userEmail,
+            applicationId: `instructor_${userId}_${Date.now()}`
+          }));
+
+          navigate('/instructor-signup-success');
+        } else {
+          const errorMsg = typeof data === 'string'
+            ? data
+            : data.message || data.error || data.msg || 'Registration failed. Please try again.';
+          toast.error(errorMsg);
+        }
       } catch (error: any) {
         console.error('Submission error:', error);
         toast.error(error.message || 'Submission failed. Please try again.');
@@ -267,6 +301,26 @@ export default function InstructorSignupPage() {
                 )}
               </div>
             </div>
+
+            <div>
+              <label htmlFor="bio" className="text-sm text-gray-600 block mb-1">
+                Bio
+              </label>
+              <textarea
+                id="bio"
+                name="bio"
+                rows={3}
+                placeholder="Tell us about yourself, your experience, and what makes you a great instructor..."
+                value={signupSchema.values.bio}
+                onChange={signupSchema.handleChange}
+                onBlur={signupSchema.handleBlur}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-vertical"
+              />
+              {signupSchema.touched.bio && signupSchema.errors.bio && (
+                <div className="text-red-500 text-xs mt-1">{signupSchema.errors.bio}</div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
                 <label htmlFor="aadharImage" className="text-sm text-gray-600 block mb-1">
@@ -395,6 +449,7 @@ export default function InstructorSignupPage() {
                 )}
               </div>
             </div>
+
             <Button
               className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4"
               type="submit"
