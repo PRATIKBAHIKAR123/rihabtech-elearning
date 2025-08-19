@@ -1,195 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { API_BASE_URL } from '../../../lib/api';
+import GradientHeader from '../../../components/ui/GradientHeader';
+import LoadingIcon from '../../../components/ui/LoadingIcon';
+import BankDetails from './bankDetails';
+import ProfilePhoto from './profilePhoto';
+import AccountSettings from './accountSettings';
+import InstructorEditProfile from './editProfile';
+import InstructorApplication from './instructorApplication';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from "../../../components/ui/dialog";
+import { Button } from '../../../components/ui/button';
 
 const InstructorProfile: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('profile');
   const [user, setUser] = useState<any>(null);
-  const [hasApplied, setHasApplied] = useState(false);
-  const [applicationStatus, setApplicationStatus] = useState<string>('');
-  const [applicationId, setApplicationId] = useState<string>('');
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    experties: '',
-    topic: '',
-    PANnumber: '',
-    adhaarnumber: '',
-    aadharImage: 'skipped-for-now',
-    panImage: 'skipped-for-now',
-  });
 
   useEffect(() => {
-    // Get user data from localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const userData = JSON.parse(token);
-        setUser(userData);
-        if (userData.UserName) {
-          checkExistingApplication(userData.UserName);
-        } else {
-          setLoading(false);
+    const fetchUserAndProfile = async () => {
+      // Get user data from localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const userData = JSON.parse(token);
+          setUser(userData);
+
+          // Fetch profile data from API
+          if (userData?.AccessToken) {
+            try {
+              const response = await fetch(`${API_BASE_URL}user-profile`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${userData.AccessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                const profileData = await response.json();
+                console.log('Profile data fetched in main component:', profileData);
+                setProfile(profileData);
+              } else {
+                console.error('Failed to fetch profile data');
+              }
+            } catch (err) {
+              console.error('Error fetching profile:', err);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing user data:', error);
         }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        setLoading(false);
       }
-    } else {
       setLoading(false);
-    }
-  }, []);
-
-  const checkExistingApplication = async (userEmail: string) => {
-    try {
-      console.log('Checking for existing applications for:', userEmail);
-      
-      // Ensure we have a valid email
-      if (!userEmail || typeof userEmail !== 'string') {
-        console.log('Invalid email provided');
-        setLoading(false);
-        return;
-      }
-
-      // Query Firebase for existing applications with proper error handling
-      const instructorRequestsRef = collection(db, 'instructor_requests');
-      const q = query(
-        instructorRequestsRef,
-        where('userEmail', '==', userEmail)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const data = doc.data();
-        console.log('Found existing application:', data);
-        
-        setHasApplied(true);
-        setApplicationStatus(data.status || 'pending');
-        setApplicationId(doc.id);
-      } else {
-        console.log('No existing application found');
-        setHasApplied(false);
-      }
-    } catch (error) {
-      console.error('Error checking existing applications:', error);
-      // Don't show error to user for this check, just log it
-      setHasApplied(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user || !user.UserName) {
-      toast.error('Please log in to apply as an instructor');
-      return;
-    }
-
-    if (hasApplied) {
-      toast.info('You have already applied to become an instructor');
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      // Validate required fields
-      if (!formData.experties || !formData.topic || !formData.PANnumber || !formData.adhaarnumber) {
-        toast.error('Please fill in all required fields');
-        setSubmitting(false);
-        return;
-      }
-
-      // Validate PAN format
-      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-      if (!panRegex.test(formData.PANnumber)) {
-        toast.error('Please enter a valid PAN number (e.g., ABCDE1234F)');
-        setSubmitting(false);
-        return;
-      }
-
-      // Validate Aadhar format
-      const aadharRegex = /^[0-9]{12}$/;
-      if (!aadharRegex.test(formData.adhaarnumber)) {
-        toast.error('Please enter a valid 12-digit Aadhar number');
-        setSubmitting(false);
-        return;
-      }
-
-      // Create instructor request document
-      const instructorRequest = {
-        userEmail: user.UserName,
-        instructorId: user.UserName, // Using email as instructorId for consistency
-        userName: user.Name || '',
-        experties: formData.experties.trim(),
-        topic: formData.topic.trim(),
-        PANnumber: formData.PANnumber.toUpperCase().trim(),
-        adhaarnumber: formData.adhaarnumber.trim(),
-        aadharImage: formData.aadharImage,
-        panImage: formData.panImage,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      console.log('Submitting instructor request:', instructorRequest);
-
-      // Save to Firebase with proper error handling
-      const docRef = await addDoc(collection(db, 'instructor_requests'), instructorRequest);
-      console.log('Document written with ID: ', docRef.id);
-
-      // Update local state
-      setHasApplied(true);
-      setApplicationStatus('pending');
-      setApplicationId(docRef.id);
-
-      toast.success('Your instructor application has been submitted successfully!');
-      
-      // Clear form
-      setFormData({
-        experties: '',
-        topic: '',
-        PANnumber: '',
-        adhaarnumber: '',
-        aadharImage: 'skipped-for-now',
-        panImage: 'skipped-for-now',
-      });
-
-    } catch (error) {
-      console.error('Error submitting application:', error);
-      toast.error('Failed to submit application. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusClasses = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800'
     };
 
-    return (
-      <span className={`px-2 py-1 rounded-full text-sm font-medium ${statusClasses[status as keyof typeof statusClasses] || statusClasses.pending}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
+    fetchUserAndProfile();
+  }, []);
+
+
+
+  const handleLogOutClick = async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('instructorApplicationStatus');
+    toast.success('Logged out successfully');
+    window.location.href = '/';
   };
+
+  const sidebarItems = [
+    { label: 'Profile', tab: 'profile' },
+    { label: 'Profile Photo', tab: 'profile-photo' },
+    { label: 'Bank Details', tab: 'bank-details' },
+    { label: 'Instructor Application', tab: 'instructor-application' },
+    { label: 'Account & Security', tab: 'account&security' },
+  ];
+
+
 
   if (loading) {
     return (
@@ -220,160 +106,88 @@ const InstructorProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Instructor Profile</h1>
-          <p className="text-gray-600">Welcome, {user.Name}</p>
-          <p className="text-sm text-gray-500">{user.UserName}</p>
-        </div>
-
-        {/* Application Status */}
-        {hasApplied ? (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Status</h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 mb-2">Your instructor application has been submitted.</p>
-                <p className="text-sm text-gray-500">Application ID: {applicationId}</p>
-              </div>
-              <div className="text-right">
-                {getStatusBadge(applicationStatus)}
-              </div>
+    <div className="public-profile-root min-h-screen">
+      <GradientHeader subtitle="My Profile / Instructor" title={loading ? <LoadingIcon className="inline-block" /> : (profile?.name || user?.Name || "Instructor Profile")} />
+      <div className="container flex flex-col md:flex-row">
+        <div className="public-profile-content">
+          <aside className="w-full md:w-80 max-w-xs mb-2">
+            <div className="bg-white rounded-none md:rounded-xl border border-[#E6E6E6] shadow-sm">
+              <nav
+                className="
+                  flex w-full
+                  flex-row md:flex-col
+                  overflow-x-auto md:overflow-x-hidden
+                  overflow-y-hidden md:overflow-y-auto
+                  scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100
+                "
+              >
+                {sidebarItems.map((item, index) => (
+                  <a
+                    key={item.label}
+                    onClick={() => setActiveTab(item.tab)}
+                    className={`
+                      flex-shrink-0
+                      px-4 md:px-6 py-3 md:py-4
+                      text-base font-barlow transition-colors duration-150
+                      ${activeTab === item.tab
+                        ? 'text-primary font-bold bg-[#fff7ef]'
+                        : 'text-[#222] font-medium hover:bg-[#f8f8f8]'}
+                      ${index !== sidebarItems.length - 1 ? 'md:border-b md:border-[#eee]' : ''}
+                      ${index !== sidebarItems.length - 1 ? 'border-r border-[#eee] md:border-r-0' : ''}
+                      text-center md:text-left
+                      min-w-[140px] md:min-w-0
+                      cursor-pointer
+                    `}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <a
+                      className="
+                        flex-shrink-0
+                        px-4 md:px-6 py-3 md:py-4
+                        text-base font-barlow transition-colors duration-150
+                        text-[#222] font-medium hover:bg-[#f8f8f8]
+                        text-center md:text-left
+                        min-w-[140px] md:min-w-0
+                        cursor-pointer
+                      "
+                    >
+                      Log Out
+                    </a>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Confirm Logout</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to log out? You will need to log in again to access your account.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button onClick={handleLogOutClick} className="bg-red-600 hover:bg-red-700 text-white">
+                        Log Out
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </nav>
             </div>
-            
-            {applicationStatus === 'pending' && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Your application is under review.</strong> We'll notify you once it's been processed by our admin team.
-                </p>
-              </div>
-            )}
-            
-            {applicationStatus === 'approved' && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-green-800 text-sm">
-                  <strong>Congratulations!</strong> Your instructor application has been approved. You can now start creating courses.
-                </p>
-                <button
-                  onClick={() => window.location.href = '/#/instructor/dashboard'}
-                  className="mt-2 bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700"
-                >
-                  Go to Instructor Dashboard
-                </button>
-              </div>
-            )}
-            
-            {applicationStatus === 'rejected' && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-800 text-sm">
-                  <strong>Application Not Approved.</strong> Unfortunately, your instructor application was not approved at this time. Please contact support for more information.
-                </p>
-              </div>
-            )}
+          </aside>
+        </div>
+        <div className="flex flex-col flex-1 gap-2 items-center w-full mb-2 relative">
+          <div className='w-full'>
+            {activeTab === 'profile' && user && <InstructorEditProfile user={user} />}
+            {activeTab === 'profile-photo' && <ProfilePhoto />}
+            {activeTab === 'bank-details' && <BankDetails />}
+            {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
+            {activeTab === 'account&security' && <AccountSettings />}
           </div>
-        ) : (
-          /* Application Form */
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Apply to Become an Instructor</h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="experties" className="block text-sm font-medium text-gray-700 mb-2">
-                    Expertise <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="experties"
-                    name="experties"
-                    value={formData.experties}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="e.g. Web Development, UI/UX Design"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-                    Teaching Topic <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="topic"
-                    name="topic"
-                    value={formData.topic}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="e.g. React, Figma, JavaScript"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="PANnumber" className="block text-sm font-medium text-gray-700 mb-2">
-                    PAN Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="PANnumber"
-                    name="PANnumber"
-                    value={formData.PANnumber}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="ABCDE1234F"
-                    maxLength={10}
-                    style={{ textTransform: 'uppercase' }}
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Format: ABCDE1234F</p>
-                </div>
-
-                <div>
-                  <label htmlFor="adhaarnumber" className="block text-sm font-medium text-gray-700 mb-2">
-                    Aadhar Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="adhaarnumber"
-                    name="adhaarnumber"
-                    value={formData.adhaarnumber}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="123456789012"
-                    maxLength={12}
-                    pattern="[0-9]{12}"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">12-digit Aadhar number</p>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">Document Upload</h3>
-                <p className="text-sm text-blue-700">
-                  Document upload functionality will be available after initial application approval. 
-                  For now, your application will be processed with the provided information.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-4">
-                <p className="text-sm text-gray-600">
-                  <span className="text-red-500">*</span> Required fields
-                </p>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Submitting...' : 'Submit Application'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
