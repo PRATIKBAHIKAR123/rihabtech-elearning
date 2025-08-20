@@ -225,6 +225,8 @@ const CourseSelection = () => {
         }else{
             localStorage.removeItem('addcourseType')
         }
+        // Clear any existing draftId when starting a new course
+        localStorage.removeItem('draftId');
         window.location.hash='#/instructor/course-title';
     }
     return (

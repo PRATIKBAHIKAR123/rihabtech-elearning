@@ -17,6 +17,9 @@ export interface PricingData {
 }
 
 export const savePricingData = async (data: PricingData) => {
+  if (!data.draftId) {
+    throw new Error("Draft ID is required");
+  }
   // Store pricing data under a course document
   const courseRef = doc(db, "courseDrafts", data.draftId);
   await setDoc(courseRef, {
@@ -27,6 +30,9 @@ export const savePricingData = async (data: PricingData) => {
 };
 
 export const getPricingData = async (courseId: string) => {
+  if (!courseId) {
+    return null;
+  }
   const courseRef = doc(db, "courseDrafts", courseId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {

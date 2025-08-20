@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import LoadingIcon from "../../../../components/ui/LoadingIcon";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock, RefreshCw, Eye, FileImage, FileVideo, FileText as FileTextIcon, FileSpreadsheet, FileIcon } from "lucide-react";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
@@ -20,7 +20,126 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../../../lib/cloudinary";
 
+// File type detection and icon mapping
+const getFileIcon = (fileName: string) => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  
+  if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension || '')) {
+    return <FileVideo size={16} className="text-blue-600" />;
+  } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+    return <FileImage size={16} className="text-green-600" />;
+  } else if (['pdf'].includes(extension || '')) {
+    return <FileTextIcon size={16} className="text-red-600" />;
+  } else if (['doc', 'docx'].includes(extension || '')) {
+    return <FileTextIcon size={16} className="text-blue-600" />;
+  } else if (['xls', 'xlsx'].includes(extension || '')) {
+    return <FileSpreadsheet size={16} className="text-green-600" />;
+  } else {
+    return <FileIcon size={16} className="text-gray-600" />;
+  }
+};
+
+// Helper function to determine MIME type for preview
+const getMimeTypeFromName = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'mp4': case 'avi': case 'mov': case 'wmv': case 'flv': case 'webm':
+      return 'video/' + (extension === 'mp4' ? 'mp4' : 'webm'); // Simplified
+    case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp':
+      return 'image/' + (extension === 'jpg' ? 'jpeg' : extension); // Simplified
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc': case 'docx':
+      return 'application/msword';
+    case 'xls': case 'xlsx':
+      return 'application/vnd.ms-excel';
+    default:
+      return 'application/octet-stream'; // Generic binary file
+  }
+};
+
+// File preview component
+const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) => {
+  const [showPreview, setShowPreview] = useState(false);
+  
+  const isVideo = file.type?.startsWith('video/') || file.name?.match(/\.(mp4|avi|mov|wmv|flv|webm)$/i);
+  const isImage = file.type?.startsWith('image/') || file.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  const isPDF = file.type === 'application/pdf' || file.name?.endsWith('.pdf');
+  const isDocument = file.type?.includes('document') || file.name?.match(/\.(doc|docx)$/i);
+  const isSpreadsheet = file.type?.includes('spreadsheet') || file.name?.match(/\.(xls|xlsx)$/i);
+  
+  const handlePreview = () => {
+    if (isVideo || isImage || isPDF) {
+      setShowPreview(true);
+    } else if (isDocument || isSpreadsheet) {
+      // For documents and spreadsheets, open in new tab or download
+      window.open(file.url, '_blank');
+    }
+  };
+  
+  return (
+    <>
+      <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
+        {getFileIcon(file.name)}
+        <span className="text-sm flex-1">{file.name}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="p-1 h-6 w-6"
+          onClick={handlePreview}
+          title="Preview file"
+        >
+          <Eye size={14} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="p-1 h-6 w-6 text-red-600"
+          onClick={onRemove}
+          title="Remove file"
+        >
+          <Trash2 size={14} />
+        </Button>
+      </div>
+      
+      {/* Preview Modal */}
+      {showPreview && (
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>{file.name}</DialogTitle>
+            </DialogHeader>
+            
+            <div className="mt-4">
+              {isVideo && (
+                <video controls className="w-full max-h-[70vh]">
+                  <source src={file.url} type={file.type} />
+                  Your browser does not support the video tag.
+                </video>
+              )}
+              
+              {isImage && (
+                <img src={file.url} alt={file.name} className="w-full max-h-[70vh] object-contain" />
+              )}
+              
+              {isPDF && (
+                <iframe
+                  src={file.url}
+                  className="w-full h-[70vh] border-0"
+                  title={file.name}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+};
 
 export interface Question {
   question: string;
@@ -33,13 +152,24 @@ export interface QuizItem {
   quizTitle: string;
   quizDescription: string;
   questions: Question[];
+  duration: number; // in minutes
+  resources?: {
+    name: string;
+    file: File;
+    url?: string;
+    cloudinaryUrl?: string;
+    cloudinaryPublicId?: string;
+    type: string;
+  }[];
 }
 
 type VideoStatus = 'uploaded' | 'uploading' | 'failed';
 
 interface VideoContent {
   file: File;
-  url: string;
+  url: string; // This will now store Cloudinary URL instead of blob URL
+  cloudinaryUrl?: string; // Permanent Cloudinary URL
+  cloudinaryPublicId?: string; // Cloudinary public ID for management
   name: string;
   duration?: number;
   status: VideoStatus;
@@ -61,6 +191,14 @@ export interface Assignment {
   duration: number; // in minutes
   totalMarks: number;
   questions: AssignmentQuestion[];
+  resources?: {
+    name: string;
+    file: File;
+    url?: string;
+    cloudinaryUrl?: string;
+    cloudinaryPublicId?: string;
+    type: string;
+  }[];
 }
 
 interface LectureItem {
@@ -75,10 +213,15 @@ interface LectureItem {
   resources: {
     name: string;
     file: File;
+    url?: string;
+    cloudinaryUrl?: string;
+    cloudinaryPublicId?: string;
+    type: string;
   }[];
   published: boolean; // Add published property
   description?: string; // Add description field
   isPromotional?: boolean; // Add promotional property for free videos
+  duration?: number; // Duration in seconds for external videos
 }
 
 export interface Section {
@@ -133,6 +276,7 @@ const getInitialQuiz = (): QuizItem => ({
       correctOption: [0],
     },
   ],
+  duration: 15, // Default duration of 15 minutes
 });
 const getInitialLecture = (index: number): LectureItem => ({
   type: "lecture",
@@ -147,6 +291,7 @@ const getInitialLecture = (index: number): LectureItem => ({
   published: false, // Default to unpublished
   description: "", // Add description field
   isPromotional: false, // Default to non-promotional
+  duration: 0, // Default duration for external videos
 });
 
 
@@ -260,6 +405,10 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [sectionIdx, setSectionIdx] = useState<number | null>(null);
   const [articleContent, setArticleContent] = useState('');
   const [coursePublished, setCoursePublished] = useState(false);
+  const [durationFetching, setDurationFetching] = useState<{ [key: string]: boolean }>({});
+  const [durationError, setDurationError] = useState<{ [key: string]: boolean }>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewContent, setPreviewContent] = useState<{ url: string; name: string; type: string } | null>(null);
 
   const initialValues: CurriculumFormValues = {
     sections: [
@@ -331,6 +480,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                   type: Yup.string().oneOf(["quiz"]).required(),
                   quizTitle: Yup.string().required("Quiz title is required"),
                   quizDescription: Yup.string().required("Quiz description is required"),
+                  duration: Yup.number()
+                    .min(1, "Duration must be at least 1 minute")
+                    .required("Duration is required"),
                   questions: Yup.array()
                     .of(
                       Yup.object({
@@ -453,7 +605,8 @@ export function CourseCarriculam({ onSubmit }: any) {
         type: 'quiz',
         quizTitle,
         quizDescription,
-        questions
+        questions,
+        duration: 15 // Default duration of 15 minutes
       });
     };
     reader.readAsArrayBuffer(file);
@@ -562,6 +715,7 @@ export function CourseCarriculam({ onSubmit }: any) {
           correctOption: [],
         },
       ],
+      duration: 15, // Default duration of 15 minutes
     };
 
     const newItemIdx = formik.values.sections[sectionIdx].items.length;
@@ -598,10 +752,143 @@ export function CourseCarriculam({ onSubmit }: any) {
 
   // 1. At the top of the curriculum (above FieldArray):
   const getLectureDuration = (lecture: LectureItem): number => {
-    if (lecture.type === 'lecture' && lecture.contentType === 'video' && Array.isArray(lecture.contentFiles)) {
-      return lecture.contentFiles.reduce((sum: number, file: VideoContent) => sum + (file.duration || 0), 0);
+    if (lecture.type === 'lecture' && lecture.contentType === 'video') {
+      // Check for uploaded video files first
+      if (Array.isArray(lecture.contentFiles) && lecture.contentFiles.length > 0) {
+        return lecture.contentFiles.reduce((sum: number, file: VideoContent) => sum + (file.duration || 0), 0);
+      }
+      // Check for external video URL duration
+      if (lecture.contentUrl && lecture.contentUrl.includes('youtube.com')) {
+        // Extract video ID from YouTube URL
+        const videoId = extractYouTubeVideoId(lecture.contentUrl);
+        if (videoId) {
+          // Return stored duration if available, otherwise 0
+          return lecture.duration || 0;
+        }
+      }
+      // Check for other external video URLs
+      if (lecture.contentUrl && !lecture.contentUrl.includes('youtube.com')) {
+        return lecture.duration || 0;
+      }
     }
     return 0;
+  };
+
+  // Helper function to extract YouTube video ID from URL
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Function to fetch video duration from YouTube
+  const fetchYouTubeDuration = async (videoId: string): Promise<number> => {
+    try {
+      // Method 1: Try to get duration from video page metadata
+      const videoPageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+      const videoPageHtml = await videoPageResponse.text();
+      
+      // Look for duration in the page metadata
+      const durationMatch = videoPageHtml.match(/"lengthSeconds":"(\d+)"/);
+      if (durationMatch && durationMatch[1]) {
+        const duration = parseInt(durationMatch[1]);
+        console.log(`Found duration for YouTube video ${videoId}: ${duration} seconds`);
+        return duration;
+      }
+      
+      // Method 2: Try to extract from video info
+      const infoMatch = videoPageHtml.match(/"approxDurationMs":"(\d+)"/);
+      if (infoMatch && infoMatch[1]) {
+        const durationMs = parseInt(infoMatch[1]);
+        const duration = Math.round(durationMs / 1000);
+        console.log(`Found duration (ms) for YouTube video ${videoId}: ${duration} seconds`);
+        return duration;
+      }
+      
+      // Method 3: Fallback - estimate based on video page content
+      // This is a rough estimate and should be replaced with proper API integration
+      const estimatedDuration = 300; // Default to 5 minutes
+      console.log(`Using estimated duration for YouTube video ${videoId}: ${estimatedDuration} seconds`);
+      
+      return estimatedDuration;
+    } catch (error) {
+      console.error('Error fetching YouTube duration:', error);
+      return 0;
+    }
+  };
+
+  // Function to fetch video duration from Vimeo
+  const fetchVimeoDuration = async (videoId: string): Promise<number> => {
+    try {
+      const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch Vimeo video info');
+      }
+      
+      const data = await response.json();
+      
+      // Vimeo oEmbed provides duration in seconds
+      if (data.duration) {
+        console.log(`Found duration for Vimeo video ${videoId}: ${data.duration} seconds`);
+        return data.duration;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error fetching Vimeo duration:', error);
+      return 0;
+    }
+  };
+
+  // Main function to fetch video duration from any supported platform
+  const fetchVideoDuration = async (url: string): Promise<number> => {
+    try {
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const videoId = extractYouTubeVideoId(url);
+        if (videoId) {
+          return await fetchYouTubeDuration(videoId);
+        }
+      } else if (url.includes('vimeo.com')) {
+        const videoId = url.split('/').pop();
+        if (videoId) {
+          return await fetchVimeoDuration(videoId);
+        }
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error fetching video duration:', error);
+      return 0;
+    }
+  };
+
+  // Helper function to handle file preview
+  const handlePreviewFile = (url: string, name: string) => {
+    const mimeType = getMimeTypeFromName(name);
+    setPreviewContent({ url, name, type: mimeType });
+    setShowPreviewModal(true);
+  };
+
+  // Helper function to handle file deletion
+  const handleDeleteFile = async (sectionIdx: number, itemIdx: number, fileIdx: number) => {
+    const item = formik.values.sections[sectionIdx].items[itemIdx];
+    if (item.type === 'lecture' && item.contentFiles) {
+      const currentFiles = item.contentFiles;
+      const fileToDelete = currentFiles[fileIdx];
+      if (fileToDelete.cloudinaryPublicId) {
+        const extension = fileToDelete.name.split('.').pop()?.toLowerCase();
+        let resourceType: 'video' | 'image' | 'raw' = 'raw';
+        if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension || '')) {
+          resourceType = 'video';
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+          resourceType = 'image';
+        }
+        await deleteFromCloudinary(fileToDelete.cloudinaryPublicId, resourceType);
+      }
+      const updatedFiles = currentFiles.filter((_: any, i: number) => i !== fileIdx);
+      formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].contentFiles`, updatedFiles);
+    }
   };
 
   const getAssignmentDuration = (item: Assignment | LectureItem | QuizItem): number => {
@@ -611,10 +898,18 @@ export function CourseCarriculam({ onSubmit }: any) {
     return 0;
   };
 
+  const getQuizDuration = (item: QuizItem): number => {
+    if (item.type === 'quiz') {
+      return (item.duration || 0) * 60; // convert minutes to seconds
+    }
+    return 0;
+  };
+
   const getSectionDuration = (section: Section): number => {
     return section.items.reduce((sum: number, item: LectureItem | QuizItem | Assignment) => {
       if (item.type === 'lecture') return sum + getLectureDuration(item as LectureItem);
       if (item.type === 'assignment') return sum + getAssignmentDuration(item as Assignment);
+      if (item.type === 'quiz') return sum + getQuizDuration(item as QuizItem);
       return sum;
     }, 0);
   };
@@ -1351,26 +1646,146 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             placeholder="Enter video URL (YouTube, Vimeo, etc.)"
                                                                             name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
                                                                             value={item.contentUrl}
-                                                                            onChange={formik.handleChange}
+                                                                            onChange={async (e) => {
+                                                                              const url = e.target.value;
+                                                                              const key = `${sectionIdx}-${itemIdx}`;
+                                                                              
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                url
+                                                                              );
+                                                                              
+                                                                              // Auto-fetch duration when URL is entered
+                                                                              if (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com'))) {
+                                                                                setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                
+                                                                                try {
+                                                                                  const duration = await fetchVideoDuration(url);
+                                                                                  if (duration > 0) {
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                      duration
+                                                                                    );
+                                                                                  }
+                                                                                  setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                } catch (error) {
+                                                                                  console.error('Failed to fetch video duration:', error);
+                                                                                  setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                  setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                }
+                                                                              } else {
+                                                                                setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                              }
+                                                                            }}
+                                                                            onPaste={async (e) => {
+                                                                              const pastedText = e.clipboardData.getData('text');
+                                                                              if (pastedText && (pastedText.includes('youtube.com') || pastedText.includes('youtu.be') || pastedText.includes('vimeo.com'))) {
+                                                                                // Small delay to ensure the URL is set first
+                                                                                setTimeout(async () => {
+                                                                                  try {
+                                                                                    const duration = await fetchVideoDuration(pastedText);
+                                                                                    if (duration > 0) {
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                        duration
+                                                                                      );
+                                                                                    }
+                                                                                  } catch (error) {
+                                                                                    console.error('Failed to fetch video duration:', error);
+                                                                                  }
+                                                                                }, 100);
+                                                                              }
+                                                                            }}
                                                                           />
-                                                                          {formik.touched.sections &&
-                                                                            Array.isArray(formik.touched.sections) &&
-                                                                            formik.touched.sections[sectionIdx] &&
-                                                                            formik.touched.sections[sectionIdx]?.items &&
-                                                                            Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
-                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                            (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
-                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                            (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
-                                                                            formik.errors.sections &&
-                                                                            Array.isArray(formik.errors.sections) &&
-                                                                            (formik.errors.sections as any)[sectionIdx]?.items &&
-                                                                            Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
-                                                                            (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
-                                                                              <div className="text-red-500 text-xs">
-                                                                                {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
-                                                                              </div>
-                                                                            )}
+                                                                          {/* Auto-fetched duration display */}
+                                                                          {item.duration && item.duration > 0 && (
+                                                                            <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
+                                                                              <Clock size={16} className="text-green-600" />
+                                                                              <span className="text-sm text-green-700">
+                                                                                Auto-detected duration: {formatDuration(item.duration)}
+                                                                              </span>
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="ml-auto p-1 h-6 w-6"
+                                                                                onClick={async () => {
+                                                                                  const key = `${sectionIdx}-${itemIdx}`;
+                                                                                  if (item.contentUrl) {
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                    try {
+                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                      if (duration > 0) {
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                          duration
+                                                                                        );
+                                                                                      }
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to refresh video duration:', error);
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                      setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                    }
+                                                                                  }
+                                                                                }}
+                                                                                title="Refresh duration"
+                                                                              >
+                                                                                <RefreshCw size={14} />
+                                                                              </Button>
+                                                                            </div>
+                                                                          )}
+                                                                          {/* Loading indicator while fetching duration */}
+                                                                          {durationFetching[`${sectionIdx}-${itemIdx}`] && (
+                                                                            <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                                                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                                              <span className="text-sm text-blue-700">
+                                                                                Fetching video duration...
+                                                                              </span>
+                                                                            </div>
+                                                                          )}
+                                                                          {/* Error state when duration fetching fails */}
+                                                                          {durationError[`${sectionIdx}-${itemIdx}`] && !durationFetching[`${sectionIdx}-${itemIdx}`] && (
+                                                                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                                                              <Clock size={16} className="text-red-600" />
+                                                                              <span className="text-sm text-red-700">
+                                                                                Could not fetch video duration automatically
+                                                                              </span>
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="ml-auto p-1 h-6 w-6"
+                                                                                onClick={async () => {
+                                                                                  const key = `${sectionIdx}-${itemIdx}`;
+                                                                                  if (item.contentUrl) {
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                    try {
+                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                      if (duration > 0) {
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                          duration
+                                                                                        );
+                                                                                      }
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to retry video duration fetch:', error);
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                      setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                    }
+                                                                                  }
+                                                                                }}
+                                                                                title="Retry duration fetch"
+                                                                              >
+                                                                                <RefreshCw size={14} />
+                                                                              </Button>
+                                                                            </div>
+                                                                          )}
                                                                         </div>
                                                                       )}
                                                                       {item.contentFiles?.length > 0 && (
@@ -1422,11 +1837,35 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                   </td>
                                                                                   <td className="p-2">
                                                                                     <span className="text-sm">
-                                                                                      {/* {content.uploadedAt.toLocaleDateString()} */}
+                                                                                      {content.uploadedAt ? new Date(content.uploadedAt).toLocaleDateString() : 'N/A'}
                                                                                     </span>
                                                                                   </td>
                                                                                   <td className="p-2">
                                                                                     <div className="flex items-center gap-2">
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="p-1"
+                                                                                        onClick={() => handlePreviewFile(content.url, content.name)}
+                                                                                        title="Preview File"
+                                                                                      >
+                                                                                        <Eye size={14} />
+                                                                                      </Button>
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="p-1"
+                                                                                        onClick={() => {
+                                                                                          if (content.url) {
+                                                                                            navigator.clipboard.writeText(content.url);
+                                                                                          }
+                                                                                        }}
+                                                                                        title="Copy URL"
+                                                                                      >
+                                                                                        <Link size={14} />
+                                                                                      </Button>
                                                                                       <Button
                                                                                         type="button"
                                                                                         size="sm"
@@ -1444,15 +1883,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                         size="sm"
                                                                                         variant="ghost"
                                                                                         className="p-1"
-                                                                                        onClick={() => {
-                                                                                          const newFiles = [...item.contentFiles];
-                                                                                          URL.revokeObjectURL(newFiles[idx].url);
-                                                                                          newFiles.splice(idx, 1);
-                                                                                          formik.setFieldValue(
-                                                                                            `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                            newFiles
-                                                                                          );
-                                                                                        }}
+                                                                                        onClick={() => handleDeleteFile(sectionIdx, itemIdx, idx)}
                                                                                       >
                                                                                         <Trash2 size={14} className="text-red-500" />
                                                                                       </Button>
@@ -1464,75 +1895,125 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                           </table>
                                                                         </div>
                                                                       )}
-
-                                                                      {/* Resources Section */}
-                                                                      <div className="mt-4">
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                          <h4 className="font-medium text-sm">Resources</h4>
-                                                                          <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            variant="outline"
-                                                                            onClick={() => {
-                                                                              const fileInput = document.createElement('input');
-                                                                              fileInput.type = 'file';
-                                                                              fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt';
-                                                                              fileInput.multiple = true;
-
-                                                                              fileInput.onchange = (e) => {
-                                                                                const files = (e.target as HTMLInputElement).files;
-                                                                                if (files) {
-                                                                                  const currentResources = item.resources || [];
-                                                                                  const newResources = Array.from(files).map(file => ({
-                                                                                    name: file.name,
-                                                                                    file: file
-                                                                                  }));
-
-                                                                                  formik.setFieldValue(
-                                                                                    `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                    [...currentResources, ...newResources]
-                                                                                  );
-                                                                                }
-                                                                              };
-
-                                                                              fileInput.click();
-                                                                            }}
-                                                                          >
-                                                                            + Add Resources
-                                                                          </Button>
-                                                                        </div>
-
-                                                                        {item.resources?.length > 0 && (
-                                                                          <div className="border rounded p-2 bg-white">
-                                                                            {item.resources.map((resource, resourceIdx) => (
-                                                                              <div key={resourceIdx} className="flex items-center justify-between py-1">
-                                                                                <div className="flex items-center gap-2">
-                                                                                  <File size={14} />
-                                                                                  <span className="text-sm">{resource.name}</span>
-                                                                                </div>
-                                                                                <Button
-                                                                                  type="button"
-                                                                                  size="sm"
-                                                                                  variant="outline"
-                                                                                  className="px-2 py-1 rounded-none"
-                                                                                  onClick={() => {
-                                                                                    const newResources = [...item.resources];
-                                                                                    newResources.splice(resourceIdx, 1);
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                      newResources
-                                                                                    );
-                                                                                  }}
-                                                                                >
-                                                                                  <Trash2 size={14} />
-                                                                                </Button>
-                                                                              </div>
-                                                                            ))}
-                                                                          </div>
-                                                                        )}
-                                                                      </div>
                                                                     </div>
                                                                   )}
+                                                                  
+                                                                  {/* Resources Section */}
+                                                                  <div className="mt-4">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                      <h4 className="font-medium text-sm">Resources</h4>
+                                                                      <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => {
+                                                                          const fileInput = document.createElement('input');
+                                                                          fileInput.type = 'file';
+                                                                          fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
+                                                                          fileInput.multiple = true;
+
+                                                                          fileInput.onchange = async (e) => {
+                                                                            const files = (e.target as HTMLInputElement).files;
+                                                                            if (files) {
+                                                                              const currentResources = item.resources || [];
+                                                                              const newResources = await Promise.all(
+                                                                                Array.from(files).map(async (file) => {
+                                                                                  // Upload to Cloudinary
+                                                                                  let cloudinaryUrl = '';
+                                                                                  let cloudinaryPublicId = '';
+                                                                                  
+                                                                                  try {
+                                                                                    const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                    cloudinaryUrl = uploadResult.url;
+                                                                                    cloudinaryPublicId = uploadResult.publicId;
+                                                                                  } catch (error) {
+                                                                                    console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                    // Fallback to local file
+                                                                                    cloudinaryUrl = URL.createObjectURL(file);
+                                                                                  }
+
+                                                                                  return {
+                                                                                    name: file.name,
+                                                                                    file: file,
+                                                                                    url: cloudinaryUrl,
+                                                                                    cloudinaryUrl: cloudinaryUrl,
+                                                                                    cloudinaryPublicId: cloudinaryPublicId,
+                                                                                    type: 'lecture'
+                                                                                  };
+                                                                                })
+                                                                              );
+
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                [...currentResources, ...newResources]
+                                                                              );
+                                                                            }
+                                                                          };
+
+                                                                          fileInput.click();
+                                                                        }}
+                                                                      >
+                                                                        + Add Resources
+                                                                      </Button>
+                                                                    </div>
+
+                                                                    {item.resources?.length > 0 && (
+                                                                      <div className="border rounded p-2 bg-white">
+                                                                        {item.resources.map((resource, resourceIdx) => (
+                                                                          <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                              {getFileIcon(resource.name)}
+                                                                              <span className="text-sm">{resource.name}</span>
+                                                                              {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
+                                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                                  Cloudinary
+                                                                                </span>
+                                                                              )}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="p-1 h-6 w-6"
+                                                                                onClick={() => {
+                                                                                  if (resource.cloudinaryUrl) {
+                                                                                    window.open(resource.cloudinaryUrl, '_blank');
+                                                                                  } else if (resource.url) {
+                                                                                    window.open(resource.url, '_blank');
+                                                                                  }
+                                                                                }}
+                                                                                title="Open resource"
+                                                                              >
+                                                                                <Eye size={14} />
+                                                                              </Button>
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="px-2 py-1 rounded-none text-red-600"
+                                                                                onClick={() => {
+                                                                                  const newResources = [...item.resources];
+                                                                                  const resourceUrl = newResources[resourceIdx]?.url;
+                                                                                  if (resourceUrl && resourceUrl.startsWith('blob:')) {
+                                                                                    URL.revokeObjectURL(resourceUrl);
+                                                                                  }
+                                                                                  newResources.splice(resourceIdx, 1);
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                    newResources
+                                                                                  );
+                                                                                }}
+                                                                              >
+                                                                                <Trash2 size={12} />
+                                                                              </Button>
+                                                                            </div>
+                                                                          </div>
+                                                                        ))}
+                                                                      </div>
+                                                                    )}
+                                                                  </div>
+                                                                  
                                                                   <Button
                                                                     type="button"
                                                                     className="rounded-none mt-2"
@@ -1585,6 +2066,13 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <span className="font-semibold">
                                                                     {item.quizTitle || "New Quiz"}
                                                                   </span>
+                                                                  {/* Quiz Duration Display */}
+                                                                  <div className="flex items-center gap-2 ml-2">
+                                                                    <Clock size={16} className="text-primary" />
+                                                                    <span className="font-bold text-primary">
+                                                                      {formatDuration(getQuizDuration(item))}
+                                                                    </span>
+                                                                  </div>
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
@@ -1592,10 +2080,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     className="h-8 w-8"
                                                                     onClick={() => {
                                                                       const sampleData = [
-                                                                        ['Quiz Title', 'Quiz Description', 'Question', 'Options', 'Correct Options'],
-                                                                        ['Sample Quiz', 'This is a sample quiz description', 'What is 2+2?', '3,4,5,6', '2'],
-                                                                        ['', '', 'What colors are in rainbow?', 'Red,Blue,Green,Yellow,Purple,Orange', '1,2,3,4,5,6'],
-                                                                        ['', '', 'Which planets are in our solar system?', 'Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune', '1,2,3,4,5,6,7,8']
+                                                                        ['Quiz Title', 'Quiz Description', 'Duration (minutes)', 'Question', 'Options', 'Correct Options'],
+                                                                        ['Sample Quiz', 'This is a sample quiz description', '15', 'What is 2+2?', '3,4,5,6', '2'],
+                                                                        ['', '', '', 'What colors are in rainbow?', 'Red,Blue,Green,Yellow,Purple,Orange', '1,2,3,4,5,6'],
+                                                                        ['', '', '', 'Which planets are in our solar system?', 'Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune', '1,2,3,4,5,6,7,8']
                                                                       ];
                                                                       const wb = XLSX.utils.book_new();
                                                                       const ws = XLSX.utils.aoa_to_sheet(sampleData);
@@ -1622,17 +2110,18 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             const rows = (json as any[][]).slice(1);
                                                                             const quizTitle = rows[0][0] || 'New Quiz';
                                                                             const quizDescription = rows[0][1] || '';
+                                                                            const quizDuration = parseInt(rows[0][2]) || 15; // Parse duration from column 2
                                                                             const questions: Question[] = [];
                                                                             let currentQuestion: Partial<Question> = {};
                                                                             rows.forEach((row, index) => {
-                                                                              if (row[2]) {
+                                                                              if (row[3]) { // Question is now in column 3
                                                                                 if (Object.keys(currentQuestion).length > 0) {
                                                                                   questions.push(currentQuestion as Question);
                                                                                 }
                                                                                 currentQuestion = {
-                                                                                  question: row[2],
-                                                                                  options: row[3] ? row[3].split(',') : [],
-                                                                                  correctOption: row[4] ? row[4].split(',').map((opt: string) => parseInt(opt) - 1) : [0]
+                                                                                  question: row[3],
+                                                                                  options: row[4] ? row[4].split(',') : [], // Options in column 4
+                                                                                  correctOption: row[5] ? row[5].split(',').map((opt: string) => parseInt(opt) - 1) : [0] // Correct options in column 5
                                                                                 };
                                                                               }
                                                                             });
@@ -1643,7 +2132,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               type: 'quiz',
                                                                               quizTitle,
                                                                               quizDescription,
-                                                                              questions
+                                                                              questions,
+                                                                              duration: quizDuration
                                                                             });
                                                                           };
                                                                           reader.readAsArrayBuffer(file);
@@ -1730,6 +2220,22 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       value={item.quizDescription}
                                                                       onChange={formik.handleChange}
                                                                     />
+
+                                                                    {/* Quiz Duration */}
+                                                                    <div className="mb-4">
+                                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                        Quiz Duration (minutes)
+                                                                      </label>
+                                                                      <Input
+                                                                        type="number"
+                                                                        min="1"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
+                                                                        value={item.duration || 0}
+                                                                        onChange={formik.handleChange}
+                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="Enter quiz duration in minutes"
+                                                                      />
+                                                                    </div>
 
                                                                     <div className="mt-4 mb-2">
                                                                       <h4 className="font-semibold mb-2">Questions</h4>
@@ -1914,6 +2420,13 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <span className="font-semibold">
                                                                     {item.title || "New Assignment"}
                                                                   </span>
+                                                                  {/* Assignment Duration Display */}
+                                                                  <div className="flex items-center gap-2 ml-2">
+                                                                    <Clock size={16} className="text-primary" />
+                                                                    <span className="font-bold text-primary">
+                                                                      {formatDuration(getAssignmentDuration(item))}
+                                                                    </span>
+                                                                  </div>
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
@@ -2232,19 +2745,52 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                           />
                                                                         )}
 
-                                                                        {/* Article Source: Upload - Show uploaded files */}
+                                                                                                                                                {/* Article Source: Upload - Show uploaded files */}
                                                                         {item.articleSource === 'upload' && item.contentFiles?.length > 0 && (
-                                                                          <div className="border p-2 mt-1 rounded bg-gray-50">
+                                                                          <div className="border rounded p-2 mt-1 bg-gray-50">
                                                                             <div className="text-sm text-gray-600 mb-2">Uploaded Documents:</div>
                                                                             {item.contentFiles.map((file, idx) => (
-                                                                              <div key={idx} className="flex items-center gap-2 py-1">
-                                                                                <File size={16} className="text-blue-500" />
-                                                                                <span className="text-sm font-medium">{file.name}</span>
-                                                                                <span className="text-xs text-gray-500">
-                                                                                  {file.file && typeof file.file.size === 'number'
-                                                                                    ? `(${(file.file.size / 1024 / 1024).toFixed(2)} MB)`
-                                                                                    : ''}
-                                                                                </span>
+                                                                              <div key={idx} className="flex items-center justify-between py-1">
+                                                                                <div className="flex items-center gap-2">
+                                                                                  <File size={16} className="text-blue-500" />
+                                                                                  <span className="text-sm font-medium">{file.name}</span>
+                                                                                  <span className="text-xs text-gray-500">
+                                                                                    {file.file && typeof file.file.size === 'number'
+                                                                                      ? `(${(file.file.size / 1024 / 1024).toFixed(2)} MB)`
+                                                                                      : ''}
+                                                                                  </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                  <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="p-1 h-6 w-6"
+                                                                                    onClick={() => handlePreviewFile(file.url, file.name)}
+                                                                                    title="Preview file"
+                                                                                  >
+                                                                                    <Eye size={14} />
+                                                                                  </Button>
+                                                                                  <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="px-2 py-1 rounded-none"
+                                                                                    onClick={() => {
+                                                                                      const newFiles = [...item.contentFiles];
+                                                                                      if (newFiles[idx].url && newFiles[idx].url.startsWith('blob:')) {
+                                                                                        URL.revokeObjectURL(newFiles[idx].url);
+                                                                                      }
+                                                                                      newFiles.splice(idx, 1);
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                        newFiles
+                                                                                      );
+                                                                                    }}
+                                                                                  >
+                                                                                    <Trash2 size={14} className="text-red-500" />
+                                                                                  </Button>
+                                                                                </div>
                                                                               </div>
                                                                             ))}
                                                                           </div>
@@ -2269,6 +2815,122 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             </div>
                                                                           </div>
                                                                         )}
+
+                                                                        {/* Resources Section for Articles */}
+                                                                        <div className="mt-4">
+                                                                          <div className="flex items-center justify-between mb-2">
+                                                                            <h4 className="font-medium text-sm">Resources</h4>
+                                                                            <Button
+                                                                              type="button"
+                                                                              size="sm"
+                                                                              variant="outline"
+                                                                              onClick={() => {
+                                                                                const fileInput = document.createElement('input');
+                                                                                fileInput.type = 'file';
+                                                                                fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
+                                                                                fileInput.multiple = true;
+
+                                                                                fileInput.onchange = async (e) => {
+                                                                                  const files = (e.target as HTMLInputElement).files;
+                                                                                  if (files) {
+                                                                                    const currentResources = item.resources || [];
+                                                                                    const newResources = await Promise.all(
+                                                                                      Array.from(files).map(async (file) => {
+                                                                                        // Upload to Cloudinary
+                                                                                        let cloudinaryUrl = '';
+                                                                                        let cloudinaryPublicId = '';
+                                                                                        
+                                                                                        try {
+                                                                                          const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                          cloudinaryUrl = uploadResult.url;
+                                                                                          cloudinaryPublicId = uploadResult.publicId;
+                                                                                        } catch (error) {
+                                                                                          console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                          // Fallback to local file
+                                                                                          cloudinaryUrl = URL.createObjectURL(file);
+                                                                                        }
+
+                                                                                        return {
+                                                                                          name: file.name,
+                                                                                          file: file,
+                                                                                          url: cloudinaryUrl,
+                                                                                          cloudinaryUrl: cloudinaryUrl,
+                                                                                          cloudinaryPublicId: cloudinaryPublicId,
+                                                                                          type: 'lecture'
+                                                                                        };
+                                                                                      })
+                                                                                    );
+
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                      [...currentResources, ...newResources]
+                                                                                    );
+                                                                                  }
+                                                                                };
+
+                                                                                fileInput.click();
+                                                                              }}
+                                                                            >
+                                                                              + Add Resources
+                                                                            </Button>
+                                                                          </div>
+
+                                                                          {item.resources?.length > 0 && (
+                                                                            <div className="border rounded p-2 bg-white">
+                                                                              {item.resources.map((resource, resourceIdx) => (
+                                                                                <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                                  <div className="flex items-center gap-2">
+                                                                                    {getFileIcon(resource.name)}
+                                                                                    <span className="text-sm">{resource.name}</span>
+                                                                                    {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
+                                                                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                                        Cloudinary
+                                                                                      </span>
+                                                                                    )}
+                                                                                  </div>
+                                                                                  <div className="flex items-center gap-2">
+                                                                                    <Button
+                                                                                      type="button"
+                                                                                      variant="ghost"
+                                                                                      size="sm"
+                                                                                      className="p-1 h-6 w-6"
+                                                                                      onClick={() => {
+                                                                                        if (resource.cloudinaryUrl) {
+                                                                                          window.open(resource.cloudinaryUrl, '_blank');
+                                                                                        } else if (resource.url) {
+                                                                                          window.open(resource.url, '_blank');
+                                                                                        }
+                                                                                      }}
+                                                                                      title="Open resource"
+                                                                                    >
+                                                                                      <Eye size={14} />
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                      type="button"
+                                                                                      variant="ghost"
+                                                                                      size="sm"
+                                                                                      className="px-2 py-1 rounded-none text-red-600"
+                                                                                      onClick={() => {
+                                                                                        const newResources = [...item.resources];
+                                                                                        const resourceUrl = newResources[resourceIdx]?.url;
+                                                                                        if (resourceUrl && resourceUrl.startsWith('blob:')) {
+                                                                                          URL.revokeObjectURL(resourceUrl);
+                                                                                        }
+                                                                                        newResources.splice(resourceIdx, 1);
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                          newResources
+                                                                                        );
+                                                                                      }}
+                                                                                    >
+                                                                                      <Trash2 size={12} />
+                                                                                    </Button>
+                                                                                  </div>
+                                                                                </div>
+                                                                              ))}
+                                                                            </div>
+                                                                          )}
+                                                                        </div>
 
                                                                         {/* No content message */}
                                                                         {(!item.articleSource ||
@@ -2525,17 +3187,71 @@ export function CourseCarriculam({ onSubmit }: any) {
             // Create video lectures for each file
             const newLectures = await Promise.all(
               Array.from(filesOrExcel).map(async (file) => {
-                const url = URL.createObjectURL(file);
-                // Get video duration
-                const duration = await new Promise<number>((resolve) => {
-                  const video = document.createElement('video');
-                  video.preload = 'metadata';
-                  video.onloadedmetadata = () => {
-                    resolve(video.duration);
-                    video.remove();
+                // Upload to Cloudinary first
+                let cloudinaryUrl = '';
+                let cloudinaryPublicId = '';
+                let duration = 0;
+                
+                try {
+                  // Show loading state
+                  const loadingUrl = URL.createObjectURL(file);
+                  
+                  // Upload to Cloudinary
+                  const uploadResult = await uploadToCloudinary(file, 'video');
+                  cloudinaryUrl = uploadResult.url;
+                  cloudinaryPublicId = uploadResult.publicId;
+                  
+                  // Get video duration from Cloudinary URL
+                  duration = await new Promise<number>((resolve) => {
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.onloadedmetadata = () => {
+                      resolve(video.duration);
+                      video.remove();
+                    };
+                    video.src = cloudinaryUrl;
+                  });
+                  
+                  // Clean up blob URL
+                  URL.revokeObjectURL(loadingUrl);
+                  
+                } catch (error) {
+                  console.error('Failed to upload video to Cloudinary:', error);
+                  // Fallback to blob URL if Cloudinary fails
+                  const fallbackUrl = URL.createObjectURL(file);
+                  duration = await new Promise<number>((resolve) => {
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.onloadedmetadata = () => {
+                      resolve(video.duration);
+                      video.remove();
+                    };
+                    video.src = fallbackUrl;
+                  });
+                  
+                  return {
+                    type: 'lecture' as const,
+                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                    contentType: 'video' as const,
+                    videoSource: 'upload' as const,
+                    contentFiles: [{
+                      file,
+                      url: fallbackUrl,
+                      cloudinaryUrl: '', // Will be empty if upload failed
+                      cloudinaryPublicId: '',
+                      name: file.name,
+                      duration,
+                      status: 'failed' as VideoStatus,
+                      uploadedAt: new Date()
+                    }],
+                    contentUrl: '',
+                    contentText: '',
+                    articleSource: 'upload' as const,
+                    resources: [],
+                    published: false,
+                    isPromotional: false,
                   };
-                  video.src = url;
-                });
+                }
 
                 return {
                   type: 'lecture' as const,
@@ -2544,7 +3260,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                   videoSource: 'upload' as const,
                   contentFiles: [{
                     file,
-                    url,
+                    url: cloudinaryUrl, // Store Cloudinary URL as primary URL
+                    cloudinaryUrl,
+                    cloudinaryPublicId,
                     name: file.name,
                     duration,
                     status: 'uploaded' as VideoStatus,
@@ -2554,8 +3272,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   contentText: '',
                   articleSource: 'upload' as const,
                   resources: [],
-                  published: false, // Default to unpublished
-                  isPromotional: false, // Default to non-promotional
+                  published: false,
+                  isPromotional: false,
                 };
               })
             );
@@ -2585,27 +3303,67 @@ export function CourseCarriculam({ onSubmit }: any) {
             // Handle document files
             console.log('Processing document files');
             // Create document lectures for each file
-            const newLectures = Array.from(filesOrExcel).map((file) => {
-              return {
-                type: 'lecture' as const,
-                lectureName: file.name.replace(/\.[^/.]+$/, ""),
-                contentType: 'article' as const,
-                videoSource: 'upload' as const,
-                contentFiles: [{
-                  file,
-                  url: URL.createObjectURL(file),
-                  name: file.name,
-                  status: 'uploaded' as VideoStatus,
-                  uploadedAt: new Date()
-                }],
-                contentUrl: '',
-                contentText: '',
-                articleSource: 'upload' as const,
-                resources: [],
-                published: false, // Default to unpublished
-                isPromotional: false, // Default to non-promotional
-              };
-            });
+            const newLectures = await Promise.all(
+              Array.from(filesOrExcel).map(async (file) => {
+                // Upload to Cloudinary
+                let cloudinaryUrl = '';
+                let cloudinaryPublicId = '';
+                
+                try {
+                  const uploadResult = await uploadToCloudinary(file, 'raw');
+                  cloudinaryUrl = uploadResult.url;
+                  cloudinaryPublicId = uploadResult.publicId;
+                } catch (error) {
+                  console.error('Failed to upload document to Cloudinary:', error);
+                  // Fallback to blob URL if Cloudinary fails
+                  const fallbackUrl = URL.createObjectURL(file);
+                  
+                  return {
+                    type: 'lecture' as const,
+                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                    contentType: 'article' as const,
+                    videoSource: 'upload' as const,
+                    contentFiles: [{
+                      file,
+                      url: fallbackUrl,
+                      cloudinaryUrl: '',
+                      cloudinaryPublicId: '',
+                      name: file.name,
+                      status: 'failed' as VideoStatus,
+                      uploadedAt: new Date()
+                    }],
+                    contentUrl: '',
+                    contentText: '',
+                    articleSource: 'upload' as const,
+                    resources: [],
+                    published: false,
+                    isPromotional: false,
+                  };
+                }
+
+                return {
+                  type: 'lecture' as const,
+                  lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                  contentType: 'article' as const,
+                  videoSource: 'upload' as const,
+                  contentFiles: [{
+                    file,
+                    url: cloudinaryUrl, // Store Cloudinary URL as primary URL
+                    cloudinaryUrl,
+                    cloudinaryPublicId,
+                    name: file.name,
+                    status: 'uploaded' as VideoStatus,
+                    uploadedAt: new Date()
+                  }],
+                  contentUrl: '',
+                  contentText: '',
+                  articleSource: 'upload' as const,
+                  resources: [],
+                  published: false,
+                  isPromotional: false,
+                };
+              })
+            );
 
             // If there's an empty lecture, update it with the first document
             if (emptyLectureIndex !== -1) {
@@ -2745,6 +3503,38 @@ export function CourseCarriculam({ onSubmit }: any) {
         }}
         sectionIdx={uploadModal.sectionIdx}
       />
+      
+      {/* Preview Modal */}
+      {showPreviewModal && previewContent && (
+        <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Preview: {previewContent.name}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              {previewContent.type.startsWith('video/') && (
+                <video controls src={previewContent.url} className="w-full h-auto max-h-[60vh]"></video>
+              )}
+              {previewContent.type.startsWith('image/') && (
+                <img src={previewContent.url} alt={previewContent.name} className="max-w-full h-auto max-h-[60vh] mx-auto" />
+              )}
+              {previewContent.type === 'application/pdf' && (
+                <iframe src={previewContent.url} className="w-full h-[60vh]" title={previewContent.name}></iframe>
+              )}
+              {/* For other document types, provide a download link */}
+              {!(previewContent.type.startsWith('video/') || previewContent.type.startsWith('image/') || previewContent.type === 'application/pdf') && (
+                <div className="flex flex-col items-center justify-center p-4 border rounded-md bg-gray-50">
+                  <FileTextIcon size={48} className="text-gray-500 mb-2" />
+                  <p className="text-gray-700 mb-2">This file type cannot be previewed directly.</p>
+                  <Button onClick={() => window.open(previewContent.url, '_blank')} className="flex items-center gap-2">
+                    <Download size={16} /> Download File
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </FormikProvider>
   );
 }
@@ -2771,10 +3561,22 @@ function ArticleEditor({
 }
 
 const formatDuration = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60);
+  if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) {
+    return "00:00";
+  }
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+  
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
+
+
 
 // Modal for Upload Content
 function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload, sectionIdx }: {

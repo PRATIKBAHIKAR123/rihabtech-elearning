@@ -8,6 +8,9 @@ export interface CourseMessagesData {
 }
 
 export const saveCourseMessages = async (data: CourseMessagesData) => {
+  if (!data.draftId) {
+    throw new Error("Draft ID is required");
+  }
   const courseRef = doc(db, "courseDrafts", data.draftId);
   await setDoc(courseRef, {
     welcomeMessage: data.welcomeMessage,
@@ -16,6 +19,12 @@ export const saveCourseMessages = async (data: CourseMessagesData) => {
 };
 
 export const getCourseMessages = async (draftId: string) => {
+  if (!draftId) {
+    return {
+      welcomeMessage: "",
+      congratulationsMessage: "",
+    };
+  }
   const courseRef = doc(db, "courseDrafts", draftId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {

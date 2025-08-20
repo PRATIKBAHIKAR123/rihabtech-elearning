@@ -26,19 +26,39 @@ const CourseCategory = () => {
       category: Yup.string().required("Category is required"),
     }),
     onSubmit: async (values) => {
+      if (!draftId.current) {
+        console.error("No draftId found");
+        return;
+      }
+      
       setLoading(true);
-      await saveCourseCategory(draftId.current, values.category);
-      setLoading(false);
-      window.location.hash = "#/instructor/course-sections";
+      try {
+        await saveCourseCategory(draftId.current, values.category);
+        setLoading(false);
+        window.location.hash = "#/instructor/course-sections";
+      } catch (error) {
+        console.error("Failed to save course category:", error);
+        setLoading(false);
+      }
     },
     enableReinitialize: true,
   });
 
   useEffect(() => {
     const fetchCategory = async () => {
+      if (!draftId.current) {
+        console.error("No draftId found");
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
-      const cat = await getCourseCategory(draftId.current);
-      formik.setFieldValue('category', cat);
+      try {
+        const cat = await getCourseCategory(draftId.current);
+        formik.setFieldValue('category', cat);
+      } catch (error) {
+        console.error("Failed to fetch course category:", error);
+      }
       setLoading(false);
     };
     fetchCategory();
