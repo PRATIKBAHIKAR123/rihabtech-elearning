@@ -273,7 +273,7 @@ const getInitialQuiz = (): QuizItem => ({
     {
       question: "",
       options: ["", ""],
-      correctOption: [0],
+      correctOption: [], // Start with no correct options selected
     },
   ],
   duration: 15, // Default duration of 15 minutes
@@ -454,23 +454,31 @@ export function CourseCarriculam({ onSubmit }: any) {
                     then: (schema) => schema.required("Article content is required"),
                     otherwise: (schema) => schema.notRequired(),
                   }),
-                  contentUrl: Yup.string().when(["contentType", "articleSource"], {
-                    is: (contentType: string, articleSource: string) =>
+                  contentUrl: Yup.string().when(["contentType", "videoSource", "articleSource"], {
+                    is: (contentType: string, videoSource: string, articleSource: string) =>
                       contentType === "article" && articleSource === "link",
                     then: (schema) => schema.url("Please enter a valid URL").required("Article URL is required"),
                     otherwise: (schema) => schema.when("contentType", {
                       is: (val: string) => val === "video",
-                      then: (schema) => schema.url("Please enter a valid URL"),
+                      then: (schema) => schema.when("videoSource", {
+                        is: (source: string) => source === "link",
+                        then: (schema) => schema.url("Please enter a valid URL").required("Video URL is required for video links"),
+                        otherwise: (schema) => schema.notRequired(),
+                      }),
                       otherwise: (schema) => schema.notRequired(),
                     }),
                   }),
-                  contentFiles: Yup.array().when(["contentType", "articleSource"], {
-                    is: (contentType: string, articleSource: string) =>
+                  contentFiles: Yup.array().when(["contentType", "videoSource", "articleSource"], {
+                    is: (contentType: string, videoSource: string, articleSource: string) =>
                       contentType === "article" && articleSource === "upload",
                     then: (schema) => schema.min(1, "Please upload at least one document"),
                     otherwise: (schema) => schema.when("contentType", {
                       is: (val: string) => val === "video",
-                      then: (schema) => schema.min(1, "Please upload at least one video file"),
+                      then: (schema) => schema.when("videoSource", {
+                        is: (source: string) => source === "upload",
+                        then: (schema) => schema.min(1, "Please upload at least one video file"),
+                        otherwise: (schema) => schema.notRequired(), // For video links, no file upload required
+                      }),
                       otherwise: (schema) => schema.notRequired(),
                     }),
                   }),
@@ -631,20 +639,40 @@ export function CourseCarriculam({ onSubmit }: any) {
 
   const handleQuizSave = (sectionIdx: number, itemIdx: number) => {
     const currentQuiz = formik.values.sections[sectionIdx].items[itemIdx];
+    console.log('Attempting to save quiz:', { sectionIdx, itemIdx, currentQuiz });
+    
     if (currentQuiz.type === "quiz") {
-      const hasValidQuestions = currentQuiz.questions.every(q =>
-        q.question &&
-        q.options.length >= 2 &&
-        q.options.every(opt => opt.trim()) &&
-        q.correctOption >= [0]
-      );
+      const hasValidQuestions = currentQuiz.questions.every(q => {
+        const isValid = q.question &&
+          q.options.length >= 2 &&
+          q.options.every(opt => opt.trim()) &&
+          Array.isArray(q.correctOption) && q.correctOption.length > 0;
+        
+        console.log('Question validation:', { question: q.question, options: q.options, correctOption: q.correctOption, isValid });
+        return isValid;
+      });
 
-      if (currentQuiz.quizTitle && currentQuiz.quizDescription && hasValidQuestions) {
+      const hasTitle = currentQuiz.quizTitle;
+      const hasDescription = currentQuiz.quizDescription;
+      
+      console.log('Quiz validation:', { 
+        hasTitle, 
+        hasDescription, 
+        hasValidQuestions, 
+        quizTitle: currentQuiz.quizTitle,
+        quizDescription: currentQuiz.quizDescription
+      });
+
+      if (hasTitle && hasDescription && hasValidQuestions) {
+        console.log('Quiz validation passed, saving...');
         setEditQuiz(null);
         setIsQuizSubmitted({ ...isQuizSubmitted, [`${sectionIdx}-${itemIdx}`]: true });
       } else {
+        console.log('Quiz validation failed, running form validation...');
         formik.validateForm();
       }
+    } else {
+      console.log('Item is not a quiz:', currentQuiz.type);
     }
   };
 
@@ -784,33 +812,78 @@ export function CourseCarriculam({ onSubmit }: any) {
   // Function to fetch video duration from YouTube
   const fetchYouTubeDuration = async (videoId: string): Promise<number> => {
     try {
+      console.log(`Fetching duration for YouTube video: ${videoId}`);
+      
       // Method 1: Try to get duration from video page metadata
       const videoPageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+      if (!videoPageResponse.ok) {
+        throw new Error(`Failed to fetch YouTube page: ${videoPageResponse.status}`);
+      }
+      
       const videoPageHtml = await videoPageResponse.text();
       
-      // Look for duration in the page metadata
-      const durationMatch = videoPageHtml.match(/"lengthSeconds":"(\d+)"/);
-      if (durationMatch && durationMatch[1]) {
-        const duration = parseInt(durationMatch[1]);
-        console.log(`Found duration for YouTube video ${videoId}: ${duration} seconds`);
-        return duration;
+      // Look for duration in the page metadata - multiple patterns
+      const durationPatterns = [
+        /"lengthSeconds":"(\d+)"/,
+        /"approxDurationMs":"(\d+)"/,
+        /"duration":"PT(\d+)M(\d+)S"/,
+        /"duration":"PT(\d+)H(\d+)M(\d+)S"/,
+        /"duration":"PT(\d+)H(\d+)M"/,
+        /"duration":"PT(\d+)M"/
+      ];
+      
+      for (const pattern of durationPatterns) {
+        const match = videoPageHtml.match(pattern);
+        if (match) {
+          let duration = 0;
+          
+          if (pattern.toString().includes('lengthSeconds')) {
+            duration = parseInt(match[1]);
+          } else if (pattern.toString().includes('approxDurationMs')) {
+            duration = Math.round(parseInt(match[1]) / 1000);
+          } else if (pattern.toString().includes('duration')) {
+            // Parse ISO 8601 duration format
+            const durationStr = match[0];
+            if (durationStr.includes('H')) {
+              const hours = parseInt(durationStr.match(/(\d+)H/)?.[1] || '0');
+              const minutes = parseInt(durationStr.match(/(\d+)M/)?.[1] || '0');
+              const seconds = parseInt(durationStr.match(/(\d+)S/)?.[1] || '0');
+              duration = hours * 3600 + minutes * 60 + seconds;
+            } else if (durationStr.includes('M')) {
+              const minutes = parseInt(durationStr.match(/(\d+)M/)?.[1] || '0');
+              const seconds = parseInt(durationStr.match(/(\d+)S/)?.[1] || '0');
+              duration = minutes * 60 + seconds;
+            }
+          }
+          
+          if (duration > 0) {
+            console.log(`Found duration for YouTube video ${videoId}: ${duration} seconds`);
+            return duration;
+          }
+        }
       }
       
-      // Method 2: Try to extract from video info
-      const infoMatch = videoPageHtml.match(/"approxDurationMs":"(\d+)"/);
-      if (infoMatch && infoMatch[1]) {
-        const durationMs = parseInt(infoMatch[1]);
-        const duration = Math.round(durationMs / 1000);
-        console.log(`Found duration (ms) for YouTube video ${videoId}: ${duration} seconds`);
-        return duration;
+      // Method 2: Try alternative approach - look for more patterns
+      const alternativePatterns = [
+        /"lengthSeconds":(\d+)/,
+        /"duration":"(\d+)"/,
+        /"videoDuration":"(\d+)"/
+      ];
+      
+      for (const pattern of alternativePatterns) {
+        const match = videoPageHtml.match(pattern);
+        if (match && match[1]) {
+          const duration = parseInt(match[1]);
+          if (duration > 0) {
+            console.log(`Found duration (alternative) for YouTube video ${videoId}: ${duration} seconds`);
+            return duration;
+          }
+        }
       }
       
-      // Method 3: Fallback - estimate based on video page content
-      // This is a rough estimate and should be replaced with proper API integration
-      const estimatedDuration = 300; // Default to 5 minutes
-      console.log(`Using estimated duration for YouTube video ${videoId}: ${estimatedDuration} seconds`);
+      console.log(`Could not extract duration for YouTube video ${videoId}, using fallback`);
+      return 0;
       
-      return estimatedDuration;
     } catch (error) {
       console.error('Error fetching YouTube duration:', error);
       return 0;
@@ -1156,6 +1229,12 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                         {...provided.draggableProps}
                                                         className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''}`}
                                                       >
+                                                        {/* Drag Handle for all item types */}
+                                                        <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded" {...provided.dragHandleProps}>
+                                                          <GripVertical size={16} className="text-gray-400" />
+                                                          <span className="text-sm text-gray-600">Drag to reorder</span>
+                                                        </div>
+                                                        
                                                         <div>
                                                           {/* LECTURE */}
                                                           {item.type === "lecture" && (
@@ -1196,8 +1275,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     </Button>
                                                                   </>
                                                                 ) : (
-                                                                  <div className="cursor-grab active:cursor-grabbing flex gap-2 items-center hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
-                                                                    <GripVertical size={16} className="text-gray-400" />
+                                                                  <div className="flex gap-2 items-center">
                                                                     <span className="font-semibold">{item.lectureName}</span>
                                                                     <Button
                                                                       type="button"
@@ -1738,6 +1816,60 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               </Button>
                                                                             </div>
                                                                           )}
+                                                                          
+                                                                          {/* Manual duration input when auto-detection fails */}
+                                                                          {(!item.duration || item.duration === 0) && (
+                                                                            <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                                                              <Clock size={16} className="text-yellow-600" />
+                                                                              <span className="text-sm text-yellow-700">
+                                                                                Duration not detected automatically
+                                                                              </span>
+                                                                              <Input
+                                                                                type="number"
+                                                                                placeholder="Enter duration in seconds"
+                                                                                className="w-24 h-8 text-sm"
+                                                                                value={item.duration || ''}
+                                                                                onChange={(e) => {
+                                                                                  const value = parseInt(e.target.value) || 0;
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                    value
+                                                                                  );
+                                                                                }}
+                                                                              />
+                                                                              <span className="text-xs text-gray-600">seconds</span>
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="ml-auto p-1 h-6 w-6"
+                                                                                onClick={async () => {
+                                                                                  const key = `${sectionIdx}-${itemIdx}`;
+                                                                                  if (item.contentUrl) {
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                    try {
+                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                      if (duration > 0) {
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                          duration
+                                                                                        );
+                                                                                      }
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to retry video duration fetch:', error);
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                      setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                    }
+                                                                                  }
+                                                                                }}
+                                                                                title="Retry duration fetch"
+                                                                              >
+                                                                                <RefreshCw size={14} />
+                                                                              </Button>
+                                                                            </div>
+                                                                          )}
                                                                           {/* Loading indicator while fetching duration */}
                                                                           {durationFetching[`${sectionIdx}-${itemIdx}`] && (
                                                                             <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
@@ -1893,6 +2025,40 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               ))}
                                                                             </tbody>
                                                                           </table>
+                                                                        </div>
+                                                                      )}
+                                                                      
+                                                                      {/* Manual duration input for uploaded videos */}
+                                                                      {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && (
+                                                                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                          <div className="flex items-center gap-2 mb-2">
+                                                                            <Clock size={16} className="text-blue-600" />
+                                                                            <span className="text-sm font-medium text-blue-800">
+                                                                              Set Video Duration
+                                                                            </span>
+                                                                          </div>
+                                                                          <div className="flex items-center gap-2">
+                                                                            <Input
+                                                                              type="number"
+                                                                              placeholder="Duration in seconds"
+                                                                              className="w-32 h-8 text-sm"
+                                                                              value={item.duration || ''}
+                                                                              onChange={(e) => {
+                                                                                const value = parseInt(e.target.value) || 0;
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                  value
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <span className="text-xs text-gray-600">seconds</span>
+                                                                            <span className="text-sm text-gray-700">
+                                                                              ({formatDuration(item.duration || 0)})
+                                                                            </span>
+                                                                          </div>
+                                                                          <p className="text-xs text-blue-600 mt-1">
+                                                                            Use this if automatic duration detection fails
+                                                                          </p>
                                                                         </div>
                                                                       )}
                                                                     </div>
@@ -3062,8 +3228,13 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                 type="button"
                                                 className="rounded-none"
                                                 onClick={() => {
+                                                  const newItemIdx = section.items.length;
                                                   push(getInitialQuiz());
                                                   setAddType(null);
+                                                  // Set the new quiz to edit mode
+                                                  setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
+                                                  setViewItem({ sectionIdx, itemIdx: newItemIdx });
+                                                  setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
                                                 }}
                                               >
                                                 + Quiz
@@ -3202,15 +3373,63 @@ export function CourseCarriculam({ onSubmit }: any) {
                   cloudinaryPublicId = uploadResult.publicId;
                   
                   // Get video duration from Cloudinary URL
+                  console.log('Attempting to get duration from Cloudinary URL:', cloudinaryUrl);
                   duration = await new Promise<number>((resolve) => {
                     const video = document.createElement('video');
                     video.preload = 'metadata';
                     video.onloadedmetadata = () => {
-                      resolve(video.duration);
+                      console.log('Video duration loaded from Cloudinary:', video.duration);
+                      resolve(video.duration || 0);
+                      video.remove();
+                    };
+                    video.onerror = (e) => {
+                      console.log('Failed to load video metadata from Cloudinary:', e);
+                      resolve(0);
                       video.remove();
                     };
                     video.src = cloudinaryUrl;
+                    
+                    // Set a timeout in case the video doesn't load
+                    setTimeout(() => {
+                      if (video.duration === undefined || isNaN(video.duration)) {
+                        console.log('Video metadata timeout from Cloudinary, trying fallback');
+                        resolve(0);
+                        video.remove();
+                      }
+                    }, 3000);
                   });
+                  
+                  console.log('Duration from Cloudinary attempt:', duration);
+                  
+                  // If duration is still 0, try to get it from the original file
+                  if (duration === 0 || isNaN(duration)) {
+                    console.log('Trying to get duration from original file');
+                    duration = await new Promise<number>((resolve) => {
+                      const video = document.createElement('video');
+                      video.preload = 'metadata';
+                      video.onloadedmetadata = () => {
+                        console.log('Original file duration:', video.duration);
+                        resolve(video.duration || 0);
+                        video.remove();
+                      };
+                      video.onerror = (e) => {
+                        console.log('Failed to load original file metadata:', e);
+                        resolve(0);
+                        video.remove();
+                      };
+                      video.src = URL.createObjectURL(file);
+                      
+                      setTimeout(() => {
+                        if (video.duration === undefined || isNaN(video.duration)) {
+                          console.log('Original file metadata timeout');
+                          resolve(0);
+                          video.remove();
+                        }
+                      }, 3000);
+                    });
+                  }
+                  
+                  console.log('Final duration calculated:', duration);
                   
                   // Clean up blob URL
                   URL.revokeObjectURL(loadingUrl);
@@ -3223,10 +3442,24 @@ export function CourseCarriculam({ onSubmit }: any) {
                     const video = document.createElement('video');
                     video.preload = 'metadata';
                     video.onloadedmetadata = () => {
-                      resolve(video.duration);
+                      console.log('Fallback video duration:', video.duration);
+                      resolve(video.duration || 0);
+                      video.remove();
+                    };
+                    video.onerror = () => {
+                      console.log('Fallback video failed to load metadata');
+                      resolve(0);
                       video.remove();
                     };
                     video.src = fallbackUrl;
+                    
+                    setTimeout(() => {
+                      if (video.duration === undefined || isNaN(video.duration)) {
+                        console.log('Fallback video metadata timeout');
+                        resolve(0);
+                        video.remove();
+                      }
+                    }, 5000);
                   });
                   
                   return {
@@ -3253,7 +3486,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   };
                 }
 
-                return {
+                console.log('Creating lecture with duration:', duration);
+                const lecture = {
                   type: 'lecture' as const,
                   lectureName: file.name.replace(/\.[^/.]+$/, ""),
                   contentType: 'video' as const,
@@ -3275,6 +3509,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   published: false,
                   isPromotional: false,
                 };
+                console.log('Created lecture object:', lecture);
+                return lecture;
               })
             );
 
