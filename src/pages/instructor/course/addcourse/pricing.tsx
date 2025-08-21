@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { savePricingData, getPricingData, PricingData } from "../../../../utils/firebasePricing";
+import { savePricingData, getPricingData, CoursePricingData } from "../../../../utils/firebaseCoursePricing";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import {

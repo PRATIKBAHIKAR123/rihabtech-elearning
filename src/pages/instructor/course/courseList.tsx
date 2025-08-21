@@ -221,7 +221,14 @@ export default function CourseList() {
             </div>
             <div className="rounded-[15px] border border-gray p-6" >
                 <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex items-center gap-2">
-                    <Button className="rounded-none">New</Button> New Payout Available!
+                    <Button className="rounded-none">New</Button> 
+                    <span>New Payout Available!</span>
+                    <Button 
+                        className="rounded-none ml-auto bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => window.location.hash = '#/instructor/payment'}
+                    >
+                        View Payout Details
+                    </Button>
                 </div>
             </div>
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
