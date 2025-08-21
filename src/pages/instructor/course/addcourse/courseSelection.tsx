@@ -1,79 +1,166 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../../../components/ui/button";
 import { BookOpen, Edit3, MoreHorizontal, Trash2 } from "lucide-react";
-
-const mockDrafts = [
-  {
-    id: 1,
-    title: 'Photoshop',
-    status: 'DRAFT',
-    visibility: 'Public',
-    progress: 85,
-    thumbnail: null,
-    lastModified: '2 days ago',
-    description: 'Complete guide to Adobe Photoshop for beginners'
-  },
-  {
-    id: 2,
-    title: 'Photoshop',
-    status: 'DRAFT',
-    visibility: 'Public',
-    progress: 25,
-    thumbnail: null,
-    lastModified: '1 week ago',
-    description: 'Advanced Photoshop techniques and workflows'
-  },
-  {
-    id: 3,
-    title: 'React Development Masterclass',
-    status: 'DRAFT',
-    visibility: 'Private',
-    progress: 60,
-    thumbnail: null,
-    lastModified: '3 days ago',
-    description: 'Learn React from basics to advanced concepts'
-  }
-];
+import { useAuth } from "../../../../context/AuthContext";
+import { 
+  getInstructorCourses, 
+  deleteCourse, 
+  InstructorCourse,
+  calculateCourseProgress 
+} from "../../../../utils/firebaseInstructorCourses";
 
 const CourseSelection = () => {
-    const [drafts, setDrafts] = useState(mockDrafts);
+  const { user } = useAuth();
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch instructor courses on component mount
+  useEffect(() => {
+    if (user?.UserName) {
+      fetchInstructorCourses();
+    }
+  }, [user?.UserName]);
+
+  const fetchInstructorCourses = async () => {
+    try {
+      setLoading(true);
+      
+      if (!user?.UserName) {
+        console.log("No user email found");
+        return;
+      }
+
+      console.log("Fetching courses for user:", user.UserName);
+      const instructorCourses = await getInstructorCourses(user.UserName);
+      
+      // Transform Firebase data to match the original mock data structure
+      const transformedCourses = instructorCourses.map(course => ({
+        id: course.id,
+        title: course.title || "Untitled Course",
+        status: course.status?.toUpperCase() || 'DRAFT',
+        visibility: course.visibility || 'Private',
+        progress: course.progress || 0,
+        thumbnail: course.thumbnail || null,
+        lastModified: formatRelativeTime(course.lastModified),
+        description: truncateDescription(course.description || "", 80) // Truncate description to 80 characters
+      }));
+      
+      console.log("Transformed courses:", transformedCourses);
+      setDrafts(transformedCourses);
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+      // Fallback to mock data if Firebase fails
+      setDrafts([
+        {
+          id: 1,
+          title: 'Photoshop',
+          status: 'DRAFT',
+          visibility: 'Public',
+          progress: 85,
+          thumbnail: null,
+          lastModified: '2 days ago',
+          description: 'Complete guide to Adobe Photoshop for beginners'
+        },
+        {
+          id: 2,
+          title: 'Photoshop',
+          status: 'DRAFT',
+          visibility: 'Public',
+          progress: 25,
+          thumbnail: null,
+          lastModified: '1 week ago',
+          description: 'Advanced Photoshop techniques and workflows'
+        },
+        {
+          id: 3,
+          title: 'React Development Masterclass',
+          status: 'DRAFT',
+          visibility: 'Private',
+          progress: 60,
+          thumbnail: null,
+          lastModified: '3 days ago',
+          description: 'Learn React from basics to advanced concepts'
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to format relative time
+  const formatRelativeTime = (date: Date) => {
+    if (!date) return 'Recently';
+    
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} years ago`;
+  };
+
+  // Helper function to truncate description
+  const truncateDescription = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
 
   const handleAddNewCourse = () => {
     console.log('Add new course clicked');
     // Add your navigation logic here
   };
 
-  const handleEditCourse = (course:any) => {
+  const handleEditCourse = (course: any) => {
     console.log('Edit course:', course);
-    // Add your edit navigation logic here
+    // Store the course ID in localStorage for the edit flow
+    localStorage.setItem('draftId', course.id);
+    window.location.hash = '#/instructor/course-title';
   };
 
-  const handleDeleteCourse = (course:any) => {
+  const handleDeleteCourse = async (course: any) => {
     if (window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
-      setDrafts(drafts.filter((draft:any) => draft.id !== course.id));
+      try {
+        await deleteCourse(course.id);
+        // Remove from local state
+        setDrafts(drafts.filter((draft: any) => draft.id !== course.id));
+        console.log(`Course "${course.title}" deleted successfully`);
+      } catch (err) {
+        console.error("Error deleting course:", err);
+        alert("Failed to delete course. Please try again.");
+      }
     }
   };
-    return (
-      <div className="p-8">
-        <h1 className="ins-heading mb-6">Add New Course</h1>
-        
-        <div className="grid grid-cols-1 gap-6">
-          <CourseCard 
-            title="Course"
-            icon={'Images/icons/Display 1.png'}
-            buttonText="Create Course"
-          />
-          {/* <CourseCard 
-            title="Practice Test"
-            icon={'Images/icons/Document Align Left 8.png'}
-            buttonText="Create Test"
-          /> */}
-        </div>
-              <div className="space-y-4 mt-2">
+
+  return (
+    <div className="p-8">
+      <h1 className="ins-heading mb-6">Add New Course</h1>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <CourseCard 
+          title="Course"
+          icon={'Images/icons/Display 1.png'}
+          buttonText="Create Course"
+        />
+        {/* <CourseCard 
+          title="Practice Test"
+          icon={'Images/icons/Document Align Left 8.png'}
+          buttonText="Create Test"
+        /> */}
+      </div>
+      
+      <div className="space-y-4 mt-2">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Drafts</h2>
         
-        {drafts.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your courses...</p>
+          </div>
+        ) : drafts.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No course drafts yet</h3>
@@ -109,9 +196,9 @@ const CourseSelection = () => {
           </>
         )}
       </div>
-      </div>
-    );
-  };
+    </div>
+  );
+};
 
   const DraftCourseCard = ({ course, onEdit, onDelete }:any) => {
   const [showDropdown, setShowDropdown] = useState(false);
