@@ -3,9 +3,11 @@ import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
 export interface PricingPlan {
   id: string;
+  firebaseId?: string; // Firebase document ID
   name: string;
   description: string;
-  duration: number; // in months
+  longDescription?: string; // CKEditor content
+  duration: number | string; // in months, can be string from Firebase
   durationText: string; // e.g., "1 Month", "6 Months", "1 Year"
   basePrice: number;
   taxPercentage: number;
@@ -14,6 +16,15 @@ export interface PricingPlan {
   categoryId?: string; // for category-specific pricing
   categoryName?: string;
   isAllCategories: boolean; // true for platform-wide access
+  
+  // New fields for frontend pricing cards
+  generalFeatures: string[]; // Bullet points like "HD video quality", "Mobile access"
+  keyFeatures: string[]; // Checked features like "Unlimited course access"
+  prioritySupport: boolean; // For 6+ month plans
+  exclusiveContent: boolean; // For 6+ month plans
+  premiumFeatures: boolean; // For annual plans
+  earlyAccess: boolean; // For annual plans
+  
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,16 +55,25 @@ class PricingService {
         return this.pricingPlans;
       }
 
+      console.log('Fetching pricing plans from Firebase...');
       const pricingRef = collection(db, 'pricingPlans');
-      const q = query(pricingRef, where('isActive', '==', true), orderBy('duration', 'asc'));
+      
+      // Remove orderBy since duration is string, just get all active plans
+      const q = query(pricingRef, where('isActive', '==', true));
       const snapshot = await getDocs(q);
 
+      console.log(`Found ${snapshot.docs.length} pricing plans in Firebase`);
+      
       this.pricingPlans = snapshot.docs.map(doc => {
         const data = doc.data();
+        console.log('Processing plan:', doc.id, data);
+        
         return {
           id: doc.id,
+          firebaseId: doc.id,
           name: data.name || 'Untitled Plan',
           description: data.description || '',
+          longDescription: data.longDescription || '',
           duration: data.duration || 1,
           durationText: data.durationText || '1 Month',
           basePrice: data.basePrice || 0,
@@ -63,11 +83,25 @@ class PricingService {
           categoryId: data.categoryId,
           categoryName: data.categoryName,
           isAllCategories: data.isAllCategories !== false,
+          generalFeatures: data.generalFeatures || [],
+          keyFeatures: data.keyFeatures || [],
+          prioritySupport: data.prioritySupport || false,
+          exclusiveContent: data.exclusiveContent || false,
+          premiumFeatures: data.premiumFeatures || false,
+          earlyAccess: data.earlyAccess || false,
           createdAt: data.createdAt?.toDate(),
           updatedAt: data.updatedAt?.toDate()
         } as PricingPlan;
       });
 
+      // Sort plans by duration after fetching (convert string to number for sorting)
+      this.pricingPlans.sort((a, b) => {
+        const durationA = typeof a.duration === 'string' ? parseInt(a.duration) : a.duration;
+        const durationB = typeof b.duration === 'string' ? parseInt(b.duration) : b.duration;
+        return durationA - durationB;
+      });
+
+      console.log('Final pricing plans:', this.pricingPlans);
       return this.pricingPlans;
     } catch (error) {
       console.error('Error fetching pricing plans:', error);
@@ -153,7 +187,25 @@ class PricingService {
         taxPercentage: 18,
         platformFeePercentage: 40,
         isActive: true,
-        isAllCategories: true
+        isAllCategories: true,
+        generalFeatures: [
+          'Access to all courses in selected category',
+          'HD video quality',
+          'Mobile and desktop access',
+          'Certificate upon completion',
+          '24/7 customer support'
+        ],
+        keyFeatures: [
+          'Unlimited course access',
+          'Downloadable resources',
+          'Progress tracking',
+          'Community forum access',
+          'Regular content updates'
+        ],
+        prioritySupport: false,
+        exclusiveContent: false,
+        premiumFeatures: false,
+        earlyAccess: false
       },
       {
         id: 'default-semiannual',
@@ -165,7 +217,27 @@ class PricingService {
         taxPercentage: 18,
         platformFeePercentage: 40,
         isActive: true,
-        isAllCategories: true
+        isAllCategories: true,
+        generalFeatures: [
+          'Access to all courses in selected category',
+          'HD video quality',
+          'Mobile and desktop access',
+          'Certificate upon completion',
+          '24/7 customer support',
+          'Priority customer support',
+          'Exclusive content access'
+        ],
+        keyFeatures: [
+          'Unlimited course access',
+          'Downloadable resources',
+          'Progress tracking',
+          'Community forum access',
+          'Regular content updates'
+        ],
+        prioritySupport: true,
+        exclusiveContent: true,
+        premiumFeatures: false,
+        earlyAccess: false
       },
       {
         id: 'default-annual',
@@ -177,7 +249,29 @@ class PricingService {
         taxPercentage: 18,
         platformFeePercentage: 40,
         isActive: true,
-        isAllCategories: true
+        isAllCategories: true,
+        generalFeatures: [
+          'Access to all courses in selected category',
+          'HD video quality',
+          'Mobile and desktop access',
+          'Certificate upon completion',
+          '24/7 customer support',
+          'Priority customer support',
+          'Exclusive content access',
+          'All premium features included',
+          'Early access to new courses'
+        ],
+        keyFeatures: [
+          'Unlimited course access',
+          'Downloadable resources',
+          'Progress tracking',
+          'Community forum access',
+          'Regular content updates'
+        ],
+        prioritySupport: true,
+        exclusiveContent: true,
+        premiumFeatures: true,
+        earlyAccess: true
       }
     ];
   }
@@ -210,6 +304,14 @@ class PricingService {
   clearCache(): void {
     this.pricingPlans = [];
     this.categories = [];
+    console.log('Cache cleared, will fetch fresh data from Firebase');
+  }
+
+  // Force refresh from Firebase (ignores cache)
+  async refreshPricingPlans(): Promise<PricingPlan[]> {
+    console.log('Forcing refresh from Firebase...');
+    this.clearCache();
+    return await this.getPricingPlans();
   }
 }
 

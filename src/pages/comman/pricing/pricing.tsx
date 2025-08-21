@@ -35,13 +35,16 @@ export default function Pricing() {
     const loadPricingData = async () => {
         try {
             setLoading(true);
+            console.log('Loading pricing data...');
             
-            // Load pricing plans
-            const plans = await pricingService.getPricingPlans();
+            // Force refresh from Firebase to get latest data
+            const plans = await pricingService.refreshPricingPlans();
+            console.log('Loaded plans from Firebase:', plans);
             setPricingPlans(plans);
             
             // Load categories
             const categoriesData = await pricingService.getCategoriesWithPricing();
+            console.log('Loaded categories:', categoriesData);
             const categoryOptions = [
                 { id: 'all', name: 'All Categories' },
                 ...categoriesData.map(cat => ({ id: cat.id, name: cat.name }))
@@ -99,6 +102,12 @@ export default function Pricing() {
 
     // Get features based on plan duration
     const getPlanFeatures = (plan: PricingPlan): Feature[] => {
+        // Use dynamic features from Firebase if available, otherwise fall back to defaults
+        if (plan.generalFeatures && plan.generalFeatures.length > 0) {
+            return plan.generalFeatures.map(feature => ({ text: feature }));
+        }
+
+        // Fallback to default features based on duration
         const baseFeatures = [
             { text: 'Access to all courses in selected category' },
             { text: 'HD video quality' },
@@ -107,12 +116,14 @@ export default function Pricing() {
             { text: '24/7 customer support' }
         ];
 
-        if (plan.duration >= 6) {
+        const duration = typeof plan.duration === 'string' ? parseInt(plan.duration) : plan.duration;
+        
+        if (duration >= 6) {
             baseFeatures.push({ text: 'Priority customer support' });
             baseFeatures.push({ text: 'Exclusive content access' });
         }
 
-        if (plan.duration >= 12) {
+        if (duration >= 12) {
             baseFeatures.push({ text: 'All premium features included' });
             baseFeatures.push({ text: 'Early access to new courses' });
         }
@@ -122,6 +133,12 @@ export default function Pricing() {
 
     // Get key features based on plan
     const getKeyFeatures = (plan: PricingPlan): KeyFeature[] => {
+        // Use dynamic features from Firebase if available, otherwise fall back to defaults
+        if (plan.keyFeatures && plan.keyFeatures.length > 0) {
+            return plan.keyFeatures.map(feature => ({ text: feature }));
+        }
+
+        // Fallback to default features
         return [
             { text: 'Unlimited course access' },
             { text: 'Downloadable resources' },
@@ -149,7 +166,25 @@ export default function Pricing() {
             {/* Category Selection */}
             <div className="px-4 md:px-16 mb-8">
                 <div className="text-center mb-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-3">Select Category</h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-xl font-semibold text-gray-800">Select Category</h3>
+                        <button
+                            onClick={loadPricingData}
+                            disabled={loading}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Loading...
+                                </>
+                            ) : (
+                                <>
+                                    🔄 Refresh Data
+                                </>
+                            )}
+                        </button>
+                    </div>
                     <div className="flex flex-wrap justify-center gap-3">
                         {categories.map((category) => (
                             <button
@@ -193,6 +228,16 @@ export default function Pricing() {
                                         {plan.name}
                                     </h2>
                                     <p className="text-gray-600 mt-2">{plan.description}</p>
+                                    
+                                    {/* Long Description from CKEditor */}
+                                    {plan.longDescription && (
+                                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                            <div 
+                                                className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                                dangerouslySetInnerHTML={{ __html: plan.longDescription }}
+                                            />
+                                        </div>
+                                    )}
 
                                     <div className="mt-6">
                                         <h3 className="text-xl font-semibold">
@@ -215,9 +260,6 @@ export default function Pricing() {
                                             <li key={featureIndex} className="flex items-center text-sm text-gray-700">
                                                 <span className="text-black mr-2">•</span>
                                                 {feature.text}
-                                                {feature.hasInfoIcon && (
-                                                    <Info className="h-4 w-4 text-gray-400 ml-1 cursor-pointer" />
-                                                )}
                                             </li>
                                         ))}
                                     </ul>
@@ -229,9 +271,6 @@ export default function Pricing() {
                                                 <li key={featureIndex} className="flex items-center text-sm text-gray-700">
                                                     <Check className="h-5 w-5 text-black mr-2 flex-shrink-0" />
                                                     {feature.text}
-                                                    {feature.hasInfoIcon && (
-                                                        <Info className="h-4 w-4 text-gray-400 ml-1 cursor-pointer" />
-                                                    )}
                                                 </li>
                                             ))}
                                         </ul>
