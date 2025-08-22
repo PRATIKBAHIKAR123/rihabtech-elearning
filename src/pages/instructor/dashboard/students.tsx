@@ -10,8 +10,43 @@ import {
   } from "../../../components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Badge } from "../../../components/ui/badge";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../../context/AuthContext";
+import { dashboardService, StudentData } from "../../../utils/dashboardService";
 
 export const Students = () =>{
+    const [students, setStudents] = useState<StudentData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    useEffect(() => {
+        const loadStudentsData = async () => {
+            if (!user?.UserName) return;
+            
+            try {
+                setLoading(true);
+                const studentsData = await dashboardService.getStudentsData(user.UserName);
+                setStudents(studentsData);
+            } catch (error) {
+                console.error('Error loading students data:', error);
+                // Fallback to mock data
+                setStudents(dashboardService.getMockStudentsData());
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadStudentsData();
+    }, [user?.UserName]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return(
         <div>
              <h1 className="form-title mr-2">Students</h1>
@@ -34,25 +69,25 @@ export const Students = () =>{
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Students Enrolled" 
-            value="$99,999,99" 
-            growth="40,000" 
-            period="This Month" 
+            value={students.length.toString()}
+            growth={students.filter(s => s.status === 'active').length.toString()}
+            period="Active Students" 
           />
           <StatsCard 
             title="Total Students Enrolled" 
-            value="99,999,99" 
-            growth="99,999" 
-            period="This Month" 
+            value={students.filter(s => s.status === 'completed').length.toString()}
+            growth={students.filter(s => s.status === 'inactive').length.toString()}
+            period="Completed/Inactive" 
           />
           <StatsCard 
             title="Total Students Enrolled" 
-            value="$99,999,99" 
-            growth="40,000" 
-            period="This Month" 
+            value={students.reduce((sum, s) => sum + s.numberOfCourses, 0).toString()}
+            growth={students.reduce((sum, s) => sum + s.progress, 0).toString()}
+            period="Avg Progress %" 
           />
         </div>
         
-            <MonthWiseReports/>
+            <MonthWiseReports students={students}/>
       </div>
     )
 }
@@ -83,37 +118,27 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
   };
 
 
-  const MonthWiseReports = () =>{
-    const data = [
-        {
-          timePeriod: "Rajesh Kumar Singh",
-          preTax: "India",
-          withoutHolding: "31 / 12 / 12",
-          netEarning: "01",
-          payoutDate: "Active",
-        },
-        {
-          timePeriod: "Rajesh Kumar Singh",
-          preTax: "India",
-          withoutHolding: "31 / 12 / 12",
-          netEarning: "01",
-          payoutDate: "Active",
-        },
-        {
-          timePeriod: "Rajesh Kumar Singh",
-          preTax: "India",
-          withoutHolding: "31 / 12 / 12",
-          netEarning: "01",
-          payoutDate: "Non Active",
-        },
-        {
-          timePeriod: "Rajesh Kumar Singh",
-          preTax: "India",
-          withoutHolding: "31 / 12 / 12",
-          netEarning: "01",
-          payoutDate: "Completed",
-        },
-      ];
+  const MonthWiseReports = ({ students }: { students: StudentData[] }) =>{
+    const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+        }).replace(/\//g, ' / ');
+    };
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'active':
+                return <Badge className="bg-blue-100 text-blue-800">Active</Badge>;
+            case 'completed':
+                return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+            case 'inactive':
+                return <Badge className="bg-gray-100 text-gray-800">Non Active</Badge>;
+            default:
+                return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        }
+    };
     return(
         <div className="p-4 mt-4">
             <Table>
@@ -127,13 +152,13 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((row, index) => (
-              <TableRow key={index} className="ins-table-row cursor-pointer">
-                <TableCell className="table-body-text" onClick={()=>{window.location.hash='#/instructor/learner-profile'}}>{row.timePeriod}</TableCell>
-                <TableCell className="table-body-text">{row.preTax}</TableCell>
-                <TableCell className="table-body-text">{row.withoutHolding}</TableCell>
-                <TableCell className="table-body-text">{row.netEarning}</TableCell>
-                <TableCell className="table-body-text"><Badge variant={'outline'} className="bg-[#e8f1fd] rounded-2xl text-[#448df2] text-xs font-normal font-['Inter'] leading-[18px]">{row.payoutDate}</Badge></TableCell>
+            {students.map((student, index) => (
+              <TableRow key={student.id} className="ins-table-row cursor-pointer">
+                <TableCell className="table-body-text" onClick={()=>{window.location.hash='#/instructor/learner-profile'}}>{student.name}</TableCell>
+                <TableCell className="table-body-text">{student.location}</TableCell>
+                <TableCell className="table-body-text">{formatDate(student.enrolledDate)}</TableCell>
+                <TableCell className="table-body-text">{student.numberOfCourses.toString().padStart(2, '0')}</TableCell>
+                <TableCell className="table-body-text">{getStatusBadge(student.status)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

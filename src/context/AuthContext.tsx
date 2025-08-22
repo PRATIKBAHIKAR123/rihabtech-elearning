@@ -55,9 +55,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(customUser);
         setLoading(false);
         return;
+      } else {
+        // No token in localStorage, set loading to false
+        console.log('No token found in localStorage');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error parsing localStorage token:', error);
+      // Even if there's an error, we should set loading to false
+      setLoading(false);
     }
     
     // If no localStorage user, the Firebase listener will handle it
@@ -66,6 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Check localStorage first
     checkAuthState();
+
+    // Add a timeout fallback to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('Auth timeout fallback - setting loading to false');
+      setLoading(false);
+    }, 5000); // 5 second timeout
 
     // Listen for storage changes (login/logout in other tabs)
     const handleStorageChange = (e: StorageEvent) => {
@@ -79,22 +91,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Also listen to Firebase auth changes
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser && !localStorage.getItem('token')) {
-        // Only use Firebase user if no localStorage token exists
-        const customUser: CustomUser = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        };
-        setUser(customUser);
-      } else if (!firebaseUser && !localStorage.getItem('token')) {
-        // No user in either system
+      try {
+        if (firebaseUser && !localStorage.getItem('token')) {
+          // Only use Firebase user if no localStorage token exists
+          const customUser: CustomUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+          };
+          setUser(customUser);
+        } else if (!firebaseUser && !localStorage.getItem('token')) {
+          // No user in either system
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error in Firebase auth listener:', error);
         setUser(null);
+      } finally {
+        setLoading(false);
+        clearTimeout(timeoutId); // Clear timeout since auth is complete
       }
-      setLoading(false);
     });
 
     return () => {
+      clearTimeout(timeoutId);
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
     };

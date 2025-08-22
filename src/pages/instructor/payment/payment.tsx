@@ -14,7 +14,8 @@ import {
   Info,
   BarChart3,
   BookOpen,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { payoutService, PayoutRequest, EarningsSummary, PayoutBreakdown, CourseEarnings } from "../../../utils/payoutService";
@@ -23,8 +24,12 @@ import { db } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function InstructorPayment() {
-  console.log('InstructorPayment function called');
+  console.log('=== InstructorPayment component START ===');
+  
   const { user } = useAuth();
+  console.log('Auth context user:', user);
+  console.log('localStorage token:', localStorage.getItem('token'));
+    
   const [earningsSummary, setEarningsSummary] = useState<EarningsSummary | null>(null);
   const [payoutHistory, setPayoutHistory] = useState<PayoutRequest[]>([]);
   const [courseEarnings, setCourseEarnings] = useState<CourseEarnings[]>([]);
@@ -38,6 +43,8 @@ export default function InstructorPayment() {
   const [currentMonthBreakdown, setCurrentMonthBreakdown] = useState<PayoutBreakdown | null>(null);
   const [requestingPayout, setRequestingPayout] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'earnings' | 'history' | 'analytics'>('overview');
+  const [selectedPayout, setSelectedPayout] = useState<PayoutRequest | null>(null);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -47,6 +54,7 @@ export default function InstructorPayment() {
     console.log('Component state - loading:', loading, 'error:', error);
   }, [user, loading, error]);
 
+  // Load payment data when user is available
   useEffect(() => {
     console.log('Attempting to load payment data...');
     if (user?.UserName) {
@@ -103,6 +111,25 @@ export default function InstructorPayment() {
 
     loadMonthlyEarnings();
   }, [user?.UserName, selectedYear]);
+
+  // Simple fallback to prevent blank page - always render something
+  const fallbackRender = (
+    <div className="flex flex-col min-h-screen p-4 md:p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment & Earnings</h1>
+        <p className="text-gray-600">Initializing...</p>
+      </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    </div>
+  );
+
+  // If component hasn't initialized yet, show fallback
+  if (!user && !localStorage.getItem('token')) {
+    console.log('No user or token, showing fallback');
+    return fallbackRender;
+  }
 
   // Simple fallback to prevent blank page
   if (!user) {
@@ -192,27 +219,27 @@ export default function InstructorPayment() {
 
       console.log('All payment data loaded successfully');
 
-          } catch (error) {
-        console.error('Error loading payment data:', error);
-        toast.error('Failed to load payment data');
-        setError('Failed to load payment data. Using mock data instead.');
-        
-        // Use mock data as fallback
-        console.log('Loading mock data as fallback...');
-        setEarningsSummary(payoutService.getMockEarningsSummary());
-        setPayoutHistory(payoutService.getMockPayoutHistory());
-        setCourseEarnings(payoutService.getMockCourseEarnings());
-        
-        // Also set monthly earnings
-        setMonthlyEarnings([
-          { month: '2025-01', earnings: 1500 },
-          { month: '2025-02', earnings: 2200 },
-          { month: '2025-03', earnings: 1800 }
-        ]);
-      } finally {
-        console.log('Setting loading to false');
-        setLoading(false);
-      }
+    } catch (error) {
+      console.error('Error loading payment data:', error);
+      toast.error('Failed to load payment data');
+      setError('Failed to load payment data. Using mock data instead.');
+      
+      // Use mock data as fallback
+      console.log('Loading mock data as fallback...');
+      setEarningsSummary(payoutService.getMockEarningsSummary());
+      setPayoutHistory(payoutService.getMockPayoutHistory());
+      setCourseEarnings(payoutService.getMockCourseEarnings());
+      
+      // Also set monthly earnings
+      setMonthlyEarnings([
+        { month: '2025-01', earnings: 1500 },
+        { month: '2025-02', earnings: 2200 },
+        { month: '2025-03', earnings: 1800 }
+      ]);
+    } finally {
+      console.log('Setting loading to false');
+      setLoading(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -307,6 +334,11 @@ export default function InstructorPayment() {
     }
   };
 
+  const handleViewPayout = (payout: PayoutRequest) => {
+    setSelectedPayout(payout);
+    setShowPayoutModal(true);
+  };
+
   const handleDownloadReport = () => {
     // Implement report download logic
     console.log('Downloading report for month:', selectedMonth);
@@ -383,6 +415,8 @@ export default function InstructorPayment() {
   }
 
   // Main component render
+  console.log('About to render main component content');
+  
   return (
     <div className="flex flex-col min-h-screen p-4 md:p-8">
       <div className="mb-8">
@@ -390,387 +424,466 @@ export default function InstructorPayment() {
         <p className="text-gray-600">Track your earnings, request payouts, and view payment history</p>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'overview', label: 'Overview', icon: DollarSign },
-              { id: 'earnings', label: 'Course Earnings', icon: BookOpen },
-              { id: 'history', label: 'Payout History', icon: Clock },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 }
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                    activeTab === tab.id
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <>
-          {/* Month and Year Selector */}
-          <div className="mb-6">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label htmlFor="year-selector" className="text-sm font-medium text-gray-700">
-                  Year:
-                </label>
-                <select
-                  id="year-selector"
-                  value={selectedYear}
-                  onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  {[2023, 2024, 2025, 2026].map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="month-selector" className="text-sm font-medium text-gray-700">
-                  Month:
-                </label>
-                <input
-                  type="month"
-                  id="month-selector"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
+        {/* Navigation Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'overview', label: 'Overview', icon: BarChart3 },
+                { id: 'earnings', label: 'Earnings', icon: DollarSign },
+                { id: 'history', label: 'Payout History', icon: Clock },
+                { id: 'analytics', label: 'Analytics', icon: TrendingUp }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                      activeTab === tab.id
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
+        </div>
 
-          {/* Earnings Summary Cards */}
-          {earningsSummary ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(earningsSummary.totalEarnings)}</p>
-                  </div>
-                  <div className="bg-green-100 p-3 rounded-full">
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Overview Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
                     <DollarSign className="h-6 w-6 text-green-600" />
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Pending Payouts</p>
-                    <p className="text-2xl font-bold text-yellow-600">{formatCurrency(earningsSummary.pendingPayouts)}</p>
-                  </div>
-                  <div className="bg-yellow-100 p-3 rounded-full">
-                    <Clock className="h-6 w-6 text-yellow-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Available for Payout</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(earningsSummary.availableForPayout)}</p>
-                  </div>
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <Calendar className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Watch Time</p>
-                    <p className="text-2xl font-bold text-purple-600">{earningsSummary.totalWatchTime}h</p>
-                  </div>
-                  <div className="bg-purple-100 p-3 rounded-full">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-md p-8 mb-8 text-center">
-              <div className="text-gray-500">
-                <DollarSign className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">No Earnings Yet</h3>
-                <p className="text-gray-500 mb-4">
-                  You haven't earned any revenue yet. Start creating courses and building your audience to begin earning!
-                </p>
-                <Button 
-                  onClick={() => window.location.hash = '#/instructor/course-title'}
-                  className="bg-primary hover:bg-primary/90 text-white"
-                >
-                  Create Your First Course
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Current Month Breakdown */}
-          {currentMonthBreakdown && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Month Breakdown ({formatMonth(selectedMonth)})</h3>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600">Base Amount</p>
-                  <p className="text-xl font-bold text-gray-900">{formatCurrency(currentMonthBreakdown.baseAmount)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600">Tax (18%)</p>
-                  <p className="text-xl font-bold text-red-600">{formatCurrency(currentMonthBreakdown.taxAmount)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600">Platform Fee (40%)</p>
-                  <p className="text-xl font-bold text-orange-600">{formatCurrency(currentMonthBreakdown.platformFee)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600">Your Share (60%)</p>
-                  <p className="text-xl font-bold text-green-600">{formatCurrency(currentMonthBreakdown.instructorShare)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600">Total</p>
-                  <p className="text-xl font-bold text-blue-600">{formatCurrency(currentMonthBreakdown.totalAmount)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {earningsSummary && (
-            <div className="flex flex-wrap gap-4 mb-8">
-              {earningsSummary.availableForPayout >= 1000 && (
-                <Button 
-                  onClick={handleRequestPayout}
-                  disabled={requestingPayout}
-                  className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg flex items-center gap-2"
-                >
-                  <DollarSign className="h-5 w-5" />
-                  {requestingPayout ? 'Requesting...' : 'Request Payout'}
-                </Button>
-              )}
-              
-              {earningsSummary.availableForPayout < 1000 && earningsSummary.availableForPayout > 0 && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <span className="text-yellow-800 text-sm">
-                    Minimum payout amount is ₹1000. Current available: ₹{earningsSummary.availableForPayout.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              
-              <Button 
-                onClick={handleDownloadReport}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg flex items-center gap-2"
-              >
-                <Download className="h-5 w-5" />
-                Download Report
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Course Earnings Tab */}
-      {activeTab === 'earnings' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Earnings for {formatMonth(selectedMonth)}</h3>
-            {courseEarnings.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Watch Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Earnings</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollments</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {courseEarnings.map((course) => (
-                      <tr key={course.courseId} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{course.courseTitle}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {course.watchMinutes} minutes
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                          {formatCurrency(course.earnings)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {course.enrollments}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No course earnings data available for this month.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Payout History Tab */}
-      {activeTab === 'history' && (
-        <div className="space-y-6">
-          {earningsSummary ? (
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Payout History</h2>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Watch Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Courses</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform Fee</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {payoutHistory.map((payout) => (
-                      <tr key={payout.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatMonth(payout.month)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                          {formatCurrency(payout.amount)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {payout.watchTimeMinutes} minutes
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {payout.courseCount} courses
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatCurrency(payout.platformFee || 0)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(payout.status)}
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payout.status)}`}>
-                              {getStatusText(payout.status)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(payout.requestDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {payoutHistory.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="text-gray-500">
-                    <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Payout History</h3>
-                    <p className="text-gray-500">
-                      {earningsSummary && earningsSummary.availableForPayout > 0 
-                        ? `You have ₹${earningsSummary.availableForPayout.toLocaleString()} available for payout. Request a payout when you're ready!`
-                        : "Start creating courses and earning to see your payout history."
-                      }
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {earningsSummary ? formatCurrency(earningsSummary.totalEarnings) : '₹0'}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Earnings for {selectedYear}</h3>
-            {monthlyEarnings.length > 0 ? (
-              <div className="space-y-4">
-                {monthlyEarnings.map((monthData) => (
-                  <div key={monthData.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-gray-700">{formatMonth(monthData.month)}</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(monthData.earnings)}</span>
-                  </div>
-                ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No analytics data available for this year.</p>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Enrollments</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {earningsSummary ? earningsSummary.totalCourses.toLocaleString() : '0'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <BookOpen className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Courses</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {earningsSummary ? earningsSummary.totalCourses.toLocaleString() : '0'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Available for Payout</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {earningsSummary ? formatCurrency(earningsSummary.availableForPayout) : '₹0'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="flex flex-wrap gap-4">
+                <Button
+                  onClick={handleRequestPayout}
+                  disabled={requestingPayout || !currentMonthBreakdown || currentMonthBreakdown.instructorShare < 1000}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  {requestingPayout ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Request Payout
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleDownloadReport}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-white"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Report
+                </Button>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-blue-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">How Payouts Work</h3>
+                <ul className="space-y-2 text-sm text-blue-800">
+                  <li>• Payouts are processed monthly based on watch time</li>
+                  <li>• Platform fee is deducted from your earnings</li>
+                  <li>• Minimum payout amount: ₹1000</li>
+                  <li>• Payouts are processed within 5-7 business days</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-green-900 mb-3">Earnings Calculation</h3>
+                <ul className="space-y-2 text-sm text-green-800">
+                  <li>• Earnings based on paid watch minutes</li>
+                  <li>• Free courses and previews are excluded</li>
+                  <li>• Revenue sharing: 60% instructor, 40% platform</li>
+                  <li>• Tax is calculated on the total amount</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'earnings' && (
+          <div className="space-y-6">
+            {/* Month/Year Selector */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex flex-wrap items-center gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = new Date(2025, i, 1);
+                      const monthString = month.toISOString().slice(0, 7);
+                      return (
+                        <option key={monthString} value={monthString}>
+                          {month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  >
+                    {[2023, 2024, 2025, 2026].map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Month Breakdown */}
+            {currentMonthBreakdown && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Earnings Breakdown for {formatMonth(selectedMonth)}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {formatCurrency(currentMonthBreakdown.baseAmount)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Platform Fee (40%)</p>
+                    <p className="text-2xl font-semibold text-orange-600">
+                      {formatCurrency(currentMonthBreakdown.platformFee)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Tax (18%)</p>
+                    <p className="text-2xl font-semibold text-red-600">
+                      {formatCurrency(currentMonthBreakdown.taxAmount)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Your Share (60%)</p>
+                    <p className="text-2xl font-semibold text-green-600">
+                      {formatCurrency(currentMonthBreakdown.instructorShare)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Course Earnings */}
+            {courseEarnings.length > 0 && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Performance</h3>
+                <div className="space-y-4">
+                  {courseEarnings.map((course, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{course.courseTitle}</h4>
+                        <p className="text-sm text-gray-600">{course.enrollments} students</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">{formatCurrency(course.earnings)}</p>
+                        <p className="text-sm text-gray-600">{course.watchMinutes} min watched</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Additional Information */}
-      {earningsSummary && activeTab === 'overview' && (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-blue-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-3">How Payouts Work</h3>
-            <ul className="space-y-2 text-sm text-blue-800">
-              <li>• Payouts are processed monthly based on watch time</li>
-              <li>• Platform fee is deducted from your earnings</li>
-              <li>• Minimum payout amount: ₹1000</li>
-              <li>• Payouts are processed within 5-7 business days</li>
-            </ul>
+        {activeTab === 'history' && (
+          <div className="space-y-6">
+            {/* Payout History */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Payout History</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Month
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {payoutHistory.length > 0 ? (
+                      payoutHistory.map((payout, index) => (
+                        <tr key={payout.id || index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(payout.requestDate)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatCurrency(payout.amount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payout.status)}`}>
+                              {getStatusText(payout.status)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatMonth(payout.month)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                              onClick={() => handleViewPayout(payout)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                          No payout history available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
+        )}
 
-          <div className="bg-green-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-3">Earnings Calculation</h3>
-            <ul className="space-y-2 text-sm text-green-800">
-              <li>• Earnings based on paid watch minutes</li>
-              <li>• Free courses and previews are excluded</li>
-              <li>• Revenue sharing: 60% instructor, 40% platform</li>
-              <li>• Tax is calculated on the total amount</li>
-            </ul>
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Monthly Earnings Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Earnings Trend</h3>
+              {monthlyEarnings.length > 0 ? (
+                <div className="space-y-4">
+                  {monthlyEarnings.map((month, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-600">{formatMonth(month.month)}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(month.earnings)}</span>
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full"
+                            style={{
+                              width: `${Math.min((month.earnings / Math.max(...monthlyEarnings.map(m => m.earnings))) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No earnings data available for analytics</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+
+        {/* Payout Details Modal */}
+        {showPayoutModal && selectedPayout && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Payout Details</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPayoutModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Month</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatMonth(selectedPayout.month)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Year</p>
+                    <p className="text-lg font-semibold text-gray-900">{selectedPayout.year}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Amount</p>
+                    <p className="text-lg font-semibold text-green-600">{formatCurrency(selectedPayout.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Status</p>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(selectedPayout.status)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedPayout.status)}`}>
+                        {getStatusText(selectedPayout.status)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Financial Breakdown</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Base Amount</p>
+                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(selectedPayout.totalEarnings)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Platform Fee (40%)</p>
+                      <p className="text-lg font-semibold text-orange-600">{formatCurrency(selectedPayout.platformFee)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Tax Amount (18%)</p>
+                      <p className="text-lg font-semibold text-red-600">{formatCurrency(selectedPayout.taxAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Your Share (60%)</p>
+                      <p className="text-lg font-semibold text-green-600">{formatCurrency(selectedPayout.instructorShare)}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Activity Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Watch Time</p>
+                      <p className="text-lg font-semibold text-gray-900">{selectedPayout.watchTimeMinutes} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Courses</p>
+                      <p className="text-lg font-semibold text-gray-900">{selectedPayout.courseCount} courses</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Request Date</p>
+                      <p className="text-lg font-semibold text-gray-900">{formatDate(selectedPayout.requestDate)}</p>
+                    </div>
+                    {selectedPayout.processedDate && (
+                      <div>
+                        <p className="text-sm text-gray-600">Processed Date</p>
+                        <p className="text-lg font-semibold text-gray-900">{formatDate(selectedPayout.processedDate)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {selectedPayout.notes && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
+                    <p className="text-gray-700">{selectedPayout.notes}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={() => setShowPayoutModal(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  console.log('=== InstructorPayment component END ===');
 }

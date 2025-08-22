@@ -10,11 +10,63 @@ import {
     TableHeader,
     TableRow,
   } from "../../../components/ui/table";
-import { MouseEventHandler, useState } from "react";
+import { MouseEventHandler, useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../../../components/ui/select";
+import { useAuth } from "../../../context/AuthContext";
+import { dashboardService, DashboardStats, RevenueData } from "../../../utils/dashboardService";
 
 export const Overview = () =>{
     const [showmonthWiseReport, setShowMonthWiseReport] = useState(false);
+    const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+    const [revenueStats, setRevenueStats] = useState<RevenueData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    useEffect(() => {
+        const loadDashboardData = async () => {
+            if (!user?.UserName) return;
+            
+            try {
+                setLoading(true);
+                const [stats, revenue] = await Promise.all([
+                    dashboardService.getDashboardStats(user.UserName),
+                    dashboardService.getRevenueStatistics(user.UserName, new Date().getFullYear())
+                ]);
+                
+                setDashboardStats(stats);
+                setRevenueStats(revenue);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                // Fallback to mock data
+                setDashboardStats(dashboardService.getMockDashboardStats());
+                setRevenueStats([
+                    { month: 'May', revenue: 8000, enrollments: 0, percentage: 80 },
+                    { month: 'Jun', revenue: 6500, enrollments: 0, percentage: 65 },
+                    { month: 'Jul', revenue: 8000, enrollments: 0, percentage: 80 },
+                    { month: 'Aug', revenue: 5000, enrollments: 0, percentage: 50 },
+                    { month: 'Sep', revenue: 10000, enrollments: 0, percentage: 100 },
+                    { month: 'Oct', revenue: 7500, enrollments: 0, percentage: 75 },
+                    { month: 'Nov', revenue: 7500, enrollments: 0, percentage: 75 },
+                    { month: 'Dec', revenue: 7500, enrollments: 0, percentage: 75 },
+                    { month: 'Jan', revenue: 8000, enrollments: 0, percentage: 80 },
+                    { month: 'Feb', revenue: 7000, enrollments: 0, percentage: 70 }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboardData();
+    }, [user?.UserName]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return(
         <div>
         <div className="flex justify-between items-center mb-6">
@@ -32,24 +84,24 @@ export const Overview = () =>{
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Revenue" 
-            value="$99,999,99" 
-            growth="40,000" 
+            value={`₹${dashboardStats?.totalRevenue.toLocaleString() || '0'}`}
+            growth={dashboardStats?.currentMonthRevenue.toLocaleString() || '0'}
             period="This Month" 
           />
           <StatsCard 
             title="Total Enrollment" 
-            value="99,999,99" 
-            growth="99,999" 
+            value={dashboardStats?.totalEnrollments.toLocaleString() || '0'}
+            growth={dashboardStats?.currentMonthEnrollments.toLocaleString() || '0'}
             period="This Month" 
           />
           <StatsCard 
-            title="Total Revenue" 
-            value="$99,999,99" 
-            growth="40,000" 
-            period="This Month" 
+            title="Total Students" 
+            value={dashboardStats?.totalStudents.toLocaleString() || '0'}
+            growth={dashboardStats?.totalCourses.toString() || '0'}
+            period="Total Courses" 
           />
         </div>
-        <RevenueChart onClick={() => setShowMonthWiseReport((prev) => !prev)}/>
+        <RevenueChart data={revenueStats} onClick={() => setShowMonthWiseReport((prev) => !prev)}/>
         {showmonthWiseReport&&
             <MonthWiseReports/>
         }
@@ -85,21 +137,14 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
 
   interface RevenueChartProps {
       onClick: () => void;
+      data: RevenueData[];
     }
 
-  const RevenueChart = ({ onClick }: RevenueChartProps) => {
-    const data = [
-      { month: 'May', value: 80 },
-      { month: 'Jun', value: 65 },
-      { month: 'Jul', value: 80 },
-      { month: 'Aug', value: 50 },
-      { month: 'Sep', value: 100 },
-      { month: 'Oct', value: 75 },
-      { month: 'Nov', value: 75 },
-      { month: 'Dec', value: 75 },
-      { month: 'Jan', value: 80 },
-      { month: 'Feb', value: 80 },
-    ];
+  const RevenueChart = ({ onClick, data }: RevenueChartProps) => {
+    const chartData = data.map(item => ({
+      month: item.month,
+      value: item.percentage
+    }));
   
     return (
       <div className="p-4 bg-white rounded-lg shadow-[0px_1px_4px_0px_rgba(0,0,0,0.25)] mt-4">
@@ -113,7 +158,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} barSize={25} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+            <BarChart data={chartData} barSize={25} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <XAxis dataKey="month" axisLine={false} tickLine={false} />
               <YAxis
                 axisLine={false}

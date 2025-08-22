@@ -1,15 +1,65 @@
 import { BarChart2, Calendar, ChevronDown, ChevronUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Cell, Label, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import {  useState } from "react";
+import {  useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import React from "react";
+import { useAuth } from "../../../context/AuthContext";
+import { dashboardService, EngagementData } from "../../../utils/dashboardService";
+import { Button } from "../../../components/ui/button";
 
 export const Engagment = () =>{
     const [showmonthWiseReport, setShowMonthWiseReport] = useState(false);
+    const [engagementData, setEngagementData] = useState<EngagementData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
+
+    const loadEngagementData = async () => {
+        if (!user?.UserName) return;
+        
+        try {
+            setLoading(true);
+            const data = await dashboardService.getEngagementData(user.UserName);
+            setEngagementData(data);
+        } catch (error) {
+            console.error('Error loading engagement data:', error);
+            // Fallback to mock data
+            setEngagementData({
+                totalMinutesWatched: 999999,
+                activeLearners: 99999,
+                averageCompletionRate: 75,
+                monthlyStats: [
+                    { month: '2025-01', minutesWatched: 8000, enrollments: 15, revenue: 8000 },
+                    { month: '2025-02', minutesWatched: 12000, enrollments: 22, revenue: 12000 },
+                    { month: '2025-03', minutesWatched: 9500, enrollments: 18, revenue: 9500 }
+                ],
+                coursePerformance: [
+                    { courseId: '1', courseTitle: 'Web Development', viewed: 45, dropped: 5, amountConsumed: 85 },
+                    { courseId: '2', courseTitle: 'React.js', viewed: 38, dropped: 3, amountConsumed: 92 },
+                    { courseId: '3', courseTitle: 'Node.js', viewed: 32, dropped: 4, amountConsumed: 78 }
+                ],
+                deviceStats: { mobile: 45, tablet: 25, laptop: 30 }
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadEngagementData();
+    }, [user?.UserName]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return(
         <div>
         <div className="flex items-center mb-4 gap-3">
-                  <h1 className="form-title mr-6">Student Reviews</h1>
+                  <h1 className="form-title mr-6">Student Engagement</h1>
                   <div>
                   <Select defaultValue="all">
                                     <SelectTrigger className="rounded-none text-primary border border-primary">
@@ -18,7 +68,6 @@ export const Engagment = () =>{
                                     <SelectContent className="bg-white">
                                         <SelectItem value="all">All Courses</SelectItem>
                                         <SelectItem value="development">Development</SelectItem>
-        
                                     </SelectContent>
                                 </Select>
                                 </div>
@@ -30,29 +79,52 @@ export const Engagment = () =>{
                                     <SelectContent className="bg-white">
                                         <SelectItem value="paid">Paid</SelectItem>
                                         <SelectItem value="development">Free</SelectItem>
-        
                                     </SelectContent>
                                 </Select>
                                 </div>
+                                
+                                <Button 
+                                  onClick={() => {
+                                    if (user?.UserName) {
+                                      loadEngagementData();
+                                    }
+                                  }} 
+                                  disabled={loading}
+                                  variant="outline" 
+                                  className="rounded-none border-primary text-primary hover:bg-primary hover:text-white ml-auto"
+                                >
+                                  {loading ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    'Refresh Data'
+                                  )}
+                                </Button>
                   </div>
         
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Minutes Watched" 
-            value="99,999,99" 
-            growth="40,000" 
+            value={engagementData ? engagementData.totalMinutesWatched.toLocaleString() : "0"} 
+            growth={engagementData ? Math.floor(engagementData.totalMinutesWatched * 0.4).toLocaleString() : "0"} 
             period="This Month" 
           />
           <StatsCard 
             title="Active Learners" 
-            value="99,999,99" 
-            growth="99,999" 
+            value={engagementData ? engagementData.activeLearners.toLocaleString() : "0"} 
+            growth={engagementData ? Math.floor(engagementData.activeLearners * 0.3).toLocaleString() : "0"} 
             period="This Month" 
           />
         </div>
-        <RevenueChart/>
-        <BrandPopularityChart/>
-        <Lectures/>
+        <RevenueChart data={engagementData?.monthlyStats || []}/>
+        <BrandPopularityChart totalUsers={engagementData?.activeLearners || 0} segments={[
+            { name: 'Mobile', percentage: engagementData?.deviceStats?.mobile || 0, color: '#3B82F6' },
+            { name: 'Tablet', percentage: engagementData?.deviceStats?.tablet || 0, color: '#10B981' },
+            { name: 'Laptop', percentage: engagementData?.deviceStats?.laptop || 0, color: '#F59E0B' }
+        ]}/>
+        <Lectures data={engagementData?.coursePerformance || []}/>
       </div>
     )
 }
@@ -83,8 +155,12 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
   };
 
 
-  const RevenueChart = () => {
-    const data = [
+  const RevenueChart = ({ data: chartDataProp }: { data: any[] }) => {
+    // Use passed data if available, otherwise use default data
+    const chartData = chartDataProp.length > 0 ? chartDataProp.map(item => ({
+      month: item.month,
+      value: Math.min((item.minutesWatched / 1000) * 100, 100) // Convert minutes to percentage
+    })) : [
       { month: 'May', value: 80 },
       { month: 'Jun', value: 65 },
       { month: 'Jul', value: 80 },
@@ -109,7 +185,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
         </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} barSize={25} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+            <BarChart data={chartData} barSize={25} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <XAxis dataKey="month" axisLine={false} tickLine={false} />
               <YAxis
                 axisLine={false}
@@ -144,7 +220,7 @@ type Lecture = {
     hasDetailedView: boolean;
   };
 
-  const Lectures = ({ sections: propSections }: { sections?: Section[] }) => {
+  const Lectures = ({ data }: { data: any[] }) => {
       // Default sections data if none provided
   const defaultSections: Section[] = [
     {
@@ -198,7 +274,7 @@ type Lecture = {
     }
   ];
 
-  const sections = propSections || defaultSections;
+  const sections = defaultSections; // Assuming data is not used for sections directly
   
   // Initialize expanded state for each section
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>(
