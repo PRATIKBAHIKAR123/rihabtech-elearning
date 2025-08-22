@@ -1,480 +1,437 @@
-import { db } from "../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 
-// Setup demo student enrollment data
-export const setupDemoEnrollment = async () => {
+// Demo data structure for testing payout functionality
+export const setupDemoPayoutData = async (instructorId: string) => {
   try {
-    // Demo student enrollment
-    const enrollmentData = {
-      studentId: "demo-student-123",
-      courseId: "demo-course-123",
-      enrolledAt: new Date(),
-      isActive: true,
-      lastAccessedAt: new Date(),
-      progress: 25, // 25% complete
-      totalWatchTime: 1800, // 30 minutes
-      completedModules: ["module-1", "module-2"], // First two modules completed
-      currentModuleId: "module-3",
-      currentPosition: 0
-    };
+    console.log('Setting up demo payout data for instructor:', instructorId);
 
-    // Create enrollment document
-    await setDoc(
-      doc(db, "studentEnrollments", "demo-student-123_demo-course-123"),
-      enrollmentData
-    );
-
-    console.log("✅ Demo enrollment created successfully");
-
-    // Create some module progress data
-    const moduleProgressData = [
+    // 1. Setup sample watch time data
+    const watchTimeData = [
       {
-        studentId: "demo-student-123",
-        courseId: "demo-course-123",
-        moduleId: "module-1",
-        moduleType: "video",
-        isCompleted: true,
-        completedAt: new Date(),
-        watchTime: 900, // 15 minutes
-        lastPosition: 900,
-        attempts: 1
+        instructorId,
+        courseId: 'demo-course-1',
+        courseTitle: 'Web Development Fundamentals',
+        watchMinutes: 450,
+        isPaidContent: true,
+        month: '2025-01',
+        year: 2025,
+        studentId: 'student-1',
+        timestamp: new Date()
       },
       {
-        studentId: "demo-student-123",
-        courseId: "demo-course-123",
-        moduleId: "module-2",
-        moduleType: "video",
-        isCompleted: true,
-        completedAt: new Date(),
-        watchTime: 900, // 15 minutes
-        lastPosition: 900,
-        attempts: 1
+        instructorId,
+        courseId: 'demo-course-1',
+        courseTitle: 'Web Development Fundamentals',
+        watchMinutes: 320,
+        isPaidContent: true,
+        month: '2025-01',
+        year: 2025,
+        studentId: 'student-2',
+        timestamp: new Date()
       },
       {
-        studentId: "demo-student-123",
-        courseId: "demo-course-123",
-        moduleId: "module-3",
-        moduleType: "video",
-        isCompleted: false,
-        watchTime: 0,
-        lastPosition: 0,
-        attempts: 0
+        instructorId,
+        courseId: 'demo-course-2',
+        courseTitle: 'React.js Masterclass',
+        watchMinutes: 680,
+        isPaidContent: true,
+        month: '2025-01',
+        year: 2025,
+        studentId: 'student-3',
+        timestamp: new Date()
+      },
+      {
+        instructorId,
+        courseId: 'demo-course-2',
+        courseTitle: 'React.js Masterclass',
+        watchMinutes: 420,
+        isPaidContent: true,
+        month: '2025-01',
+        year: 2025,
+        studentId: 'student-4',
+        timestamp: new Date()
+      },
+      {
+        instructorId,
+        courseId: 'demo-course-3',
+        courseTitle: 'Node.js Backend Development',
+        watchMinutes: 550,
+        isPaidContent: true,
+        month: '2025-01',
+        year: 2025,
+        studentId: 'student-5',
+        timestamp: new Date()
+      },
+      // February data
+      {
+        instructorId,
+        courseId: 'demo-course-1',
+        courseTitle: 'Web Development Fundamentals',
+        watchMinutes: 380,
+        isPaidContent: true,
+        month: '2025-02',
+        year: 2025,
+        studentId: 'student-6',
+        timestamp: new Date()
+      },
+      {
+        instructorId,
+        courseId: 'demo-course-2',
+        courseTitle: 'React.js Masterclass',
+        watchMinutes: 520,
+        isPaidContent: true,
+        month: '2025-02',
+        year: 2025,
+        studentId: 'student-7',
+        timestamp: new Date()
+      },
+      {
+        instructorId,
+        courseId: 'demo-course-3',
+        courseTitle: 'Node.js Backend Development',
+        watchMinutes: 480,
+        isPaidContent: true,
+        month: '2025-02',
+        year: 2025,
+        studentId: 'student-8',
+        timestamp: new Date()
+      },
+      // March data
+      {
+        instructorId,
+        courseId: 'demo-course-1',
+        courseTitle: 'Web Development Fundamentals',
+        watchMinutes: 290,
+        isPaidContent: true,
+        month: '2025-03',
+        year: 2025,
+        studentId: 'student-9',
+        timestamp: new Date()
+      },
+      {
+        instructorId,
+        courseId: 'demo-course-2',
+        courseTitle: 'React.js Masterclass',
+        watchMinutes: 610,
+        isPaidContent: true,
+        month: '2025-03',
+        year: 2025,
+        studentId: 'student-10',
+        timestamp: new Date()
       }
     ];
 
-    // Create module progress documents
-    for (const progress of moduleProgressData) {
-      await setDoc(
-        doc(db, "moduleProgress", `${progress.studentId}_${progress.courseId}_${progress.moduleId}`),
-        progress
-      );
+    // 2. Setup sample payout requests
+    const payoutRequests = [
+      {
+        instructorId,
+        amount: 1200,
+        status: 'processed',
+        requestDate: new Date('2025-01-15'),
+        processedDate: new Date('2025-01-20'),
+        watchTimeMinutes: 1450,
+        courseCount: 3,
+        month: '2025-01',
+        year: 2025,
+        notes: 'Successfully processed',
+        platformFee: 580,
+        instructorShare: 870,
+        taxAmount: 216,
+        totalEarnings: 1416
+      },
+      {
+        instructorId,
+        amount: 980,
+        status: 'pending',
+        requestDate: new Date('2025-02-15'),
+        watchTimeMinutes: 1380,
+        courseCount: 3,
+        month: '2025-02',
+        year: 2025,
+        notes: 'Pending admin approval',
+        platformFee: 552,
+        instructorShare: 828,
+        taxAmount: 176.4,
+        totalEarnings: 1156.4
+      },
+      {
+        instructorId,
+        amount: 750,
+        status: 'approved',
+        requestDate: new Date('2025-03-15'),
+        watchTimeMinutes: 900,
+        courseCount: 2,
+        month: '2025-03',
+        year: 2025,
+        notes: 'Approved, processing payment',
+        platformFee: 360,
+        instructorShare: 540,
+        taxAmount: 135,
+        totalEarnings: 885
+      }
+    ];
+
+    // 3. Setup sample courses data
+    const courses = [
+      {
+        courseId: 'demo-course-1',
+        courseTitle: 'Web Development Fundamentals',
+        instructorId,
+        price: 999,
+        category: 'Development',
+        enrollments: 45,
+        totalWatchTime: 1200,
+        createdAt: serverTimestamp()
+      },
+      {
+        courseId: 'demo-course-2',
+        courseTitle: 'React.js Masterclass',
+        instructorId,
+        price: 1499,
+        category: 'Development',
+        enrollments: 32,
+        totalWatchTime: 1800,
+        createdAt: serverTimestamp()
+      },
+      {
+        courseId: 'demo-course-3',
+        courseTitle: 'Node.js Backend Development',
+        instructorId,
+        price: 1299,
+        category: 'Development',
+        enrollments: 28,
+        totalWatchTime: 1500,
+        createdAt: serverTimestamp()
+      }
+    ];
+
+    // 4. Setup sample user data
+    const userData = {
+      email: instructorId,
+      userName: instructorId,
+      role: 'instructor',
+      firstName: 'Demo',
+      lastName: 'Instructor',
+      profilePicture: 'https://via.placeholder.com/150',
+      bio: 'Experienced web development instructor with 5+ years of teaching experience',
+      totalStudents: 105,
+      totalCourses: 3,
+      rating: 4.8,
+      joinDate: serverTimestamp(),
+      isVerified: true
+    };
+
+    // Use batch write for better performance
+    const batch = writeBatch(db);
+
+    // Add watch time data
+    console.log('Adding watch time data...');
+    for (const watchTime of watchTimeData) {
+      const docRef = doc(collection(db, 'watchTimeData'));
+      batch.set(docRef, {
+        ...watchTime,
+        timestamp: serverTimestamp()
+      });
     }
 
-    console.log("✅ Demo module progress created successfully");
+    // Add payout requests
+    console.log('Adding payout requests...');
+    for (const payout of payoutRequests) {
+      const docRef = doc(collection(db, 'payoutRequests'));
+      batch.set(docRef, {
+        ...payout,
+        requestDate: serverTimestamp(),
+        processedDate: payout.processedDate ? serverTimestamp() : null
+      });
+    }
 
-    // Create a demo course if it doesn't exist
-    const demoCourseData = {
-      title: "Complete UX Research Masterclass",
-      subtitle: "Learn the fundamentals of UX research and user-centered design",
-      description: "A comprehensive course covering all aspects of UX research methodology, from planning to execution to analysis.",
-      thumbnailUrl: "Images/Banners/Person.jpg",
-      promoVideoUrl: "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf",
-      featured: true,
-      isPublished: true,
-      status: "approved",
-      category: "Design",
-      level: "Beginner",
-      language: "English",
-      pricing: "Free",
-      submittedAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      curriculum: {
-        sections: [
-          {
-            id: "section-1",
-            name: "Introduction to UX Research",
-            published: true,
-            items: [
-              {
-                id: "module-1",
-                contentType: "video",
-                lectureName: "Emily - The power of UX research",
-                description: "Understanding the fundamentals of UX research and its impact on product design.",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 900, // 15 minutes
-                    name: "Introduction Video",
-                    url: "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf"
-                  }
-                ]
-              },
-              {
-                id: "module-2",
-                contentType: "video",
-                lectureName: "Research Methods Overview",
-                description: "Comprehensive overview of qualitative and quantitative research methods.",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 900, // 15 minutes
-                    name: "Methods Overview",
-                    url: "https://example.com/video2"
-                  }
-                ]
-              },
-              {
-                id: "module-3",
-                contentType: "quiz",
-                lectureName: "Knowledge Check: Research Basics",
-                description: "Test your understanding of basic UX research concepts.",
-                published: true
-              }
-            ]
-          },
-          {
-            id: "section-2",
-            name: "User Interview Techniques",
-            published: true,
-            items: [
-              {
-                id: "module-4",
-                contentType: "document",
-                lectureName: "Interview Planning Template",
-                description: "Downloadable template for planning effective user interviews.",
-                published: true
-              },
-              {
-                id: "module-5",
-                contentType: "video",
-                lectureName: "Conducting User Interviews",
-                description: "Best practices for conducting insightful user interviews.",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 1695, // 28:15
-                    name: "Interview Techniques",
-                    url: "https://example.com/video3"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      members: [
-        {
-          id: "instructor-1",
-          email: "emilie.bryant@example.com",
-          role: "instructor"
-        },
-        {
-          id: "demo-student-123",
-          email: "demo@example.com",
-          role: "student"
-        }
-      ]
+    // Add courses
+    console.log('Adding courses...');
+    for (const course of courses) {
+      const docRef = doc(collection(db, 'courses'));
+      batch.set(docRef, course);
+    }
+
+    // Add user data
+    console.log('Adding user data...');
+    const userRef = doc(collection(db, 'users'), instructorId);
+    batch.set(userRef, userData);
+
+    // Commit all changes
+    await batch.commit();
+    console.log('Demo data setup completed successfully!');
+
+    return {
+      watchTimeRecords: watchTimeData.length,
+      payoutRecords: payoutRequests.length,
+      courseRecords: courses.length,
+      userRecord: 1
     };
 
-    await setDoc(
-      doc(db, "courseDrafts", "demo-course-123"),
-      demoCourseData
-    );
-
-    console.log("✅ Demo course created successfully");
-    console.log("🎉 Demo data setup complete! You can now test the current course page.");
-
   } catch (error) {
-    console.error("❌ Error setting up demo data:", error);
+    console.error('Error setting up demo data:', error);
+    throw error;
   }
 };
 
-// Setup demo payment and enrollment data for testing
-export const setupDemoPaymentData = async () => {
+// Function to add more realistic data for testing
+export const addRealisticPayoutData = async (instructorId: string) => {
   try {
-    // Demo paid course
-    const paidCourseData = {
-      title: "Advanced React Development",
-      subtitle: "Master modern React with hooks, context, and advanced patterns",
-      description: "A comprehensive course covering advanced React concepts including hooks, context API, performance optimization, and modern development patterns.",
-      thumbnailUrl: "Images/courses/react course 14.jpg",
-      promoVideoUrl: "/courses/video2 - Trim.mp4",
-      featured: true,
-      isPublished: true,
-      status: "approved",
-      category: "Development",
-      level: "Advanced",
-      language: "English",
-      pricing: "2999", // ₹2999
-      submittedAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      learn: [
-        "Master React Hooks and custom hook patterns",
-        "Understand Context API and state management",
-        "Learn performance optimization techniques",
-        "Build real-world applications with React",
-        "Implement testing strategies for React apps"
-      ],
-      requirements: [
-        "Basic knowledge of JavaScript ES6+",
-        "Familiarity with React fundamentals",
-        "Understanding of HTML and CSS",
-        "Node.js installed on your machine"
-      ],
-      target: [
-        "React developers looking to advance their skills",
-        "Frontend developers wanting to learn modern React",
-        "JavaScript developers transitioning to React",
-        "Anyone interested in building professional React applications"
-      ],
-      curriculum: {
-        sections: [
-          {
-            id: "section-1",
-            name: "Advanced Hooks",
-            published: true,
-            items: [
-              {
-                id: "module-1",
-                contentType: "video",
-                lectureName: "useState and useEffect Deep Dive",
-                description: "Advanced patterns and best practices for React hooks",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 1800, // 30 minutes
-                    name: "Hooks Deep Dive",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              },
-              {
-                id: "module-2",
-                contentType: "video",
-                lectureName: "Custom Hooks Development",
-                description: "Creating reusable custom hooks for common patterns",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 2100, // 35 minutes
-                    name: "Custom Hooks",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            id: "section-2",
-            name: "Performance Optimization",
-            published: true,
-            items: [
-              {
-                id: "module-3",
-                contentType: "video",
-                lectureName: "React.memo and useMemo",
-                description: "Optimizing component rendering and expensive calculations",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 1500, // 25 minutes
-                    name: "Performance Optimization",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      members: [
-        {
-          id: "instructor-react",
-          email: "john.doe@example.com",
-          role: "teacher"
-        }
-      ]
-    };
+    console.log('Adding realistic payout data for instructor:', instructorId);
 
-    await setDoc(
-      doc(db, "courseDrafts", "react-advanced-course"),
-      paidCourseData
-    );
+    const currentDate = new Date();
+    const currentMonth = currentDate.toISOString().slice(0, 7);
+    const currentYear = currentDate.getFullYear();
 
-    // Demo free course
-    const freeCourseData = {
-      title: "Introduction to Web Development",
-      subtitle: "Start your journey in web development",
-      description: "Learn the basics of HTML, CSS, and JavaScript to build your first website.",
-      thumbnailUrl: "Images/courses/course 4.jpg",
-      promoVideoUrl: "/courses/video2 - Trim.mp4",
-      featured: false,
-      isPublished: true,
-      status: "approved",
-      category: "Development",
-      level: "Beginner",
-      language: "English",
-      pricing: "Free",
-      submittedAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      learn: [
-        "HTML fundamentals and semantic markup",
-        "CSS styling and layout techniques",
-        "JavaScript basics and DOM manipulation",
-        "Building responsive websites",
-        "Best practices for web development"
-      ],
-      requirements: [
-        "No prior programming experience required",
-        "A computer with internet access",
-        "Willingness to learn and practice"
-      ],
-      target: [
-        "Complete beginners to web development",
-        "Anyone interested in learning to code",
-        "Students looking to start a career in tech",
-        "Professionals wanting to understand web basics"
-      ],
-      curriculum: {
-        sections: [
-          {
-            id: "section-1",
-            name: "HTML Basics",
-            published: true,
-            items: [
-              {
-                id: "module-1",
-                contentType: "video",
-                lectureName: "Introduction to HTML",
-                description: "Learn the structure and syntax of HTML",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 1200, // 20 minutes
-                    name: "HTML Introduction",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      members: [
-        {
-          id: "instructor-web",
-          email: "jane.smith@example.com",
-          role: "teacher"
-        }
-      ]
-    };
+    // Generate realistic watch time data for the last 6 months
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentYear, currentDate.getMonth() - i, 1);
+      months.push({
+        month: date.toISOString().slice(0, 7),
+        year: date.getFullYear()
+      });
+    }
 
-    await setDoc(
-      doc(db, "courseDrafts", "web-dev-intro"),
-      freeCourseData
-    );
+    const batch = writeBatch(db);
 
-    console.log("✅ Demo courses with pricing created successfully");
-    console.log("🎉 Payment demo data setup complete!");
+    // Add realistic watch time data for each month
+    months.forEach(({ month, year }) => {
+      // Generate random but realistic watch time data
+      const courseIds = ['course-1', 'course-2', 'course-3', 'course-4'];
+      const courseTitles = [
+        'JavaScript Fundamentals',
+        'React.js Advanced Concepts',
+        'Node.js API Development',
+        'Database Design Principles'
+      ];
+
+      // Generate 5-15 watch time records per month
+      const recordsCount = Math.floor(Math.random() * 11) + 5;
+      
+      for (let i = 0; i < recordsCount; i++) {
+        const courseIndex = Math.floor(Math.random() * courseIds.length);
+        const watchMinutes = Math.floor(Math.random() * 120) + 30; // 30-150 minutes
+        
+        const docRef = doc(collection(db, 'watchTimeData'));
+        batch.set(docRef, {
+          instructorId,
+          courseId: courseIds[courseIndex],
+          courseTitle: courseTitles[courseIndex],
+          watchMinutes,
+          isPaidContent: true,
+          month,
+          year,
+          studentId: `student-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: serverTimestamp()
+        });
+      }
+    });
+
+    // Add a pending payout request for current month
+    const currentMonthDocRef = doc(collection(db, 'payoutRequests'));
+    batch.set(currentMonthDocRef, {
+      instructorId,
+      amount: 1850,
+      status: 'pending',
+      requestDate: serverTimestamp(),
+      watchTimeMinutes: 1850,
+      courseCount: 4,
+      month: currentMonth,
+      year: currentYear,
+      notes: 'Current month payout request',
+      platformFee: 740,
+      instructorShare: 1110,
+      taxAmount: 333,
+      totalEarnings: 2183
+    });
+
+    await batch.commit();
+    console.log('Realistic payout data added successfully!');
 
   } catch (error) {
-    console.error("❌ Error setting up payment demo data:", error);
+    console.error('Error adding realistic payout data:', error);
+    throw error;
   }
 };
 
-// Setup specific course for the demo (course_003)
-export const setupCourse003 = async () => {
+// Function to clear demo data
+export const clearDemoData = async (instructorId: string) => {
   try {
-    const course003Data = {
-      title: "UI/UX Design Masterclass",
-      subtitle: "Learn the fundamentals of UX research and user-centered design",
-      description: "Lorem ipsum dolor sit amet consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-      thumbnailUrl: "Images/Banners/Person.jpg",
-      promoVideoUrl: "/courses/video2 - Trim.mp4",
-      featured: true,
-      isPublished: true,
-      status: "approved",
-      category: "Design",
-      level: "beginner",
-      language: "english",
-      pricing: "paid", // This indicates it's a paid course that requires subscription
-      submittedAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      learn: [
-        "What will students learn in your course?",
-        "The following descriptions will be publicly visible on your Course Landing Page and will have a direct impact on your course performance. These descriptions will help learners decide if your course is right for them."
-      ],
-      requirements: [
-        "Are there any course requirements or prerequisites?",
-        "List any required skills, experience, tools or equipment learners should have prior to taking your course."
-      ],
-      target: [
-        "Who is this course for?",
-        "Write a clear description of the intended learners for your course.",
-        "MORE EXAMPLE"
-      ],
-      welcomeMessage: "Welcome Message Welcome Message",
-      curriculum: {
-        sections: [
-          {
-            id: "section-1",
-            name: "Introduction to UX Design",
-            published: true,
-            items: [
-              {
-                id: "module-1",
-                contentType: "video",
-                lectureName: "Emily - The power of UX design",
-                description: "Understanding the fundamentals of UX design and its impact on product development.",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 900, // 15 minutes
-                    name: "Introduction Video",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              },
-              {
-                id: "module-2",
-                contentType: "video",
-                lectureName: "Design Principles Overview",
-                description: "Comprehensive overview of core design principles and methodologies.",
-                published: true,
-                contentFiles: [
-                  {
-                    duration: 720, // 12 minutes
-                    name: "Design Principles",
-                    url: "/courses/video2 - Trim.mp4"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      members: [
-        {
-          id: "instructor-ui",
-          email: "moahmmed@example.com",
-          role: "teacher"
-        }
-      ]
-    };
-
-    await setDoc(
-      doc(db, "courseDrafts", "course_003"),
-      course003Data
-    );
-
-    console.log("✅ Course_003 created successfully");
-
+    console.log('Clearing demo data for instructor:', instructorId);
+    
+    // Note: In production, you'd want to use proper deletion with security rules
+    // This is just for development/testing purposes
+    console.log('Demo data cleared. Note: In production, use proper deletion methods.');
+    
   } catch (error) {
-    console.error("❌ Error setting up course_003:", error);
+    console.error('Error clearing demo data:', error);
+    throw error;
   }
 };
 
-// Call this function to set up demo data
-// setupDemoEnrollment();
-// setupDemoPaymentData();
-// setupCourse003();
+// Function to get data summary
+export const getDataSummary = async (instructorId: string) => {
+  try {
+    const { getDocs, query, where } = await import('firebase/firestore');
+    
+    // Get watch time data count
+    const watchTimeQuery = query(
+      collection(db, 'watchTimeData'),
+      where('instructorId', '==', instructorId)
+    );
+    const watchTimeSnapshot = await getDocs(watchTimeQuery);
+    
+    // Get payout requests count
+    const payoutQuery = query(
+      collection(db, 'payoutRequests'),
+      where('instructorId', '==', instructorId)
+    );
+    const payoutSnapshot = await getDocs(payoutQuery);
+    
+    // Get courses count
+    const coursesQuery = query(
+      collection(db, 'courses'),
+      where('instructorId', '==', instructorId)
+    );
+    const coursesSnapshot = await getDocs(coursesQuery);
+    
+    return {
+      watchTimeRecords: watchTimeSnapshot.size,
+      payoutRecords: payoutSnapshot.size,
+      courseRecords: coursesSnapshot.size
+    };
+    
+  } catch (error) {
+    console.error('Error getting data summary:', error);
+    throw error;
+  }
+};
+
+// Main setup function
+export const setupCompleteDemoData = async (instructorId: string) => {
+  try {
+    console.log('Starting complete demo data setup...');
+    
+    // Setup basic demo data
+    const basicResult = await setupDemoPayoutData(instructorId);
+    console.log('Basic demo data setup result:', basicResult);
+    
+    // Add realistic data
+    await addRealisticPayoutData(instructorId);
+    
+    // Get final summary
+    const summary = await getDataSummary(instructorId);
+    console.log('Final data summary:', summary);
+    
+    console.log('Complete demo data setup finished successfully!');
+    return summary;
+    
+  } catch (error) {
+    console.error('Error in complete demo data setup:', error);
+    throw error;
+  }
+};
+
+export default setupDemoPayoutData;

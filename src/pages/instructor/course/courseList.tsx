@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Star, ChevronDown } from "lucide-react";
+import { Search, Star, ChevronDown, DollarSign } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import { 
   getInstructorCourses, 
   InstructorCourse 
 } from "../../../utils/firebaseInstructorCourses";
+import { payoutService, EarningsSummary } from "../../../utils/payoutService";
 
 // Extended interface for UI display with additional properties
 interface CourseDisplayData extends InstructorCourse {
@@ -25,6 +26,8 @@ export default function CourseList() {
     const [filteredCourses, setFilteredCourses] = useState<CourseDisplayData[]>([]);
     const [sortBy, setSortBy] = useState<SortOption>('newest');
     const [showSortDropdown, setShowSortDropdown] = useState(false);
+    const [earningsSummary, setEarningsSummary] = useState<EarningsSummary | null>(null);
+    const [hasPendingPayouts, setHasPendingPayouts] = useState(false);
 
     // Fetch instructor courses on component mount
     useEffect(() => {
@@ -92,6 +95,9 @@ export default function CourseList() {
             
             console.log("Transformed courses:", transformedCourses);
             setCourses(transformedCourses);
+
+            // Load payout data
+            await loadPayoutData();
         } catch (err) {
             console.error("Error fetching courses:", err);
             // Fallback to mock data if Firebase fails
@@ -151,6 +157,26 @@ export default function CourseList() {
             setCourses(mockCourses);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Load payout data for the instructor
+    const loadPayoutData = async () => {
+        try {
+            if (!user?.UserName) return;
+
+            // Get earnings summary
+            const summary = await payoutService.getEarningsSummary(user.UserName);
+            setEarningsSummary(summary);
+
+            // Check for pending payouts
+            const hasPending = await payoutService.hasPendingPayouts(user.UserName);
+            setHasPendingPayouts(hasPending);
+        } catch (error) {
+            console.error('Error loading payout data:', error);
+            // Use mock data as fallback
+            setEarningsSummary(payoutService.getMockEarningsSummary());
+            setHasPendingPayouts(true);
         }
     };
 
@@ -219,18 +245,44 @@ export default function CourseList() {
             <div className="ins-heading">
                 Courses
             </div>
-            <div className="rounded-[15px] border border-gray p-6" >
-                <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex items-center gap-2">
-                    <Button className="rounded-none">New</Button> 
-                    <span>New Payout Available!</span>
-                    <Button 
-                        className="rounded-none ml-auto bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => window.location.hash = '#/instructor/payment'}
-                    >
-                        View Payout Details
-                    </Button>
+            {/* Payout Notification Banner - Only show if there are pending payouts or available earnings */}
+            {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
+                <div className="rounded-[15px] border border-gray p-6 bg-gradient-to-r from-blue-50 to-green-50">
+                    <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex items-center gap-2">
+                        <Button className="rounded-none bg-green-600 text-white hover:bg-green-700">
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            New
+                        </Button> 
+                        <span>
+                            {hasPendingPayouts 
+                                ? `New Payout Available! - ₹${earningsSummary?.pendingPayouts?.toLocaleString() || 0}`
+                                : `Earnings Available! - ₹${earningsSummary?.availableForPayout?.toLocaleString() || 0}`
+                            }
+                        </span>
+                        <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={loadPayoutData}
+                            className="ml-2 text-gray-600 hover:text-gray-800"
+                        >
+                            ↻
+                        </Button>
+                        <Button 
+                            className="rounded-none ml-auto bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => window.location.hash = '#/instructor/payment'}
+                        >
+                            View Payout Details
+                        </Button>
+                    </div>
+                    {earningsSummary && (
+                        <div className="mt-3 text-sm text-gray-600">
+                            <span className="mr-4">Total Earnings: ₹{earningsSummary.totalEarnings.toLocaleString()}</span>
+                            <span className="mr-4">This Month: ₹{earningsSummary.currentMonthEarnings.toLocaleString()}</span>
+                            <span>Watch Time: {earningsSummary.totalWatchTime}h</span>
+                        </div>
+                    )}
                 </div>
-            </div>
+            )}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
                 <div className="flex flex-col md:flex-row gap-3 w-full md:w-1/2">
                     <div className="relative flex-grow">
