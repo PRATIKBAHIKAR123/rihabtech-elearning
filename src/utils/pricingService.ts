@@ -119,10 +119,8 @@ class PricingService {
       return allPlans.filter(plan => plan.isAllCategories);
     }
     
-    // Return category-specific plans
-    return allPlans.filter(plan => 
-      plan.categoryId === categoryId || plan.isAllCategories
-    );
+    // Return only category-specific plans when a specific category is requested
+    return allPlans.filter(plan => plan.categoryId === categoryId);
   }
 
   // Get categories with pricing
