@@ -204,19 +204,21 @@ export default function Courses() {
                     <img src={course.thumbnailUrl} alt={course.title} />
                   </div>
                   <div className="course-body">
-                    <h3 className="course-title">{course.title}</h3>
-                    <div className="course-meta">
-                      <div className="flex items-center gap-2">
-                        <User2 size={16} />
-                        <span>{countStudents(course.members)} Students</span>
+                    <div className="course-content">
+                      <h3 className="course-title">{course.title}</h3>
+                      <div className="course-meta">
+                        <div className="flex items-center gap-2">
+                          <User2 size={16} />
+                          <span>{countStudents(course.members)} Students</span>
+                        </div>
+                        <Divider />
+                        <div className="flex items-center gap-2">
+                          <Clock size={16} />
+                          <span>{calculateTotalDuration(course.curriculum)} Weeks</span>
+                        </div>
                       </div>
-                      <Divider />
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} />
-                        <span>{calculateTotalDuration(course.curriculum)} Weeks</span>
-                      </div>
+                      <p className="course-description">{course.description}</p>
                     </div>
-                    <p className="course-description">{course.description}</p>
 
                     {course.pricing !== undefined && (
                       <div className="course-pricing">

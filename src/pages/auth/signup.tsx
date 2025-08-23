@@ -28,10 +28,13 @@ export default function SignUpPage() {
     validationSchema: Yup.object({
       name: Yup.string().required('Name is Required'),
       email: Yup.string().email('Invalid email').required('Email is Required'),
+      password: Yup.string()
+        .min(8, 'Password must be at least 8 characters')
+        .matches(/^[a-zA-Z0-9]+$/, 'Password must contain only letters and numbers')
+        .required('Password is Required'),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), ''], 'Passwords must match')
         .required('Confirm Password is Required'),
-      password: Yup.string().matches(/^[0-9]{8}$/, 'Password Must be 8 Digits').required('Password is Required'),
       number: Yup.string()
         .test('is-valid-phone', 'Invalid phone number for selected country.', function(value) {
           const { parent } = this;

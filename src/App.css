@@ -66,6 +66,9 @@ font-weight: bold;
   border: 1px solid #D4D4D4;
   border-radius: 0;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 400px; /* Fixed height for all cards */
   :hover {
     opacity: 0.8;
   }
@@ -76,6 +79,16 @@ font-weight: bold;
   }
   .course-details-section{
     padding: 1rem; /* Equivalent to p-4 */
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* Take remaining space */
+    justify-content: space-between; /* Distribute content evenly */
+    .course-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem; /* gap-2 */
+    }
     .course-title {
       color: #000927;
       text-align: left;
@@ -83,6 +96,11 @@ font-weight: bold;
       font-size: 18px;
       line-height: 23.4px;
       font-weight: 700;
+      min-height: 3rem; /* Fixed height for title consistency */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .course-students{
       margin-bottom: 0.5rem; /* Equivalent to mb-2 */
@@ -94,15 +112,19 @@ font-weight: bold;
       font-weight: normal;
       font-family: 'Barlow', sans-serif;
       line-height: 1.375; /* Equivalent to leading-snug */
+      white-space: nowrap; /* Prevent wrapping to keep on one line */
+      min-height: 1.375rem; /* Fixed height for consistency */
     }
     .course-desciption {
-        overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3; /* like max-lines-2 */
-  -webkit-box-orient: vertical;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4; /* Allow up to 4 lines for better content visibility */
+      -webkit-box-orient: vertical;
       color: #718096; /* Equivalent to text-gray-600 */
       font-size: 0.875rem; /* Equivalent to text-sm */
       margin-bottom: 0.75rem; /* Equivalent to mb-3 */
+      min-height: 5.2rem; /* Fixed height for 4 lines with line-height 1.3 (1.3 * 4) */
+      line-height: 1.3;
     }
     .course-price-section {
       display: flex;
@@ -309,6 +331,9 @@ z-index: 2;
   overflow: hidden;
   cursor: pointer;
   transition: opacity 0.3s;
+  display: flex;
+  flex-direction: column;
+  height: 400px; /* Fixed height for all cards */
 }
 .course-card-alt:hover {
   opacity: 0.5;
@@ -322,6 +347,13 @@ z-index: 2;
   padding: 1rem; /* py-4 */
   display: flex;
   flex-direction: column;
+  flex: 1; /* Take remaining space */
+  justify-content: space-between; /* Distribute content evenly */
+}
+.course-card-alt .course-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem; /* gap-2 */
 }
 .course-card-alt .course-title {
@@ -332,6 +364,11 @@ z-index: 2;
   line-height: 1.5; /* leading-normal */
   text-transform: capitalize;
   margin-bottom: 0.5rem;
+  min-height: 3rem; /* Fixed height for title consistency - approximately 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .course-card-alt .course-meta {
   display: flex;
@@ -341,16 +378,19 @@ z-index: 2;
   font-size: 0.875rem;
   font-family: 'Barlow', sans-serif;
   line-height: 1.375;
+  white-space: nowrap; /* Prevent wrapping to keep on one line */
+  min-height: 1.375rem; /* Fixed height for consistency */
 }
 .course-card-alt .course-description {
   color: #666666;
   font-size: 1rem;
   font-family: 'Barlow', sans-serif;
-  line-height: 1.625;
+  line-height: 1.5;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* like max-lines-2 */
+  -webkit-line-clamp: 4; /* Allow up to 4 lines for better content visibility */
   -webkit-box-orient: vertical;
+  min-height: 6rem; /* Fixed height for 4 lines with line-height 1.5 (1.5 * 4) */
 }
 .course-card-alt .course-pricing {
   display: flex;

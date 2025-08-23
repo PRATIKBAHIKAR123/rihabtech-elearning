@@ -12,6 +12,11 @@ export default function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [coursesPerPage] = useState(8); // Show 8 courses per page
+  const [displayedCourses, setDisplayedCourses] = useState<Course[]>([]);
+  
   // Filter states
   const [selectedRating, setSelectedRating] = useState<string>("");
   const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
@@ -19,6 +24,17 @@ export default function CourseList() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedRating("");
+    setSelectedPrice([]);
+    setSelectedDuration([]);
+    setSelectedTopics([]);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedRating || selectedPrice.length > 0 || selectedDuration.length > 0 || selectedTopics.length > 0;
 
   // Fetch courses from Firebase
   useEffect(() => {
@@ -71,22 +87,48 @@ export default function CourseList() {
       });
     }
 
-    // Topic filter (using course title for now since category doesn't exist)
+    // Topic filter (using course title and category)
     if (selectedTopics.length > 0) {
       filtered = filtered.filter(course => {
         return selectedTopics.some(topic => 
-          course.title.toLowerCase().includes(topic.toLowerCase())
+          course.title.toLowerCase().includes(topic.toLowerCase()) ||
+          course.category?.toLowerCase().includes(topic.toLowerCase()) ||
+          course.subcategory?.toLowerCase().includes(topic.toLowerCase())
         );
       });
     }
 
     setFilteredCourses(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  // Pagination logic
+  const updateDisplayedCourses = () => {
+    const startIndex = (currentPage - 1) * coursesPerPage;
+    const endIndex = startIndex + coursesPerPage;
+    setDisplayedCourses(filteredCourses.slice(startIndex, endIndex));
+  };
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
+  const startResult = (currentPage - 1) * coursesPerPage + 1;
+  const endResult = Math.min(currentPage * coursesPerPage, filteredCourses.length);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Apply filters whenever filter states change
   useEffect(() => {
     applyFilters();
   }, [selectedRating, selectedPrice, selectedDuration, selectedTopics, courses]);
+
+  // Update displayed courses when filteredCourses or currentPage changes
+  useEffect(() => {
+    updateDisplayedCourses();
+  }, [filteredCourses, currentPage, coursesPerPage]);
 
   // Initialize filtered courses on component mount
   useEffect(() => {
@@ -173,7 +215,7 @@ export default function CourseList() {
 
                   <div className="flex items-center space-x-3">
                     <span className="text-[#666666] text-base font-normal font-['Barlow'] leading-relaxed">
-                      Showing 1 - {filteredCourses.length} of {courses.length} results
+                      Showing {filteredCourses.length > 0 ? startResult : 0} - {endResult} of {filteredCourses.length} results
                     </span>
                     <div className="h-4 w-px bg-gray-300"></div>
                     <div className="text-[#666666] text-base font-normal font-['Barlow'] leading-[19px]">Newly published</div>
@@ -189,7 +231,18 @@ export default function CourseList() {
               <div className={`fixed inset-y-0 right-0 transform lg:hidden bg-white w-4/5 max-w-sm z-50 overflow-y-auto shadow-lg transition-transform duration-300 ease-in-out ${isFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold">Filters</h2>
+                    <div className="flex items-center space-x-4">
+                      <h2 className="text-xl font-semibold">Filters</h2>
+                      {hasActiveFilters && (
+                        <Button 
+                          variant="ghost" 
+                          onClick={clearAllFilters}
+                          className="text-sm text-primary hover:text-primary-dark p-1"
+                        >
+                          Clear all
+                        </Button>
+                      )}
+                    </div>
                     <Button variant="ghost" onClick={toggleFilter} className="p-1">
                       <X size={24} />
                     </Button>
@@ -233,18 +286,51 @@ export default function CourseList() {
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2 mb-6">
-                      {filteredCourses.map((course, index) => (
+                      {displayedCourses.map((course, index) => (
                         <CourseCard key={course.id} course={course} />
                       ))}
                     </div>
-                    <div className="w-full flex justify-center mb-3">
-                      <Button
-                        variant="outline"
-                        className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50"
-                      >
-                        Load More
-                      </Button>
-                    </div>
+                    
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="w-full flex justify-center items-center space-x-2 mb-6">
+                        <Button
+                          variant="outline"
+                          className="border-gray-300 text-gray-600 rounded px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        
+                        {/* Page Numbers */}
+                        <div className="flex space-x-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              className={`w-10 h-10 rounded text-sm font-medium ${
+                                currentPage === page 
+                                  ? "bg-primary text-white border-primary" 
+                                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                              }`}
+                              onClick={() => handlePageChange(page)}
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          className="border-gray-300 text-gray-600 rounded px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -578,28 +664,30 @@ export function CourseCard({ course, progress = false }: {
       </div>
 
       <div className="course-details-section">
-        <div className="course-students">
-          <div className=" py-0.5 flex gap-2 items-center">
-            <span>{studentCount} Students</span>
-          </div>
-          <div className="py-0.5 flex items-center gap-2">
-            <span>{courseDuration} {course.members ? 'Hours' : 'Weeks'}</span>
-          </div>
-        </div>
-        <h3 className="course-title">{course.title}</h3>
-        <p className="course-desciption">{course.description}</p>
-
-        {progress && (
-          <div className="course-progress">
-            <div className="course-progress-bar">
-              <div
-                className="progress-completed"
-                style={{ width: `${course.progress}%` }}
-              ></div><div className="progress-dot" />
+        <div className="course-content">
+          <div className="course-students">
+            <div className=" py-0.5 flex gap-2 items-center">
+              <span>{studentCount} Students</span>
             </div>
-            <div className="progress-text-completed">{course.progress}% Completed</div>
+            <div className="py-0.5 flex items-center gap-2">
+              <span>{courseDuration} {course.members ? 'Hours' : 'Weeks'}</span>
+            </div>
           </div>
-        )}
+          <h3 className="course-title">{course.title}</h3>
+          <p className="course-desciption">{course.description}</p>
+
+          {progress && (
+            <div className="course-progress">
+              <div className="course-progress-bar">
+                <div
+                  className="progress-completed"
+                  style={{ width: `${course.progress}%` }}
+                ></div><div className="progress-dot" />
+              </div>
+              <div className="progress-text-completed">{course.progress}% Completed</div>
+            </div>
+          )}
+        </div>
 
         <div className="course-price-section">
           {isFree ? (

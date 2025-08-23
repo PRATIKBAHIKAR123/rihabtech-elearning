@@ -126,31 +126,33 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
       </div>
       
       <div className="course-details-section">
-      <div className="course-students">
-                    <div className=" py-0.5 flex gap-2 items-center">
-                      {/* <User2 size={16}/> */}
-                      <span>{course.students} Students</span>
-                    </div>
-                    {/* <Divider/> */}
-                    <div className="py-0.5 flex items-center gap-2">
-                      {/* <Clock size={16}/> */}
-                      <span>{course.duration} Weeks</span>
-                    </div>
-                  </div>
-        <h3 className="course-title">{course.title}</h3>
-        <p className="course-desciption">{course.description}</p>
-        
-        {progress && (
-          <div className="course-progress">
-            <div className="course-progress-bar">
-              <div 
-                className="progress-completed" 
-                style={{ width: `${course.progress}%` }}
-              ></div><div className="progress-dot" />
+        <div className="course-content">
+          <div className="course-students">
+            <div className=" py-0.5 flex gap-2 items-center">
+              {/* <User2 size={16}/> */}
+              <span>{course.students} Students</span>
             </div>
-            <div className="progress-text-completed">{course.progress}% Completed</div>
+            {/* <Divider/> */}
+            <div className="py-0.5 flex items-center gap-2">
+              {/* <Clock size={16}/> */}
+              <span>{course.duration} Weeks</span>
+            </div>
           </div>
-        )}
+          <h3 className="course-title">{course.title}</h3>
+          <p className="course-desciption">{course.description}</p>
+          
+          {progress && (
+            <div className="course-progress">
+              <div className="course-progress-bar">
+                <div 
+                  className="progress-completed" 
+                  style={{ width: `${course.progress}%` }}
+                ></div><div className="progress-dot" />
+              </div>
+              <div className="progress-text-completed">{course.progress}% Completed</div>
+            </div>
+          )}
+        </div>
         
         {course.price !== undefined && (
           <div className="course-price-section">
