@@ -15,6 +15,7 @@ import InstructorProfile from './profile/instructorProfile';
 import InstructorPayment from './payment/payment';
 import Groups from './groups/groups';
 import Students from './students/students';
+import Support from './support/support';
 
 export default function InstructorRoutes() {
     return (
@@ -34,6 +35,7 @@ export default function InstructorRoutes() {
         <Route path="payment" element={<InstructorPayment />} />
         <Route path="groups" element={<Groups />} />
         <Route path="students" element={<Students />} />
+        <Route path="support" element={<Support />} />
       </Routes>
     );
   }
