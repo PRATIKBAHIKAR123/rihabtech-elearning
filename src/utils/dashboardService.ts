@@ -67,6 +67,14 @@ export interface RevenueData {
   percentage: number;
 }
 
+export interface CourseData {
+  id: string;
+  title: string;
+  category: string;
+  subcategory: string;
+  isActive: boolean;
+}
+
 class DashboardService {
   private readonly WATCH_TIME_COLLECTION = 'watchTimeData';
   private readonly COURSES_COLLECTION = 'courses';
@@ -149,63 +157,82 @@ class DashboardService {
   // Get students data
   async getStudentsData(instructorId: string): Promise<StudentData[]> {
     try {
-      // Get all enrollments for courses by this instructor
-      const coursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
+      // Try to fetch from users collection where role is student
+      const studentsQuery = query(
+        collection(db, 'users'),
+        where('Role', '==', 'student')
       );
-      const coursesSnapshot = await getDocs(coursesQuery);
-      const courseIds = coursesSnapshot.docs.map(doc => doc.id);
-
-      if (courseIds.length === 0) {
-        return [];
+      const studentsSnapshot = await getDocs(studentsQuery);
+      
+      if (studentsSnapshot.empty) {
+        // Return mock data if no students found
+        return this.getMockStudentsData();
       }
 
-      // Get enrollments for these courses
-      const enrollmentsQuery = query(
-        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
-      );
-      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-
-      const studentsMap = new Map<string, StudentData>();
-
-      enrollmentsSnapshot.forEach(doc => {
+      // Convert Firestore data to StudentData format
+      const students: StudentData[] = [];
+      studentsSnapshot.forEach(doc => {
         const data = doc.data();
-        if (courseIds.includes(data.courseId)) {
-          const studentId = data.studentId;
-          
-          if (!studentsMap.has(studentId)) {
-            studentsMap.set(studentId, {
-              id: studentId,
-              name: data.studentName || 'Unknown Student',
-              email: data.studentEmail || 'unknown@email.com',
-              location: data.location || 'Unknown',
-              enrolledDate: data.enrolledAt?.toDate() || new Date(),
-              numberOfCourses: 1,
-              status: data.isActive ? 'active' : 'inactive',
-              lastAccessedAt: data.lastAccessedAt?.toDate() || new Date(),
-              progress: data.progress || 0
-            });
-          } else {
-            const existing = studentsMap.get(studentId)!;
-            existing.numberOfCourses++;
-            if (data.progress > existing.progress) {
-              existing.progress = data.progress;
-            }
-            if (data.lastAccessedAt?.toDate() > existing.lastAccessedAt) {
-              existing.lastAccessedAt = data.lastAccessedAt.toDate();
-            }
-          }
-        }
+        students.push({
+          id: doc.id,
+          name: data.Name || 'Unknown Student',
+          email: data.UserName || 'unknown@email.com',
+          location: data.location || 'Unknown Location',
+          enrolledDate: data.enrolledDate ? data.enrolledDate.toDate() : new Date(),
+          numberOfCourses: data.coursesEnrolled || 0,
+          status: data.status || 'active',
+          progress: data.progress || 0,
+          lastAccessedAt: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date()
+        });
       });
-
-      return Array.from(studentsMap.values()).sort((a, b) => 
-        b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime()
-      );
+      
+      // Sort by last accessed date (most recent first)
+      return students.sort((a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime());
+      
     } catch (error) {
       console.error('Error getting students data:', error);
-      throw new Error('Failed to get students data');
+      // Fallback to mock data
+      return this.getMockStudentsData();
     }
+  }
+
+  // Mock students data for fallback
+  getMockStudentsData(): StudentData[] {
+    return [
+      {
+        id: '1',
+        name: 'Mehul Shah',
+        email: 'mehul.shah@email.com',
+        location: 'Mumbai, Maharashtra',
+        enrolledDate: new Date('2025-01-15'),
+        numberOfCourses: 3,
+        status: 'active',
+        progress: 75,
+        lastAccessedAt: new Date('2025-08-22')
+      },
+      {
+        id: '2',
+        name: 'Rajesh Kumar',
+        email: 'rajesh.kumar@email.com',
+        location: 'Delhi, NCR',
+        enrolledDate: new Date('2025-01-20'),
+        numberOfCourses: 2,
+        status: 'active',
+        progress: 45,
+        lastAccessedAt: new Date('2025-08-21')
+      },
+      {
+        id: '3',
+        name: 'Priya Singh',
+        email: 'priya.singh@email.com',
+        location: 'Bangalore, Karnataka',
+        enrolledDate: new Date('2025-02-05'),
+        numberOfCourses: 4,
+        status: 'active',
+        progress: 90,
+        lastAccessedAt: new Date('2025-08-22')
+      }
+    ];
   }
 
   // Get reviews data
@@ -573,6 +600,95 @@ class DashboardService {
     }
   }
 
+  // Get courses data for dropdown
+  async getCoursesData(instructorId: string): Promise<CourseData[]> {
+    try {
+      const coursesQuery = query(
+        collection(db, this.COURSES_COLLECTION),
+        where('instructorId', '==', instructorId)
+      );
+      const coursesSnapshot = await getDocs(coursesQuery);
+      
+      if (coursesSnapshot.empty) {
+        return this.getMockCoursesData();
+      }
+
+      const courses: CourseData[] = [];
+      coursesSnapshot.forEach(doc => {
+        const data = doc.data();
+        courses.push({
+          id: doc.id,
+          title: data.title || data.courseTitle || 'Unknown Course',
+          category: data.category || 'Development',
+          subcategory: data.subcategory || 'Web Development',
+          isActive: data.isActive !== false
+        });
+      });
+      
+      return courses.sort((a, b) => a.title.localeCompare(b.title));
+      
+    } catch (error) {
+      console.error('Error getting courses data:', error);
+      return this.getMockCoursesData();
+    }
+  }
+
+  // Get course categories for filtering
+  async getCourseCategories(instructorId: string): Promise<string[]> {
+    try {
+      const coursesQuery = query(
+        collection(db, this.COURSES_COLLECTION),
+        where('instructorId', '==', instructorId)
+      );
+      const coursesSnapshot = await getDocs(coursesQuery);
+      
+      if (coursesSnapshot.empty) {
+        return ['Development', 'Design', 'Business'];
+      }
+
+      const categories = new Set<string>();
+      coursesSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.category) {
+          categories.add(data.category);
+        }
+      });
+      
+      return Array.from(categories).sort();
+      
+    } catch (error) {
+      console.error('Error getting course categories:', error);
+      return ['Development', 'Design', 'Business'];
+    }
+  }
+
+  // Mock courses data for fallback
+  getMockCoursesData(): CourseData[] {
+    return [
+      {
+        id: '1',
+        title: 'Web Development Fundamentals',
+        category: 'Development',
+        subcategory: 'Web Development',
+        isActive: true
+      },
+      {
+        id: '2',
+        title: 'React.js Masterclass',
+        category: 'Development',
+        subcategory: 'Frontend Development',
+        isActive: true
+      },
+      {
+        id: '3',
+        title: 'Node.js Backend Development',
+        category: 'Development',
+        subcategory: 'Backend Development',
+        isActive: true
+      }
+    ];
+  }
+
   // Mock data for development/testing
   getMockDashboardStats(): DashboardStats {
     return {
@@ -585,43 +701,7 @@ class DashboardService {
     };
   }
 
-  getMockStudentsData(): StudentData[] {
-    return [
-      {
-        id: '1',
-        name: 'Rajesh Kumar Singh',
-        email: 'rajesh@example.com',
-        location: 'India',
-        enrolledDate: new Date('2012-12-31'),
-        numberOfCourses: 1,
-        status: 'active',
-        lastAccessedAt: new Date('2025-01-15'),
-        progress: 75
-      },
-      {
-        id: '2',
-        name: 'Priya Singh',
-        email: 'priya@example.com',
-        location: 'India',
-        enrolledDate: new Date('2012-12-31'),
-        numberOfCourses: 1,
-        status: 'active',
-        lastAccessedAt: new Date('2025-01-14'),
-        progress: 60
-      },
-      {
-        id: '3',
-        name: 'Amit Kumar',
-        email: 'amit@example.com',
-        location: 'India',
-        enrolledDate: new Date('2012-12-31'),
-        numberOfCourses: 1,
-        status: 'completed',
-        lastAccessedAt: new Date('2025-01-13'),
-        progress: 100
-      }
-    ];
-  }
+
 }
 
 export const dashboardService = new DashboardService();

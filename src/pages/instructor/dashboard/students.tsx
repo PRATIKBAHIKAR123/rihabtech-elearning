@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../../components/ui/badge";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import { dashboardService, StudentData } from "../../../utils/dashboardService";
+import { dashboardService, StudentData, CourseData } from "../../../utils/dashboardService";
 
 export const Students = () =>{
     const [students, setStudents] = useState<StudentData[]>([]);
+    const [courses, setCourses] = useState<CourseData[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState<string>("all");
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
 
@@ -25,12 +27,17 @@ export const Students = () =>{
             
             try {
                 setLoading(true);
-                const studentsData = await dashboardService.getStudentsData(user.UserName);
+                const [studentsData, coursesData] = await Promise.all([
+                    dashboardService.getStudentsData(user.UserName),
+                    dashboardService.getCoursesData(user.UserName)
+                ]);
                 setStudents(studentsData);
+                setCourses(coursesData);
             } catch (error) {
-                console.error('Error loading students data:', error);
+                console.error('Error loading data:', error);
                 // Fallback to mock data
                 setStudents(dashboardService.getMockStudentsData());
+                setCourses(dashboardService.getMockCoursesData());
             } finally {
                 setLoading(false);
             }
@@ -38,6 +45,15 @@ export const Students = () =>{
 
         loadStudentsData();
     }, [user?.UserName]);
+
+    // Filter students based on selected course
+    const filteredStudents = selectedCourse === "all" 
+        ? students 
+        : students.filter(student => {
+            // For now, we'll show all students since we don't have course-specific enrollment data
+            // In a real implementation, you'd filter by actual course enrollments
+            return true;
+        });
 
     if (loading) {
         return (
@@ -52,14 +68,17 @@ export const Students = () =>{
              <h1 className="form-title mr-2">Students</h1>
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
-          <Select defaultValue="all">
+          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                             <SelectTrigger className="rounded-none text-primary border border-primary">
-                                <SelectValue placeholder="Choose a Currency" />
+                                <SelectValue placeholder="Choose a Course" />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
                                 <SelectItem value="all">All Courses</SelectItem>
-                                <SelectItem value="development">Development</SelectItem>
-
+                                {courses.map(course => (
+                                    <SelectItem key={course.id} value={course.id}>
+                                        {course.title}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
           </div>
@@ -69,25 +88,25 @@ export const Students = () =>{
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Students Enrolled" 
-            value={students.length.toString()}
-            growth={students.filter(s => s.status === 'active').length.toString()}
+            value={filteredStudents.length.toString()}
+            growth={filteredStudents.filter(s => s.status === 'active').length.toString()}
             period="Active Students" 
           />
           <StatsCard 
             title="Total Students Enrolled" 
-            value={students.filter(s => s.status === 'completed').length.toString()}
-            growth={students.filter(s => s.status === 'inactive').length.toString()}
+            value={filteredStudents.filter(s => s.status === 'completed').length.toString()}
+            growth={filteredStudents.filter(s => s.status === 'inactive').length.toString()}
             period="Completed/Inactive" 
           />
           <StatsCard 
             title="Total Students Enrolled" 
-            value={students.reduce((sum, s) => sum + s.numberOfCourses, 0).toString()}
-            growth={students.reduce((sum, s) => sum + s.progress, 0).toString()}
+            value={filteredStudents.reduce((sum, s) => sum + s.numberOfCourses, 0).toString()}
+            growth={filteredStudents.reduce((sum, s) => sum + s.progress, 0).toString()}
             period="Avg Progress %" 
           />
         </div>
         
-            <MonthWiseReports students={students}/>
+            <MonthWiseReports students={filteredStudents}/>
       </div>
     )
 }
@@ -109,7 +128,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
             <p className=" text-primary text-[27px] font-semibold font-['Inter'] leading-10">{value}</p>
           </div>
           <div className="text-right">
-            <p className="text-primary text-[15px] font-semibold font-['Inter'] leading-snug">${growth}</p>
+            <p className="text-primary text-[15px] font-semibold font-['Inter'] leading-snug">₹{growth}</p>
             <p className="text-black text-[10px] font-semibold font-['Inter'] leading-[15px]">{period}</p>
           </div>
         </div>

@@ -88,8 +88,8 @@ const EducationLandingPage: React.FC = () => {
                 rating: 4.9,
                 students: 1245,
                 hours: 24,
-                price: "$89.99",
-                originalPrice: "$129.99",
+                        price: "₹89.99",
+        originalPrice: "₹129.99",
                 color: "blue"
               },
               {
@@ -98,8 +98,8 @@ const EducationLandingPage: React.FC = () => {
                 rating: 4.8,
                 students: 985,
                 hours: 18,
-                price: "$69.99",
-                originalPrice: "$99.99",
+                        price: "₹69.99",
+        originalPrice: "₹99.99",
                 color: "purple"
               },
               {
@@ -108,8 +108,8 @@ const EducationLandingPage: React.FC = () => {
                 rating: 4.7,
                 students: 1540,
                 hours: 16,
-                price: "$59.99",
-                originalPrice: "$89.99",
+                        price: "₹59.99",
+        originalPrice: "₹89.99",
                 color: "green"
               }
             ].map((course, index) => (

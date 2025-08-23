@@ -195,7 +195,7 @@ const RevenueCard = ({ title, data, showDropdown = false, showLegend = false }: 
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-              <p className="text-3xl font-bold">$99,999</p>
+              <p className="text-3xl font-bold">₹99,999</p>
               <p className="text-xs text-gray-500 mt-1 whitespace-nowrap">
                 {title === "All Courses" ? "Life Time Revenue" : 
                  title === "All Courses" && data === DATA.promotionActivity ? "Your Promotion Activity" : 
@@ -213,7 +213,7 @@ const RevenueCard = ({ title, data, showDropdown = false, showLegend = false }: 
                     <span className="text-[#787878] text-xs font-medium font-['Inter']">{item.name}</span>
                   </div>
                   <span className={`text-sm font-medium ${item.name === 'Refunds' ? 'text-red-600' : 'text-gray-900'}`}>
-                    $99,999
+                    ₹99,999
                   </span>
                 </div>
               ))}

@@ -126,7 +126,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
             <p className=" text-primary text-[27px] font-semibold font-['Inter'] leading-10">{value}</p>
           </div>
           <div className="text-right">
-            <p className="text-primary text-[15px] font-semibold font-['Inter'] leading-snug">${growth}</p>
+            <p className="text-primary text-[15px] font-semibold font-['Inter'] leading-snug">₹{growth}</p>
             <p className="text-black text-[10px] font-semibold font-['Inter'] leading-[15px]">{period}</p>
           </div>
         </div>
