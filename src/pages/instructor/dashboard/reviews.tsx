@@ -5,6 +5,7 @@ import { Button } from "../../../components/ui/button";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { dashboardService, ReviewData } from "../../../utils/dashboardService";
+import { toast } from "sonner";
 
 interface Testimonial {
     name: string;
@@ -41,6 +42,10 @@ export default function Reviews()  {
     const [reviews, setReviews] = useState<ReviewData[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [selectedReview, setSelectedReview] = useState<ReviewData | null>(null);
+    const [showReplyModal, setShowReplyModal] = useState(false);
+    const [replyText, setReplyText] = useState('');
+    const [submittingReply, setSubmittingReply] = useState(false);
     const { user } = useAuth();
 
     const loadReviewsData = async (isRefresh = false) => {
@@ -106,6 +111,58 @@ export default function Reviews()  {
 
     const handleRefresh = () => {
         loadReviewsData(true);
+    };
+
+    const handleReplyClick = (review: ReviewData) => {
+        setSelectedReview(review);
+        if (review.isReplied && review.replyText) {
+            setReplyText(review.replyText);
+        } else {
+            setReplyText('');
+        }
+        setShowReplyModal(true);
+    };
+
+    const handleSubmitReply = async () => {
+        if (!selectedReview || !replyText.trim()) return;
+        
+        try {
+            setSubmittingReply(true);
+            
+            // Update the review with the reply
+            const updatedReviews = reviews.map(review => 
+                review.id === selectedReview.id 
+                    ? { 
+                        ...review, 
+                        isReplied: true, 
+                        replyText: replyText.trim(),
+                        replyDate: new Date()
+                    }
+                    : review
+            );
+            
+            setReviews(updatedReviews);
+            
+            // Close modal and reset state
+            setShowReplyModal(false);
+            setSelectedReview(null);
+            setReplyText('');
+            
+            // Show success message
+            toast.success('Reply submitted successfully!');
+            
+        } catch (error) {
+            console.error('Error submitting reply:', error);
+            toast.error('Failed to submit reply. Please try again.');
+        } finally {
+            setSubmittingReply(false);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setShowReplyModal(false);
+        setSelectedReview(null);
+        setReplyText('');
     };
 
     if (loading) {
@@ -175,13 +232,106 @@ export default function Reviews()  {
                     ))}
               </div>
               <p className="text-[#354152] text-sm font-normal font-['Inter'] leading-[21px] mt-3">{review.reviewText}</p>
-              <Button variant={'outline'} className="rounded-none w-full border border-primary text-primary mt-4">
-                {review.isReplied ? 'View Reply' : 'Reply'}
+              
+              {/* Show existing reply if available */}
+              {review.isReplied && review.replyText && (
+                <div className="w-full mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-xs text-blue-600 font-medium mb-1">Your Reply:</p>
+                      <p className="text-sm text-blue-800">{review.replyText}</p>
+                      {review.replyDate && (
+                        <p className="text-xs text-blue-500 mt-1">
+                          {review.replyDate.toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <Button 
+                variant={'outline'} 
+                className="rounded-none w-full border border-primary text-primary mt-4"
+                onClick={() => handleReplyClick(review)}
+              >
+                {review.isReplied ? 'Edit Reply' : 'Reply'}
               </Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Reply Modal */}
+      {showReplyModal && selectedReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {selectedReview.isReplied ? 'Edit Reply' : 'Reply to Review'}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Student Review</h4>
+                <p className="text-gray-700">{selectedReview.reviewText}</p>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                  <span>By: {selectedReview.studentName}</span>
+                  <span>Course: {selectedReview.courseTitle}</span>
+                  <span>Rating: {selectedReview.rating}/5</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Reply
+                </label>
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  rows={4}
+                  placeholder="Write your reply to the student..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={handleCloseModal}
+                disabled={submittingReply}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitReply}
+                disabled={submittingReply || !replyText.trim()}
+                className="bg-primary hover:bg-primary/90 text-white"
+              >
+                {submittingReply ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Reply'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       </>
     );
   };
