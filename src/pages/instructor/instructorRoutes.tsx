@@ -14,6 +14,7 @@ import PreviewCourse from './course/addcourse/preview';
 import InstructorProfile from './profile/instructorProfile';
 import InstructorPayment from './payment/payment';
 import Groups from './groups/groups';
+import Students from './students/students';
 
 export default function InstructorRoutes() {
     return (
@@ -32,6 +33,7 @@ export default function InstructorRoutes() {
         <Route path="course-preview" element={<PreviewCourse />} />
         <Route path="payment" element={<InstructorPayment />} />
         <Route path="groups" element={<Groups />} />
+        <Route path="students" element={<Students />} />
       </Routes>
     );
   }

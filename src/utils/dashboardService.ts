@@ -1,4 +1,4 @@
-import { db } from '../lib/firebase';
+ import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 
 export interface DashboardStats {
@@ -14,12 +14,18 @@ export interface StudentData {
   id: string;
   name: string;
   email: string;
-  location: string;
+  location?: string;
+  phone?: string;
+  education?: string;
   enrolledDate: Date;
+  enrollmentDate: Date; // Alias for enrolledDate
   numberOfCourses: number;
-  status: 'active' | 'inactive' | 'completed';
+  status: 'active' | 'inactive' | 'completed' | 'dropped';
   lastAccessedAt: Date;
+  lastActive: Date; // Alias for lastAccessedAt
   progress: number;
+  course: string;
+  courseId: string;
 }
 
 export interface ReviewData {
@@ -178,11 +184,17 @@ class DashboardService {
           name: data.Name || 'Unknown Student',
           email: data.UserName || 'unknown@email.com',
           location: data.location || 'Unknown Location',
+          phone: data.phone || undefined,
+          education: data.education || undefined,
           enrolledDate: data.enrolledDate ? data.enrolledDate.toDate() : new Date(),
+          enrollmentDate: data.enrolledDate ? data.enrolledDate.toDate() : new Date(),
           numberOfCourses: data.coursesEnrolled || 0,
           status: data.status || 'active',
           progress: data.progress || 0,
-          lastAccessedAt: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date()
+          lastAccessedAt: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date(),
+          lastActive: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date(),
+          course: data.course || 'Unknown Course',
+          courseId: data.courseId || 'unknown-course'
         });
       });
       
@@ -204,33 +216,85 @@ class DashboardService {
         name: 'Mehul Shah',
         email: 'mehul.shah@email.com',
         location: 'Mumbai, Maharashtra',
+        phone: '+91 98765 43210',
+        education: 'B.Tech Computer Science',
         enrolledDate: new Date('2025-01-15'),
+        enrollmentDate: new Date('2025-01-15'),
         numberOfCourses: 3,
         status: 'active',
         progress: 75,
-        lastAccessedAt: new Date('2025-08-22')
+        lastAccessedAt: new Date('2025-08-22'),
+        lastActive: new Date('2025-08-22'),
+        course: 'Web Development Masterclass',
+        courseId: 'course-1'
       },
       {
         id: '2',
         name: 'Rajesh Kumar',
         email: 'rajesh.kumar@email.com',
         location: 'Delhi, NCR',
+        phone: '+91 98765 43211',
+        education: 'MCA',
         enrolledDate: new Date('2025-01-20'),
+        enrollmentDate: new Date('2025-01-20'),
         numberOfCourses: 2,
         status: 'active',
         progress: 45,
-        lastAccessedAt: new Date('2025-08-21')
+        lastAccessedAt: new Date('2025-08-21'),
+        lastActive: new Date('2025-08-21'),
+        course: 'React.js Fundamentals',
+        courseId: 'course-2'
       },
       {
         id: '3',
         name: 'Priya Singh',
         email: 'priya.singh@email.com',
         location: 'Bangalore, Karnataka',
+        phone: '+91 98765 43212',
+        education: 'B.Sc Information Technology',
         enrolledDate: new Date('2025-02-05'),
+        enrollmentDate: new Date('2025-02-05'),
         numberOfCourses: 4,
-        status: 'active',
-        progress: 90,
-        lastAccessedAt: new Date('2025-08-22')
+        status: 'completed',
+        progress: 100,
+        lastAccessedAt: new Date('2025-08-22'),
+        lastActive: new Date('2025-08-22'),
+        course: 'Full Stack Development',
+        courseId: 'course-3'
+      },
+      {
+        id: '4',
+        name: 'Amit Patel',
+        email: 'amit.patel@email.com',
+        location: 'Ahmedabad, Gujarat',
+        phone: '+91 98765 43213',
+        education: 'B.E Information Technology',
+        enrolledDate: new Date('2025-02-15'),
+        enrollmentDate: new Date('2025-02-15'),
+        numberOfCourses: 1,
+        status: 'inactive',
+        progress: 25,
+        lastAccessedAt: new Date('2025-07-15'),
+        lastActive: new Date('2025-07-15'),
+        course: 'Python for Beginners',
+        courseId: 'course-4'
+      },
+      {
+        id: '5',
+        name: 'Neha Sharma',
+        email: 'neha.sharma@email.com',
+        location: 'Pune, Maharashtra',
+        phone: '+91 98765 43214',
+        education: 'M.Tech Computer Science',
+        enrolledDate: new Date('2025-03-01'),
+        enrollmentDate: new Date('2025-03-01'),
+        numberOfCourses: 2,
+        status: 'dropped',
+        progress: 15,
+        lastAccessedAt: new Date('2025-06-20'),
+        lastActive: new Date('2025-06-20'),
+        course: 'Data Science Basics',
+        courseId: 'course-5'
       }
     ];
   }
