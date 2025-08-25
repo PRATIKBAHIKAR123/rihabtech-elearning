@@ -194,7 +194,15 @@ export const Support = () => {
 
   const handleUpdateStatus = async (ticketId: string, newStatus: SupportTicket['status']) => {
     try {
-      await supportService.updateTicketStatus(ticketId, newStatus);
+      // Check if this is a mock ticket (has numeric ID)
+      const isMockTicket = !isNaN(Number(ticketId));
+      
+      if (!isMockTicket) {
+        // Update in Firebase
+        await supportService.updateTicketStatus(ticketId, newStatus);
+      }
+      
+      // Update local state
       setTickets(prev => prev.map(ticket => 
         ticket.id === ticketId 
           ? { ...ticket, status: newStatus, updatedAt: new Date() }

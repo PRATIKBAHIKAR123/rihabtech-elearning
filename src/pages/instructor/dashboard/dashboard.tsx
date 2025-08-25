@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Overview } from "./overview";
 import { Students } from "./students";
 import Reviews from "./reviews";
-import { Engagment } from "./engagment";
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("overview");
@@ -10,8 +9,7 @@ export default function Dashboard() {
     const tabs = [
         { id: "overview", label: "Overview" },
         { id: "students", label: "Students" },
-        { id: "reviews", label: "Reviews" },
-        { id: "engagement", label: "Engagement" }
+        { id: "reviews", label: "Reviews" }
     ];
 
     return (
@@ -45,11 +43,7 @@ export default function Dashboard() {
                         </div>
                     )
                 }
-                {
-                    activeTab === "engagement" && (
-                        <Engagment />
-                    )
-                }
+
             </div>
 
         </div>

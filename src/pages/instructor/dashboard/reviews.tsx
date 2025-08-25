@@ -40,6 +40,9 @@ interface Testimonial {
 
 export default function Reviews()  {
     const [reviews, setReviews] = useState<ReviewData[]>([]);
+    const [filteredReviews, setFilteredReviews] = useState<ReviewData[]>([]);
+    const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState<string>("all");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedReview, setSelectedReview] = useState<ReviewData | null>(null);
@@ -59,10 +62,21 @@ export default function Reviews()  {
             }
             const reviewsData = await dashboardService.getReviewsData(user.UserName);
             setReviews(reviewsData);
+            
+            // Extract unique courses from reviews
+            const uniqueCourses = Array.from(new Set(reviewsData.map(review => review.courseId)))
+                .map(courseId => {
+                    const review = reviewsData.find(r => r.courseId === courseId);
+                    return {
+                        id: courseId,
+                        title: review?.courseTitle || 'Unknown Course'
+                    };
+                });
+            setCourses(uniqueCourses);
         } catch (error) {
             console.error('Error loading reviews data:', error);
             // Fallback to mock data
-            setReviews([
+            const mockReviews = [
                 {
                     id: '1',
                     studentName: 'Mehul Shah',
@@ -98,16 +112,42 @@ export default function Reviews()  {
                     reviewDate: new Date('2025-01-08'),
                     isReplied: false
                 }
-            ]);
+            ];
+            setReviews(mockReviews);
+            
+            // Extract courses from mock data
+            const mockCourses = Array.from(new Set(mockReviews.map(review => review.courseId)))
+                .map(courseId => {
+                    const review = mockReviews.find(r => r.courseId === courseId);
+                    return {
+                        id: courseId,
+                        title: review?.courseTitle || 'Unknown Course'
+                    };
+                });
+            setCourses(mockCourses);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
+    // Filter reviews based on selected course
+    const filterReviews = () => {
+        if (selectedCourse === "all") {
+            setFilteredReviews(reviews);
+        } else {
+            const filtered = reviews.filter(review => review.courseId === selectedCourse);
+            setFilteredReviews(filtered);
+        }
+    };
+
     useEffect(() => {
         loadReviewsData();
     }, [user?.UserName]);
+
+    useEffect(() => {
+        filterReviews();
+    }, [selectedCourse, reviews]);
 
     const handleRefresh = () => {
         loadReviewsData(true);
@@ -176,21 +216,24 @@ export default function Reviews()  {
     return (
         <>
              
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-          <h1 className="form-title mr-6">Student Reviews</h1>
-          <div>
-          <Select defaultValue="all">
-                            <SelectTrigger className="rounded-none text-primary border border-primary">
-                                <SelectValue placeholder="Choose a Currency" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                                <SelectItem value="all">All Courses</SelectItem>
-                                <SelectItem value="development">Development</SelectItem>
-
-                            </SelectContent>
-                        </Select>
-                        </div>
+                 <div className="flex justify-between items-center mb-6">
+           <div className="flex items-center">
+           <h1 className="form-title mr-6">Student Reviews ({filteredReviews.length})</h1>
+                     <div>
+           <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                             <SelectTrigger className="rounded-none text-primary border border-primary">
+                                 <SelectValue placeholder="All Courses" />
+                             </SelectTrigger>
+                             <SelectContent className="bg-white">
+                                 <SelectItem value="all">All Courses</SelectItem>
+                                 {courses.map((course) => (
+                                     <SelectItem key={course.id} value={course.id}>
+                                         {course.title}
+                                     </SelectItem>
+                                 ))}
+                             </SelectContent>
+                         </Select>
+                         </div>
           </div>
           
           <Button 
@@ -209,59 +252,81 @@ export default function Reviews()  {
             )}
           </Button>
         </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
-        {reviews.map((review, index) => (
+             {filteredReviews.length > 0 ? (
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 items-stretch">
+                 {filteredReviews.map((review, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] shadow-md p-6 text-left border border-gray-100"
+            className="bg-white rounded-lg shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] shadow-md p-6 text-left border border-gray-100 flex flex-col h-full"
           >
-            <div className="flex flex-col items-center">
-            <div className="flex items-center justify-start w-full gap-3">
+            {/* Header with user info and rating */}
+            <div className="flex items-center justify-start w-full gap-3 mb-3">
               <div className="w-12 h-12 bg-[#c9c9c9] rounded-full flex items-center justify-center text-gray-500 text-lg">
                 <User/>
               </div>
-              <div>
-              <h3 className="mt-2  text-[#1e2532] text-lg font-semibold font-['Inter'] leading-7">{review.studentName}</h3>
-              <p className=" text-[#495565] text-sm font-normal font-['Inter'] leading-tight">{review.studentRole}</p>
+              <div className="flex-1">
+                <h3 className="text-[#1e2532] text-lg font-semibold font-['Inter'] leading-7">{review.studentName}</h3>
+                <p className="text-[#495565] text-sm font-normal font-['Inter'] leading-tight">{review.studentRole}</p>
               </div>
+              <div className="flex text-yellow-500">
+                {[...Array(review.rating)].map((_, i) => (
+                  <img src="Images/icons/Container (6).png" className="h-4 w-4" alt="Star" key={i} />
+                ))}
               </div>
-              <div className="flex justify-left text-yellow-500 w-full mt-2">
-              {[...Array(review.rating)].map((_, i) => (
-                      <img src="Images/icons/Container (6).png" className="h-4 w-4" alt="Star" key={i} />
-                       
-                    ))}
-              </div>
-              <p className="text-[#354152] text-sm font-normal font-['Inter'] leading-[21px] mt-3">{review.reviewText}</p>
-              
-              {/* Show existing reply if available */}
-              {review.isReplied && review.replyText && (
-                <div className="w-full mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="text-xs text-blue-600 font-medium mb-1">Your Reply:</p>
-                      <p className="text-sm text-blue-800">{review.replyText}</p>
-                      {review.replyDate && (
-                        <p className="text-xs text-blue-500 mt-1">
-                          {review.replyDate.toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
+            </div>
+            
+            {/* Review text */}
+            <p className="text-[#354152] text-sm font-normal font-['Inter'] leading-[21px] mb-4 flex-1">{review.reviewText}</p>
+            
+            {/* Show existing reply if available */}
+            {review.isReplied && review.replyText && (
+              <div className="w-full mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Your Reply:</p>
+                    <p className="text-sm text-blue-800">{review.replyText}</p>
+                    {review.replyDate && (
+                      <p className="text-xs text-blue-500 mt-1">
+                        {review.replyDate.toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
-              
+              </div>
+            )}
+            
+            {/* Button at the bottom */}
+            <div className="mt-auto">
               <Button 
                 variant={'outline'} 
-                className="rounded-none w-full border border-primary text-primary mt-4"
+                className="rounded-none w-full border border-primary text-primary"
                 onClick={() => handleReplyClick(review)}
               >
                 {review.isReplied ? 'Edit Reply' : 'Reply'}
               </Button>
             </div>
           </div>
-        ))}
-      </div>
+                 ))}
+               </div>
+             ) : (
+               <div className="text-center py-16">
+                 <p className="text-gray-500 text-lg mb-4">
+                   {selectedCourse === "all" 
+                     ? "No reviews available yet." 
+                     : "No reviews found for the selected course."}
+                 </p>
+                 {selectedCourse !== "all" && (
+                   <Button 
+                     variant="outline" 
+                     onClick={() => setSelectedCourse("all")}
+                     className="text-primary border-primary hover:bg-primary hover:text-white"
+                   >
+                     View All Reviews
+                   </Button>
+                 )}
+               </div>
+             )}
 
       {/* Reply Modal */}
       {showReplyModal && selectedReview && (
