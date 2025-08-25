@@ -200,6 +200,30 @@ class SupportService {
     }
   }
 
+  // Get unique categories for filtering
+  async getTicketCategories(): Promise<string[]> {
+    try {
+      const tickets = await this.getTickets('demo'); // Use demo to get categories
+      const categories = Array.from(new Set(tickets.map(ticket => ticket.category)));
+      return categories;
+    } catch (error) {
+      console.error('Error getting ticket categories:', error);
+      return ['technical', 'billing', 'course', 'general', 'feature-request'];
+    }
+  }
+
+  // Get unique priorities for filtering
+  async getTicketPriorities(): Promise<string[]> {
+    try {
+      const tickets = await this.getTickets('demo'); // Use demo to get priorities
+      const priorities = Array.from(new Set(tickets.map(ticket => ticket.priority)));
+      return priorities;
+    } catch (error) {
+      console.error('Error getting ticket priorities:', error);
+      return ['low', 'medium', 'high', 'urgent'];
+    }
+  }
+
   // Get support statistics
   async getSupportStats(instructorId: string): Promise<SupportStats> {
     try {
@@ -332,6 +356,30 @@ class SupportService {
         createdAt: new Date('2025-01-20'),
         updatedAt: new Date('2025-01-20'),
         tags: ['messaging', 'bulk', 'feature']
+      },
+      {
+        id: '5',
+        title: 'Analytics dashboard not loading',
+        description: 'The performance analytics page is taking too long to load and sometimes shows error messages.',
+        category: 'technical',
+        priority: 'medium',
+        status: 'open',
+        instructorId,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        tags: ['analytics', 'performance', 'loading']
+      },
+      {
+        id: '6',
+        title: 'Course certificate customization',
+        description: 'I want to customize the certificate template with my company logo and branding.',
+        category: 'course',
+        priority: 'low',
+        status: 'open',
+        instructorId,
+        createdAt: new Date('2025-01-23'),
+        updatedAt: new Date('2025-01-23'),
+        tags: ['certificate', 'customization', 'branding']
       }
     ];
   }

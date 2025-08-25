@@ -40,6 +40,8 @@ export const Support = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availablePriorities, setAvailablePriorities] = useState<string[]>([]);
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -68,16 +70,20 @@ export const Support = () => {
       
       try {
         setLoading(true);
-        const [ticketsData, faqsData, statsData] = await Promise.all([
+        const [ticketsData, faqsData, statsData, categoriesData, prioritiesData] = await Promise.all([
           supportService.getTickets(user.UserName),
           supportService.getFAQs(),
-          supportService.getSupportStats(user.UserName)
+          supportService.getSupportStats(user.UserName),
+          supportService.getTicketCategories(),
+          supportService.getTicketPriorities()
         ]);
         
         setTickets(ticketsData);
         setFilteredTickets(ticketsData);
         setFaqs(faqsData);
         setStats(statsData);
+        setAvailableCategories(categoriesData);
+        setAvailablePriorities(prioritiesData);
       } catch (error) {
         console.error('Error loading support data:', error);
         toast.error('Failed to load support data');
@@ -421,11 +427,11 @@ export const Support = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="technical">Technical</SelectItem>
-                    <SelectItem value="billing">Billing</SelectItem>
-                    <SelectItem value="course">Course</SelectItem>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="feature-request">Feature Request</SelectItem>
+                    {availableCategories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
@@ -435,15 +441,38 @@ export const Support = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
+                    {availablePriorities.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                
+                {/* Clear Filters Button */}
+                {(statusFilter !== 'all' || categoryFilter !== 'all' || priorityFilter !== 'all' || searchTerm) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setCategoryFilter('all');
+                      setPriorityFilter('all');
+                      setSearchTerm('');
+                    }}
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
               </div>
 
-              {/* Tickets List */}
+              {/* Ticket Count and List */}
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">
+                  Showing {filteredTickets.length} of {tickets.length} tickets
+                </p>
+              </div>
+              
               {filteredTickets.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />

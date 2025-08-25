@@ -20,11 +20,14 @@ import { toast } from 'sonner';
 export default function ChatInterface() {
   const [activeTab, setActiveTab] = useState("Messages");
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
+
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [stats, setStats] = useState<ChatStats | null>(null);
   const [isSending, setIsSending] = useState(false);
 
@@ -36,13 +39,15 @@ export default function ChatInterface() {
       
       try {
         setLoading(true);
-        const [conversationsData, statsData] = await Promise.all([
+        const [conversationsData, statsData, coursesData] = await Promise.all([
           chatService.getConversations(user.UserName),
-          chatService.getChatStats(user.UserName)
+          chatService.getChatStats(user.UserName),
+          chatService.getConversationCourses(user.UserName)
         ]);
         
         setConversations(conversationsData);
         setStats(statsData);
+        setCourses(coursesData);
       } catch (error) {
         console.error('Error loading chat data:', error);
         toast.error('Failed to load chat data');
@@ -118,11 +123,18 @@ export default function ChatInterface() {
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.participantNames.some(name => 
-      name.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || conv.courseName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter conversations based on search and course selection
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = searchTerm === '' || 
+      conv.participantNames.some(name => 
+        name.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || 
+      conv.courseName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCourse = selectedCourse === "all" || conv.courseId === selectedCourse;
+    
+    return matchesSearch && matchesCourse;
+  });
 
   const formatTime = (date: Date) => {
     const now = new Date();
@@ -188,7 +200,7 @@ export default function ChatInterface() {
 
             {/* Search */}
             <div className="p-4 border-b">
-              <div className="relative">
+              <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -197,6 +209,23 @@ export default function ChatInterface() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
+              </div>
+              
+              {/* Course Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Course:</span>
+                <select
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="all">All Courses</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

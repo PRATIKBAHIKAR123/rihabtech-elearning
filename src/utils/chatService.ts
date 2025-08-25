@@ -175,6 +175,26 @@ class ChatService {
     }
   }
 
+  // Get unique courses from conversations
+  async getConversationCourses(instructorId: string): Promise<{ id: string; name: string }[]> {
+    try {
+      const conversations = await this.getConversations(instructorId);
+      const uniqueCourses = Array.from(new Set(conversations.map(conv => conv.courseId)))
+        .filter(Boolean)
+        .map(courseId => {
+          const conversation = conversations.find(conv => conv.courseId === courseId);
+          return {
+            id: courseId!,
+            name: conversation?.courseName || 'Unknown Course'
+          };
+        });
+      return uniqueCourses;
+    } catch (error) {
+      console.error('Error getting conversation courses:', error);
+      return [];
+    }
+  }
+
   // Get chat statistics
   async getChatStats(instructorId: string): Promise<ChatStats> {
     try {
@@ -253,6 +273,32 @@ class ChatService {
         updatedAt: new Date('2025-01-21T14:20:00'),
         courseId: 'course2',
         courseName: 'Advanced JavaScript'
+      },
+      {
+        id: '5',
+        participants: [instructorId, 'student5'],
+        participantNames: ['You', 'Alex Chen'],
+        lastMessage: 'Can you help me with the authentication setup?',
+        lastMessageTime: new Date('2025-01-24T11:20:00'),
+        unreadCount: 2,
+        isActive: true,
+        createdAt: new Date('2025-01-22'),
+        updatedAt: new Date('2025-01-24T11:20:00'),
+        courseId: 'course3',
+        courseName: 'Node.js Backend Development'
+      },
+      {
+        id: '6',
+        participants: [instructorId, 'student6'],
+        participantNames: ['You', 'Lisa Rodriguez'],
+        lastMessage: 'The project deadline is approaching. Any tips?',
+        lastMessageTime: new Date('2025-01-24T08:45:00'),
+        unreadCount: 0,
+        isActive: true,
+        createdAt: new Date('2025-01-19'),
+        updatedAt: new Date('2025-01-24T08:45:00'),
+        courseId: 'course1',
+        courseName: 'React Fundamentals'
       }
     ];
   }
