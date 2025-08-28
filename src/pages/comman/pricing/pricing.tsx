@@ -226,7 +226,7 @@ export default function Pricing() {
                                             {plan.durationText} - ₹{breakdown.totalPrice.toLocaleString()}
                                         </h3>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            Base: ₹{breakdown.basePrice.toLocaleString()} + Tax: ₹{breakdown.taxAmount.toLocaleString()}
+                                            Total Price (Tax Inclusive)
                                         </p>
                                     </div>
 
@@ -258,28 +258,7 @@ export default function Pricing() {
                                         </ul>
                                     </div>
 
-                                    {/* Pricing Breakdown */}
-                                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                                        <h5 className="font-medium text-gray-800 mb-2">Price Breakdown</h5>
-                                        <div className="space-y-1 text-sm">
-                                            <div className="flex justify-between">
-                                                <span>Base Price:</span>
-                                                <span>₹{breakdown.basePrice.toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span>Tax ({plan.taxPercentage}%):</span>
-                                                <span>₹{breakdown.taxAmount.toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span>Platform Fee ({plan.platformFeePercentage}%):</span>
-                                                <span>₹{breakdown.platformFee.toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex justify-between font-medium border-t pt-1">
-                                                <span>Total:</span>
-                                                <span>₹{breakdown.totalPrice.toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
                             );
                         })}
