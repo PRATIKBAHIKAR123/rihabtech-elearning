@@ -1,0 +1,337 @@
+import { db } from "../lib/firebase";
+import { collection, getDocs, query, where, orderBy, limit, getDoc, doc } from "firebase/firestore";
+import { Course } from "./firebaseCourses";
+
+export interface LearnerHomeData {
+  enrolledCourses: HomepageCourse[];
+  recommendedCourses: HomepageCourse[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface HomepageCourse {
+  id: string;
+  title: string;
+  description: string;
+  students: number;
+  duration: number;
+  progress?: number;
+  price?: number;
+  originalPrice?: number;
+  image: string;
+  category: string;
+  instructor: string;
+}
+
+interface EnrollmentData {
+  id: string;
+  studentId: string;
+  courseId: string;
+  enrolledAt: any;
+  isActive: boolean;
+  lastAccessedAt: any;
+  progress: number;
+  totalWatchTime: number;
+  completedModules: string[];
+  currentModuleId: string;
+  currentPosition: number;
+}
+
+// Get enrolled courses for the current learner
+export const getLearnerEnrolledCourses = async (learnerId: string): Promise<HomepageCourse[]> => {
+  try {
+    // Get enrollments for the learner
+    const enrollmentsRef = collection(db, "studentEnrollments");
+    const enrollmentsQuery = query(
+      enrollmentsRef,
+      where("studentId", "==", learnerId),
+      where("isActive", "==", true)
+    );
+    
+    const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+    const enrollments = enrollmentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as EnrollmentData[];
+    
+    // Get course data for each enrollment
+    const enrolledCourses: HomepageCourse[] = [];
+    
+    for (const enrollment of enrollments) {
+      try {
+        const courseRef = doc(db, "courseDrafts", enrollment.courseId);
+        const courseDoc = await getDoc(courseRef);
+        
+        if (courseDoc.exists()) {
+          const courseData = courseDoc.data() as Course;
+          
+          enrolledCourses.push({
+            id: courseData.id || courseDoc.id,
+            title: courseData.title,
+            description: courseData.description,
+            students: courseData.members?.length || 0,
+            duration: Math.ceil((courseData.curriculum?.sections?.length || 0) * 1.5), // Estimate weeks
+            progress: enrollment.progress || 0, // Use enrollment progress
+            image: courseData.thumbnailUrl || "Images/courses/default-course.jpg",
+            category: courseData.category,
+            instructor: (courseData as any).instructorId || courseData.members?.find(m => m.role === 'instructor')?.email || 'Unknown',
+            price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching course ${enrollment.courseId}:`, error);
+        // Continue with other courses
+      }
+    }
+    
+    // Sort by last accessed (most recent first)
+    return enrolledCourses.sort((a, b) => {
+      const enrollmentA = enrollments.find(e => e.courseId === a.id);
+      const enrollmentB = enrollments.find(e => e.courseId === b.id);
+      
+      if (enrollmentA?.lastAccessedAt && enrollmentB?.lastAccessedAt) {
+        return enrollmentB.lastAccessedAt.toMillis() - enrollmentA.lastAccessedAt.toMillis();
+      }
+      return 0;
+    });
+    
+  } catch (error) {
+    console.error("Error getting enrolled courses:", error);
+    return [];
+  }
+};
+
+// Get recommended courses based on learner's interests and enrolled courses
+export const getRecommendedCourses = async (learnerId: string, limitCount: number = 12): Promise<HomepageCourse[]> => {
+  try {
+    // First, get learner's enrolled courses to understand their interests
+    const enrolledCourses = await getLearnerEnrolledCourses(learnerId);
+    const learnerCategories = Array.from(new Set(enrolledCourses.map(course => course.category)));
+    
+    // Get all published courses
+    const coursesRef = collection(db, "courseDrafts");
+    const publishedQuery = query(
+      coursesRef,
+      where("isPublished", "==", true),
+      where("status", "==", "approved")
+    );
+    
+    const coursesSnapshot = await getDocs(publishedQuery);
+    const allCourses = coursesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Course[];
+    
+    // Filter out courses the learner is already enrolled in
+    const enrolledCourseIds = enrolledCourses.map(course => course.id);
+    const availableCourses = allCourses.filter(course => !enrolledCourseIds.includes(course.id));
+    
+    // Sort by relevance: featured courses first, then by category match, then by popularity
+    const sortedCourses = availableCourses.sort((a, b) => {
+      let scoreA = 0;
+      let scoreB = 0;
+      
+      // Featured courses get higher priority
+      if (a.featured) scoreA += 10;
+      if (b.featured) scoreB += 10;
+      
+      // Category match gets priority
+      if (learnerCategories.includes(a.category)) scoreA += 5;
+      if (learnerCategories.includes(b.category)) scoreB += 5;
+      
+      // More students = more popular
+      scoreA += (a.members?.length || 0);
+      scoreB += (b.members?.length || 0);
+      
+      return scoreB - scoreA;
+    });
+    
+    // Convert to HomepageCourse format
+    const recommendedCourses: HomepageCourse[] = sortedCourses.slice(0, limitCount).map(course => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      students: course.members?.length || 0,
+      duration: Math.ceil((course.curriculum?.sections?.length || 0) * 1.5), // Estimate weeks
+      image: course.thumbnailUrl || "Images/courses/default-course.jpg",
+      category: course.category,
+      instructor: (course as any).instructorId || course.members?.find(m => m.role === 'instructor')?.email || 'Unknown',
+      price: course.pricing === 'free' ? 0 : parseFloat(course.pricing) || 0
+    }));
+    
+    return recommendedCourses;
+  } catch (error) {
+    console.error("Error getting recommended courses:", error);
+    return [];
+  }
+};
+
+// Get mock data as fallback
+export const getMockEnrolledCourses = (): HomepageCourse[] => {
+  return [
+    {
+      id: "1",
+      title: "Introduction LearnPress - LMS Plugin",
+      description: "A WordPress LMS Plugin to create WordPress Learning Management System.",
+      students: 76,
+      duration: 10,
+      progress: 90,
+      image: "Images/courses/Link.jpg",
+      category: "WordPress",
+      instructor: "John Doe"
+    },
+    {
+      id: "2",
+      title: "Create An LMS Website With WordPress",
+      description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
+      students: 25,
+      duration: 12,
+      progress: 50,
+      image: "Images/courses/create-an-lms-website-with-learnpress 4.jpg",
+      category: "WordPress",
+      instructor: "Jane Smith"
+    },
+    {
+      id: "3",
+      title: "How To Sell In-Person Course With LearnPress",
+      description: "This course is a detailed and easy roadmap to get you all setup and...",
+      students: 5,
+      duration: 8,
+      progress: 30,
+      image: "Images/courses/course-offline-01.jpg",
+      category: "Marketing",
+      instructor: "Mike Johnson"
+    },
+    {
+      id: "4",
+      title: "How To Teach An Online Course",
+      description: "This tutorial will introduce you to PHP, a server-side scripting...",
+      students: 28,
+      duration: 10,
+      progress: 50,
+      image: "Images/courses/eduma-learnpress-lms 4.jpg",
+      category: "Teaching",
+      instructor: "Sarah Wilson"
+    }
+  ];
+};
+
+export const getMockRecommendedCourses = (): HomepageCourse[] => {
+  return [
+    {
+      id: "5",
+      title: "How To Create An Online Course",
+      description: "The iStudy team knows all about cross-browser issues, and they're...",
+      students: 76,
+      duration: 10,
+      price: 70,
+      originalPrice: 115.99,
+      image: "Images/courses/course 4.jpg",
+      category: "Course Creation",
+      instructor: "David Brown"
+    },
+    {
+      id: "6",
+      title: "The Complete Online Teaching Masterclass",
+      description: "In this course, We'll learn how to create websites by structuring and...",
+      students: 28,
+      duration: 12,
+      price: 80,
+      originalPrice: 125.00,
+      image: "Images/courses/course 5.jpg",
+      category: "Teaching",
+      instructor: "Emily Davis"
+    },
+    {
+      id: "7",
+      title: "Online Course Creation Secrets",
+      description: "Many of the most powerful, memorable and effective...",
+      students: 27,
+      duration: 10,
+      price: 65,
+      image: "Images/courses/course 6.jpg",
+      category: "Course Creation",
+      instructor: "Robert Wilson"
+    },
+    {
+      id: "8",
+      title: "Launch Your Own Online School And Increase Your Income",
+      description: "Photography Masterclass: Your Complete Guide to Photography...",
+      students: 81,
+      duration: 10,
+      price: 50,
+      image: "Images/courses/course 7.jpg",
+      category: "Business",
+      instructor: "Lisa Anderson"
+    },
+    {
+      id: "9",
+      title: "How To Teach Online Courses Effectively",
+      description: "Build and deploy a live NodeJs, React.JS & Express sites while...",
+      students: 45,
+      duration: 10,
+      price: 0,
+      image: "Images/courses/course 8.jpg",
+      category: "Teaching",
+      instructor: "Tom Martinez"
+    },
+    {
+      id: "10",
+      title: "Accelerate Your Course Creation Speed",
+      description: "Lorem ipsum is simply dummy text of the printing and typesetting...",
+      students: 11,
+      duration: 8,
+      price: 65,
+      image: "Images/courses/course 9.jpg",
+      category: "Productivity",
+      instructor: "Alex Turner"
+    },
+    {
+      id: "11",
+      title: "Instructional Design For Learning And Development",
+      description: "This tutorial will introduce you to PHP, a server-side scripting...",
+      students: 17,
+      duration: 4,
+      price: 50,
+      image: "Images/courses/course 16.jpg",
+      category: "Design",
+      instructor: "Maria Garcia"
+    },
+    {
+      id: "12",
+      title: "How To Teach English Online And Get Paid",
+      description: "In this course, We'll learn how to create websites by structuring and...",
+      students: 14,
+      duration: 6,
+      price: 39,
+      image: "Images/courses/course 18.jpg",
+      category: "Language",
+      instructor: "Chris Lee"
+    }
+  ];
+};
+
+// Main function to get all homepage data
+export const getLearnerHomeData = async (learnerId: string): Promise<LearnerHomeData> => {
+  try {
+    const [enrolledCourses, recommendedCourses] = await Promise.all([
+      getLearnerEnrolledCourses(learnerId),
+      getRecommendedCourses(learnerId)
+    ]);
+    
+    return {
+      enrolledCourses,
+      recommendedCourses,
+      loading: false,
+      error: null
+    };
+  } catch (error) {
+    console.error("Error getting learner home data:", error);
+    return {
+      enrolledCourses: [],
+      recommendedCourses: [],
+      loading: false,
+      error: "Failed to load data. Using mock data instead."
+    };
+  }
+};

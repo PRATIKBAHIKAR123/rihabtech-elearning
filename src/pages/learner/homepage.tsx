@@ -1,16 +1,26 @@
 
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { ChevronRight, Search, ShoppingCart, Bell, ChevronDown, List } from "lucide-react";
-import { Course } from "../../types/course";
+import { ChevronRight, Search, ShoppingCart, Bell, ChevronDown, List, RefreshCw } from "lucide-react";
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import {
+  getLearnerHomeData,
+  getMockEnrolledCourses,
+  getMockRecommendedCourses,
+  HomepageCourse
+} from '../../utils/learnerHomeService';
+import { toast } from 'sonner';
 
 export default function HomePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<{ Name?: string } | null>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<HomepageCourse[]>([]);
+  const [recommendedCourses, setRecommendedCourses] = useState<HomepageCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,35 +37,110 @@ export default function HomePage() {
     fetchProfile();
   }, [user]);
 
+  useEffect(() => {
+    const loadHomeData = async () => {
+      if (!user?.email) {
+        // If no user, use mock data
+        setEnrolledCourses(getMockEnrolledCourses());
+        setRecommendedCourses(getMockRecommendedCourses());
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        console.log('Loading home data for user:', user.email);
+        const homeData = await getLearnerHomeData(user.email);
+
+        if (homeData.error) {
+          // If there's an error, fall back to mock data
+          console.warn('Using mock data due to error:', homeData.error);
+          setEnrolledCourses(getMockEnrolledCourses());
+          setRecommendedCourses(getMockRecommendedCourses());
+          setError(homeData.error);
+          toast.warning('Using sample data. Some features may be limited.');
+        } else {
+          setEnrolledCourses(homeData.enrolledCourses);
+          setRecommendedCourses(homeData.recommendedCourses);
+          setError(null);
+        }
+      } catch (error) {
+        console.error('Error loading home data:', error);
+        // Fall back to mock data
+        setEnrolledCourses(getMockEnrolledCourses());
+        setRecommendedCourses(getMockRecommendedCourses());
+        setError('Failed to load data. Using sample data instead.');
+        toast.error('Failed to load data. Using sample data instead.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHomeData();
+  }, [user]);
+
+  const handleRefresh = async () => {
+    if (!user?.email) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const homeData = await getLearnerHomeData(user.email);
+
+      if (homeData.error) {
+        setEnrolledCourses(getMockEnrolledCourses());
+        setRecommendedCourses(getMockRecommendedCourses());
+        setError(homeData.error);
+        toast.warning('Using sample data. Some features may be limited.');
+      } else {
+        setEnrolledCourses(homeData.enrolledCourses);
+        setRecommendedCourses(homeData.recommendedCourses);
+        setError(null);
+        toast.success('Data refreshed successfully!');
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setEnrolledCourses(getMockEnrolledCourses());
+      setRecommendedCourses(getMockRecommendedCourses());
+      setError('Failed to refresh data. Using sample data instead.');
+      toast.error('Failed to refresh data. Using sample data instead.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
-     
-{/* Hero Section */}
-<section className="landing-gradient py-12 md:py-16">
+
+      {/* Hero Section */}
+      <section className="landing-gradient py-12 md:py-16">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-start">
           <div className="flex flex-col gap-6 md:w-1/2">
-          <p className="banner-section-subtitle">
-          Professional & Lifelong Learning
+            <p className="banner-section-subtitle">
+              Professional & Lifelong Learning
             </p>
             <h1 className="banner-section-title">
-            Welcome Back, <span className="text-primary">{profile?.Name || user?.displayName || user?.email || 'Learner'}!</span>
+              Welcome Back, <span className="text-primary">{profile?.Name || user?.displayName || user?.email || 'Learner'}!</span>
             </h1>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <Button className="px-6 py-3 rounded-none h-auto text-white hover:bg-blue-700 font-medium">
-             <List/> Categories
+                <List /> Categories
               </Button>
               <div className='relative w-full'>
-              <input placeholder='What do you want to learn?' className='outline outline-1 outline-offset-[-1px] outline-[#ff7700] px-4 py-3 w-full' />
-              <Search className='absolute top-1/4 right-4'/>
+                <input placeholder='What do you want to learn?' className='outline outline-1 outline-offset-[-1px] outline-[#ff7700] px-4 py-3 w-full' />
+                <Search className='absolute top-1/4 right-4' />
               </div>
             </div>
           </div>
           <div className="md:w-1/2 flex justify-center">
             <div className="relative">
-              <img 
-                src="Images/Banners/col-md-6.png" 
-                alt="Happy student learning" 
+              <img
+                src="Images/Banners/col-md-6.png"
+                alt="Happy student learning"
               />
             </div>
           </div>
@@ -67,41 +152,84 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="section-title">My Learnings</h2>
-            <button className="text-gray-500">
-              <ChevronRight size={24} />
-            </button>
+            <div className="flex items-center gap-2">
+              {error && (
+                <span className="text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  Using sample data
+                </span>
+              )}
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {myLearningCourses.map((course, index) => (
-              <CourseCard key={index} course={course} progress />
-            ))}
-          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : enrolledCourses.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {enrolledCourses.map((course, index) => (
+                <CourseCard key={course.id || index} course={course} progress />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg mb-4">You haven't enrolled in any courses yet.</p>
+              <Button
+                onClick={() => window.location.href = '/#/courses'}
+                className="px-6 py-3 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Browse Courses
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Courses You May Like Section */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="section-title mb-6">Courses You May Like</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recommendedCourses.slice(0, 4).map((course, index) => (
-              <CourseCard key={index} course={course} />
-            ))}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="section-title">Courses You May Like</h2>
+            {error && (
+              <span className="text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                Using sample data
+              </span>
+            )}
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            {recommendedCourses.slice(4, 8).map((course, index) => (
-              <CourseCard key={index} course={course} />
-            ))}
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            {recommendedCourses.slice(8, 12).map((course, index) => (
-              <CourseCard key={index} course={course} />
-            ))}
-          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : recommendedCourses.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {recommendedCourses.slice(0, 4).map((course, index) => (
+                  <CourseCard key={course.id || index} course={course} />
+                ))}
+              </div>
+
+              {recommendedCourses.length > 4 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                  {recommendedCourses.slice(4, 8).map((course, index) => (
+                    <CourseCard key={course.id || index} course={course} />
+                  ))}
+                </div>
+              )}
+
+              {recommendedCourses.length > 8 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                  {recommendedCourses.slice(8, 12).map((course, index) => (
+                    <CourseCard key={course.id || index} course={course} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">No recommended courses available at the moment.</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -111,20 +239,20 @@ export default function HomePage() {
 
 
 
-function CourseCard({ course, progress = false }: { course: Course; progress?: boolean }) {
+function CourseCard({ course, progress = false }: { course: HomepageCourse; progress?: boolean }) {
   return (
     <div className="course-card overflow-hidden" onClick={() => {
-      if(course.progress){
+      if (course.progress) {
         window.location.href = '/#/learner/current-course';
-      }else{
-      window.location.href = '/#/courseDetails';
-    }
+      } else {
+        window.location.href = '/#/courseDetails';
+      }
     }}>
       <div className="relative">
         <img src={course.image} alt={course.title} />
-       
+
       </div>
-      
+
       <div className="course-details-section">
         <div className="course-content">
           <div className="course-students">
@@ -140,12 +268,12 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
           </div>
           <h3 className="course-title">{course.title}</h3>
           <p className="course-desciption">{course.description}</p>
-          
+
           {progress && (
             <div className="course-progress">
               <div className="course-progress-bar">
-                <div 
-                  className="progress-completed" 
+                <div
+                  className="progress-completed"
                   style={{ width: `${course.progress}%` }}
                 ></div><div className="progress-dot" />
               </div>
@@ -153,7 +281,7 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
             </div>
           )}
         </div>
-        
+
         {course.price !== undefined && (
           <div className="course-price-section">
             {course.price === 0 ? (
@@ -172,156 +300,3 @@ function CourseCard({ course, progress = false }: { course: Course; progress?: b
     </div>
   );
 }
-
-// Sample Data
-const myLearningCourses = [
-  {
-    id: 1,
-    title: "Introduction LearnPress - LMS Plugin",
-    description: "A WordPress LMS Plugin to create WordPress Learning Management System.",
-    students: 76,
-    duration: 10,
-    progress: 90,
-    image: "Images/courses/Link.jpg"
-  },
-  {
-    id: 2,
-    title: "Create An LMS Website With WordPress",
-    description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
-    students: 25,
-    duration: 12,
-    progress: 50,
-    image: "Images/courses/create-an-lms-website-with-learnpress 4.jpg"
-  },
-  {
-    id: 3,
-    title: "How To Sell In-Person Course With LearnPress",
-    description: "This course is a detailed and easy roadmap to get you all setup and...",
-    students: 5,
-    duration: 8,
-    progress: 30,
-    image: "Images/courses/course-offline-01.jpg"
-  },
-  {
-    id: 4,
-    title: "How To Teach An Online Course",
-    description: "This tutorial will introduce you to PHP, a server-side scripting...",
-    students: 28,
-    duration: 10,
-    progress: 50,
-    image: "Images/courses/eduma-learnpress-lms 4.jpg"
-  }
-];
-
-const recommendedCourses = [
-  {
-    id: 1,
-    title: "Introduction LearnPress - LMS Plugin",
-    description: "A WordPress LMS Plugin to create WordPress Learning Management System.",
-    students: 76,
-    duration: 10,
-    price: 0,
-    image: "Images/courses/Link.jpg"
-  },
-  {
-    id: 2,
-    title: "Create An LMS Website With WordPress",
-    description: "Lorem ipsum dolor sit amet. Qui mollitia dolores non voluptas.",
-    students: 25,
-    duration: 12,
-    price: 0,
-    image: "Images/courses/create-an-lms-website-with-learnpress 4.jpg"
-  },
-  {
-    id: 3,
-    title: "How To Sell In-Person Course With LearnPress",
-    description: "This course is a detailed and easy roadmap to get you all setup and...",
-    students: 5,
-    duration: 8,
-    price: 129.00,
-    image: "Images/courses/course-offline-01.jpg"
-  },
-  {
-    id: 4,
-    title: "How To Teach An Online Course",
-    description: "This tutorial will introduce you to PHP, a server-side scripting...",
-    students: 28,
-    duration: 10,
-    price: 79.00,
-    image: "Images/courses/eduma-learnpress-lms 4.jpg"
-  },
-  {
-    id: 5,
-    title: "How To Create An Online Course",
-    description: "The iStudy team knows all about cross-browser issues, and they're...",
-    students: 76,
-    duration: 10,
-    price: 70.00,
-    originalPrice: 115.99,
-    image: "Images/courses/course 4.jpg"
-  },
-  {
-    id: 6,
-    title: "The Complete Online Teaching Masterclass",
-    description: "In this course, We'll learn how to create websites by structuring and...",
-    students: 28,
-    duration: 12,
-    price: 80.00,
-    originalPrice: 125.00,
-    image: "Images/courses/course 5.jpg"
-  },
-  {
-    id: 7,
-    title: "Online Course Creation Secrets",
-    description: "Many of the most powerful, memorable and effective...",
-    students: 27,
-    duration: 10,
-    price: 65.00,
-    image: "Images/courses/course 6.jpg"
-  },
-  {
-    id: 8,
-    title: "Launch Your Own Online School And Increase Your Income",
-    description: "Photography Masterclass: Your Complete Guide to Photography...",
-    students: 81,
-    duration: 10,
-    price: 50.00,
-    image: "Images/courses/course 7.jpg"
-  },
-  {
-    id: 9,
-    title: "How To Teach Online Courses Effectively",
-    description: "Build and deploy a live NodeJs, React.JS & Express sites while...",
-    students: 45,
-    duration: 10,
-    price: 0,
-    image: "Images/courses/course 8.jpg"
-  },
-  {
-    id: 10,
-    title: "Accelerate Your Course Creation Speed",
-    description: "Lorem ipsum is simply dummy text of the printing and typesetting...",
-    students: 11,
-    duration: 8,
-    price: 65.00,
-    image: "Images/courses/course 9.jpg"
-  },
-  {
-    id: 11,
-    title: "Instructional Design For Learning And Development",
-    description: "This tutorial will introduce you to PHP, a server-side scripting...",
-    students: 17,
-    duration: 4,
-    price: 50.00,
-    image: "Images/courses/course 16.jpg"
-  },
-  {
-    id: 12,
-    title: "How To Teach English Online And Get Paid",
-    description: "In this course, We'll learn how to create websites by structuring and...",
-    students: 14,
-    duration: 6,
-    price: 39.00,
-    image: "Images/courses/course 18.jpg"
-  }
-];
