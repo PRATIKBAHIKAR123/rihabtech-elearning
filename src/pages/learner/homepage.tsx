@@ -282,20 +282,13 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
           )}
         </div>
 
-        {course.price !== undefined && (
-          <div className="course-price-section">
-            {course.price === 0 ? (
-              <span className="price-free">Free</span>
-            ) : (
-              <div>
-                <span className="course-price">₹{course.price}</span>
-                {course.originalPrice && (
-                  <span className="course-original-price">₹{course.originalPrice}</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="course-price-section">
+          {course.price === 0 ? (
+            <span className="price-free">Free</span>
+          ) : (
+            <span className="course-price">Paid</span>
+          )}
+        </div>
       </div>
     </div>
   );

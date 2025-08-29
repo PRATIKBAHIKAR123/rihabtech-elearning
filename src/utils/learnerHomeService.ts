@@ -16,8 +16,7 @@ export interface HomepageCourse {
   students: number;
   duration: number;
   progress?: number;
-  price?: number;
-  originalPrice?: number;
+  price?: number; // 0 for free, any positive number for paid
   image: string;
   category: string;
   instructor: string;
@@ -220,92 +219,90 @@ export const getMockRecommendedCourses = (): HomepageCourse[] => {
   return [
     {
       id: "5",
-      title: "How To Create An Online Course",
-      description: "The iStudy team knows all about cross-browser issues, and they're...",
-      students: 76,
-      duration: 10,
-      price: 70,
-      originalPrice: 115.99,
+      title: "Web Development Fundamentals",
+      description: "Learn the basics of HTML, CSS, and JavaScript to build modern websites from scratch.",
+      students: 156,
+      duration: 8,
+      price: 0, // Free course
       image: "Images/courses/course 4.jpg",
-      category: "Course Creation",
+      category: "Web Development",
       instructor: "David Brown"
     },
     {
       id: "6",
-      title: "The Complete Online Teaching Masterclass",
-      description: "In this course, We'll learn how to create websites by structuring and...",
-      students: 28,
+      title: "React.js Masterclass - Complete Guide",
+      description: "Master React.js with this comprehensive course covering hooks, context, routing, and state management.",
+      students: 89,
       duration: 12,
-      price: 80,
-      originalPrice: 125.00,
+      price: 99, // Paid course
       image: "Images/courses/course 5.jpg",
-      category: "Teaching",
+      category: "Frontend Development",
       instructor: "Emily Davis"
     },
     {
       id: "7",
-      title: "Online Course Creation Secrets",
-      description: "Many of the most powerful, memorable and effective...",
-      students: 27,
+      title: "Data Science Essentials",
+      description: "Introduction to data science fundamentals and tools for beginners.",
+      students: 234,
       duration: 10,
-      price: 65,
+      price: 0, // Free course
       image: "Images/courses/course 6.jpg",
-      category: "Course Creation",
+      category: "Data Science",
       instructor: "Robert Wilson"
     },
     {
       id: "8",
-      title: "Launch Your Own Online School And Increase Your Income",
-      description: "Photography Masterclass: Your Complete Guide to Photography...",
-      students: 81,
+      title: "Digital Marketing Complete Guide",
+      description: "Comprehensive digital marketing course covering SEO, social media, and content marketing strategies.",
+      students: 187,
       duration: 10,
-      price: 50,
+      price: 149, // Paid course
       image: "Images/courses/course 7.jpg",
-      category: "Business",
+      category: "Digital Marketing",
       instructor: "Lisa Anderson"
     },
     {
       id: "9",
-      title: "How To Teach Online Courses Effectively",
-      description: "Build and deploy a live NodeJs, React.JS & Express sites while...",
-      students: 45,
-      duration: 10,
-      price: 0,
+      title: "Python Programming for Beginners",
+      description: "Learn Python programming from scratch with hands-on projects and real-world examples.",
+      students: 312,
+      duration: 8,
+      price: 0, // Free course
       image: "Images/courses/course 8.jpg",
-      category: "Teaching",
+      category: "Programming",
       instructor: "Tom Martinez"
     },
     {
       id: "10",
-      title: "Accelerate Your Course Creation Speed",
-      description: "Lorem ipsum is simply dummy text of the printing and typesetting...",
-      students: 11,
-      duration: 8,
-      price: 65,
+      title: "UX/UI Design Masterclass",
+      description: "Master the principles of user experience and user interface design with practical projects.",
+      students: 98,
+      duration: 10,
+      price: 199, // Paid course
       image: "Images/courses/course 9.jpg",
-      category: "Productivity",
+      category: "Design",
       instructor: "Alex Turner"
     },
     {
       id: "11",
-      title: "Instructional Design For Learning And Development",
-      description: "This tutorial will introduce you to PHP, a server-side scripting...",
-      students: 17,
-      duration: 4,
-      price: 50,
+      title: "Machine Learning Fundamentals",
+      description: "Introduction to machine learning algorithms and their applications in real-world scenarios.",
+      students: 145,
+      duration: 12,
+      price: 0, // Free course
       image: "Images/courses/course 16.jpg",
-      category: "Design",
+      category: "Machine Learning",
       instructor: "Maria Garcia"
     },
     {
       id: "12",
-      title: "How To Teach English Online And Get Paid",
-      description: "In this course, We'll learn how to create websites by structuring and...",
-      students: 14,
-      duration: 6,
-      price: 39,
+      title: "Full Stack Web Development",
+      description: "Complete course covering frontend, backend, and database development for modern web applications.",
+      students: 203,
+      duration: 16,
+      price: 299, // Paid course
       image: "Images/courses/course 18.jpg",
-      category: "Language",
+      category: "Full Stack Development",
       instructor: "Chris Lee"
     }
   ];
