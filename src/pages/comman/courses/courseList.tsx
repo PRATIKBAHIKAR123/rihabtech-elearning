@@ -691,14 +691,9 @@ export function CourseCard({ course, progress = false }: {
 
         <div className="course-price-section">
           {isFree ? (
-            <span className="price-free">Free</span>
+            <span className="badge-free">Free</span>
           ) : (
-            <div>
-              <span className="course-price">₹{pricing}</span>
-              {(course as any).originalPrice && (
-                <span className="course-original-price">₹{(course as any).originalPrice}</span>
-              )}
-            </div>
+            <span className="badge-paid">Paid</span>
           )}
         </div>
       </div>

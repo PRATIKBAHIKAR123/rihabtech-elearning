@@ -57,19 +57,13 @@ export default function SuggestedCourses({ courses, currentCourseId }: Suggested
                 
                   
                   {course.pricing !== undefined && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
                       {course.pricing === "Free" ? (
-                        <span className="text-green-600 flex items-center gap-2 font-medium">Free <Divider/> <a className="text-primary">Start learning</a></span>
+                        <span className="badge-free">Free</span>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="justify-between flex items-center gap-2">
-                            <span className="text-[#999999] text-base font-normal font-['Barlow'] leading-relaxed">From</span>
-                            <span className="text-[#000927] text-base font-semibold font-['Barlow'] capitalize leading-relaxed">₹{course.pricing}</span>
-                        </div>
-                        <Divider/> <a className="text-primary font-medium">Start learning</a>
-                          
-                        </div>
+                        <span className="badge-paid">Paid</span>
                       )}
+                      <Button className="w-full rounded-none">Start learning</Button>
                     </div>
                   )}
                 </div>

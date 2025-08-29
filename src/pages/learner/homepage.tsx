@@ -284,9 +284,9 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
 
         <div className="course-price-section">
           {course.price === 0 ? (
-            <span className="price-free">Free</span>
+            <span className="badge-free">Free</span>
           ) : (
-            <span className="course-price">Paid</span>
+            <span className="badge-paid">Paid</span>
           )}
         </div>
       </div>

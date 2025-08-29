@@ -101,18 +101,13 @@ function CourseCard({ course }: { course: Course }) {
     {course.price !== undefined && (
       <div className="course-pricing flex-col gap-2">
         {!course.price ? (
-          <span className="course-free">
-            Free 
-            {/* <Divider /> <a className="course-cta">Start learning</a> */}
+          <span className="badge-free">
+            Free
           </span>
         ) : (
-          <div className="course-paid">
-            <div className="flex items-start gap-2">
-              {/* <span className="course-price-label">From</span> */}
-              <span className="course-price-value">Included in Subscription</span>
-            </div>
-            {/* <Divider /> <a className="course-cta">Start learning</a> */}
-          </div>
+          <span className="badge-paid">
+            Paid
+          </span>
         )}
         <Button className='rounded-none w-full'>Start learning</Button>
       </div>

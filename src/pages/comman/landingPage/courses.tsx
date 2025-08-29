@@ -229,8 +229,10 @@ export default function Courses() {
                         ) : (
                           <div className="course-paid">
                             <div className="flex items-center gap-2">
-                              <span className="course-price-label">From</span>
-                              <span className="course-price-value">₹{course.pricing}</span>
+                              {course.pricing == "free" ?
+                                (<span className="badge-free">Free</span>) :
+                                (<span className="badge-paid">Paid</span>)
+                              }
                             </div>
                             <Divider /> <a className="course-cta">Start learning</a>
                           </div>
