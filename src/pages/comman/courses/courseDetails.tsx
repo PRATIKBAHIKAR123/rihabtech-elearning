@@ -180,22 +180,54 @@ export default function CourseDetails() {
   const getCourseDuration = (): string => {
     if (!course) return "Duration not available";
 
-    const calculatedDuration = calculateCourseDuration(course);
-
-    if (calculatedDuration > 0) {
-      return `${calculatedDuration} hours`;
-    }
-
-    // Fallback: calculate from curriculum items
+    console.log('getCourseDuration called with course:', course);
+    console.log('Course curriculum:', course.curriculum);
+    
+    // Calculate duration directly from curriculum items
     if (course.curriculum?.sections) {
+      console.log('Calculating duration from curriculum items');
       let totalSeconds = 0;
-      course.curriculum.sections.forEach(section => {
+      
+      course.curriculum.sections.forEach((section, sectionIndex) => {
+        console.log(`Section ${sectionIndex}: ${section.name} with ${section.items?.length || 0} items`);
+        
         if (section.items) {
-          section.items.forEach(item => {
-            if (item.contentFiles) {
-              item.contentFiles.forEach(file => {
-                if (file.duration) {
-                  totalSeconds += Math.round(file.duration);
+          section.items.forEach((item, itemIndex) => {
+            console.log(`Item ${itemIndex}: ${item.lectureName}, contentType: ${item.contentType}`);
+            
+            if (item.contentFiles && item.contentFiles.length > 0) {
+              console.log(`Item ${itemIndex} has ${item.contentFiles.length} content files:`, item.contentFiles);
+              
+              item.contentFiles.forEach((file, fileIndex) => {
+                if (file.duration !== undefined && file.duration !== null) {
+                  let durationValue: number;
+                  
+                  // Handle both integer and decimal duration values
+                  if (typeof file.duration === 'string') {
+                    // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
+                    if (file.duration.includes(':')) {
+                      const parts = file.duration.split(':');
+                      if (parts.length === 2) {
+                        // Format: "MM:SS"
+                        durationValue = parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+                      } else if (parts.length === 3) {
+                        // Format: "HH:MM:SS"
+                        durationValue = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+                      } else {
+                        durationValue = parseFloat(file.duration);
+                      }
+                    } else {
+                      // Try to parse as number
+                      durationValue = parseFloat(file.duration);
+                    }
+                  } else {
+                    durationValue = file.duration;
+                  }
+                  
+                  if (!isNaN(durationValue) && durationValue > 0) {
+                    totalSeconds += durationValue; // Don't round, keep decimal precision
+                    console.log(`Duration: Adding ${durationValue} seconds from file: ${file.name}`);
+                  }
                 }
               });
             }
@@ -203,9 +235,13 @@ export default function CourseDetails() {
         }
       });
 
+      console.log(`Total duration in seconds: ${totalSeconds}`);
+
       if (totalSeconds > 0) {
         const hours = totalSeconds / 3600;
-        return `${Math.round(hours * 10) / 10} hours`;
+        const roundedHours = Math.round(hours * 10) / 10; // Round to 1 decimal place
+        console.log(`Total duration in hours: ${roundedHours}`);
+        return `${roundedHours} hours`;
       }
     }
 

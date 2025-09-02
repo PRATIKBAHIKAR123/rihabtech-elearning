@@ -30,8 +30,9 @@ export interface Course {
         lectureName: string;
         description: string;
         published: boolean;
+        isPromotional?: boolean;
         contentFiles?: Array<{
-          duration?: number;
+          duration?: number | string;
           name: string;
           url: string;
         }>;
@@ -52,18 +53,49 @@ export const calculateCourseDuration = (course: Course): number => {
   let totalDuration = 0;
 
   course.curriculum.sections.forEach(section => {
-    if (section.published) {
+    // Include all sections, not just published ones
+    if (section.items) {
       section.items.forEach(item => {
-        if (item.published && item.contentFiles) {
+        // Include all items, not just published ones
+        if (item.contentFiles) {
           item.contentFiles.forEach(file => {
-            if (file.duration) {
-              totalDuration += Math.round(file.duration); // Round to nearest second
+            if (file.duration !== undefined && file.duration !== null) {
+              let durationValue: number;
+              
+              // Handle both integer and decimal duration values
+              if (typeof file.duration === 'string') {
+                // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
+                if (file.duration.includes(':')) {
+                  const parts = file.duration.split(':');
+                  if (parts.length === 2) {
+                    // Format: "MM:SS"
+                    durationValue = parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+                  } else if (parts.length === 3) {
+                    // Format: "HH:MM:SS"
+                    durationValue = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+                  } else {
+                    durationValue = parseFloat(file.duration);
+                  }
+                } else {
+                  // Try to parse as number
+                  durationValue = parseFloat(file.duration);
+                }
+              } else {
+                durationValue = file.duration;
+              }
+              
+              if (!isNaN(durationValue) && durationValue > 0) {
+                totalDuration += durationValue; // Don't round, keep decimal precision
+                console.log(`Course duration: Adding ${durationValue} seconds from file: ${file.name}`);
+              }
             }
           });
         }
       });
     }
   });
+
+  console.log(`Total course duration in seconds: ${totalDuration}`);
 
   // Convert seconds to hours and round to nearest 0.1 hour
   const hours = totalDuration / 3600;

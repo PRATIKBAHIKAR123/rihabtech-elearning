@@ -78,6 +78,17 @@ export function CourseLandingPage({ onSubmit }: any) {
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [subCategories, setSubCategories] = useState<{id: string, name: string, categoryId: string}[]>([]);
 
+  // Helper functions to get display names for selected values
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : '';
+  };
+
+  const getSubCategoryName = (subcategoryId: string) => {
+    const subcategory = subCategories.find(sub => sub.id === subcategoryId);
+    return subcategory ? subcategory.name : '';
+  };
+
   useEffect(() => {
     getCategories().then((data) => {
       setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" })));
@@ -288,7 +299,9 @@ export function CourseLandingPage({ onSubmit }: any) {
                 className="ins-control-border rounded-none"
                 onBlur={() => formik.setFieldTouched("category", true)}
               >
-                <SelectValue placeholder="Choose a Category" />
+                <SelectValue placeholder="Choose a Category">
+                  {formik.values.category ? getCategoryName(formik.values.category) : ''}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
@@ -304,7 +317,9 @@ export function CourseLandingPage({ onSubmit }: any) {
                 className="ins-control-border rounded-none"
                 onBlur={() => formik.setFieldTouched("subcategory", true)}
               >
-                <SelectValue placeholder="Choose a SubCategory" />
+                <SelectValue placeholder="Choose a SubCategory">
+                  {formik.values.subcategory ? getSubCategoryName(formik.values.subcategory) : ''}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {subCategories

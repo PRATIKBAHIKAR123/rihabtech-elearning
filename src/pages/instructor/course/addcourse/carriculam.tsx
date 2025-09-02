@@ -241,6 +241,10 @@ interface ViewItemState {
   itemIdx: number;
 }
 
+interface ViewSectionState {
+  sectionIdx: number;
+}
+
 interface AddTypeState {
   sectionIdx: number;
 }
@@ -391,6 +395,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [editLecture, setEditLecture] = useState<ViewItemState | null>(null);
   const [addType, setAddType] = useState<AddTypeState | null>(null);
   const [viewItem, setViewItem] = useState<ViewItemState | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [editQuiz, setEditQuiz] = useState<ViewItemState | null>(null);
   const [isQuizSubmitted, setIsQuizSubmitted] = useState<{ [key: string]: boolean }>({});
   const [isAssignmentSubmitted, setIsAssignmentSubmitted] = useState<{ [key: string]: boolean }>({});
@@ -1135,6 +1140,30 @@ export function CourseCarriculam({ onSubmit }: any) {
                                     <div className="flex items-center gap-2 mb-2">
                                       <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
                                         <GripVertical size={20} className="text-gray-400" />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => {
+                                            const newExpandedState = !expandedSections[sectionIdx];
+                                            setExpandedSections(prev => ({
+                                              ...prev,
+                                              [sectionIdx]: newExpandedState
+                                            }));
+                                            
+                                            // If expanding the section, collapse all items inside it
+                                            if (newExpandedState) {
+                                              setViewItem(null);
+                                            }
+                                          }}
+                                        >
+                                          {expandedSections[sectionIdx] ? (
+                                            <ChevronUp size={16} />
+                                          ) : (
+                                            <ChevronDown size={16} />
+                                          )}
+                                        </Button>
                                         <label className="text-primary text-md font-bold whitespace-nowrap" style={{ width: 'auto' }}>
                                           Section {sectionIdx + 1}:
                                         </label>
@@ -1200,7 +1229,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         {formatDuration(getSectionDuration(section))}
                                       </span>
                                     </div>
-                                    <FieldArray name={`sections[${sectionIdx}].items`}>
+                                    
+                                    {/* Section Content - Only show when expanded */}
+                                    {expandedSections[sectionIdx] && (
+                                      <FieldArray name={`sections[${sectionIdx}].items`}>
                                       {({ push, remove, replace }) => (
                                         <div className="flex flex-col gap-4">
                                           <Droppable droppableId={`items-${sectionIdx}`} type="ITEM">
@@ -3289,6 +3321,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         </div>
                                       )}
                                     </FieldArray>
+                                    )}
                                   </div>
                                 </div>)}
                             </Draggable>
@@ -3301,9 +3334,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                     <Button
                       className="rounded-none"
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        const newSectionIdx = formik.values.sections.length;
                         pushSection({
-                          name: `Section ${formik.values.sections.length + 1}`,
+                          name: `Section ${newSectionIdx + 1}`,
                           items: [
                             {
                               type: "lecture",
@@ -3317,8 +3351,15 @@ export function CourseCarriculam({ onSubmit }: any) {
                             },
                           ],
                           published: false // Default to unpublished
-                        })
-                      }
+                        });
+                        // Automatically expand the newly created section
+                        setExpandedSections(prev => ({
+                          ...prev,
+                          [newSectionIdx]: true
+                        }));
+                        // Ensure all items are collapsed when new section is created
+                        setViewItem(null);
+                      }}
                     >
                       + Add Section
                     </Button>

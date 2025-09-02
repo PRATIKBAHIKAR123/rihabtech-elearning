@@ -9,6 +9,7 @@ interface Lecture {
   preview?: boolean;
   videoUrl?: string;
   contentFiles?: any[];
+  isPromotional?: boolean;
 }
 
 interface Section {
@@ -33,6 +34,9 @@ export default function Curriculum({ course, onPreviewCourse }: CurriculumProps)
 
   // Transform Firebase curriculum data to match the expected format
   const transformCurriculumData = (): Section[] => {
+    console.log('Transform curriculum data - Course:', course);
+    console.log('Curriculum sections:', course.curriculum?.sections);
+    
     if (!course.curriculum?.sections || course.curriculum.sections.length === 0) {
       return [
         {
@@ -47,22 +51,110 @@ export default function Curriculum({ course, onPreviewCourse }: CurriculumProps)
 
     return course.curriculum.sections.map((section, index) => {
       let totalDurationSeconds = 0;
+      console.log(`Processing section: ${section.name} with ${section.items?.length || 0} items`);
+      
       if (section.items) {
-        section.items.forEach(item => {
-          if (item.contentFiles && item.contentFiles[0]?.duration) {
-            totalDurationSeconds += Math.round(item.contentFiles[0].duration);
+        section.items.forEach((item, itemIndex) => {
+          console.log(`Processing item ${itemIndex}:`, item.lectureName, 'Type:', item.contentType);
+          console.log(`Item contentFiles:`, item.contentFiles);
+          
+          if (item.contentFiles && item.contentFiles.length > 0) {
+            item.contentFiles.forEach((file, fileIndex) => {
+              console.log(`File ${fileIndex}: ${file.name}, Duration: ${file.duration}, Type: ${typeof file.duration}`);
+              
+              // Simplified duration check - just check if it's a valid number
+              if (file.duration !== undefined && file.duration !== null) {
+                let durationValue: number;
+                
+                if (typeof file.duration === 'string') {
+                  durationValue = parseFloat(file.duration);
+                } else {
+                  durationValue = file.duration;
+                }
+                
+                if (!isNaN(durationValue) && durationValue > 0) {
+                  totalDurationSeconds += durationValue;
+                  console.log(`Adding duration: ${durationValue} seconds from file: ${file.name}`);
+                } else {
+                  console.log(`Invalid duration value: ${file.duration} for file: ${file.name}`);
+                }
+              } else {
+                console.log(`No duration found for file: ${file.name}`);
+              }
+            });
+          } else {
+            console.log(`No contentFiles found for item: ${item.lectureName}`);
           }
         });
       }
       
+      console.log(`Section ${section.name}: Total duration seconds: ${totalDurationSeconds}`);
+      
+      // Calculate total duration in minutes
+      const totalDurationMinutes = totalDurationSeconds / 60;
+      console.log(`Section ${section.name}: Total duration minutes: ${totalDurationMinutes}`);
+      
       const totalDuration = totalDurationSeconds > 0 
-        ? Math.round(totalDurationSeconds / 60) + 'min'
+        ? (totalDurationMinutes >= 1 ? Math.round(totalDurationMinutes) : Math.round(totalDurationMinutes * 10) / 10) + 'min'
         : '0min';
+      
+      console.log(`Section ${section.name}: Final formatted duration: ${totalDuration}`);
 
       const lectures: Lecture[] = section.items ? section.items.map(item => {
+        console.log(`Processing item:`, item);
+        console.log(`Item isPromotional:`, item.isPromotional);
+        console.log(`Item contentFiles:`, item.contentFiles);
+        
         const contentType = item.contentType === 'video' ? 'video' : 'file';
         let duration = '00:00';
         let videoUrl = '';
+        
+        // Calculate duration from content files
+        if (item.contentFiles && item.contentFiles.length > 0) {
+          const totalDurationSeconds = item.contentFiles.reduce((sum, file) => {
+            console.log(`File duration check:`, file.name, 'Duration:', file.duration, 'Type:', typeof file.duration);
+            
+            if (file.duration !== undefined && file.duration !== null) {
+              let durationValue: number;
+              
+              // Handle different duration formats
+              if (typeof file.duration === 'string') {
+                // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
+                if (file.duration.includes(':')) {
+                  const parts = file.duration.split(':');
+                  if (parts.length === 2) {
+                    // Format: "MM:SS"
+                    durationValue = parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+                  } else if (parts.length === 3) {
+                    // Format: "HH:MM:SS"
+                    durationValue = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+                  } else {
+                    durationValue = parseFloat(file.duration);
+                  }
+                } else {
+                  // Try to parse as number
+                  durationValue = parseFloat(file.duration);
+                }
+              } else {
+                durationValue = file.duration;
+              }
+              
+              console.log(`Parsed duration value:`, durationValue);
+              
+              if (!isNaN(durationValue) && durationValue > 0) {
+                return sum + durationValue;
+              }
+            }
+            return sum;
+          }, 0);
+          
+          if (totalDurationSeconds > 0) {
+            const minutes = Math.floor(totalDurationSeconds / 60);
+            const seconds = Math.floor(totalDurationSeconds % 60);
+            duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            console.log(`Lecture ${item.lectureName}: Duration calculated: ${duration} (${totalDurationSeconds} seconds)`);
+          }
+        }
         
         if (item.contentFiles && item.contentFiles.length > 0) {
           const videoFile = item.contentFiles.find(file => {
@@ -110,14 +202,15 @@ export default function Curriculum({ course, onPreviewCourse }: CurriculumProps)
           console.log('Using test video as fallback:', videoUrl);
         }
         
-        return {
-          title: item.lectureName || 'Untitled Lecture',
-          type: contentType,
-          duration: duration,
-          preview: item.published || false,
-          videoUrl: videoUrl,
-          contentFiles: item.contentFiles
-        };
+                 return {
+           title: item.lectureName || 'Untitled Lecture',
+           type: contentType,
+           duration: duration,
+           preview: item.published || false,
+           videoUrl: videoUrl,
+           contentFiles: item.contentFiles,
+           isPromotional: item.isPromotional || false
+         };
       }) : [];
 
       return {
@@ -193,14 +286,14 @@ export default function Curriculum({ course, onPreviewCourse }: CurriculumProps)
                         <span className="text-gray-800">
                           {lecture.title}
                         </span>
-                        {lecture.type === 'video' && lecture.videoUrl && (
-                          <button
-                            onClick={() => onPreviewCourse?.()}
-                            className="ml-2 px-2 py-1 text-xs text-primary border border-primary rounded hover:bg-primary hover:text-white transition-colors"
-                          >
-                            Preview
-                          </button>
-                        )}
+                         {lecture.type === 'video' && lecture.videoUrl && lecture.isPromotional === true && (
+                           <button
+                             onClick={() => onPreviewCourse?.()}
+                             className="ml-2 px-2 py-1 text-xs text-primary border border-primary rounded hover:bg-primary hover:text-white transition-colors"
+                           >
+                             Preview
+                           </button>
+                         )}
                         {lecture.type === 'video' && !lecture.videoUrl && (
                           <span className="ml-2 text-xs text-gray-400">(No preview)</span>
                         )}

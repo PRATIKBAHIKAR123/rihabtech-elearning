@@ -33,54 +33,54 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
       course.curriculum.sections.forEach(section => {
         console.log('Processing section:', section.name, section);
         if (section.items) {
-          section.items.forEach(item => {
-            console.log('Processing item:', item);
-            // Check if this is a video item that should be available for preview
-            // For free preview, we show videos regardless of published status
-            if (item.contentType === 'video') {
-              // Look for video files
-              if (item.contentFiles && item.contentFiles.length > 0) {
-                console.log('Content files found:', item.contentFiles);
-                const videoFile = item.contentFiles.find(file => {
-                  // Check if it's a video file by URL or name
-                  const isVideo = file.url && (
-                    file.url.toLowerCase().includes('.mp4') ||
-                    file.url.toLowerCase().includes('.mov') ||
-                    file.url.toLowerCase().includes('.avi') ||
-                    file.name?.toLowerCase().includes('.mp4') || 
-                    file.name?.toLowerCase().includes('.mov') ||
-                    file.name?.toLowerCase().includes('.avi')
-                  );
-                  console.log('Checking file:', file, 'isVideo:', isVideo);
-                  return isVideo;
-                });
+                     section.items.forEach(item => {
+             console.log('Processing item:', item);
+             console.log('Item isPromotional value:', item.isPromotional);
+             console.log('Item isPromotional type:', typeof item.isPromotional);
+             // Check if this is a video item that should be available for preview
+             // For free preview, we show videos regardless of published status
+             if (item.contentType === 'video') {
+              // Only include videos that are marked as promotional/preview
+              if (item.isPromotional === true) {
+                console.log('Item is marked as promotional:', item.lectureName);
                 
-                if (videoFile) {
-                  videos.push({
-                    id: item.id || `${section.name}-${item.lectureName}`,
-                    title: item.lectureName || 'Untitled Video',
-                    duration: videoFile.duration ? formatDuration(videoFile.duration) : '00:00',
-                    videoUrl: videoFile.url,
-                    description: item.description
+                // Look for video files
+                if (item.contentFiles && item.contentFiles.length > 0) {
+                  console.log('Content files found:', item.contentFiles);
+                  const videoFile = item.contentFiles.find(file => {
+                    // Check if it's a video file by URL or name
+                    const isVideo = file.url && (
+                      file.url.toLowerCase().includes('.mp4') ||
+                      file.url.toLowerCase().includes('.mov') ||
+                      file.url.toLowerCase().includes('.avi') ||
+                      file.name?.toLowerCase().includes('.mp4') || 
+                      file.name?.toLowerCase().includes('.mov') ||
+                      file.name?.toLowerCase().includes('.avi')
+                    );
+                    console.log('Checking file:', file, 'isVideo:', isVideo);
+                    return isVideo;
                   });
-                  console.log('Added preview video:', {
-                    title: item.lectureName,
-                    duration: videoFile.duration,
-                    url: videoFile.url
-                  });
+                  
+                  if (videoFile) {
+                    videos.push({
+                      id: item.id || `${section.name}-${item.lectureName}`,
+                      title: item.lectureName || 'Untitled Video',
+                      duration: videoFile.duration ? formatDuration(typeof videoFile.duration === 'string' ? parseFloat(videoFile.duration) || 0 : videoFile.duration) : '00:00',
+                      videoUrl: videoFile.url,
+                      description: item.description
+                    });
+                    console.log('Added promotional preview video:', {
+                      title: item.lectureName,
+                      duration: videoFile.duration,
+                      url: videoFile.url
+                    });
+                  }
                 }
+              } else {
+                console.log('Item is NOT marked as promotional, skipping:', item.lectureName);
               }
               
-              // Check if item has direct contentUrl for video
-              if (!videos.find(v => v.id === item.id) && (item as any).contentUrl) {
-                videos.push({
-                  id: item.id || `${section.name}-${item.lectureName}`,
-                  title: item.lectureName || 'Untitled Video',
-                  duration: (item as any).duration ? formatDuration((item as any).duration) : '00:00',
-                  videoUrl: (item as any).contentUrl,
-                  description: item.description
-                });
-              }
+
             }
           });
         }
@@ -108,8 +108,9 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
         });
       }
 
-      console.log('Final preview videos array:', videos);
-      setPreviewVideos(videos);
+             console.log('Final preview videos array:', videos);
+       console.log('Total promotional videos found:', videos.length);
+       setPreviewVideos(videos);
       
       // Set first video as selected by default
       if (videos.length > 0 && !selectedVideo) {
