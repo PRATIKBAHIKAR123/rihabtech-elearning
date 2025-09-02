@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, Play } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import { Tabs, TabsContent, TabsList, TabsTrigger, } from "../../../components/ui/tabs";
 import { Button } from "../../../components/ui/button";
@@ -6,6 +6,7 @@ import SuggestedCourses from "./courses";
 import Curriculum from "./coursecurriculam";
 import CartModal from "../../../modals/cartModal";
 import CheckoutModal from "../../../components/ui/CheckoutModal";
+import CoursePreviewModal from "../../../modals/coursePreviewModal";
 import React, { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
@@ -28,6 +29,7 @@ interface ExtendedCourse extends Course {
 export default function CourseDetails() {
   const [isCartModalOpen, setIsCartModalOpen] = React.useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = React.useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
   const [course, setCourse] = useState<ExtendedCourse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -570,7 +572,7 @@ export default function CourseDetails() {
               </TabsContent>
 
               <TabsContent value="curriculum" className="py-4">
-                <Curriculum course={course} />
+                <Curriculum course={course} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
               </TabsContent>
 
               <TabsContent value="instructor" className="py-4">
@@ -897,6 +899,16 @@ export default function CourseDetails() {
                 </ul>
               </div>
 
+              {/* Preview Course Button */}
+              <Button
+                className="w-full py-4 text-sm font-normal font-['Spartan'] text-primary border-2 border-primary bg-white hover:bg-primary hover:text-white transition-colors mb-3"
+                variant="outline"
+                onClick={() => setIsPreviewModalOpen(true)}
+              >
+                <Play size={16} className="mr-2" />
+                Preview Course
+              </Button>
+
               {(() => {
                 const buttonConfig = getButtonConfig();
                 return (
@@ -944,6 +956,15 @@ export default function CourseDetails() {
             thumbnailUrl: course.thumbnailUrl,
             description: course.description
           }}
+        />
+      )}
+
+      {/* Course Preview Modal */}
+      {course && (
+        <CoursePreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          course={course}
         />
       )}
     </div>

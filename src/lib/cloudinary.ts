@@ -20,6 +20,38 @@ export const getResourceTypeFromFile = (file: File): 'video' | 'image' | 'raw' =
   }
 };
 
+// Helper function to get video duration from file
+export const getVideoDuration = async (file: File): Promise<number> => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      const duration = video.duration || 0;
+      console.log('Video duration detected from file:', duration);
+      video.remove();
+      resolve(duration);
+    };
+    
+    video.onerror = (e) => {
+      console.log('Failed to get video duration from file:', e);
+      video.remove();
+      resolve(0);
+    };
+    
+    video.src = URL.createObjectURL(file);
+    
+    // Set a timeout in case the video doesn't load
+    setTimeout(() => {
+      if (video.duration === undefined || isNaN(video.duration)) {
+        console.log('Video duration timeout, using 0');
+        video.remove();
+        resolve(0);
+      }
+    }, 5000);
+  });
+};
+
 // Cloudinary upload function
 export const uploadToCloudinary = async (
   file: File, 
@@ -43,7 +75,18 @@ export const uploadToCloudinary = async (
   
   formData.append('resource_type', actualResourceType);
   
+  // For unsigned uploads, we can only use basic parameters
+  // No eager transformations or async processing allowed
+  
   try {
+    console.log('Uploading to Cloudinary:', {
+      cloudName: CLOUDINARY_CONFIG.CLOUD_NAME,
+      uploadPreset: CLOUDINARY_CONFIG.UPLOAD_PRESET,
+      resourceType: actualResourceType,
+      fileName: file.name,
+      fileSize: file.size
+    });
+
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/upload`, 
       {
@@ -54,10 +97,12 @@ export const uploadToCloudinary = async (
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Cloudinary upload failed:', response.status, errorText);
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
+    console.log('Cloudinary upload response:', data);
     
     if (!data.secure_url || !data.public_id) {
       throw new Error('Invalid response from Cloudinary');
@@ -65,8 +110,16 @@ export const uploadToCloudinary = async (
     
     // For videos, try to get duration from Cloudinary response
     let duration: number | undefined;
-    if (actualResourceType === 'video' && data.duration) {
-      duration = data.duration;
+    if (actualResourceType === 'video') {
+      // Try to get duration from Cloudinary response first
+      if (data.duration && typeof data.duration === 'number' && data.duration > 0) {
+        duration = data.duration;
+        console.log('Duration from Cloudinary:', duration);
+      } else {
+        // Fallback to getting duration from the file
+        console.log('No duration from Cloudinary, getting from file...');
+        duration = await getVideoDuration(file);
+      }
     }
     
     return {
@@ -78,6 +131,39 @@ export const uploadToCloudinary = async (
     console.error('Cloudinary upload error:', error);
     throw error;
   }
+};
+
+// Function to validate Cloudinary URL format
+export const validateCloudinaryUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  
+  // Check if it's a valid Cloudinary URL format
+  const cloudinaryPattern = /^https:\/\/res\.cloudinary\.com\/[^/]+\/(?:video|image|raw)\/upload\/.*$/;
+  return cloudinaryPattern.test(url);
+};
+
+// Function to get Cloudinary public ID from URL
+export const getCloudinaryPublicId = (url: string): string | null => {
+  if (!validateCloudinaryUrl(url)) {
+    return null;
+  }
+  
+  try {
+    const urlParts = url.split('/');
+    const uploadIndex = urlParts.findIndex(part => part === 'upload');
+    if (uploadIndex !== -1 && uploadIndex + 1 < urlParts.length) {
+      // Get everything after 'upload/' and before the file extension
+      const publicIdPart = urlParts.slice(uploadIndex + 1).join('/');
+      // Remove file extension
+      return publicIdPart.replace(/\.[^/.]+$/, '');
+    }
+  } catch (error) {
+    console.error('Error extracting Cloudinary public ID:', error);
+  }
+  
+  return null;
 };
 
 // Function to delete file from Cloudinary

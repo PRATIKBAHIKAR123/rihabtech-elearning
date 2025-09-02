@@ -6,7 +6,7 @@ import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
-import { MenuBar } from "../../../../components/ui/tiptapmenubar";
+
 import { Textarea } from "../../../../components/ui/textarea";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -14,11 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../components/ui/hover-card";
 // @ts-ignore
 import * as XLSX from 'xlsx';
-// Add Tiptap imports:
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
+
 import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../../../lib/cloudinary";
 
@@ -1682,23 +1678,37 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               if (files.length === 0) return;
 
                                                                               const fileObjects = await Promise.all(files.map(async (file) => {
-                                                                                const url = URL.createObjectURL(file);
-                                                                                // Get video duration
-                                                                                const duration = await new Promise<number>((resolve) => {
-                                                                                  const video = document.createElement('video');
-                                                                                  video.preload = 'metadata';
-                                                                                  video.onloadedmetadata = () => {
-                                                                                    resolve(video.duration);
-                                                                                    video.remove();
+                                                                                try {
+                                                                                  console.log('Uploading individual video to Cloudinary:', file.name);
+                                                                                  
+                                                                                  // Upload to Cloudinary
+                                                                                  const uploadResult = await uploadToCloudinary(file, 'video');
+                                                                                  const cloudinaryUrl = uploadResult.url;
+                                                                                  const cloudinaryPublicId = uploadResult.publicId;
+                                                                                  const duration = uploadResult.duration || 0;
+                                                                                  
+                                                                                  console.log('Individual video upload successful:', {
+                                                                                    url: cloudinaryUrl,
+                                                                                    publicId: cloudinaryPublicId,
+                                                                                    duration: duration
+                                                                                  });
+                                                                                  
+                                                                                  return {
+                                                                                    file,
+                                                                                    url: cloudinaryUrl, // Use Cloudinary URL
+                                                                                    cloudinaryUrl,
+                                                                                    cloudinaryPublicId,
+                                                                                    name: file.name,
+                                                                                    duration,
+                                                                                    status: 'uploaded' as VideoStatus,
+                                                                                    uploadedAt: new Date()
                                                                                   };
-                                                                                  video.src = url;
-                                                                                });
-                                                                                return {
-                                                                                  file,
-                                                                                  url,
-                                                                                  name: file.name,
-                                                                                  duration
-                                                                                };
+                                                                                } catch (error) {
+                                                                                  console.error('Failed to upload individual video to Cloudinary:', error);
+                                                                                  // Show error to user instead of fallback
+                                                                                  alert(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                                                                  throw error;
+                                                                                }
                                                                               }));
 
                                                                               // Set lecture name to the first file's name (without extension)
@@ -1782,7 +1792,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
                                                                               <Clock size={16} className="text-green-600" />
                                                                               <span className="text-sm text-green-700">
-                                                                                Auto-detected duration: {formatDuration(item.duration)}
+                                                                                Auto-detected duration: {formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)}
                                                                               </span>
                                                                               <Button
                                                                                 type="button"
@@ -1818,7 +1828,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                           )}
                                                                           
                                                                           {/* Manual duration input when auto-detection fails */}
-                                                                          {(!item.duration || item.duration === 0) && (
+                                                                          {(!item.duration || item.duration === 0) && 
+                                                                           (!item.contentFiles?.[0]?.duration || item.contentFiles[0].duration === 0) && (
                                                                             <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                                                                               <Clock size={16} className="text-yellow-600" />
                                                                               <span className="text-sm text-yellow-700">
@@ -1828,13 +1839,20 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 type="number"
                                                                                 placeholder="Enter duration in seconds"
                                                                                 className="w-24 h-8 text-sm"
-                                                                                value={item.duration || ''}
+                                                                                value={item.duration || item.contentFiles?.[0]?.duration || ''}
                                                                                 onChange={(e) => {
                                                                                   const value = parseInt(e.target.value) || 0;
+                                                                                  // Update both item.duration and contentFiles[0].duration
                                                                                   formik.setFieldValue(
                                                                                     `sections[${sectionIdx}].items[${itemIdx}].duration`,
                                                                                     value
                                                                                   );
+                                                                                  if (item.contentFiles?.[0]) {
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles.0.duration`,
+                                                                                      value
+                                                                                    );
+                                                                                  }
                                                                                 }}
                                                                               />
                                                                               <span className="text-xs text-gray-600">seconds</span>
@@ -2053,7 +2071,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             />
                                                                             <span className="text-xs text-gray-600">seconds</span>
                                                                             <span className="text-sm text-gray-700">
-                                                                              ({formatDuration(item.duration || 0)})
+                                                                              ({formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)})
                                                                             </span>
                                                                           </div>
                                                                           <p className="text-xs text-blue-600 mt-1">
@@ -3364,126 +3382,29 @@ export function CourseCarriculam({ onSubmit }: any) {
                 let duration = 0;
                 
                 try {
-                  // Show loading state
-                  const loadingUrl = URL.createObjectURL(file);
+                  console.log('Starting video upload to Cloudinary for:', file.name);
                   
-                  // Upload to Cloudinary
+                  // Upload to Cloudinary with improved duration detection
                   const uploadResult = await uploadToCloudinary(file, 'video');
                   cloudinaryUrl = uploadResult.url;
                   cloudinaryPublicId = uploadResult.publicId;
+                  duration = uploadResult.duration || 0;
                   
-                  // Get video duration from Cloudinary URL
-                  console.log('Attempting to get duration from Cloudinary URL:', cloudinaryUrl);
-                  duration = await new Promise<number>((resolve) => {
-                    const video = document.createElement('video');
-                    video.preload = 'metadata';
-                    video.onloadedmetadata = () => {
-                      console.log('Video duration loaded from Cloudinary:', video.duration);
-                      resolve(video.duration || 0);
-                      video.remove();
-                    };
-                    video.onerror = (e) => {
-                      console.log('Failed to load video metadata from Cloudinary:', e);
-                      resolve(0);
-                      video.remove();
-                    };
-                    video.src = cloudinaryUrl;
-                    
-                    // Set a timeout in case the video doesn't load
-                    setTimeout(() => {
-                      if (video.duration === undefined || isNaN(video.duration)) {
-                        console.log('Video metadata timeout from Cloudinary, trying fallback');
-                        resolve(0);
-                        video.remove();
-                      }
-                    }, 3000);
+                  console.log('Cloudinary upload successful:', {
+                    url: cloudinaryUrl,
+                    publicId: cloudinaryPublicId,
+                    duration: duration
                   });
                   
-                  console.log('Duration from Cloudinary attempt:', duration);
-                  
-                  // If duration is still 0, try to get it from the original file
-                  if (duration === 0 || isNaN(duration)) {
-                    console.log('Trying to get duration from original file');
-                    duration = await new Promise<number>((resolve) => {
-                      const video = document.createElement('video');
-                      video.preload = 'metadata';
-                      video.onloadedmetadata = () => {
-                        console.log('Original file duration:', video.duration);
-                        resolve(video.duration || 0);
-                        video.remove();
-                      };
-                      video.onerror = (e) => {
-                        console.log('Failed to load original file metadata:', e);
-                        resolve(0);
-                        video.remove();
-                      };
-                      video.src = URL.createObjectURL(file);
-                      
-                      setTimeout(() => {
-                        if (video.duration === undefined || isNaN(video.duration)) {
-                          console.log('Original file metadata timeout');
-                          resolve(0);
-                          video.remove();
-                        }
-                      }, 3000);
-                    });
+                  // Ensure we have a valid Cloudinary URL
+                  if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
+                    throw new Error('Invalid Cloudinary URL received');
                   }
-                  
-                  console.log('Final duration calculated:', duration);
-                  
-                  // Clean up blob URL
-                  URL.revokeObjectURL(loadingUrl);
                   
                 } catch (error) {
                   console.error('Failed to upload video to Cloudinary:', error);
-                  // Fallback to blob URL if Cloudinary fails
-                  const fallbackUrl = URL.createObjectURL(file);
-                  duration = await new Promise<number>((resolve) => {
-                    const video = document.createElement('video');
-                    video.preload = 'metadata';
-                    video.onloadedmetadata = () => {
-                      console.log('Fallback video duration:', video.duration);
-                      resolve(video.duration || 0);
-                      video.remove();
-                    };
-                    video.onerror = () => {
-                      console.log('Fallback video failed to load metadata');
-                      resolve(0);
-                      video.remove();
-                    };
-                    video.src = fallbackUrl;
-                    
-                    setTimeout(() => {
-                      if (video.duration === undefined || isNaN(video.duration)) {
-                        console.log('Fallback video metadata timeout');
-                        resolve(0);
-                        video.remove();
-                      }
-                    }, 5000);
-                  });
-                  
-                  return {
-                    type: 'lecture' as const,
-                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
-                    contentType: 'video' as const,
-                    videoSource: 'upload' as const,
-                    contentFiles: [{
-                      file,
-                      url: fallbackUrl,
-                      cloudinaryUrl: '', // Will be empty if upload failed
-                      cloudinaryPublicId: '',
-                      name: file.name,
-                      duration,
-                      status: 'failed' as VideoStatus,
-                      uploadedAt: new Date()
-                    }],
-                    contentUrl: '',
-                    contentText: '',
-                    articleSource: 'upload' as const,
-                    resources: [],
-                    published: false,
-                    isPromotional: false,
-                  };
+                  // Don't fallback to blob URLs - require Cloudinary upload
+                  throw new Error(`Video upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
 
                 console.log('Creating lecture with duration:', duration);
