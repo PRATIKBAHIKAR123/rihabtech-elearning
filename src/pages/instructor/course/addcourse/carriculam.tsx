@@ -290,7 +290,7 @@ const getInitialLecture = (index: number): LectureItem => ({
   contentUrl: "",
   published: false, // Default to unpublished
   description: "", // Add description field
-  isPromotional: false, // Default to non-promotional
+  isPromotional: true, // Default to non-promotional
   duration: 0, // Default duration for external videos
 });
 
@@ -3476,27 +3476,39 @@ export function CourseCarriculam({ onSubmit }: any) {
               })
             );
 
-            // If there's an empty lecture, update it with the first video
-            if (emptyLectureIndex !== -1) {
-              const updatedItems = [...currentSectionItems];
-              updatedItems[emptyLectureIndex] = newLectures[0];
-
-              // Add remaining videos as new lectures
-              if (newLectures.length > 1) {
-                updatedItems.push(...newLectures.slice(1));
+              // Build the final items array (insert into empty lecture if present)
+              let finalItems = [] as any[];
+              if (emptyLectureIndex !== -1) {
+                const updatedItems = [...currentSectionItems];
+                updatedItems[emptyLectureIndex] = newLectures[0];
+                if (newLectures.length > 1) {
+                  updatedItems.push(...newLectures.slice(1));
+                }
+                finalItems = updatedItems;
+              } else {
+                finalItems = [...currentSectionItems, ...newLectures];
               }
 
-              formik.setFieldValue(
-                `sections[${sectionIdx}].items`,
-                updatedItems
-              );
-            } else {
-              // No empty lecture found, add all as new lectures
-              formik.setFieldValue(
-                `sections[${sectionIdx}].items`,
-                [...currentSectionItems, ...newLectures]
-              );
-            }
+              // Utility: mark first two video lectures in this section as promotional
+              const applyPromotionalMarking = (itemsArray: any[]) => {
+                const copy = itemsArray.map((it) => ({ ...it }));
+                let markedCount = 0;
+                for (let i = 0; i < copy.length; i++) {
+                  const it = copy[i];
+                  if (it && it.type === 'lecture' && it.contentType === 'video') {
+                    if (markedCount < 2) {
+                      it.isPromotional = true;
+                      markedCount++;
+                    } else {
+                      it.isPromotional = false;
+                    }
+                  }
+                }
+                return copy;
+              };
+
+              const itemsWithPromo = applyPromotionalMarking(finalItems);
+              formik.setFieldValue(`sections[${sectionIdx}].items`, itemsWithPromo);
           } else if (uploadType === 'document' && isFileList(filesOrExcel)) {
             // Handle document files
             console.log('Processing document files');
@@ -3785,6 +3797,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
   onUpload: (filesOrExcel: FileList | File | string, sectionIdx: number) => void;
   sectionIdx: number | null;
 }) {
+  
   const [selectedFiles, setSelectedFiles] = useState<FileList | File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

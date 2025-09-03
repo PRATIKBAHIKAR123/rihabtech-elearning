@@ -87,7 +87,7 @@ const isAuthenticated = !!user || !!token;
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
           {isAuthenticated && (
-            <a href="/#/instructor-signup" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
+            <a href="#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
           )}
         </nav>
 
