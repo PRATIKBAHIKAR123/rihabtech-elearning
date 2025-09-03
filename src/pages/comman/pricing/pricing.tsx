@@ -6,7 +6,7 @@ import PracticeAdvice from "./besteducation";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "sonner";
-import CheckoutModal from "../../../components/ui/CheckoutModal";
+import { SubscriptionPaymentModal } from "../../../components/ui/SubscriptionPaymentModal";
 import { pricingService, PricingPlan, PricingBreakdown } from "../../../utils/pricingService";
 
 type Feature = {
@@ -21,7 +21,7 @@ type KeyFeature = {
 
 export default function Pricing() {
     const { user } = useAuth();
-    const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
     const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,24 +76,18 @@ export default function Pricing() {
             return;
         }
 
-        // Set selected plan and open checkout modal
+        // Set selected plan and open payment modal
         setSelectedPlan(plan);
-        setIsCheckoutModalOpen(true);
+        setIsPaymentModalOpen(true);
     };
 
-    // Convert plan to course format for checkout modal
-    const getPlanAsCourse = (plan: PricingPlan) => {
-        if (!plan) return null;
-        
-        const breakdown = pricingService.calculatePricingBreakdown(plan);
-        
-        return {
-            id: `subscription-${plan.id}`,
-            title: `${plan.name} - ${plan.durationText}`,
-            pricing: breakdown.totalPrice.toString(),
-            thumbnailUrl: "Images/icons/course-Icon.png",
-            description: `${plan.description} - Full access to ${plan.isAllCategories ? 'all categories' : plan.categoryName || 'selected category'} for ${plan.durationText.toLowerCase()}.`
-        };
+    // Handle successful payment
+    const handlePaymentSuccess = () => {
+        toast.success('Subscription activated successfully!');
+        setIsPaymentModalOpen(false);
+        setSelectedPlan(null);
+        // Optionally redirect to dashboard or courses
+        window.location.hash = '#/learner/dashboard';
     };
 
     // Get pricing breakdown for display
@@ -274,15 +268,21 @@ export default function Pricing() {
 
             <NewCourses/>
 
-            {/* Checkout Modal */}
+            {/* Subscription Payment Modal */}
             {selectedPlan && (
-                <CheckoutModal
-                    isOpen={isCheckoutModalOpen}
+                <SubscriptionPaymentModal
+                    isOpen={isPaymentModalOpen}
                     onClose={() => {
-                        setIsCheckoutModalOpen(false);
+                        setIsPaymentModalOpen(false);
                         setSelectedPlan(null);
                     }}
-                    course={getPlanAsCourse(selectedPlan)!}
+                    onSuccess={handlePaymentSuccess}
+                    plan={selectedPlan}
+                    userDetails={{
+                        name: user?.displayName || '',
+                        email: user?.email || '',
+                        phone: ''
+                    }}
                 />
             )}
         </div>

@@ -10,6 +10,7 @@ export interface PricingPlan {
   duration: number | string; // in months, can be string from Firebase
   durationText: string; // e.g., "1 Month", "6 Months", "1 Year"
   basePrice: number;
+  totalAmount?: number; // Total amount including tax
   taxPercentage: number;
   platformFeePercentage: number;
   isActive: boolean;
@@ -77,6 +78,7 @@ class PricingService {
           duration: data.duration || 1,
           durationText: data.durationText || '1 Month',
           basePrice: data.basePrice || 0,
+          totalAmount: data.totalAmount || 0,
           taxPercentage: data.taxPercentage || 18,
           platformFeePercentage: data.platformFeePercentage || 40,
           isActive: data.isActive !== false,
@@ -157,14 +159,41 @@ class PricingService {
 
   // Calculate pricing breakdown
   calculatePricingBreakdown(plan: PricingPlan): PricingBreakdown {
-    const basePrice = plan.basePrice;
-    const taxAmount = (basePrice * plan.taxPercentage) / 100;
-    const platformFee = (basePrice * plan.platformFeePercentage) / 100;
-    const instructorShare = basePrice - platformFee;
-    const totalPrice = basePrice + taxAmount;
+    // Use totalAmount if basePrice is 0 or not set
+    const totalAmount = (plan as any).totalAmount || 0;
+    const basePrice = plan.basePrice || 0;
+    
+    console.log('Pricing calculation for plan:', plan.name);
+    console.log('Original basePrice:', basePrice);
+    console.log('Total amount:', totalAmount);
+    console.log('Tax percentage:', plan.taxPercentage);
+    
+    // If basePrice is 0 but totalAmount exists, calculate basePrice from totalAmount
+    let calculatedBasePrice = basePrice;
+    if (basePrice === 0 && totalAmount > 0) {
+      // Reverse calculate basePrice from totalAmount
+      // totalAmount = basePrice + (basePrice * taxPercentage / 100)
+      // totalAmount = basePrice * (1 + taxPercentage / 100)
+      // basePrice = totalAmount / (1 + taxPercentage / 100)
+      calculatedBasePrice = totalAmount / (1 + plan.taxPercentage / 100);
+      console.log('Calculated basePrice from totalAmount:', calculatedBasePrice);
+    }
+    
+    const taxAmount = (calculatedBasePrice * plan.taxPercentage) / 100;
+    const platformFee = (calculatedBasePrice * plan.platformFeePercentage) / 100;
+    const instructorShare = calculatedBasePrice - platformFee;
+    const totalPrice = totalAmount > 0 ? totalAmount : calculatedBasePrice + taxAmount;
+
+    console.log('Final pricing breakdown:', {
+      basePrice: calculatedBasePrice,
+      taxAmount,
+      platformFee,
+      instructorShare,
+      totalPrice
+    });
 
     return {
-      basePrice,
+      basePrice: calculatedBasePrice,
       taxAmount,
       platformFee,
       instructorShare,
