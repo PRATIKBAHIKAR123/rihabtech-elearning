@@ -83,6 +83,11 @@ class LearnerService {
         if (courseDoc.exists()) {
           const courseData = courseDoc.data();
           
+          // Debug logging for course data
+          console.log('LearnerService - Course data for ID:', enrollmentData.courseId, courseData);
+          console.log('LearnerService - thumbnailUrl:', courseData.thumbnailUrl);
+          console.log('LearnerService - thumbnail:', courseData.thumbnail);
+          
           courses.push({
             id: courseDoc.id,
             title: courseData.title || 'Untitled Course',
@@ -92,7 +97,7 @@ class LearnerService {
             progress: enrollmentData.progress || 0,
             price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0,
             originalPrice: courseData.originalPrice || undefined,
-            image: courseData.thumbnail || 'Images/courses/default.jpg',
+            image: courseData.thumbnailUrl || 'Images/courses/course 4.jpg',
             category: courseData.category || 'General',
             instructor: courseData.instructorName || 'Unknown Instructor',
             rating: courseData.rating || 0,
@@ -138,7 +143,7 @@ class LearnerService {
             duration: courseData.duration || 0,
             price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0,
             originalPrice: courseData.originalPrice || undefined,
-            image: courseData.thumbnail || 'Images/courses/default.jpg',
+            image: courseData.thumbnailUrl || 'Images/courses/course 4.jpg',
             category: courseData.category || 'General',
             instructor: courseData.instructorName || 'Unknown Instructor',
             rating: courseData.rating || 0

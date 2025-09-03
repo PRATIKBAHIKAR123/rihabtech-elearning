@@ -643,7 +643,13 @@ export function CourseCard({ course, progress = false }: {
     : (course as any).duration || 0;
   
   // Get image source - handle both interfaces
-  const imageSrc = (course as any).thumbnailUrl || (course as any).image || "Images/courses/default-course.jpg";
+  const imageSrc = (course as any).thumbnailUrl || (course as any).image || "Images/courses/course 4.jpg";
+  
+  // Debug logging for image source
+  console.log('CourseCard - Course data:', course);
+  console.log('CourseCard - Image source:', imageSrc);
+  console.log('CourseCard - thumbnailUrl:', (course as any).thumbnailUrl);
+  console.log('CourseCard - image:', (course as any).image);
   
   // Get pricing - handle both interfaces
   const pricing = (course as any).pricing || (course as any).price;
@@ -660,7 +666,17 @@ export function CourseCard({ course, progress = false }: {
       }
     }}>
       <div className="relative">
-        <img src={imageSrc} alt={course.title} />
+        <img 
+          src={imageSrc} 
+          alt={course.title}
+          onError={(e) => {
+            console.error('Image failed to load:', imageSrc);
+            e.currentTarget.src = 'Images/courses/course 4.jpg';
+          }}
+          onLoad={() => {
+            console.log('Image loaded successfully:', imageSrc);
+          }}
+        />
       </div>
 
       <div className="course-details-section">
