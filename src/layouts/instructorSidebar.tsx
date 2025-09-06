@@ -1,5 +1,6 @@
 import { BarChartBig, LucideMessageCircleQuestion, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
  
@@ -75,6 +76,24 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
   };
 
  export const MobileSidebar = ({ isOpen, onClose }: SidebarProps) => {
+    const { logout, user } = useAuth();
+    const [initials, setInitials] = useState('U');
+  
+    useEffect(() => {
+      let name = '';
+      const cached = localStorage.getItem('token');
+      if (cached) {
+        const profile = JSON.parse(cached);
+        name = profile.Name || profile.name || '';
+      }
+      if (!name && user?.displayName) name = user.displayName;
+      if (!name && user?.email) name = user.email.split('@')[0];
+      if (name) {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) setInitials(parts[0][0].toUpperCase());
+        else setInitials((parts[0][0] + parts[parts.length-1][0]).toUpperCase());
+      }
+    }, [user]);
     return (
       <div
         className={`fixed top-0 left-0 h-full w-[300px] bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
@@ -92,10 +111,10 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
         <div className="px-4 pb-4 border-b">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-              PB
+              {initials}
             </div>
             <div>
-              <div className="font-semibold">Hi, Manan A.</div>
+              <div className="font-semibold">Hi, {user?.displayName}.</div>
               <div className="text-sm text-gray-500">Welcome back</div>
             </div>
           </div>
@@ -109,8 +128,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
           <MobileSidebarItem text="Courses" route='#/instructor/courses' />
           <MobileSidebarItem text="Chat" route='#/instructor/chat' hasDropdown />
           <MobileSidebarItem text="Performance" route='#/instructor/dashboard' hasDropdown />
-          <MobileSidebarItem text="Students" route='#/instructor/courses' />
-          <MobileSidebarItem text="Groups" route='#/instructor/courses' />
+          <MobileSidebarItem text="Students" route='#/instructor/students' />
+          <MobileSidebarItem text="Groups" route='#/instructor/groups' />
           <MobileSidebarItem text="Profile" route='#/instructor/profile' />
         </nav>
       </div>

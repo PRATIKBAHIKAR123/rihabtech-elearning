@@ -1137,7 +1137,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                   className={`mb-8 border rounded p-4 bg-white ${snapshot.isDragging ? 'shadow-lg rotate-2' : ''}`}
                                 >
                                   <div>
-                                    <div className="flex items-center gap-2 mb-2">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
                                       <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 flex-1 hover:bg-gray-100 rounded" {...provided.dragHandleProps}>
                                         <GripVertical size={20} className="text-gray-400" />
                                         <Button
@@ -1266,9 +1266,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                         <div>
                                                           {/* LECTURE */}
                                                           {item.type === "lecture" && (
-                                                            <div className={`${showContentType &&
-                                                              showContentType.sectionIdx === sectionIdx &&
-                                                              showContentType.itemIdx === itemIdx ? 'flex-col' : 'flex-row'} flex justify-between`}>
+                                                            <div className={`flex flex-col sm:flex-row justify-between ${showContentType && showContentType.sectionIdx === sectionIdx && showContentType.itemIdx === itemIdx ? 'gap-2' : ''}`}>
                                                               <div className="flex w-full items-center gap-2 mb-2">
                                                                 {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
                                                                   <>
@@ -1389,7 +1387,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               {showContentType &&
                                                                 showContentType.sectionIdx === sectionIdx &&
                                                                 showContentType.itemIdx === itemIdx ? (
-                                                                <div className="flex flex-col gap-2 mt-2 w-auto px-12">
+                                                                <div className="flex flex-col gap-2 mt-2 w-auto px-4 md:px-12">
                                                                   {/* Move Content Type above Description */}
                                                                   <label className="ins-label">Content Type</label>
                                                                   <Select
@@ -3176,7 +3174,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       <span className="font-bold text-primary"> {formatDuration(content.duration || 0)}</span>
                                                                                     </div>
                                                                                   </div>
-                                                                                  <video src={content.url} controls className="w-full max-w-xs" />
+                                                                                  <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                                                                                    <video src={content.url} controls style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                                                                                  </div>
                                                                                 </div>
                                                                               ))}
                                                                             </div>
@@ -3193,30 +3193,32 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             </div>
                                                                             {/* Optionally, embed the video if it's a YouTube/Vimeo link */}
                                                                             {(item.contentUrl.includes("youtube.com") || item.contentUrl.includes("youtu.be")) && (
-                                                                              <div className="mt-2">
-                                                                                <iframe
-                                                                                  width="420"
-                                                                                  height="236"
-                                                                                  src={`https://www.youtube.com/embed/${item.contentUrl.includes("youtube.com")
-                                                                                    ? item.contentUrl.split("v=")[1]?.split("&")[0]
-                                                                                    : item.contentUrl.split("/").pop()}`}
-                                                                                  title="YouTube video"
-                                                                                  frameBorder="0"
-                                                                                  allowFullScreen
-                                                                                />
-                                                                              </div>
+                                                                                <div className="mt-2">
+                                                                                  <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                                                                                    <iframe
+                                                                                      src={`https://www.youtube.com/embed/${item.contentUrl.includes("youtube.com")
+                                                                                        ? item.contentUrl.split("v=")[1]?.split("&")[0]
+                                                                                        : item.contentUrl.split("/").pop()}`}
+                                                                                      title="YouTube video"
+                                                                                      frameBorder="0"
+                                                                                      allowFullScreen
+                                                                                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                                                                    />
+                                                                                  </div>
+                                                                                </div>
                                                                             )}
                                                                             {item.contentUrl.includes("vimeo.com") && (
-                                                                              <div className="mt-2">
-                                                                                <iframe
-                                                                                  width="420"
-                                                                                  height="236"
-                                                                                  src={`https://player.vimeo.com/video/${item.contentUrl.split("/").pop()}`}
-                                                                                  title="Vimeo video"
-                                                                                  frameBorder="0"
-                                                                                  allowFullScreen
-                                                                                />
-                                                                              </div>
+                                                                                <div className="mt-2">
+                                                                                  <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                                                                                    <iframe
+                                                                                      src={`https://player.vimeo.com/video/${item.contentUrl.split("/").pop()}`}
+                                                                                      title="Vimeo video"
+                                                                                      frameBorder="0"
+                                                                                      allowFullScreen
+                                                                                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                                                                    />
+                                                                                  </div>
+                                                                                </div>
                                                                             )}
                                                                           </div>
                                                                         )}
@@ -3723,13 +3725,17 @@ export function CourseCarriculam({ onSubmit }: any) {
             </DialogHeader>
             <div className="mt-4">
               {previewContent.type.startsWith('video/') && (
-                <video controls src={previewContent.url} className="w-full h-auto max-h-[60vh]"></video>
+                <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                  <video controls src={previewContent.url} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                </div>
               )}
               {previewContent.type.startsWith('image/') && (
                 <img src={previewContent.url} alt={previewContent.name} className="max-w-full h-auto max-h-[60vh] mx-auto" />
               )}
               {previewContent.type === 'application/pdf' && (
-                <iframe src={previewContent.url} className="w-full h-[60vh]" title={previewContent.name}></iframe>
+                <div className="w-full" style={{ position: 'relative', paddingTop: '75%' }}>
+                  <iframe src={previewContent.url} title={previewContent.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                </div>
               )}
               {/* For other document types, provide a download link */}
               {!(previewContent.type.startsWith('video/') || previewContent.type.startsWith('image/') || previewContent.type === 'application/pdf') && (

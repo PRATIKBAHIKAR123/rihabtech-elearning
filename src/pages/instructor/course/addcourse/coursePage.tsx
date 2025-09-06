@@ -375,7 +375,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               />
             ) : (
               <img
-                src="Images/icons/Rectangle.png"
+                src="/Images/image_3748512.png"
                 alt="Placeholder course"
                 className="rounded-lg w-80 h-48"
               />
@@ -416,7 +416,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               />
             ) : (
               <img
-                src="Images/icons/Rectangle.png"
+                src="/Images/multimedia.png"
                 alt="Placeholder promo"
                 className="rounded-lg w-80 h-48"
               />

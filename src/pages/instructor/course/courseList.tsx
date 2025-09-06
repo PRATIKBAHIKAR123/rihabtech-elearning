@@ -248,18 +248,17 @@ export default function CourseList() {
             {/* Payout Notification Banner - Only show if there are pending payouts or available earnings */}
             {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
                 <div className="rounded-[15px] border border-gray p-6 bg-gradient-to-r from-blue-50 to-green-50">
-                    <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex items-center gap-2">
+                    <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex flex-col md:flex-row items-start md:items-center gap-2">
                         <Button className="rounded-none bg-green-600 text-white hover:bg-green-700">
                             <DollarSign className="h-4 w-4 mr-2" />
                             New
                         </Button> 
-                        <span>
+                        <span className="flex items-center">
                             {hasPendingPayouts 
                                 ? `New Payout Available! - ₹${earningsSummary?.pendingPayouts?.toLocaleString() || 0}`
                                 : `Earnings Available! - ₹${earningsSummary?.availableForPayout?.toLocaleString() || 0}`
                             }
-                        </span>
-                        <Button 
+                            <Button 
                             variant="ghost"
                             size="sm"
                             onClick={loadPayoutData}
@@ -267,8 +266,10 @@ export default function CourseList() {
                         >
                             ↻
                         </Button>
+                        </span>
+                        
                         <Button 
-                            className="rounded-none ml-auto bg-green-600 hover:bg-green-700 text-white"
+                            className="rounded-none ml-0  md:ml-auto bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => window.location.hash = '#/instructor/payment'}
                         >
                             View Payout Details

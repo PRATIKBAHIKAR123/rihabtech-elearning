@@ -204,97 +204,113 @@ const CourseSelection = () => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-      <div className="flex items-center space-x-4 flex-1">
-        {/* Course Thumbnail */}
-        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          {course.thumbnail ? (
-            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded-lg" />
-          ) : (
-            <BookOpen className="w-8 h-8 text-gray-400" />
-          )}
-        </div>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow gap-4">
+  
+  {/* Left Section: Thumbnail + Info */}
+  <div className="flex items-start sm:items-center space-x-4 flex-1">
+    {/* Course Thumbnail */}
+    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+      {course.thumbnail ? (
+        <img
+          src={course.thumbnail}
+          alt={course.title}
+          className="w-full h-full object-cover rounded-lg"
+        />
+      ) : (
+        <BookOpen className="w-8 h-8 text-gray-400" />
+      )}
+    </div>
 
-        {/* Course Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <h3 className="text-lg font-semibold text-gray-900 truncate">{course.title}</h3>
-            <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-              {course.status}
-            </span>
-            <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-              {course.visibility}
-            </span>
-          </div>
-          {course.description && (
-            <p className="text-sm text-gray-600 truncate mb-2">{course.description}</p>
-          )}
-          <p className="text-xs text-gray-500">Last modified {course.lastModified}</p>
-        </div>
+    {/* Course Info */}
+    <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+          {course.title}
+        </h3>
+        <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
+          {course.status}
+        </span>
+        <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
+          {course.visibility}
+        </span>
       </div>
+      {course.description && (
+        <p className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2">
+          {course.description}
+        </p>
+      )}
+      <p className="text-xs text-gray-500">
+        Last modified {course.lastModified}
+      </p>
+    </div>
+  </div>
 
-      {/* Progress and Actions */}
-      <div className="flex items-center space-x-6 ml-4">
-        {/* Progress Section */}
-        <div className="text-right min-w-[120px]">
-          <div className="text-sm font-medium text-gray-900 mb-1">Finish your course</div>
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${course.progress}%` }}
-              ></div>
-            </div>
-            <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
-          </div>
+  {/* Right Section: Progress + Actions */}
+  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
+    {/* Progress Section */}
+    <div className="text-left sm:text-right min-w-[120px]">
+      <div className="text-sm font-medium text-gray-900 mb-1">
+        Finish your course
+      </div>
+      <div className="flex items-center space-x-2">
+        <div className="flex-1 bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-primary h-2 rounded-full transition-all duration-300"
+            style={{ width: `${course.progress}%` }}
+          ></div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => onEdit(course)}
-            className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors"
-          >
-            Edit / manage course
-          </button>
-          
-          {/* More Actions Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-            
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                <button
-                  onClick={() => {
-                    onEdit(course);
-                    setShowDropdown(false);
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Course
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete(course);
-                    setShowDropdown(false);
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Course
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <span className="text-xs text-gray-500 font-medium">
+          {course.progress}%
+        </span>
       </div>
     </div>
+
+    {/* Action Buttons */}
+    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+      <button
+        onClick={() => onEdit(course)}
+        className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors w-full sm:w-auto"
+      >
+        Edit / manage course
+      </button>
+
+      {/* More Actions Dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <MoreHorizontal className="w-5 h-5" />
+        </button>
+
+        {showDropdown && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
+            <button
+              onClick={() => {
+                onEdit(course);
+                setShowDropdown(false);
+              }}
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Edit3 className="w-4 h-4 mr-2" />
+              Edit Course
+            </button>
+            <button
+              onClick={() => {
+                onDelete(course);
+                setShowDropdown(false);
+              }}
+              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Course
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
   );
 };
 
