@@ -256,7 +256,7 @@ export function CourseLandingPage({ onSubmit }: any) {
         {/* Basic Info */}
         <div className="mt-4 gap-2 flex flex-col">
           <label className="ins-label">Basic Info<span className="text-[#ff0000]"> *</span></label>
-          <div className="flex justify-between gap-2">
+          <div className="flex flex-col md:flex-row justify-between gap-2">
             <Select
               value={formik.values.language}
               onValueChange={value => formik.setFieldValue("language", value)}

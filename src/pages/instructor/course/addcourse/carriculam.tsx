@@ -1266,7 +1266,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                         <div>
                                                           {/* LECTURE */}
                                                           {item.type === "lecture" && (
-                                                            <div className={`flex flex-col sm:flex-row justify-between ${showContentType && showContentType.sectionIdx === sectionIdx && showContentType.itemIdx === itemIdx ? 'gap-2' : ''}`}>
+                                                            <div className={`flex  justify-between ${showContentType && showContentType.sectionIdx === sectionIdx && showContentType.itemIdx === itemIdx ? 'gap-2 flex-col' : ' flex-col md:flex-row'}`}>
                                                               <div className="flex w-full items-center gap-2 mb-2">
                                                                 {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
                                                                   <>
@@ -1443,7 +1443,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   {item.contentType === "article" && (
                                                                     <div className="flex flex-col gap-2">
                                                                       {/* Article Source Option */}
-                                                                      <div className="flex items-center gap-4 mb-2">
+                                                                      <div className="flex flex-col items-start gap-4 mb-2">
                                                                         <label className="ins-label">Article Source:</label>
                                                                         <div className="flex items-center gap-4">
                                                                           <div className="flex items-center gap-2">
@@ -3252,7 +3252,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           </Droppable>
                                           {/* Add item (lecture/quiz) */}
                                           {addType && addType.sectionIdx === sectionIdx ? (
-                                            <div className="flex gap-2 mt-2">
+                                            <div className="flex flex-col md:flex-row gap-2 mt-2">
                                               <Button
                                                 type="button"
                                                 className="rounded-none"
