@@ -53,12 +53,12 @@ class LearnerService {
           console.log('📊 Total enrollments in collection:', allEnrollmentsSnapshot.size);
           
           allEnrollmentsSnapshot.docs.forEach((doc, index) => {
-            const data = doc.data();
+            const data = doc.data() as any;
             console.log(`📋 Enrollment ${index + 1}:`, {
               id: doc.id,
-              studentId: data.studentId,
-              courseId: data.courseId,
-              progress: data.progress
+              studentId: data?.studentId,
+              courseId: data?.courseId,
+              progress: data?.progress
             });
           });
         } catch (error) {
@@ -70,40 +70,40 @@ class LearnerService {
       
       // Sort enrollments by date (client-side sorting to avoid Firebase index requirement)
       const sortedEnrollments = enrollmentsSnapshot.docs.sort((a, b) => {
-        const aDate = a.data().enrolledAt?._seconds || 0;
-        const bDate = b.data().enrolledAt?._seconds || 0;
+        const aDate = (a.data() as any)?.enrolledAt?._seconds || 0;
+        const bDate = (b.data() as any)?.enrolledAt?._seconds || 0;
         return bDate - aDate; // Descending order (newest first)
       });
 
       for (const enrollmentDoc of sortedEnrollments) {
-        const enrollmentData = enrollmentDoc.data();
+        const enrollmentData = enrollmentDoc.data() as any;
         
         // Get course details
-        const courseDoc = await getDoc(doc(db, 'courseDrafts', enrollmentData.courseId));
+        const courseDoc = await getDoc(doc(db, 'courseDrafts', enrollmentData?.courseId));
         if (courseDoc.exists()) {
-          const courseData = courseDoc.data();
+          const courseData = courseDoc.data() as any;
           
           // Debug logging for course data
-          console.log('LearnerService - Course data for ID:', enrollmentData.courseId, courseData);
-          console.log('LearnerService - thumbnailUrl:', courseData.thumbnailUrl);
-          console.log('LearnerService - thumbnail:', courseData.thumbnail);
+          console.log('LearnerService - Course data for ID:', enrollmentData?.courseId, courseData);
+          console.log('LearnerService - thumbnailUrl:', courseData?.thumbnailUrl);
+          console.log('LearnerService - thumbnail:', courseData?.thumbnail);
           
           courses.push({
             id: courseDoc.id,
-            title: courseData.title || 'Untitled Course',
-            description: courseData.description || 'No description available',
-            students: courseData.studentsCount || 0,
-            duration: courseData.duration || 0,
-            progress: enrollmentData.progress || 0,
-            price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0,
-            originalPrice: courseData.originalPrice || undefined,
-            image: courseData.thumbnailUrl || 'Images/courses/course 4.jpg',
-            category: courseData.category || 'General',
-            instructor: courseData.instructorName || 'Unknown Instructor',
-            rating: courseData.rating || 0,
-            enrollmentDate: enrollmentData.enrolledAt,
-            lastAccessed: enrollmentData.lastAccessedAt,
-            completionPercentage: enrollmentData.progress || 0
+            title: courseData?.title || 'Untitled Course',
+            description: courseData?.description || 'No description available',
+            students: courseData?.studentsCount || 0,
+            duration: courseData?.duration || 0,
+            progress: enrollmentData?.progress || 0,
+            price: courseData?.pricing === 'free' ? 0 : parseFloat(courseData?.pricing) || 0,
+            originalPrice: courseData?.originalPrice || undefined,
+            image: courseData?.thumbnailUrl || 'Images/courses/course 4.jpg',
+            category: courseData?.category || 'General',
+            instructor: courseData?.instructorName || 'Unknown Instructor',
+            rating: courseData?.rating || 0,
+            enrollmentDate: enrollmentData?.enrolledAt,
+            lastAccessed: enrollmentData?.lastAccessedAt,
+            completionPercentage: enrollmentData?.progress || 0
           });
         }
       }
@@ -128,25 +128,25 @@ class LearnerService {
       const courses: LearnerCourse[] = [];
 
       for (const wishlistDoc of wishlistSnapshot.docs) {
-        const wishlistData = wishlistDoc.data();
+        const wishlistData = wishlistDoc.data() as any;
         
         // Get course details
-        const courseDoc = await getDoc(doc(db, 'courseDrafts', wishlistData.courseId));
+        const courseDoc = await getDoc(doc(db, 'courseDrafts', wishlistData?.courseId));
         if (courseDoc.exists()) {
-          const courseData = courseDoc.data();
+          const courseData = courseDoc.data() as any;
           
           courses.push({
             id: courseDoc.id,
-            title: courseData.title || 'Untitled Course',
-            description: courseData.description || 'No description available',
-            students: courseData.studentsCount || 0,
-            duration: courseData.duration || 0,
-            price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0,
-            originalPrice: courseData.originalPrice || undefined,
-            image: courseData.thumbnailUrl || 'Images/courses/course 4.jpg',
-            category: courseData.category || 'General',
-            instructor: courseData.instructorName || 'Unknown Instructor',
-            rating: courseData.rating || 0
+            title: courseData?.title || 'Untitled Course',
+            description: courseData?.description || 'No description available',
+            students: courseData?.studentsCount || 0,
+            duration: courseData?.duration || 0,
+            price: courseData?.pricing === 'free' ? 0 : parseFloat(courseData?.pricing) || 0,
+            originalPrice: courseData?.originalPrice || undefined,
+            image: courseData?.thumbnailUrl || 'Images/courses/course 4.jpg',
+            category: courseData?.category || 'General',
+            instructor: courseData?.instructorName || 'Unknown Instructor',
+            rating: courseData?.rating || 0
           });
         }
       }
@@ -177,17 +177,18 @@ class LearnerService {
       let inProgressCourses = 0;
 
       for (const enrollmentDoc of enrollments.docs) {
-        const data = enrollmentDoc.data();
-        if (data.progress >= 100) {
+        const data = enrollmentDoc.data() as any;
+        if (data?.progress >= 100) {
           completedCourses++;
-        } else if (data.progress > 0) {
+        } else if (data?.progress > 0) {
           inProgressCourses++;
         }
         
         // Get course student count
-        const courseDoc = await getDoc(doc(db, 'courseDrafts', data.courseId));
+        const courseDoc = await getDoc(doc(db, 'courseDrafts', data?.courseId));
         if (courseDoc.exists()) {
-          totalStudents += courseDoc.data()?.studentsCount || 0;
+          const courseData = courseDoc.data() as any;
+          totalStudents += courseData?.studentsCount || 0;
         }
       }
 

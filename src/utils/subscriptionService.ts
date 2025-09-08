@@ -138,8 +138,8 @@ export const createSubscription = async (
     const existingSubscriptions = await getDocs(activeSubscriptionQuery);
     
     // Cancel existing active subscriptions
-    const cancelPromises = existingSubscriptions.docs.map(async (doc) => {
-      await updateDoc(doc.ref, {
+    const cancelPromises = existingSubscriptions.docs.map(async (docSnapshot) => {
+      await updateDoc(doc(db, this.SUBSCRIPTIONS_COLLECTION, docSnapshot.id), {
         status: 'cancelled',
         updatedAt: serverTimestamp(),
       });
@@ -189,15 +189,15 @@ export const getUserActiveSubscription = async (userId: string): Promise<Subscri
     }
 
     const doc = querySnapshot.docs[0];
-    const data = doc.data();
+    const data = doc.data() as any;
     
     return {
       id: doc.id,
       ...data,
-      startDate: data.startDate?.toDate() || new Date(),
-      endDate: data.endDate?.toDate() || new Date(),
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
+      startDate: data?.startDate?.toDate() || new Date(),
+      endDate: data?.endDate?.toDate() || new Date(),
+      createdAt: data?.createdAt?.toDate() || new Date(),
+      updatedAt: data?.updatedAt?.toDate() || new Date(),
     } as Subscription;
   } catch (error) {
     console.error('Error getting active subscription:', error);
@@ -214,12 +214,12 @@ export const getUserSubscriptionOrders = async (userId: string): Promise<Subscri
     
     const orders: SubscriptionOrder[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as any;
       orders.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        createdAt: data?.createdAt?.toDate() || new Date(),
+        updatedAt: data?.updatedAt?.toDate() || new Date(),
       } as SubscriptionOrder);
     });
     

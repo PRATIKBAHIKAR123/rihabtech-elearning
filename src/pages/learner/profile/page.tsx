@@ -7,6 +7,7 @@ import LoadingIcon from '../../../components/ui/LoadingIcon';
 import ProfilePhoto from './profile-photo';
 import AccountSecurity from './account&security';
 import ProfilePaymentMethod from './payment-method';
+import SubscriptionManagement from './subscription-management';
 // import TermsOfUse from './terms-of-use';
 import { Logs } from 'lucide-react';
 import Logout from './logout';
@@ -53,7 +54,8 @@ const Profile = () => {
   { label: 'Profile', tab: 'profile' },
   { label: 'Profile Photo', tab: 'profile-photo' },
   { label: 'Account & Security', tab: 'account&security' },
-  // { label: 'Payment Method', tab: 'payment-method' },
+  { label: 'Subscription Management', tab: 'subscription-management' },
+  { label: 'Payment Method', tab: 'payment-method' },
   // { label: 'Terms Of Use', tab: 'terms-of-use' },
   //   { label: 'Privacy Policy', tab: 'privacy-policy' },
   //   { label: 'Refund Policy', tab: 'refund-policy' },
@@ -152,6 +154,7 @@ const Profile = () => {
             )}
           {activeTab=='profile-photo'&&<ProfilePhoto/>}
           {activeTab=='account&security'&&<AccountSecurity/>}
+          {activeTab=='subscription-management'&&<SubscriptionManagement profile={profile} />}
           {activeTab=='payment-method'&&<ProfilePaymentMethod/>}
           {activeTab=='terms-of-use'&&<TermsOfUse/>}
           {activeTab=='privacy-policy'&&<PrivacyPolicy/>}

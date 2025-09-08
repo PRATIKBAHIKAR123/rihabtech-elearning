@@ -125,11 +125,11 @@ export const getCourseById = async (courseId: string): Promise<InstructorCourse 
       return {
         id: docSnap.id,
         ...data,
-        lastModified: data.lastModified?.toDate() || data.createdAt?.toDate() || new Date(),
-        createdAt: data.createdAt?.toDate() || new Date(),
-        progress: data.progress || 0,
-        status: data.status || "draft",
-        visibility: data.visibility || "private"
+        lastModified: data?.lastModified?.toDate() || data?.createdAt?.toDate() || new Date(),
+        createdAt: data?.createdAt?.toDate() || new Date(),
+        progress: data?.progress || 0,
+        status: data?.status || "draft",
+        visibility: data?.visibility || "private"
       } as InstructorCourse;
     }
     
@@ -146,7 +146,7 @@ export const updateCourse = async (courseId: string, updates: Partial<Instructor
     const courseRef = doc(db, "courseDrafts", courseId);
     await updateDoc(courseRef, {
       ...updates,
-      lastModified: Timestamp.now()
+      lastModified: serverTimestamp()
     });
   } catch (error) {
     console.error("Error updating course:", error);

@@ -23,6 +23,7 @@ import {
 } from '../lib/razorpay';
 import { revenueSharingService } from './revenueSharingService';
 import { emailService } from './emailService';
+import { getRazorpayConfig } from './configService';
 
 export interface SubscriptionPaymentData {
   userId: string;
@@ -505,9 +506,10 @@ class RazorpayService {
       }
       
       const doc = snapshot.docs[0];
+      const data = doc.data() as any;
       return {
         id: doc.id,
-        ...doc.data()
+        ...data
       } as PaymentTransaction;
     } catch (error) {
       console.error('Error fetching transaction by ID:', error);
@@ -540,6 +542,106 @@ class RazorpayService {
     } catch (error) {
       console.error('Error fetching subscription orders:', error);
       return [];
+    }
+  }
+
+  /**
+   * Process direct payment without opening Razorpay popup
+   * This method simulates a successful payment for testing/demo purposes
+   */
+  async processDirectPayment(paymentData: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userPhone: string;
+    planId: string;
+    planName: string;
+    planDuration: number;
+    amount: number;
+    categoryName?: string;
+  }): Promise<{ success: boolean; transactionId?: string; receipt?: string; error?: string }> {
+    try {
+      // For demo purposes, we'll simulate a successful payment
+      // In production, this would integrate with Razorpay's server-side API
+      
+      const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const receipt = `receipt_${Date.now()}`;
+      
+      // Calculate pricing breakdown
+      const baseAmount = paymentData.amount;
+      const taxRate = 0.18; // 18% tax
+      const platformFeeRate = 0.40; // 40% platform fee
+      
+      const taxAmount = Math.round(baseAmount * taxRate);
+      const platformFee = Math.round(baseAmount * platformFeeRate);
+      const instructorShare = baseAmount - taxAmount - platformFee;
+      const totalAmount = baseAmount;
+
+      // Create subscription
+      const subscriptionData = {
+        userId: paymentData.userId,
+        planId: paymentData.planId,
+        planName: paymentData.planName,
+        planDuration: paymentData.planDuration,
+        amount: totalAmount,
+        categoryName: paymentData.categoryName,
+        startDate: serverTimestamp(),
+        endDate: new Date(Date.now() + paymentData.planDuration * 24 * 60 * 60 * 1000),
+        status: 'active',
+        isActive: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const subscriptionRef = await addDoc(collection(db, 'subscriptions'), subscriptionData);
+      const subscriptionId = subscriptionRef.id;
+
+      // Create payment transaction record
+      const transactionData = {
+        userId: paymentData.userId,
+        userEmail: paymentData.userEmail,
+        userName: paymentData.userName,
+        planId: paymentData.planId,
+        planName: paymentData.planName,
+        planDuration: paymentData.planDuration.toString(),
+        amount: baseAmount,
+        taxAmount: taxAmount,
+        platformFee: platformFee,
+        instructorShare: instructorShare,
+        totalAmount: totalAmount,
+        currency: 'INR',
+        razorpayOrderId: `order_${Date.now()}`,
+        razorpayPaymentId: transactionId,
+        razorpaySignature: `signature_${Date.now()}`,
+        status: 'success',
+        paymentMethod: 'direct',
+        receiptUrl: `https://rihabtech.com/receipts/${receipt}`,
+        categoryId: paymentData.categoryName ? `cat_${paymentData.categoryName.toLowerCase()}` : null,
+        categoryName: paymentData.categoryName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, this.TRANSACTIONS_COLLECTION), transactionData);
+
+      // Record revenue sharing
+      await this.recordRevenueSharing(transactionData, subscriptionId);
+
+      // Send confirmation email
+      await this.sendPaymentConfirmationEmail(transactionData);
+
+      return {
+        success: true,
+        transactionId: transactionId,
+        receipt: receipt
+      };
+
+    } catch (error) {
+      console.error('Direct payment processing error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Payment processing failed'
+      };
     }
   }
 }

@@ -61,7 +61,7 @@ export default function Courses() {
       const fetchedCourses: Course[] = [];
 
       querySnapshot.forEach((doc) => {
-        const courseData = doc.data();
+        const courseData = doc.data() as any;
         fetchedCourses.push({
           id: doc.id,
           ...courseData

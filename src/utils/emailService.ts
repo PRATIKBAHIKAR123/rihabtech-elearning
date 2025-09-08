@@ -1,5 +1,6 @@
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { getEmailSettings, getEmailTemplate } from './configService';
 
 export interface EmailTemplate {
   id: string;
@@ -363,7 +364,8 @@ class EmailService {
   // Send subscription confirmation email
   async sendSubscriptionConfirmation(data: SubscriptionEmailData): Promise<string> {
     try {
-      const template = await this.getTemplate('subscription_confirmation');
+      // Get template from Firebase
+      const template = await getEmailTemplate('subscription_confirmation');
       if (!template) {
         throw new Error('Subscription confirmation template not found');
       }
@@ -604,6 +606,9 @@ class EmailService {
 
   private async sendEmail(emailData: Omit<EmailNotification, 'id' | 'status' | 'retryCount' | 'maxRetries' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
+      // Get email settings from Firebase
+      const emailSettings = await getEmailSettings();
+      
       const notificationData = {
         ...emailData,
         status: 'pending' as const,
@@ -615,26 +620,41 @@ class EmailService {
 
       const docRef = await addDoc(collection(db, this.EMAIL_NOTIFICATIONS_COLLECTION), notificationData);
       
-      // In a real implementation, you would integrate with an email service like SendGrid, AWS SES, etc.
-      // For now, we'll just log the email and mark it as sent
-      console.log('Email queued for sending:', {
+      // Send email using the configured email service
+      await this.sendEmailWithNodemailer(emailData, emailSettings);
+      
+      // Update notification status to sent
+      await updateDoc(docRef, {
+        status: 'sent',
+        sentAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Email sent successfully:', {
         to: emailData.to,
         subject: emailData.subject,
         templateType: emailData.templateType
       });
 
-      // Simulate email sending
-      setTimeout(async () => {
-        await updateDoc(docRef, {
-          status: 'sent',
-          sentAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-      }, 1000);
-
       return docRef.id;
     } catch (error) {
       console.error('Error sending email:', error);
+      
+      // Update notification status to failed
+      try {
+        const docRef = await addDoc(collection(db, this.EMAIL_NOTIFICATIONS_COLLECTION), {
+          ...emailData,
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } catch (updateError) {
+        console.error('Error updating failed email notification:', updateError);
+      }
+      
       throw error;
     }
   }
@@ -654,6 +674,57 @@ class EmailService {
     return date1.getFullYear() === date2.getFullYear() &&
            date1.getMonth() === date2.getMonth() &&
            date1.getDate() === date2.getDate();
+  }
+
+  // Send email using Nodemailer (backend integration)
+  private async sendEmailWithNodemailer(emailData: any, emailSettings: any): Promise<void> {
+    try {
+      // In a real implementation, this would call your backend API that uses Nodemailer
+      // For now, we'll simulate the email sending
+      
+      const emailPayload = {
+        to: emailData.to,
+        subject: emailData.subject,
+        html: emailData.htmlContent,
+        text: emailData.textContent,
+        from: {
+          name: emailSettings.from.name,
+          address: emailSettings.from.email
+        },
+        replyTo: emailSettings.replyTo || emailSettings.from.email,
+        settings: {
+          provider: emailSettings.provider,
+          smtp: emailSettings.smtp,
+          gmail: emailSettings.gmail,
+          outlook: emailSettings.outlook,
+          sendgrid: emailSettings.sendgrid,
+          mailgun: emailSettings.mailgun
+        }
+      };
+
+      // Call backend API to send email with Nodemailer
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Email sending failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Email sending failed');
+      }
+
+      console.log('Email sent via Nodemailer:', result);
+    } catch (error) {
+      console.error('Error sending email with Nodemailer:', error);
+      throw error;
+    }
   }
 }
 

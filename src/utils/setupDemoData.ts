@@ -228,7 +228,7 @@ export const setupDemoPayoutData = async (instructorId: string) => {
     // Add watch time data
     console.log('Adding watch time data...');
     for (const watchTime of watchTimeData) {
-      const docRef = doc(collection(db, 'watchTimeData'));
+      const docRef = doc(db, 'watchTimeData', `${watchTime.instructorId}_${watchTime.courseId}_${Date.now()}`);
       batch.set(docRef, {
         ...watchTime,
         timestamp: serverTimestamp()
@@ -238,7 +238,7 @@ export const setupDemoPayoutData = async (instructorId: string) => {
     // Add payout requests
     console.log('Adding payout requests...');
     for (const payout of payoutRequests) {
-      const docRef = doc(collection(db, 'payoutRequests'));
+      const docRef = doc(db, 'payoutRequests', `${payout.instructorId}_${Date.now()}`);
       batch.set(docRef, {
         ...payout,
         requestDate: serverTimestamp(),
@@ -249,13 +249,13 @@ export const setupDemoPayoutData = async (instructorId: string) => {
     // Add courses
     console.log('Adding courses...');
     for (const course of courses) {
-      const docRef = doc(collection(db, 'courses'));
+      const docRef = doc(db, 'courses', course.courseId || `course_${Date.now()}`);
       batch.set(docRef, course);
     }
 
     // Add user data
     console.log('Adding user data...');
-    const userRef = doc(collection(db, 'users'), instructorId);
+    const userRef = doc(db, 'users', instructorId);
     batch.set(userRef, userData);
 
     // Commit all changes
@@ -314,7 +314,7 @@ export const addRealisticPayoutData = async (instructorId: string) => {
         const courseIndex = Math.floor(Math.random() * courseIds.length);
         const watchMinutes = Math.floor(Math.random() * 120) + 30; // 30-150 minutes
         
-        const docRef = doc(collection(db, 'watchTimeData'));
+        const docRef = doc(db, 'watchTimeData', `${instructorId}_${courseIds[courseIndex]}_${month}_${i}`);
         batch.set(docRef, {
           instructorId,
           courseId: courseIds[courseIndex],
@@ -330,7 +330,7 @@ export const addRealisticPayoutData = async (instructorId: string) => {
     });
 
     // Add a pending payout request for current month
-    const currentMonthDocRef = doc(collection(db, 'payoutRequests'));
+    const currentMonthDocRef = doc(db, 'payoutRequests', `${instructorId}_${currentMonth}`);
     batch.set(currentMonthDocRef, {
       instructorId,
       amount: 1850,

@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, getDocs, query, where, orderBy, addDoc, updateDoc, doc, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, addDoc, updateDoc, doc, serverTimestamp, Timestamp, writeBatch, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface ChatMessage {
   id: string;
@@ -92,14 +92,14 @@ class ChatService {
         const data = doc.data();
         messages.push({
           id: doc.id,
-          senderId: data.senderId,
-          senderName: data.senderName,
-          senderRole: data.senderRole,
-          message: data.message,
-          timestamp: data.timestamp?.toDate() || new Date(),
-          isRead: data.isRead || false,
-          attachments: data.attachments || [],
-          messageType: data.messageType || 'text'
+          senderId: (data as any).senderId,
+          senderName: (data as any).senderName,
+          senderRole: (data as any).senderRole,
+          message: (data as any).message,
+          timestamp: (data as any).timestamp?.toDate() || new Date(),
+          isRead: (data as any).isRead || false,
+          attachments: (data as any).attachments || [],
+          messageType: (data as any).messageType || 'text'
         });
       });
 
@@ -145,7 +145,7 @@ class ChatService {
       const batch = writeBatch(db);
       
       messagesSnapshot.forEach(doc => {
-        batch.update(doc.ref, { isRead: true });
+        batch.update(doc(db, 'courseMessages', doc.id), { isRead: true });
       });
       
       await batch.commit();

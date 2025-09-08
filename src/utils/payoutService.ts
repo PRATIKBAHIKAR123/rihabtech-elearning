@@ -85,8 +85,8 @@ class PayoutService {
       let totalWatchMinutes = 0;
       
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
-        totalWatchMinutes += data.watchMinutes || 0;
+        const data = doc.data() as any;
+        totalWatchMinutes += data?.watchMinutes || 0;
       });
 
       // Calculate earnings based on watch time
@@ -129,10 +129,10 @@ class PayoutService {
       
       // Sort payouts by requestDate descending (newest first) in memory
       const payouts = payoutSnapshot.docs.map(doc => {
-        const docData = doc.data();
+        const docData = doc.data() as any;
         return {
           ...docData,
-          requestDate: docData.requestDate?.toDate() || new Date()
+          requestDate: docData?.requestDate?.toDate() || new Date()
         };
       }).sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime());
       
@@ -169,9 +169,9 @@ class PayoutService {
       const uniqueCourses = new Set();
 
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
-        totalWatchTime += data.watchMinutes || 0;
-        uniqueCourses.add(data.courseId);
+        const data = doc.data() as any;
+        totalWatchTime += data?.watchMinutes || 0;
+        uniqueCourses.add(data?.courseId);
       });
 
       // Calculate available for payout (current month earnings)
@@ -215,9 +215,9 @@ class PayoutService {
       const courseEarningsMap = new Map<string, CourseEarnings>();
 
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
-        const courseId = data.courseId;
-        const watchMinutes = data.watchMinutes || 0;
+        const data = doc.data() as any;
+        const courseId = data?.courseId;
+        const watchMinutes = data?.watchMinutes || 0;
         const earnings = watchMinutes * 1; // ₹1 per minute
 
         if (courseEarningsMap.has(courseId)) {
@@ -227,7 +227,7 @@ class PayoutService {
         } else {
           courseEarningsMap.set(courseId, {
             courseId,
-            courseTitle: data.courseTitle || 'Unknown Course',
+            courseTitle: data?.courseTitle || 'Unknown Course',
             watchMinutes,
             earnings,
             enrollments: 1
@@ -240,9 +240,9 @@ class PayoutService {
         try {
           const courseDoc = await getDoc(doc(db, this.COURSES_COLLECTION, courseId));
           if (courseDoc.exists()) {
-            const courseData = courseDoc.data();
+            const courseData = courseDoc.data() as any;
             const courseEarnings = courseEarningsMap.get(courseId)!;
-            courseEarnings.courseTitle = courseData.title || courseEarnings.courseTitle;
+            courseEarnings.courseTitle = courseData?.title || courseEarnings.courseTitle;
             // You can add more course details here if needed
           }
         } catch (error) {
@@ -297,9 +297,9 @@ class PayoutService {
       const uniqueCourses = new Set();
 
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
-        totalWatchMinutes += data.watchMinutes || 0;
-        uniqueCourses.add(data.courseId);
+        const data = doc.data() as any;
+        totalWatchMinutes += data?.watchMinutes || 0;
+        uniqueCourses.add(data?.courseId);
       });
 
       // Create payout request
@@ -338,12 +338,15 @@ class PayoutService {
       const snapshot = await getDocs(payoutQuery);
       
       // Sort in memory instead of using orderBy to avoid index requirement
-      const payouts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        requestDate: doc.data().requestDate?.toDate() || new Date(),
-        processedDate: doc.data().processedDate?.toDate()
-      })) as PayoutRequest[];
+      const payouts = snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          requestDate: data?.requestDate?.toDate() || new Date(),
+          processedDate: data?.processedDate?.toDate()
+        };
+      }) as PayoutRequest[];
       
       // Sort by requestDate descending (newest first)
       return payouts.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime());

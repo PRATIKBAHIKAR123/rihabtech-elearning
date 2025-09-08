@@ -63,16 +63,16 @@ export default function InstructorSignupPage() {
             // User already applied, redirect to success page
             const existingApplication = (!querySnapshot1.empty
               ? querySnapshot1.docs[0].data()
-              : querySnapshot2.docs[0].data());
+              : querySnapshot2.docs[0].data()) as any;
 
             console.log('Existing application found:', existingApplication);
 
             // Store application status in localStorage
             localStorage.setItem('instructorApplicationStatus', JSON.stringify({
-              status: existingApplication.status,
-              appliedAt: existingApplication.createdAt,
+              status: existingApplication?.status,
+              appliedAt: existingApplication?.createdAt,
               email: userEmail,
-              applicationId: existingApplication.applicationId || 'unknown'
+              applicationId: existingApplication?.applicationId || 'unknown'
             }));
 
             toast.info('You have already applied to become an instructor');

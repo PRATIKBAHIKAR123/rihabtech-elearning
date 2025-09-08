@@ -114,7 +114,7 @@ class RevenueSharingService {
       const revenueBreakdowns: RevenueShareBreakdown[] = [];
 
       for (const doc of subscriptionSnapshot.docs) {
-        const subscriptionData = doc.data();
+        const subscriptionData = doc.data() as any;
         
         // Check if this subscription is related to the instructor's courses
         // For now, we'll assume all subscriptions contribute to instructor revenue
@@ -122,14 +122,14 @@ class RevenueSharingService {
         // and calculate the share based on course access within the subscription
         
         const breakdown = this.calculateSubscriptionRevenueSharing(
-          subscriptionData.amount || 0
+          subscriptionData?.amount || 0
         );
 
         revenueBreakdowns.push({
           ...breakdown,
           revenueType: 'subscription',
           sourceId: doc.id,
-          sourceName: subscriptionData.planName || 'Unknown Plan'
+          sourceName: subscriptionData?.planName || 'Unknown Plan'
         });
       }
 
@@ -160,10 +160,10 @@ class RevenueSharingService {
       const courseRevenueMap = new Map<string, { watchMinutes: number; courseTitle: string }>();
 
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
-        const courseId = data.courseId;
-        const watchMinutes = data.watchMinutes || 0;
-        const courseTitle = data.courseTitle || 'Unknown Course';
+        const data = doc.data() as any;
+        const courseId = data?.courseId;
+        const watchMinutes = data?.watchMinutes || 0;
+        const courseTitle = data?.courseTitle || 'Unknown Course';
 
         if (courseRevenueMap.has(courseId)) {
           const existing = courseRevenueMap.get(courseId)!;
@@ -260,7 +260,7 @@ class RevenueSharingService {
       // Get instructor details
       const instructorDoc = await getDoc(doc(db, this.USERS_COLLECTION, instructorId));
       const instructorName = instructorDoc.exists() 
-        ? instructorDoc.data().displayName || instructorDoc.data().name || 'Unknown Instructor'
+        ? (instructorDoc.data() as any)?.displayName || (instructorDoc.data() as any)?.name || 'Unknown Instructor'
         : 'Unknown Instructor';
 
       return {
@@ -347,12 +347,12 @@ class RevenueSharingService {
           let monthSubscriptionRevenue = 0;
 
           subscriptionSnapshot.forEach(doc => {
-            const data = doc.data();
-            monthRevenue += data.totalAmount || 0;
-            monthTax += data.taxAmount || 0;
-            monthPlatformFee += data.platformFee || 0;
-            monthInstructorShare += data.instructorShare || 0;
-            monthSubscriptionRevenue += data.instructorShare || 0;
+            const data = doc.data() as any;
+            monthRevenue += data?.totalAmount || 0;
+            monthTax += data?.taxAmount || 0;
+            monthPlatformFee += data?.platformFee || 0;
+            monthInstructorShare += data?.instructorShare || 0;
+            monthSubscriptionRevenue += data?.instructorShare || 0;
           });
 
           const monthlySummary: MonthlyRevenueSummary = {

@@ -66,33 +66,33 @@ class PricingService {
       console.log(`Found ${snapshot.docs.length} pricing plans in Firebase`);
       
       this.pricingPlans = snapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         console.log('Processing plan:', doc.id, data);
         
         return {
           id: doc.id,
           firebaseId: doc.id,
-          name: data.name || 'Untitled Plan',
-          description: data.description || '',
-          longDescription: data.longDescription || '',
-          duration: data.duration || 1,
-          durationText: data.durationText || '1 Month',
-          basePrice: data.basePrice || 0,
-          totalAmount: data.totalAmount || 0,
-          taxPercentage: data.taxPercentage || 18,
-          platformFeePercentage: data.platformFeePercentage || 40,
-          isActive: data.isActive !== false,
-          categoryId: data.categoryId,
-          categoryName: data.categoryName,
-          isAllCategories: data.isAllCategories !== false,
-          generalFeatures: data.generalFeatures || [],
-          keyFeatures: data.keyFeatures || [],
-          prioritySupport: data.prioritySupport || false,
-          exclusiveContent: data.exclusiveContent || false,
-          premiumFeatures: data.premiumFeatures || false,
-          earlyAccess: data.earlyAccess || false,
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate()
+          name: data?.name || 'Untitled Plan',
+          description: data?.description || '',
+          longDescription: data?.longDescription || '',
+          duration: data?.duration || 1,
+          durationText: data?.durationText || '1 Month',
+          basePrice: data?.basePrice || 0,
+          totalAmount: data?.totalAmount || 0,
+          taxPercentage: data?.taxPercentage || 18,
+          platformFeePercentage: data?.platformFeePercentage || 40,
+          isActive: data?.isActive !== false,
+          categoryId: data?.categoryId,
+          categoryName: data?.categoryName,
+          isAllCategories: data?.isAllCategories !== false,
+          generalFeatures: data?.generalFeatures || [],
+          keyFeatures: data?.keyFeatures || [],
+          prioritySupport: data?.prioritySupport || false,
+          exclusiveContent: data?.exclusiveContent || false,
+          premiumFeatures: data?.premiumFeatures || false,
+          earlyAccess: data?.earlyAccess || false,
+          createdAt: data?.createdAt?.toDate(),
+          updatedAt: data?.updatedAt?.toDate()
         } as PricingPlan;
       });
 
@@ -343,4 +343,8 @@ class PricingService {
 }
 
 export const pricingService = new PricingService();
+
+// Export the getPricingPlans function for direct use
+export const getPricingPlans = () => pricingService.getPricingPlans();
+
 export default pricingService;

@@ -104,21 +104,21 @@ class SupportService {
 
       const tickets: SupportTicket[] = [];
       ticketsSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         tickets.push({
           id: doc.id,
-          title: data.title,
-          description: data.description,
-          category: data.category,
-          priority: data.priority,
-          status: data.status,
-          instructorId: data.instructorId,
-          assignedTo: data.assignedTo,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-          resolvedAt: data.resolvedAt?.toDate(),
-          attachments: data.attachments || [],
-          tags: data.tags || []
+          title: data?.title,
+          description: data?.description,
+          category: data?.category,
+          priority: data?.priority,
+          status: data?.status,
+          instructorId: data?.instructorId,
+          assignedTo: data?.assignedTo,
+          createdAt: data?.createdAt?.toDate() || new Date(),
+          updatedAt: data?.updatedAt?.toDate() || new Date(),
+          resolvedAt: data?.resolvedAt?.toDate(),
+          attachments: data?.attachments || [],
+          tags: data?.tags || []
         });
       });
 
@@ -141,16 +141,16 @@ class SupportService {
       
       const messages: SupportMessage[] = [];
       messagesSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         messages.push({
           id: doc.id,
-          ticketId: data.ticketId,
-          senderId: data.senderId,
-          senderName: data.senderName,
-          senderRole: data.senderRole,
-          message: data.message,
-          timestamp: data.timestamp?.toDate() || new Date(),
-          isInternal: data.isInternal || false
+          ticketId: data?.ticketId,
+          senderId: data?.senderId,
+          senderName: data?.senderName,
+          senderRole: data?.senderRole,
+          message: data?.message,
+          timestamp: data?.timestamp?.toDate() || new Date(),
+          isInternal: data?.isInternal || false
         });
       });
 
@@ -285,16 +285,16 @@ class SupportService {
 
       const faqs: FAQ[] = [];
       faqsSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         faqs.push({
           id: doc.id,
-          question: data.question,
-          answer: data.answer,
-          category: data.category,
-          tags: data.tags || [],
-          helpfulCount: data.helpfulCount || 0,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
+          question: data?.question,
+          answer: data?.answer,
+          category: data?.category,
+          tags: data?.tags || [],
+          helpfulCount: data?.helpfulCount || 0,
+          createdAt: data?.createdAt?.toDate() || new Date(),
+          updatedAt: data?.updatedAt?.toDate() || new Date()
         });
       });
 

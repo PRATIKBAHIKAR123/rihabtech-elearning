@@ -76,12 +76,15 @@ class FirebasePricingService {
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate()
-      })) as PricingPlan[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data?.createdAt?.toDate(),
+          updatedAt: data?.updatedAt?.toDate()
+        };
+      }) as PricingPlan[];
     } catch (error) {
       console.error('Error fetching pricing plans:', error);
       throw new Error('Failed to fetch pricing plans');
@@ -95,12 +98,12 @@ class FirebasePricingService {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const data = docSnap.data() as any;
         return {
           id: docSnap.id,
           ...data,
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate()
+          createdAt: data?.createdAt?.toDate(),
+          updatedAt: data?.updatedAt?.toDate()
         } as PricingPlan;
       }
       
@@ -158,12 +161,15 @@ class FirebasePricingService {
       }
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate()
-      })) as PricingPlan[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data?.createdAt?.toDate(),
+          updatedAt: data?.updatedAt?.toDate()
+        };
+      }) as PricingPlan[];
     } catch (error) {
       console.error('Error fetching pricing plans by category:', error);
       throw new Error('Failed to fetch pricing plans by category');
@@ -176,10 +182,13 @@ class FirebasePricingService {
       const q = query(collection(db, this.CATEGORIES_COLLECTION), orderBy('name', 'asc'));
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PricingCategory[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data
+        };
+      }) as PricingCategory[];
     } catch (error) {
       console.error('Error fetching categories:', error);
       throw new Error('Failed to fetch categories');

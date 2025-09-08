@@ -224,8 +224,8 @@ const updateCourseMemberCount = async (
     const courseSnap = await getDoc(courseRef);
     
     if (courseSnap.exists()) {
-      const courseData = courseSnap.data();
-      const currentMembers = courseData.members || [];
+      const courseData = courseSnap.data() as any;
+      const currentMembers = courseData?.members || [];
       
       // Check if user is already a member
       const isAlreadyMember = currentMembers.some((member: any) => 
@@ -261,13 +261,13 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
     
     const orders: Order[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as any;
       orders.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-        enrollmentDate: data.enrollmentDate?.toDate(),
+        createdAt: data?.createdAt?.toDate() || new Date(),
+        updatedAt: data?.updatedAt?.toDate() || new Date(),
+        enrollmentDate: data?.enrollmentDate?.toDate(),
       } as Order);
     });
     
@@ -287,11 +287,11 @@ export const getUserEnrollments = async (userId: string): Promise<CourseEnrollme
     
     const enrollments: CourseEnrollment[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as any;
       enrollments.push({
         id: doc.id,
         ...data,
-        enrolledAt: data.enrolledAt?.toDate() || new Date(),
+        enrolledAt: data?.enrolledAt?.toDate() || new Date(),
       } as CourseEnrollment);
     });
     

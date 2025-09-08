@@ -58,14 +58,14 @@ class GroupsService {
         
         const members: GroupMember[] = [];
         membersSnapshot.forEach(memberDoc => {
-          const memberData = memberDoc.data();
+          const memberData = memberDoc.data() as any;
           members.push({
             id: memberDoc.id,
-            name: memberData.name || 'Unknown Member',
-            email: memberData.email || 'unknown@email.com',
-            role: memberData.role || 'student',
-            joinedAt: memberData.joinedAt?.toDate() || new Date(),
-            profileImage: memberData.profileImage
+            name: memberData?.name || 'Unknown Member',
+            email: memberData?.email || 'unknown@email.com',
+            role: memberData?.role || 'student',
+            joinedAt: memberData?.joinedAt?.toDate() || new Date(),
+            profileImage: memberData?.profileImage
           });
         });
 
@@ -78,26 +78,26 @@ class GroupsService {
         
         const courses: string[] = [];
         coursesSnapshot.forEach(courseDoc => {
-          const courseData = courseDoc.data();
-          if (courseData.courseId) {
+          const courseData = courseDoc.data() as any;
+          if (courseData?.courseId) {
             courses.push(courseData.courseId);
           }
         });
 
         groups.push({
           id: groupDoc.id,
-          name: groupData.name || 'Unknown Group',
-          description: groupData.description || '',
-          instructorId: groupData.instructorId || instructorId,
-          status: groupData.status || 'active',
+          name: groupData?.name || 'Unknown Group',
+          description: groupData?.description || '',
+          instructorId: groupData?.instructorId || instructorId,
+          status: groupData?.status || 'active',
           memberCount: members.length,
           courseCount: courses.length,
-          maxMembers: groupData.maxMembers || 50,
-          createdAt: groupData.createdAt?.toDate() || new Date(),
-          updatedAt: groupData.updatedAt?.toDate() || new Date(),
+          maxMembers: groupData?.maxMembers || 50,
+          createdAt: groupData?.createdAt?.toDate() || new Date(),
+          updatedAt: groupData?.updatedAt?.toDate() || new Date(),
           members,
           courses,
-          tags: groupData.tags || []
+          tags: groupData?.tags || []
         });
       }
       
@@ -194,7 +194,7 @@ class GroupsService {
       const membersSnapshot = await getDocs(membersQuery);
       
       for (const memberDoc of membersSnapshot.docs) {
-        await deleteDoc(memberDoc.ref);
+        await deleteDoc(doc(db, this.GROUP_MEMBERS_COLLECTION, memberDoc.id));
       }
 
       // Delete group courses
@@ -205,7 +205,7 @@ class GroupsService {
       const coursesSnapshot = await getDocs(coursesQuery);
       
       for (const courseDoc of coursesSnapshot.docs) {
-        await deleteDoc(courseDoc.ref);
+        await deleteDoc(doc(db, this.GROUP_COURSES_COLLECTION, courseDoc.id));
       }
 
       // Delete the group itself
@@ -294,7 +294,7 @@ class GroupsService {
       const coursesSnapshot = await getDocs(coursesQuery);
       
       for (const courseDoc of coursesSnapshot.docs) {
-        await deleteDoc(courseDoc.ref);
+        await deleteDoc(doc(db, this.GROUP_COURSES_COLLECTION, courseDoc.id));
       }
       
       // Update group course count

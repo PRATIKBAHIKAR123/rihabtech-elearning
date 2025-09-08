@@ -171,9 +171,9 @@ export const markModuleCompleted = async (
       moduleType,
       isCompleted: true,
       completedAt: new Date(),
-      watchTime: moduleProgressDoc.exists() ? moduleProgressDoc.data().watchTime : 0,
-      lastPosition: moduleProgressDoc.exists() ? moduleProgressDoc.data().lastPosition : 0,
-      attempts: moduleProgressDoc.exists() ? moduleProgressDoc.data().attempts + 1 : 1,
+      watchTime: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.watchTime : 0,
+      lastPosition: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.lastPosition : 0,
+      attempts: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.attempts + 1 : 1,
       score
     };
     
@@ -203,13 +203,13 @@ export const updateModuleProgress = async (
       courseId,
       moduleId,
       moduleType,
-      isCompleted: moduleProgressDoc.exists() ? moduleProgressDoc.data().isCompleted : false,
-      completedAt: moduleProgressDoc.exists() ? moduleProgressDoc.data().completedAt : undefined,
+      isCompleted: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.isCompleted : false,
+      completedAt: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.completedAt : undefined,
       watchTime,
       lastPosition: currentPosition,
-      attempts: moduleProgressDoc.exists() ? moduleProgressDoc.data().attempts : 0,
-      score: moduleProgressDoc.exists() ? moduleProgressDoc.data().score : undefined,
-      notes: moduleProgressDoc.exists() ? moduleProgressDoc.data().notes : undefined
+      attempts: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.attempts : 0,
+      score: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.score : undefined,
+      notes: moduleProgressDoc.exists() ? (moduleProgressDoc.data() as any)?.notes : undefined
     };
     
     await setDoc(moduleProgressRef, moduleProgress);
@@ -296,10 +296,13 @@ export const getStudentEnrollments = async (studentId: string): Promise<StudentE
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as StudentEnrollment[];
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      };
+    }) as StudentEnrollment[];
   } catch (error) {
     console.error("Error getting student enrollments:", error);
     throw error;
@@ -340,10 +343,10 @@ const getTotalModulesInCourse = async (courseId: string): Promise<number> => {
       return 0;
     }
     
-    const course = courseDoc.data();
+    const course = courseDoc.data() as any;
     let totalModules = 0;
     
-    if (course.curriculum?.sections) {
+    if (course?.curriculum?.sections) {
       course.curriculum.sections.forEach((section: any) => {
         if (section.published && section.items) {
           section.items.forEach((item: any) => {
@@ -370,11 +373,12 @@ export const subscribeToEnrollment = (
 ) => {
   const enrollmentRef = doc(db, "studentEnrollments", `${studentId}_${courseId}`);
   
-  return onSnapshot(enrollmentRef, (doc) => {
-    if (doc.exists()) {
+  return onSnapshot(enrollmentRef, (docSnapshot) => {
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data() as any;
       callback({
-        id: doc.id,
-        ...doc.data()
+        id: docSnapshot.id,
+        ...data
       } as StudentEnrollment);
     } else {
       callback(null);
@@ -390,8 +394,8 @@ export const subscribeToCourseProgress = (
 ) => {
   const enrollmentRef = doc(db, "studentEnrollments", `${studentId}_${courseId}`);
   
-  return onSnapshot(enrollmentRef, async (doc) => {
-    if (doc.exists()) {
+  return onSnapshot(enrollmentRef, async (docSnapshot) => {
+    if (docSnapshot.exists()) {
       try {
         const progress = await getStudentCourseProgress(studentId, courseId);
         callback(progress);

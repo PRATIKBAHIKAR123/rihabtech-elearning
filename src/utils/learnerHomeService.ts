@@ -48,10 +48,13 @@ export const getLearnerEnrolledCourses = async (learnerId: string): Promise<Home
     );
     
     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-    const enrollments = enrollmentsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as EnrollmentData[];
+    const enrollments = enrollmentsSnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      };
+    }) as EnrollmentData[];
     
     // Get course data for each enrollment
     const enrolledCourses: HomepageCourse[] = [];
@@ -116,10 +119,13 @@ export const getRecommendedCourses = async (learnerId: string, limitCount: numbe
     );
     
     const coursesSnapshot = await getDocs(publishedQuery);
-    const allCourses = coursesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Course[];
+    const allCourses = coursesSnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      };
+    }) as Course[];
     
     // Filter out courses the learner is already enrolled in
     const enrolledCourseIds = enrolledCourses.map(course => course.id);
