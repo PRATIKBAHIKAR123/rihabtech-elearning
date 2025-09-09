@@ -47,14 +47,14 @@ class ChatService {
         orderBy('updatedAt', 'desc')
       );
       const conversationsSnapshot = await getDocs(conversationsQuery);
-      
+
       if (conversationsSnapshot.empty) {
         return this.getMockConversations(instructorId);
       }
 
       const conversations: ChatConversation[] = [];
       conversationsSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         conversations.push({
           id: doc.id,
           participants: data.participants || [],
@@ -86,20 +86,20 @@ class ChatService {
         orderBy('timestamp', 'asc')
       );
       const messagesSnapshot = await getDocs(messagesQuery);
-      
+
       const messages: ChatMessage[] = [];
       messagesSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         messages.push({
           id: doc.id,
-          senderId: (data as any).senderId,
-          senderName: (data as any).senderName,
-          senderRole: (data as any).senderRole,
-          message: (data as any).message,
-          timestamp: (data as any).timestamp?.toDate() || new Date(),
-          isRead: (data as any).isRead || false,
-          attachments: (data as any).attachments || [],
-          messageType: (data as any).messageType || 'text'
+          senderId: data.senderId,
+          senderName: data.senderName,
+          senderRole: data.senderRole,
+          message: data.message,
+          timestamp: data.timestamp?.toDate() || new Date(),
+          isRead: data.isRead || false,
+          attachments: data.attachments || [],
+          messageType: data.messageType || 'text'
         });
       });
 
@@ -140,14 +140,14 @@ class ChatService {
         where('senderId', '!=', userId),
         where('isRead', '==', false)
       );
-      
+
       const messagesSnapshot = await getDocs(messagesQuery);
       const batch = writeBatch(db);
-      
-      messagesSnapshot.forEach(doc => {
-        batch.update(doc(db, 'courseMessages', doc.id), { isRead: true });
+
+      messagesSnapshot.forEach(docSnapshot => {
+        batch.update(doc(db, 'courseMessages', docSnapshot.id), { isRead: true });
       });
-      
+
       await batch.commit();
     } catch (error) {
       console.error('Error marking messages as read:', error);
@@ -199,14 +199,14 @@ class ChatService {
   async getChatStats(instructorId: string): Promise<ChatStats> {
     try {
       const conversations = await this.getConversations(instructorId);
-      
+
       const totalConversations = conversations.length;
       const unreadMessages = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
       const activeChats = conversations.filter(conv => conv.isActive).length;
-      
+
       // Count total messages (this would need a separate query in production)
       const totalMessages = conversations.length * 5; // Mock calculation
-      
+
       return {
         totalConversations,
         unreadMessages,

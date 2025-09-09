@@ -1,30 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
-import { Button } from '../../../components/ui/button';
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
+import { Button } from "../../../components/ui/button";
 
 interface InstructorApplicationProps {
   user: any;
 }
 
-const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) => {
+interface ApplicationData {
+  status?: string;
+  experties?: string;
+  topic?: string;
+  PANnumber?: string;
+  adhaarnumber?: string;
+  aadharImage?: string;
+  panImage?: string;
+  userEmail?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const InstructorApplication: React.FC<InstructorApplicationProps> = ({
+  user,
+}) => {
   const [hasApplied, setHasApplied] = useState(false);
-  const [applicationStatus, setApplicationStatus] = useState<string>('');
-  const [applicationId, setApplicationId] = useState<string>('');
+  const [applicationStatus, setApplicationStatus] = useState<string>("");
+  const [applicationId, setApplicationId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [applicationData, setApplicationData] = useState<any>(null);
+  const [applicationData, setApplicationData] =
+    useState<ApplicationData | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
-    experties: '',
-    topic: '',
-    PANnumber: '',
-    adhaarnumber: '',
-    aadharImage: 'skipped-for-now',
-    panImage: 'skipped-for-now',
+    experties: "",
+    topic: "",
+    PANnumber: "",
+    adhaarnumber: "",
+    aadharImage: "skipped-for-now",
+    panImage: "skipped-for-now",
   });
 
   useEffect(() => {
@@ -37,71 +53,73 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
 
   const checkExistingApplication = async (userEmail: string) => {
     try {
-      console.log('Checking for existing applications for:', userEmail);
-      
-      if (!userEmail || typeof userEmail !== 'string') {
-        console.log('Invalid email provided');
+      console.log("Checking for existing applications for:", userEmail);
+
+      if (!userEmail || typeof userEmail !== "string") {
+        console.log("Invalid email provided");
         setLoading(false);
         return;
       }
 
-      const instructorRequestsRef = collection(db, 'instructor_requests');
+      const instructorRequestsRef = collection(db, "instructor_requests");
       const q = query(
         instructorRequestsRef,
-        where('userEmail', '==', userEmail)
+        where("userEmail", "==", userEmail)
       );
-      
+
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
-        const data = doc.data();
-        console.log('Found existing application:', data);
-        
+        const data = doc.data() as ApplicationData;
+        console.log("Found existing application:", data);
+
         setHasApplied(true);
-        setApplicationStatus(data.status || 'pending');
+        setApplicationStatus(data.status || "pending");
         setApplicationId(doc.id);
         setApplicationData(data);
-        
+
         // Pre-populate form data for editing
         setFormData({
-          experties: data.experties || '',
-          topic: data.topic || '',
-          PANnumber: data.PANnumber || '',
-          adhaarnumber: data.adhaarnumber || '',
-          aadharImage: data.aadharImage || 'skipped-for-now',
-          panImage: data.panImage || 'skipped-for-now',
+          experties: data.experties || "",
+          topic: data.topic || "",
+          PANnumber: data.PANnumber || "",
+          adhaarnumber: data.adhaarnumber || "",
+          aadharImage: data.aadharImage || "skipped-for-now",
+          panImage: data.panImage || "skipped-for-now",
         });
       } else {
-        console.log('No existing application found');
+        console.log("No existing application found");
         setHasApplied(false);
       }
     } catch (error) {
-      console.error('Error checking existing applications:', error);
+      console.error("Error checking existing applications:", error);
       setHasApplied(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user || !user.UserName) {
-      toast.error('Please log in to apply as an instructor');
+      toast.error("Please log in to apply as an instructor");
       return;
     }
 
     if (hasApplied && !isEditMode) {
-      toast.info('You have already applied to become an instructor');
+      toast.info("You have already applied to become an instructor");
       return;
     }
 
@@ -109,8 +127,13 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
 
     try {
       // Validate required fields
-      if (!formData.experties || !formData.topic || !formData.PANnumber || !formData.adhaarnumber) {
-        toast.error('Please fill in all required fields');
+      if (
+        !formData.experties ||
+        !formData.topic ||
+        !formData.PANnumber ||
+        !formData.adhaarnumber
+      ) {
+        toast.error("Please fill in all required fields");
         setSubmitting(false);
         return;
       }
@@ -118,7 +141,7 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
       // Validate PAN format
       const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
       if (!panRegex.test(formData.PANnumber)) {
-        toast.error('Please enter a valid PAN number (e.g., ABCDE1234F)');
+        toast.error("Please enter a valid PAN number (e.g., ABCDE1234F)");
         setSubmitting(false);
         return;
       }
@@ -126,7 +149,7 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
       // Validate Aadhar format
       const aadharRegex = /^[0-9]{12}$/;
       if (!aadharRegex.test(formData.adhaarnumber)) {
-        toast.error('Please enter a valid 12-digit Aadhar number');
+        toast.error("Please enter a valid 12-digit Aadhar number");
         setSubmitting(false);
         return;
       }
@@ -135,30 +158,35 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
       const instructorRequest = {
         userEmail: user.UserName,
         instructorId: user.UserName,
-        userName: user.Name || '',
+        userName: user.Name || "",
         experties: formData.experties.trim(),
         topic: formData.topic.trim(),
         PANnumber: formData.PANnumber.toUpperCase().trim(),
         adhaarnumber: formData.adhaarnumber.trim(),
         aadharImage: formData.aadharImage,
         panImage: formData.panImage,
-        status: 'pending',
+        status: "pending",
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
-      console.log('Submitting instructor request:', instructorRequest);
+      console.log("Submitting instructor request:", instructorRequest);
 
-      const docRef = await addDoc(collection(db, 'instructor_requests'), instructorRequest);
-      console.log('Document written with ID: ', docRef.id);
+      const docRef = await addDoc(
+        collection(db, "instructor_requests"),
+        instructorRequest
+      );
+      console.log("Document written with ID: ", docRef.id);
 
       setHasApplied(true);
-      setApplicationStatus('pending');
+      setApplicationStatus("pending");
       setApplicationId(docRef.id);
 
       if (isEditMode) {
-        toast.success('Your instructor application has been updated successfully!');
-        
+        toast.success(
+          "Your instructor application has been updated successfully!"
+        );
+
         // Update the displayed application data
         const updatedData = {
           ...applicationData,
@@ -166,28 +194,29 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
           topic: formData.topic.trim(),
           PANnumber: formData.PANnumber.toUpperCase().trim(),
           adhaarnumber: formData.adhaarnumber.trim(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
         setApplicationData(updatedData);
-        
+
         // Close edit mode
         setIsEditMode(false);
       } else {
-        toast.success('Your instructor application has been submitted successfully!');
-        
+        toast.success(
+          "Your instructor application has been submitted successfully!"
+        );
+
         setFormData({
-          experties: '',
-          topic: '',
-          PANnumber: '',
-          adhaarnumber: '',
-          aadharImage: 'skipped-for-now',
-          panImage: 'skipped-for-now',
+          experties: "",
+          topic: "",
+          PANnumber: "",
+          adhaarnumber: "",
+          aadharImage: "skipped-for-now",
+          panImage: "skipped-for-now",
         });
       }
-
     } catch (error) {
-      console.error('Error submitting application:', error);
-      toast.error('Failed to submit application. Please try again.');
+      console.error("Error submitting application:", error);
+      toast.error("Failed to submit application. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -195,13 +224,18 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
 
   const getStatusBadge = (status: string) => {
     const statusClasses = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800'
+      pending: "bg-yellow-100 text-yellow-800",
+      approved: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-sm font-medium ${statusClasses[status as keyof typeof statusClasses] || statusClasses.pending}`}>
+      <span
+        className={`px-2 py-1 rounded-full text-sm font-medium ${
+          statusClasses[status as keyof typeof statusClasses] ||
+          statusClasses.pending
+        }`}
+      >
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
@@ -224,7 +258,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
             // Display mode - Show details in label-value format
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Instructor Application</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Instructor Application
+                </h3>
                 <Button
                   onClick={() => setIsEditMode(true)}
                   variant="outline"
@@ -239,7 +275,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 mb-2">Application Status</p>
-                    <p className="text-sm text-gray-500">Application ID: {applicationId}</p>
+                    <p className="text-sm text-gray-500">
+                      Application ID: {applicationId}
+                    </p>
                   </div>
                   <div className="text-right">
                     {getStatusBadge(applicationStatus)}
@@ -250,55 +288,75 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
               {/* Application Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expertise</label>
-                  <p className="text-gray-900 font-medium">{applicationData?.experties || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Teaching Topic</label>
-                  <p className="text-gray-900 font-medium">{applicationData?.topic || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
-                  <p className="text-gray-900 font-medium">{applicationData?.PANnumber || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expertise
+                  </label>
                   <p className="text-gray-900 font-medium">
-                    {applicationData?.adhaarnumber ? 
-                      `****-****-${applicationData.adhaarnumber.slice(-4)}` : 
-                      'Not provided'
-                    }
+                    {applicationData?.experties || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Teaching Topic
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {applicationData?.topic || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    PAN Number
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {applicationData?.PANnumber || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Aadhar Number
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {applicationData?.adhaarnumber
+                      ? `****-****-${applicationData.adhaarnumber.slice(-4)}`
+                      : "Not provided"}
                   </p>
                 </div>
               </div>
 
               {/* Status Messages */}
-              {applicationStatus === 'pending' && (
+              {applicationStatus === "pending" && (
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="text-yellow-800 text-sm">
-                    <strong>Your application is under review.</strong> We'll notify you once it's been processed by our admin team.
+                    <strong>Your application is under review.</strong> We'll
+                    notify you once it's been processed by our admin team.
                   </p>
                 </div>
               )}
-              
-              {applicationStatus === 'approved' && (
+
+              {applicationStatus === "approved" && (
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-green-800 text-sm">
-                    <strong>Congratulations!</strong> Your instructor application has been approved. You can now start creating courses.
+                    <strong>Congratulations!</strong> Your instructor
+                    application has been approved. You can now start creating
+                    courses.
                   </p>
                   <button
-                    onClick={() => window.location.href = '/#/instructor/dashboard'}
+                    onClick={() =>
+                      (window.location.href = "/#/instructor/dashboard")
+                    }
                     className="mt-2 bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700"
                   >
                     Go to Instructor Dashboard
                   </button>
                 </div>
               )}
-              
-              {applicationStatus === 'rejected' && (
+
+              {applicationStatus === "rejected" && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-red-800 text-sm">
-                    <strong>Application Not Approved.</strong> Unfortunately, your instructor application was not approved at this time. Please contact support for more information.
+                    <strong>Application Not Approved.</strong> Unfortunately,
+                    your instructor application was not approved at this time.
+                    Please contact support for more information.
                   </p>
                 </div>
               )}
@@ -307,7 +365,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
             // Edit mode - Show the existing form
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Edit Instructor Application</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Edit Instructor Application
+                </h3>
                 <Button
                   onClick={() => setIsEditMode(false)}
                   variant="outline"
@@ -316,11 +376,14 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   Cancel
                 </Button>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="experties" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="experties"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Expertise <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -336,7 +399,10 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   </div>
 
                   <div>
-                    <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="topic"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Teaching Topic <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -352,7 +418,10 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   </div>
 
                   <div>
-                    <label htmlFor="PANnumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="PANnumber"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       PAN Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -364,14 +433,19 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="ABCDE1234F"
                       maxLength={10}
-                      style={{ textTransform: 'uppercase' }}
+                      style={{ textTransform: "uppercase" }}
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Format: ABCDE1234F</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Format: ABCDE1234F
+                    </p>
                   </div>
 
                   <div>
-                    <label htmlFor="adhaarnumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="adhaarnumber"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Aadhar Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -386,15 +460,20 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       pattern="[0-9]{12}"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">12-digit Aadhar number</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      12-digit Aadhar number
+                    </p>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Document Upload</h4>
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">
+                    Document Upload
+                  </h4>
                   <p className="text-sm text-blue-700">
-                    Document upload functionality will be available after initial application approval. 
-                    For now, your application will be processed with the provided information.
+                    Document upload functionality will be available after
+                    initial application approval. For now, your application will
+                    be processed with the provided information.
                   </p>
                 </div>
 
@@ -416,7 +495,7 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       disabled={submitting}
                       className="bg-primary text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {submitting ? 'Updating...' : 'Update Application'}
+                      {submitting ? "Updating..." : "Update Application"}
                     </Button>
                   </div>
                 </div>
@@ -431,7 +510,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
             // Display mode - Show dummy details in label-value format
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Apply to Become an Instructor</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Apply to Become an Instructor
+                </h3>
                 <Button
                   onClick={() => setIsEditMode(true)}
                   variant="outline"
@@ -444,19 +525,31 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
               {/* Dummy Application Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expertise</label>
-                  <p className="text-gray-900 font-medium">Web Development, UI/UX Design</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expertise
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    Web Development, UI/UX Design
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Teaching Topic</label>
-                  <p className="text-gray-900 font-medium">React, Figma, JavaScript</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Teaching Topic
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    React, Figma, JavaScript
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    PAN Number
+                  </label>
                   <p className="text-gray-900 font-medium">ABCDE1234F</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Aadhar Number
+                  </label>
                   <p className="text-gray-900 font-medium">****-****-9012</p>
                 </div>
               </div>
@@ -464,7 +557,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
               {/* Information Message */}
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-blue-800 text-sm">
-                  <strong>Ready to become an instructor?</strong> Click the Edit button above to fill in your actual details and submit your application.
+                  <strong>Ready to become an instructor?</strong> Click the Edit
+                  button above to fill in your actual details and submit your
+                  application.
                 </p>
               </div>
             </div>
@@ -472,7 +567,9 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
             // Edit mode - Show the actual form
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Apply to Become an Instructor</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Apply to Become an Instructor
+                </h3>
                 <Button
                   onClick={() => setIsEditMode(false)}
                   variant="outline"
@@ -481,11 +578,14 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   Cancel
                 </Button>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="experties" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="experties"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Expertise <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -501,7 +601,10 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   </div>
 
                   <div>
-                    <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="topic"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Teaching Topic <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -517,7 +620,10 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                   </div>
 
                   <div>
-                    <label htmlFor="PANnumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="PANnumber"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       PAN Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -529,14 +635,19 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="ABCDE1234F"
                       maxLength={10}
-                      style={{ textTransform: 'uppercase' }}
+                      style={{ textTransform: "uppercase" }}
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Format: ABCDE1234F</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Format: ABCDE1234F
+                    </p>
                   </div>
 
                   <div>
-                    <label htmlFor="adhaarnumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="adhaarnumber"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Aadhar Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -551,15 +662,20 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       pattern="[0-9]{12}"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">12-digit Aadhar number</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      12-digit Aadhar number
+                    </p>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Document Upload</h4>
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">
+                    Document Upload
+                  </h4>
                   <p className="text-sm text-blue-700">
-                    Document upload functionality will be available after initial application approval. 
-                    For now, your application will be processed with the provided information.
+                    Document upload functionality will be available after
+                    initial application approval. For now, your application will
+                    be processed with the provided information.
                   </p>
                 </div>
 
@@ -581,7 +697,7 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({ user }) =
                       disabled={submitting}
                       className="bg-primary text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {submitting ? 'Submitting...' : 'Submit Application'}
+                      {submitting ? "Submitting..." : "Submit Application"}
                     </Button>
                   </div>
                 </div>

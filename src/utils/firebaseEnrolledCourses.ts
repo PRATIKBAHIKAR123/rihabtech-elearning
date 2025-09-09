@@ -20,31 +20,34 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
       where("studentId", "==", studentId),
       where("isActive", "==", true)
     );
-    
+
     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-    const enrollments = enrollmentsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as StudentEnrollment[];
-    
+    const enrollments = enrollmentsSnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      } as StudentEnrollment;
+    });
+
     // Get course data for each enrollment
     const enrolledCourses: EnrolledCourse[] = [];
-    
+
     for (const enrollment of enrollments) {
       try {
         const courseRef = doc(db, "courseDrafts", enrollment.courseId);
         const courseDoc = await getDoc(courseRef);
-        
+
         if (courseDoc.exists()) {
           const courseData = courseDoc.data() as Course;
           const course: Course = {
             ...courseData,
             id: courseDoc.id
           };
-          
+
           // Get progress summary
           const progress = await getCourseProgressSummary(enrollment);
-          
+
           enrolledCourses.push({
             ...course,
             enrollment,
@@ -57,9 +60,9 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
         // Continue with other courses
       }
     }
-    
+
     // Sort by last accessed (most recent first)
-    return enrolledCourses.sort((a, b) => 
+    return enrolledCourses.sort((a, b) =>
       new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime()
     );
   } catch (error) {
@@ -70,37 +73,37 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
 
 // Get a specific enrolled course
 export const getEnrolledCourse = async (
-  studentId: string, 
+  studentId: string,
   courseId: string
 ): Promise<EnrolledCourse | null> => {
   try {
     // Get enrollment
     const enrollmentRef = doc(db, "studentEnrollments", `${studentId}_${courseId}`);
     const enrollmentDoc = await getDoc(enrollmentRef);
-    
+
     if (!enrollmentDoc.exists()) {
       return null;
     }
-    
+
     const enrollment = enrollmentDoc.data() as StudentEnrollment;
-    
+
     // Get course data
     const courseRef = doc(db, "courseDrafts", courseId);
     const courseDoc = await getDoc(courseRef);
-    
+
     if (!courseDoc.exists()) {
       return null;
     }
-    
+
     const courseData = courseDoc.data() as Course;
     const course: Course = {
       ...courseData,
       id: courseDoc.id
     };
-    
+
     // Get progress summary
     const progress = await getCourseProgressSummary(enrollment);
-    
+
     return {
       ...course,
       enrollment,
@@ -118,10 +121,10 @@ const getCourseProgressSummary = async (enrollment: StudentEnrollment): Promise<
   try {
     const courseRef = doc(db, "courseDrafts", enrollment.courseId);
     const courseDoc = await getDoc(courseRef);
-    
+
     let totalModules = 0;
     if (courseDoc.exists()) {
-      const course = courseDoc.data();
+      const course = courseDoc.data() as any;
       if (course.curriculum?.sections) {
         course.curriculum.sections.forEach((section: any) => {
           if (section.published && section.items) {
@@ -134,7 +137,7 @@ const getCourseProgressSummary = async (enrollment: StudentEnrollment): Promise<
         });
       }
     }
-    
+
     return {
       courseId: enrollment.courseId,
       studentId: enrollment.studentId,
@@ -170,27 +173,27 @@ export const getCourseCurriculumWithProgress = async (
     if (!course || !course.curriculum?.sections) {
       return null;
     }
-    
+
     // Get module progress for all modules
     const curriculumWithProgress = {
       ...course.curriculum,
       sections: await Promise.all(
         course.curriculum.sections.map(async (section) => {
           if (!section.published) return section;
-          
+
           const itemsWithProgress = await Promise.all(
             section.items.map(async (item) => {
               if (!item.published) return item;
-              
+
               // Get module progress
               const moduleProgressRef = doc(db, "moduleProgress", `${studentId}_${courseId}_${item.id || 'unknown'}`);
               const moduleProgressDoc = await getDoc(moduleProgressRef);
-              
+
               let progress = null;
               if (moduleProgressDoc.exists()) {
                 progress = moduleProgressDoc.data();
               }
-              
+
               return {
                 ...item,
                 progress,
@@ -200,7 +203,7 @@ export const getCourseCurriculumWithProgress = async (
               };
             })
           );
-          
+
           return {
             ...section,
             items: itemsWithProgress
@@ -208,7 +211,7 @@ export const getCourseCurriculumWithProgress = async (
         })
       )
     };
-    
+
     return curriculumWithProgress;
   } catch (error) {
     console.error("Error getting course curriculum with progress:", error);

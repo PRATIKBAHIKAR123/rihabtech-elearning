@@ -1,15 +1,16 @@
 import { db } from "../lib/firebase";
-import { 
-  collection, 
-  getDocs, 
+import {
+  collection,
+  getDocs,
   getDoc,
-  query, 
-  where, 
-  orderBy, 
-  doc, 
+  query,
+  where,
+  orderBy,
+  doc,
   deleteDoc,
   updateDoc,
-  Timestamp 
+  Timestamp,
+  serverTimestamp
 } from "firebase/firestore";
 
 export interface InstructorCourse {
@@ -60,16 +61,16 @@ export interface InstructorCourse {
 export const getInstructorCourses = async (instructorId: string): Promise<InstructorCourse[]> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
-    
+
     // For now, let's get all courses and filter client-side to avoid index issues
     // This is not ideal for production but helps with development and debugging
     console.log("Getting all courses to filter by instructorId:", instructorId);
-    
+
     const allCoursesQuery = query(coursesRef, orderBy("createdAt", "desc"));
     const allCoursesSnapshot = await getDocs(allCoursesQuery);
-    
+
     const allCourses = allCoursesSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data = doc.data() as any;
       return {
         id: doc.id,
         ...data,
@@ -92,10 +93,10 @@ export const getInstructorCourses = async (instructorId: string): Promise<Instru
         members: data.members || []
       } as InstructorCourse;
     });
-    
+
     console.log("Total courses found:", allCourses.length);
     console.log("Available instructorIds:", Array.from(new Set(allCourses.map(c => c.instructorId))));
-    
+
     // Filter courses by instructorId
     const userCourses = allCourses.filter(course => {
       const matches = course.instructorId === instructorId;
@@ -104,9 +105,9 @@ export const getInstructorCourses = async (instructorId: string): Promise<Instru
       }
       return matches;
     });
-    
+
     console.log("Filtered courses for instructorId", instructorId, ":", userCourses.length);
-    
+
     return userCourses;
   } catch (error) {
     console.error("Error fetching instructor courses:", error);
@@ -119,7 +120,7 @@ export const getCourseById = async (courseId: string): Promise<InstructorCourse 
   try {
     const courseRef = doc(db, "courseDrafts", courseId);
     const docSnap = await getDoc(courseRef);
-    
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
@@ -132,7 +133,7 @@ export const getCourseById = async (courseId: string): Promise<InstructorCourse 
         visibility: data?.visibility || "private"
       } as InstructorCourse;
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error fetching course:", error);
@@ -168,10 +169,10 @@ export const deleteCourse = async (courseId: string): Promise<void> => {
 // Calculate course progress based on curriculum
 export const calculateCourseProgress = (course: InstructorCourse): number => {
   if (!course.curriculum?.sections) return 0;
-  
+
   let totalItems = 0;
   let completedItems = 0;
-  
+
   course.curriculum.sections.forEach(section => {
     if (section.published) {
       section.items.forEach(item => {
@@ -182,7 +183,7 @@ export const calculateCourseProgress = (course: InstructorCourse): number => {
       });
     }
   });
-  
+
   return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 };
 
@@ -190,18 +191,18 @@ export const calculateCourseProgress = (course: InstructorCourse): number => {
 export const getInstructorCourseStats = async (instructorId: string) => {
   try {
     const courses = await getInstructorCourses(instructorId);
-    
+
     const stats = {
       total: courses.length,
       published: courses.filter(c => c.isPublished).length,
       drafts: courses.filter(c => c.status === "draft").length,
       pending: courses.filter(c => c.status === "pending").length,
       approved: courses.filter(c => c.status === "approved").length,
-      averageProgress: courses.length > 0 
+      averageProgress: courses.length > 0
         ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length)
         : 0
     };
-    
+
     return stats;
   } catch (error) {
     console.error("Error fetching course stats:", error);

@@ -8,7 +8,7 @@ export const getFullCourseData = async (courseId: string) => {
   const draftRef = doc(db, "courseDrafts", courseId);
   const docSnap = await getDoc(draftRef);
   if (docSnap.exists()) {
-    return docSnap.data();
+    return docSnap.data() as any;
   } else {
     return null;
   }

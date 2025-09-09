@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Button } from '../../../components/ui/button';
-import { CheckCircle, Clock, BookOpen, ArrowRight } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
-import { useAuth } from '../../../context/AuthContext';
+import React, { useEffect, useState } from "react";
+import { Button } from "../../../components/ui/button";
+import { CheckCircle, Clock, BookOpen, ArrowRight } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
+import { useAuth } from "../../../context/AuthContext";
 
 interface CourseInfo {
   id: string;
@@ -20,11 +20,11 @@ const PaymentSuccess: React.FC = () => {
   // Get parameters from URL hash
   const getUrlParams = () => {
     const hash = window.location.hash;
-    const queryString = hash.includes('?') ? hash.split('?')[1] : '';
+    const queryString = hash.includes("?") ? hash.split("?")[1] : "";
     const params = new URLSearchParams(queryString);
     return {
-      courseId: params.get('courseId'),
-      orderId: params.get('orderId')
+      courseId: params.get("courseId"),
+      orderId: params.get("orderId"),
     };
   };
 
@@ -38,20 +38,20 @@ const PaymentSuccess: React.FC = () => {
       }
 
       try {
-        const courseRef = doc(db, 'courseDrafts', courseId);
+        const courseRef = doc(db, "courseDrafts", courseId);
         const courseSnap = await getDoc(courseRef);
 
         if (courseSnap.exists()) {
-          const courseData = courseSnap.data();
+          const courseData = courseSnap.data() as any;
           setCourseInfo({
             id: courseId,
-            title: courseData.title || 'Unknown Course',
+            title: courseData.title || "Unknown Course",
             thumbnailUrl: courseData.thumbnailUrl,
             description: courseData.description,
           });
         }
       } catch (error) {
-        console.error('Error fetching course info:', error);
+        console.error("Error fetching course info:", error);
       } finally {
         setLoading(false);
       }
@@ -67,7 +67,7 @@ const PaymentSuccess: React.FC = () => {
   };
 
   const handleGoToDashboard = () => {
-    window.location.hash = '#/learner/my-learnings';
+    window.location.hash = "#/learner/my-learnings";
   };
 
   if (loading) {
@@ -101,8 +101,8 @@ const PaymentSuccess: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
                 {courseInfo.thumbnailUrl ? (
-                  <img 
-                    src={courseInfo.thumbnailUrl} 
+                  <img
+                    src={courseInfo.thumbnailUrl}
                     alt={courseInfo.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
@@ -137,7 +137,9 @@ const PaymentSuccess: React.FC = () => {
 
           {/* Next Steps */}
           <div className="text-left mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3 text-center">What's Next?</h3>
+            <h3 className="font-semibold text-gray-900 mb-3 text-center">
+              What's Next?
+            </h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -157,7 +159,7 @@ const PaymentSuccess: React.FC = () => {
           {/* Action Buttons */}
           <div className="space-y-3">
             {courseId && (
-              <Button 
+              <Button
                 onClick={handleGoToCourse}
                 className="w-full bg-primary hover:bg-primary/90 text-white"
               >
@@ -165,8 +167,8 @@ const PaymentSuccess: React.FC = () => {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
-            
-            <Button 
+
+            <Button
               variant="outline"
               onClick={handleGoToDashboard}
               className="w-full"
@@ -178,8 +180,11 @@ const PaymentSuccess: React.FC = () => {
           {/* Support Info */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500">
-              Need help? Contact our support team at{' '}
-              <a href="mailto:support@rihabtech.com" className="text-primary hover:underline">
+              Need help? Contact our support team at{" "}
+              <a
+                href="mailto:support@rihabtech.com"
+                className="text-primary hover:underline"
+              >
                 support@rihabtech.com
               </a>
             </p>

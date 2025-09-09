@@ -1,14 +1,14 @@
 import { db } from '../lib/firebase';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  getDoc, 
-  query, 
-  where, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  getDoc,
+  query,
+  where,
   getDocs,
-  serverTimestamp 
+  serverTimestamp
 } from 'firebase/firestore';
 
 export interface Subscription {
@@ -79,7 +79,7 @@ export const createSubscriptionOrder = async (
 
 // Update subscription order status
 export const updateSubscriptionOrderStatus = async (
-  orderId: string, 
+  orderId: string,
   status: SubscriptionOrder['status'],
   stripeSessionId?: string
 ): Promise<void> => {
@@ -115,7 +115,7 @@ export const createSubscription = async (
     // Calculate end date based on duration
     const startDate = new Date();
     const endDate = new Date(startDate);
-    
+
     if (planDuration.includes('1 Month')) {
       endDate.setMonth(endDate.getMonth() + 1);
     } else if (planDuration.includes('6 Month')) {
@@ -134,17 +134,17 @@ export const createSubscription = async (
       where('userId', '==', userId),
       where('status', '==', 'active')
     );
-    
+
     const existingSubscriptions = await getDocs(activeSubscriptionQuery);
-    
+
     // Cancel existing active subscriptions
     const cancelPromises = existingSubscriptions.docs.map(async (docSnapshot) => {
-      await updateDoc(doc(db, this.SUBSCRIPTIONS_COLLECTION, docSnapshot.id), {
+      await updateDoc(doc(db, 'subscriptions', docSnapshot.id), {
         status: 'cancelled',
         updatedAt: serverTimestamp(),
       });
     });
-    
+
     await Promise.all(cancelPromises);
 
     const subscriptionData = {
@@ -164,7 +164,7 @@ export const createSubscription = async (
     };
 
     const docRef = await addDoc(subscriptionsRef, subscriptionData);
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Error creating subscription:', error);
@@ -181,16 +181,16 @@ export const getUserActiveSubscription = async (userId: string): Promise<Subscri
       where('userId', '==', userId),
       where('status', '==', 'active')
     );
-    
+
     const querySnapshot = await getDocs(activeSubscriptionQuery);
-    
+
     if (querySnapshot.empty) {
       return null;
     }
 
     const doc = querySnapshot.docs[0];
     const data = doc.data() as any;
-    
+
     return {
       id: doc.id,
       ...data,
@@ -211,7 +211,7 @@ export const getUserSubscriptionOrders = async (userId: string): Promise<Subscri
     const ordersRef = collection(db, 'subscriptionOrders');
     const userOrdersQuery = query(ordersRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(userOrdersQuery);
-    
+
     const orders: SubscriptionOrder[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data() as any;
@@ -222,7 +222,7 @@ export const getUserSubscriptionOrders = async (userId: string): Promise<Subscri
         updatedAt: data?.updatedAt?.toDate() || new Date(),
       } as SubscriptionOrder);
     });
-    
+
     return orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   } catch (error) {
     console.error('Error fetching subscription orders:', error);

@@ -40,22 +40,22 @@ class GroupsService {
         orderBy('createdAt', 'desc')
       );
       const groupsSnapshot = await getDocs(groupsQuery);
-      
+
       if (groupsSnapshot.empty) {
         return this.getMockGroupsData();
       }
 
       const groups: GroupData[] = [];
       for (const groupDoc of groupsSnapshot.docs) {
-        const groupData = groupDoc.data();
-        
+        const groupData = groupDoc.data() as any;
+
         // Get members for this group
         const membersQuery = query(
           collection(db, this.GROUP_MEMBERS_COLLECTION),
           where('groupId', '==', groupDoc.id)
         );
         const membersSnapshot = await getDocs(membersQuery);
-        
+
         const members: GroupMember[] = [];
         membersSnapshot.forEach(memberDoc => {
           const memberData = memberDoc.data() as any;
@@ -75,7 +75,7 @@ class GroupsService {
           where('groupId', '==', groupDoc.id)
         );
         const coursesSnapshot = await getDocs(coursesQuery);
-        
+
         const courses: string[] = [];
         coursesSnapshot.forEach(courseDoc => {
           const courseData = courseDoc.data() as any;
@@ -100,9 +100,9 @@ class GroupsService {
           tags: groupData?.tags || []
         });
       }
-      
+
       return groups;
-      
+
     } catch (error) {
       console.error('Error getting groups data:', error);
       return this.getMockGroupsData();
@@ -124,7 +124,7 @@ class GroupsService {
       };
 
       const docRef = await addDoc(collection(db, this.GROUPS_COLLECTION), newGroup);
-      
+
       // Create the group data object with the generated ID
       const createdGroup: GroupData = {
         id: docRef.id,
@@ -143,7 +143,7 @@ class GroupsService {
       };
 
       return createdGroup;
-      
+
     } catch (error) {
       console.error('Error creating group:', error);
       throw new Error('Failed to create group');
@@ -154,25 +154,25 @@ class GroupsService {
   async updateGroup(groupId: string, updates: Partial<GroupData>): Promise<void> {
     try {
       console.log('Service: Updating group', groupId, 'with updates:', updates);
-      
+
       const groupRef = doc(db, this.GROUPS_COLLECTION, groupId);
-      
+
       // Check if the group exists first
       const groupDoc = await getDocs(query(collection(db, this.GROUPS_COLLECTION), where('__name__', '==', groupId)));
       if (groupDoc.empty) {
         throw new Error(`Group with ID ${groupId} not found`);
       }
-      
+
       const updateData = {
         ...updates,
         updatedAt: serverTimestamp()
       };
-      
+
       console.log('Service: Update data:', updateData);
-      
+
       await updateDoc(groupRef, updateData);
       console.log('Service: Group updated successfully');
-      
+
     } catch (error) {
       console.error('Service: Error updating group:', error);
       if (error instanceof Error) {
@@ -192,7 +192,7 @@ class GroupsService {
         where('groupId', '==', groupId)
       );
       const membersSnapshot = await getDocs(membersQuery);
-      
+
       for (const memberDoc of membersSnapshot.docs) {
         await deleteDoc(doc(db, this.GROUP_MEMBERS_COLLECTION, memberDoc.id));
       }
@@ -203,14 +203,14 @@ class GroupsService {
         where('groupId', '==', groupId)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      
+
       for (const courseDoc of coursesSnapshot.docs) {
         await deleteDoc(doc(db, this.GROUP_COURSES_COLLECTION, courseDoc.id));
       }
 
       // Delete the group itself
       await deleteDoc(doc(db, this.GROUPS_COLLECTION, groupId));
-      
+
     } catch (error) {
       console.error('Error deleting group:', error);
       throw new Error('Failed to delete group');
@@ -230,13 +230,13 @@ class GroupsService {
       };
 
       await addDoc(collection(db, this.GROUP_MEMBERS_COLLECTION), newMember);
-      
+
       // Update group member count
       const groupRef = doc(db, this.GROUPS_COLLECTION, groupId);
       await updateDoc(groupRef, {
         updatedAt: serverTimestamp()
       });
-      
+
     } catch (error) {
       console.error('Error adding member to group:', error);
       throw new Error('Failed to add member to group');
@@ -247,13 +247,13 @@ class GroupsService {
   async removeMemberFromGroup(groupId: string, memberId: string): Promise<void> {
     try {
       await deleteDoc(doc(db, this.GROUP_MEMBERS_COLLECTION, memberId));
-      
+
       // Update group member count
       const groupRef = doc(db, this.GROUPS_COLLECTION, groupId);
       await updateDoc(groupRef, {
         updatedAt: serverTimestamp()
       });
-      
+
     } catch (error) {
       console.error('Error removing member from group:', error);
       throw new Error('Failed to remove member from group');
@@ -270,13 +270,13 @@ class GroupsService {
       };
 
       await addDoc(collection(db, this.GROUP_COURSES_COLLECTION), newGroupCourse);
-      
+
       // Update group course count
       const groupRef = doc(db, this.GROUPS_COLLECTION, groupId);
       await updateDoc(groupRef, {
         updatedAt: serverTimestamp()
       });
-      
+
     } catch (error) {
       console.error('Error adding course to group:', error);
       throw new Error('Failed to add course to group');
@@ -292,17 +292,17 @@ class GroupsService {
         where('courseId', '==', courseId)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      
+
       for (const courseDoc of coursesSnapshot.docs) {
         await deleteDoc(doc(db, this.GROUP_COURSES_COLLECTION, courseDoc.id));
       }
-      
+
       // Update group course count
       const groupRef = doc(db, this.GROUPS_COLLECTION, groupId);
       await updateDoc(groupRef, {
         updatedAt: serverTimestamp()
       });
-      
+
     } catch (error) {
       console.error('Error removing course from group:', error);
       throw new Error('Failed to remove course from group');

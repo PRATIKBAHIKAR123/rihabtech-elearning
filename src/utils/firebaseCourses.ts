@@ -61,7 +61,7 @@ export const calculateCourseDuration = (course: Course): number => {
           item.contentFiles.forEach(file => {
             if (file.duration !== undefined && file.duration !== null) {
               let durationValue: number;
-              
+
               // Handle both integer and decimal duration values
               if (typeof file.duration === 'string') {
                 // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
@@ -83,7 +83,7 @@ export const calculateCourseDuration = (course: Course): number => {
               } else {
                 durationValue = file.duration;
               }
-              
+
               if (!isNaN(durationValue) && durationValue > 0) {
                 totalDuration += durationValue; // Don't round, keep decimal precision
                 console.log(`Course duration: Adding ${durationValue} seconds from file: ${file.name}`);
@@ -111,10 +111,13 @@ export const getAllCourses = async (): Promise<Course[]> => {
     const querySnapshot = await getDocs(coursesRef);
 
 
-    const allCourses = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Course[];
+    const allCourses = querySnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      } as Course;
+    });
 
     if (allCourses.length > 0) {
     }
@@ -137,10 +140,13 @@ export const getFeaturedCourses = async (): Promise<Course[]> => {
     );
 
     const featuredSnapshot = await getDocs(featuredQuery);
-    const featuredCourses = featuredSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Course[];
+    const featuredCourses = featuredSnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      } as Course;
+    });
 
     // If no featured courses found, get all published and approved courses as fallback
     if (featuredCourses.length === 0) {
@@ -151,10 +157,13 @@ export const getFeaturedCourses = async (): Promise<Course[]> => {
       );
 
       const fallbackSnapshot = await getDocs(fallbackQuery);
-      return fallbackSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Course[];
+      return fallbackSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data
+        } as Course;
+      });
     }
 
     return featuredCourses;
@@ -175,10 +184,13 @@ export const getCoursesByCategory = async (categoryId: string): Promise<Course[]
     );
 
     const categorySnapshot = await getDocs(categoryQuery);
-    return categorySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Course[];
+    return categorySnapshot.docs.map(doc => {
+      const data = doc.data() as any;
+      return {
+        id: doc.id,
+        ...data
+      } as Course;
+    });
   } catch (error) {
     return [];
   }
@@ -196,7 +208,7 @@ export const getCourseCountByCategory = async (categoryId: string): Promise<numb
     );
 
     const snapshot = await getCountFromServer(countQuery);
-    return snapshot.data().count;
+    return (snapshot.data() as any).count;
   } catch (error) {
     return 0;
   }

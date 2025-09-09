@@ -16,7 +16,7 @@ export const getCourseCategory = async (courseId: string) => {
   const courseRef = doc(db, "courseDrafts", courseId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {
-    return docSnap.data().category || "";
+    return (docSnap.data() as any).category || "";
   } else {
     return "";
   }

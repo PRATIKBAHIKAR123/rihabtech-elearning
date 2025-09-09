@@ -28,7 +28,7 @@ export const getCourseMessages = async (draftId: string) => {
   const courseRef = doc(db, "courseDrafts", draftId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {
-    const data = docSnap.data();
+    const data = docSnap.data() as any;
     return {
       welcomeMessage: data.welcomeMessage || "",
       congratulationsMessage: data.congratulationsMessage || "",

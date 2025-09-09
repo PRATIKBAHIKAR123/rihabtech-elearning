@@ -1,22 +1,22 @@
 import { db } from '../lib/firebase';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  serverTimestamp, 
-  query, 
-  where, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  query,
+  where,
   getDocs,
   orderBy,
   limit
 } from 'firebase/firestore';
-import { 
-  RazorpayOptions, 
-  RazorpayResponse, 
-  RazorpayOrder, 
-  initializeRazorpay, 
-  createRazorpayOrder, 
+import {
+  RazorpayOptions,
+  RazorpayResponse,
+  RazorpayOrder,
+  initializeRazorpay,
+  createRazorpayOrder,
   verifyPaymentSignature,
   formatAmountForRazorpay,
   parseAmountFromRazorpay
@@ -260,7 +260,7 @@ class RazorpayService {
 
     } catch (error) {
       console.error('Error handling payment success:', error);
-      
+
       // Update transaction status to failed
       const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
       await updateDoc(transactionRef, {
@@ -268,7 +268,7 @@ class RazorpayService {
         updatedAt: serverTimestamp(),
         notes: `Payment processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
-      
+
       throw error;
     }
   }
@@ -333,7 +333,7 @@ class RazorpayService {
     try {
       const startDate = new Date();
       const endDate = new Date();
-      
+
       // Calculate end date based on plan duration
       const duration = transactionData.planDuration.toLowerCase();
       if (duration.includes('month')) {
@@ -384,7 +384,7 @@ class RazorpayService {
       // 1. Determine which courses are included in the subscription
       // 2. Find instructors for those courses
       // 3. Distribute revenue based on course access or other criteria
-      
+
       // For now, we'll create a general revenue sharing record
       // In a real implementation, you might want to distribute this among multiple instructors
       const breakdown = revenueSharingService.calculateSubscriptionRevenueSharing(
@@ -418,7 +418,7 @@ class RazorpayService {
       // Calculate subscription end date
       const startDate = new Date();
       const endDate = new Date();
-      
+
       // Calculate end date based on plan duration
       const duration = transactionData.planDuration.toLowerCase();
       if (duration.includes('month')) {
@@ -460,12 +460,15 @@ class RazorpayService {
         where('userId', '==', userId),
         orderBy('createdAt', 'desc')
       );
-      
+
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      } as PaymentTransaction));
+      return snapshot.docs.map((doc: any) => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data
+        } as PaymentTransaction;
+      });
     } catch (error) {
       console.error('Error fetching user transactions:', error);
       return [];
@@ -480,12 +483,15 @@ class RazorpayService {
         orderBy('createdAt', 'desc'),
         limit(limitCount)
       );
-      
+
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      } as PaymentTransaction));
+      return snapshot.docs.map((doc: any) => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data
+        } as PaymentTransaction;
+      });
     } catch (error) {
       console.error('Error fetching all transactions:', error);
       return [];
@@ -499,12 +505,12 @@ class RazorpayService {
         collection(db, this.TRANSACTIONS_COLLECTION),
         where('__name__', '==', transactionId)
       );
-      
+
       const snapshot = await getDocs(q);
       if (snapshot.empty) {
         return null;
       }
-      
+
       const doc = snapshot.docs[0];
       const data = doc.data() as any;
       return {
@@ -533,12 +539,15 @@ class RazorpayService {
           orderBy('createdAt', 'desc')
         );
       }
-      
+
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      } as SubscriptionOrder));
+      return snapshot.docs.map((doc: any) => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data
+        } as SubscriptionOrder;
+      });
     } catch (error) {
       console.error('Error fetching subscription orders:', error);
       return [];
@@ -563,15 +572,15 @@ class RazorpayService {
     try {
       // For demo purposes, we'll simulate a successful payment
       // In production, this would integrate with Razorpay's server-side API
-      
+
       const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const receipt = `receipt_${Date.now()}`;
-      
+
       // Calculate pricing breakdown
       const baseAmount = paymentData.amount;
       const taxRate = 0.18; // 18% tax
       const platformFeeRate = 0.40; // 40% platform fee
-      
+
       const taxAmount = Math.round(baseAmount * taxRate);
       const platformFee = Math.round(baseAmount * platformFeeRate);
       const instructorShare = baseAmount - taxAmount - platformFee;

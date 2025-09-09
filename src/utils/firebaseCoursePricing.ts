@@ -1,10 +1,10 @@
 import { db } from '../lib/firebase';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
+import {
+  doc,
+  getDoc,
+  setDoc,
   updateDoc,
-  serverTimestamp 
+  serverTimestamp
 } from 'firebase/firestore';
 
 export interface CoursePricingData {
@@ -44,9 +44,9 @@ export const getPricingData = async (draftId: string): Promise<CoursePricingData
   try {
     const docRef = doc(db, 'coursePricing', draftId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
-      const data = docSnap.data();
+      const data = docSnap.data() as any;
       return {
         ...data,
         draftId: docSnap.id,
@@ -54,7 +54,7 @@ export const getPricingData = async (draftId: string): Promise<CoursePricingData
         updatedAt: data.updatedAt?.toDate()
       } as CoursePricingData;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting course pricing data:', error);

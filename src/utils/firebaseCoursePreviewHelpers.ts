@@ -17,7 +17,7 @@ export const getFullCourseData = async (courseId: string) => {
     const draftRef = getDraftRef(courseId);
     const docSnap = await getDoc(draftRef);
     if (docSnap.exists()) {
-      return docSnap.data();
+      return docSnap.data() as any;
     } else {
       return null;
     }
@@ -35,7 +35,7 @@ export const getCourseCurriculum = async (courseId: string) => {
     const draftRef = getDraftRef(courseId);
     const docSnap = await getDoc(draftRef);
     if (docSnap.exists()) {
-      return docSnap.data().curriculum || [];
+      return (docSnap.data() as any).curriculum || [];
     } else {
       return [];
     }
@@ -53,7 +53,7 @@ export const getCourseLandingPage = async (courseId: string) => {
     const draftRef = getDraftRef(courseId);
     const docSnap = await getDoc(draftRef);
     if (docSnap.exists()) {
-      return docSnap.data().landingPage || {};
+      return (docSnap.data() as any).landingPage || {};
     } else {
       return {};
     }
@@ -71,7 +71,7 @@ export const getCourseIntendedLearners = async (courseId: string) => {
     const draftRef = getDraftRef(courseId);
     const docSnap = await getDoc(draftRef);
     if (docSnap.exists()) {
-      return docSnap.data().intendedLearners || [];
+      return (docSnap.data() as any).intendedLearners || [];
     } else {
       return [];
     }
@@ -89,7 +89,7 @@ export const getCourseStructure = async (courseId: string) => {
     const draftRef = getDraftRef(courseId);
     const docSnap = await getDoc(draftRef);
     if (docSnap.exists()) {
-      return docSnap.data().structure || [];
+      return (docSnap.data() as any).structure || [];
     } else {
       return [];
     }

@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, increment, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, orderBy } from 'firebase/firestore';
 
 export interface Coupon {
   id: string;
@@ -53,9 +53,9 @@ class CouponService {
         collection(db, 'coupons'),
         where('code', '==', code.toUpperCase())
       );
-      
+
       const couponSnapshot = await getDocs(couponQuery);
-      
+
       if (couponSnapshot.empty) {
         return {
           isValid: false,
@@ -64,9 +64,10 @@ class CouponService {
       }
 
       const couponDoc = couponSnapshot.docs[0];
+      const couponData = couponDoc.data() as any;
       const coupon: Coupon = {
         id: couponDoc.id,
-        ...couponDoc.data()
+        ...couponData
       } as Coupon;
 
       // Check if coupon is active
@@ -81,7 +82,7 @@ class CouponService {
       const now = new Date();
       const validFrom = coupon.validFrom?.toDate ? coupon.validFrom.toDate() : new Date(coupon.validFrom);
       const validUntil = coupon.validUntil?.toDate ? coupon.validUntil.toDate() : new Date(coupon.validUntil);
-      
+
       if (now < validFrom || now > validUntil) {
         return {
           isValid: false,
@@ -171,7 +172,7 @@ class CouponService {
         where('couponId', '==', couponId),
         where('userId', '==', userId)
       );
-      
+
       const usageSnapshot = await getDocs(usageQuery);
       return !usageSnapshot.empty;
     } catch (error) {
@@ -182,13 +183,13 @@ class CouponService {
 
   // Apply coupon and record usage
   async applyCoupon(
-    couponId: string, 
-    userId: string, 
-    userEmail: string, 
-    orderAmount: number, 
-    discountAmount: number, 
-    finalAmount: number, 
-    subscriptionId?: string, 
+    couponId: string,
+    userId: string,
+    userEmail: string,
+    orderAmount: number,
+    discountAmount: number,
+    finalAmount: number,
+    subscriptionId?: string,
     courseId?: string
   ): Promise<boolean> {
     try {
@@ -209,10 +210,14 @@ class CouponService {
 
       // Update coupon usage count
       const couponRef = doc(db, 'coupons', couponId);
-      await updateDoc(couponRef, {
-        usedCount: increment(1),
-        updatedAt: new Date()
-      });
+      const couponDoc = await getDoc(couponRef);
+      if (couponDoc.exists()) {
+        const currentData = couponDoc.data() as any;
+        await updateDoc(couponRef, {
+          usedCount: (currentData?.usedCount || 0) + 1,
+          updatedAt: new Date()
+        });
+      }
 
       return true;
     } catch (error) {
@@ -225,26 +230,27 @@ class CouponService {
   async getAvailableCoupons(userId: string, categories?: string[]): Promise<Coupon[]> {
     try {
       const now = new Date();
-      
+
       // Get active coupons
       const couponsQuery = query(
         collection(db, 'coupons'),
         where('isActive', '==', true)
       );
-      
+
       const couponsSnapshot = await getDocs(couponsQuery);
       const availableCoupons: Coupon[] = [];
 
       for (const doc of couponsSnapshot.docs) {
+        const couponData = doc.data() as any;
         const coupon: Coupon = {
           id: doc.id,
-          ...doc.data()
+          ...couponData
         } as Coupon;
 
         // Check validity period
         const validFrom = coupon.validFrom?.toDate ? coupon.validFrom.toDate() : new Date(coupon.validFrom);
         const validUntil = coupon.validUntil?.toDate ? coupon.validUntil.toDate() : new Date(coupon.validUntil);
-        
+
         if (now >= validFrom && now <= validUntil) {
           // Check usage limit
           if (coupon.usedCount < coupon.maxUses) {
@@ -252,8 +258,8 @@ class CouponService {
             const alreadyUsed = await this.checkCouponUsage(coupon.id, userId);
             if (!alreadyUsed) {
               // Check category restrictions
-              if (!coupon.categories || coupon.categories.length === 0 || 
-                  (categories && categories.some(cat => coupon.categories!.includes(cat)))) {
+              if (!coupon.categories || coupon.categories.length === 0 ||
+                (categories && categories.some(cat => coupon.categories!.includes(cat)))) {
                 availableCoupons.push(coupon);
               }
             }
@@ -276,13 +282,16 @@ class CouponService {
         where('userId', '==', userId),
         orderBy('usedAt', 'desc')
       );
-      
+
       const usageSnapshot = await getDocs(usageQuery);
-      
-      return usageSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as CouponUsage[];
+
+      return usageSnapshot.docs.map(doc => {
+        const usageData = doc.data() as any;
+        return {
+          id: doc.id,
+          ...usageData
+        } as CouponUsage;
+      });
     } catch (error) {
       console.error('Error getting coupon history:', error);
       return [];
@@ -293,14 +302,15 @@ class CouponService {
   async getCouponById(couponId: string): Promise<Coupon | null> {
     try {
       const couponDoc = await getDoc(doc(db, 'coupons', couponId));
-      
+
       if (couponDoc.exists()) {
+        const couponData = couponDoc.data() as any;
         return {
           id: couponDoc.id,
-          ...couponDoc.data()
+          ...couponData
         } as Coupon;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error getting coupon:', error);

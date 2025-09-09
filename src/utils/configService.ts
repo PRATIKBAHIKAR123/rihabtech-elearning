@@ -23,6 +23,28 @@ export interface RazorpayConfig {
   };
 }
 
+export interface RazorpayConfigData {
+  keyId: string;
+  keySecret: string;
+  currency?: string;
+  theme?: {
+    color?: string;
+  };
+  isTestMode?: boolean;
+  webhookSecret?: string;
+  webhookUrl?: string;
+  description?: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  notes?: {
+    platform: string;
+    source: string;
+  };
+}
+
 export interface EmailSettings {
   provider: 'smtp' | 'gmail' | 'outlook' | 'sendgrid' | 'mailgun';
   smtp?: {
@@ -56,6 +78,39 @@ export interface EmailSettings {
   replyTo?: string;
 }
 
+export interface EmailSettingsData {
+  provider?: 'smtp' | 'gmail' | 'outlook' | 'sendgrid' | 'mailgun';
+  smtp?: {
+    host: string;
+    port: number;
+    secure: boolean;
+    auth: {
+      user: string;
+      pass: string;
+    };
+  };
+  gmail?: {
+    user: string;
+    pass: string;
+  };
+  outlook?: {
+    user: string;
+    pass: string;
+  };
+  sendgrid?: {
+    apiKey: string;
+  };
+  mailgun?: {
+    apiKey: string;
+    domain: string;
+  };
+  from?: {
+    name: string;
+    email: string;
+  };
+  replyTo?: string;
+}
+
 export interface EmailTemplate {
   id: string;
   name: string;
@@ -67,6 +122,18 @@ export interface EmailTemplate {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface EmailTemplateData {
+  name: string;
+  subject: string;
+  htmlContent: string;
+  textContent: string;
+  variables?: string[];
+  type: 'subscription_confirmation' | 'subscription_expiry_reminder' | 'payment_confirmation' | 'subscription_expired';
+  isActive: boolean;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 class ConfigService {
@@ -90,16 +157,16 @@ class ConfigService {
         orderBy('updatedAt', 'desc'),
         limit(1)
       );
-      
+
       const configSnapshot = await getDocs(configQuery);
-      
+
       if (configSnapshot.empty) {
         throw new Error('No Razorpay configuration found');
       }
 
       const configDoc = configSnapshot.docs[0];
-      const configData = configDoc.data();
-      
+      const configData = configDoc.data() as RazorpayConfigData;
+
       const config: RazorpayConfig = {
         keyId: configData.keyId,
         keySecret: configData.keySecret,
@@ -125,7 +192,7 @@ class ConfigService {
       return config;
     } catch (error) {
       console.error('Error getting Razorpay config:', error);
-      
+
       // Return fallback configuration
       return {
         keyId: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_xxxxxxxxxxxxx',
@@ -158,16 +225,16 @@ class ConfigService {
         orderBy('updatedAt', 'desc'),
         limit(1)
       );
-      
+
       const settingsSnapshot = await getDocs(settingsQuery);
-      
+
       if (settingsSnapshot.empty) {
         throw new Error('No email settings found');
       }
 
       const settingsDoc = settingsSnapshot.docs[0];
-      const settingsData = settingsDoc.data();
-      
+      const settingsData = settingsDoc.data() as EmailSettingsData;
+
       const settings: EmailSettings = {
         provider: settingsData.provider || 'smtp',
         smtp: settingsData.smtp,
@@ -189,7 +256,7 @@ class ConfigService {
       return settings;
     } catch (error) {
       console.error('Error getting email settings:', error);
-      
+
       // Return fallback settings
       return {
         provider: 'smtp',
@@ -224,11 +291,11 @@ class ConfigService {
         where('isActive', '==', true),
         orderBy('updatedAt', 'desc')
       );
-      
+
       const templatesSnapshot = await getDocs(templatesQuery);
-      
+
       const templates: EmailTemplate[] = templatesSnapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as EmailTemplateData;
         return {
           id: doc.id,
           name: data.name,

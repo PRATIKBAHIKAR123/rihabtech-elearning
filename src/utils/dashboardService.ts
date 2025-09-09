@@ -1,4 +1,4 @@
- import { db } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 
 export interface DashboardStats {
@@ -105,10 +105,10 @@ class DashboardService {
       let currentMonthRevenue = 0;
 
       payoutSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         const amount = data.amount || 0;
         totalRevenue += amount;
-        
+
         if (data.month === currentMonth && data.year === currentYear) {
           currentMonthRevenue += amount;
         }
@@ -124,13 +124,13 @@ class DashboardService {
       let currentMonthEnrollments = 0;
 
       enrollmentSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         if (data.courseId) {
           // Check if this course belongs to the instructor
           // For now, we'll count all enrollments
           totalEnrollments++;
           uniqueStudents.add(data.studentId);
-          
+
           const enrolledDate = data.enrolledAt?.toDate() || new Date();
           if (enrolledDate.toISOString().slice(0, 7) === currentMonth) {
             currentMonthEnrollments++;
@@ -169,7 +169,7 @@ class DashboardService {
         where('Role', '==', 'student')
       );
       const studentsSnapshot = await getDocs(studentsQuery);
-      
+
       if (studentsSnapshot.empty) {
         // Return mock data if no students found
         return this.getMockStudentsData();
@@ -178,7 +178,7 @@ class DashboardService {
       // Convert Firestore data to StudentData format
       const students: StudentData[] = [];
       studentsSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         students.push({
           id: doc.id,
           name: data.Name || 'Unknown Student',
@@ -197,10 +197,10 @@ class DashboardService {
           courseId: data.courseId || 'unknown-course'
         });
       });
-      
+
       // Sort by last accessed date (most recent first)
       return students.sort((a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime());
-      
+
     } catch (error) {
       console.error('Error getting students data:', error);
       // Fallback to mock data
@@ -309,7 +309,7 @@ class DashboardService {
         where('instructorId', '==', instructorId)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      
+
       if (coursesSnapshot.empty) {
         // Return mock data if no courses found
         return this.getMockReviewsData();
@@ -318,15 +318,15 @@ class DashboardService {
       // Generate dynamic review data based on course performance
       const reviews: ReviewData[] = [];
       const courseIds = coursesSnapshot.docs.map(doc => doc.id);
-      
+
       // Simulate reviews for each course
       courseIds.forEach((courseId, index) => {
         const courseDoc = coursesSnapshot.docs[index];
-        const courseData = courseDoc.data();
-        
+        const courseData = courseDoc.data() as any;
+
         // Generate 1-3 reviews per course
         const reviewCount = Math.floor(Math.random() * 3) + 1;
-        
+
         for (let i = 0; i < reviewCount; i++) {
           const studentNames = ['Mehul Shah', 'Rajesh Kumar', 'Priya Singh', 'Amit Patel', 'Neha Sharma', 'Vikram Singh'];
           const studentRoles = ['Student', 'Developer', 'Student', 'Student', 'Student', 'Student'];
@@ -339,11 +339,11 @@ class DashboardService {
             'Well-structured content with real-world examples.',
             'Fantastic course! The instructor explains complex topics very clearly.'
           ];
-          
+
           const randomIndex = Math.floor(Math.random() * studentNames.length);
           const reviewDate = new Date();
           reviewDate.setDate(reviewDate.getDate() - Math.floor(Math.random() * 30)); // Random date within last 30 days
-          
+
           reviews.push({
             id: `${courseId}-review-${i}`,
             studentName: studentNames[randomIndex],
@@ -354,15 +354,15 @@ class DashboardService {
             courseTitle: courseData.title || courseData.courseTitle || 'Unknown Course',
             reviewDate: reviewDate,
             isReplied: Math.random() > 0.7, // 30% chance of being replied to
-            replyText: Math.random() > 0.7 ? 'Thank you for your feedback! We\'re glad you found the course helpful.' : undefined,
+            replyText: Math.random() > 0.7 ? 'Thank you for your feedback! We are glad you found the course helpful.' : undefined,
             replyDate: Math.random() > 0.7 ? new Date(reviewDate.getTime() + 24 * 60 * 60 * 1000) : undefined
           });
         }
       });
-      
+
       // Sort by review date (newest first)
       return reviews.sort((a, b) => b.reviewDate.getTime() - a.reviewDate.getTime());
-      
+
     } catch (error) {
       console.error('Error getting reviews data:', error);
       // Fallback to mock data
@@ -394,7 +394,7 @@ class DashboardService {
         courseTitle: 'React.js Masterclass',
         reviewDate: new Date('2025-01-10'),
         isReplied: true,
-        replyText: 'Thank you for your feedback! We\'re glad you found the course helpful.',
+        replyText: 'Thank you for your feedback! We are glad you found the course helpful.',
         replyDate: new Date('2025-01-11')
       },
       {
@@ -435,7 +435,7 @@ class DashboardService {
   async getEngagementData(instructorId: string): Promise<EngagementData> {
     try {
       const currentYear = new Date().getFullYear();
-      
+
       // Get watch time data
       const watchTimeQuery = query(
         collection(db, this.WATCH_TIME_COLLECTION),
@@ -457,7 +457,7 @@ class DashboardService {
           const minutesWatched = Math.round(baseMinutes + (index * 500)); // Gradual increase
           const enrollments = Math.round(15 + (Math.random() * 10 - 5)); // 10-20 range
           const revenue = Math.round(minutesWatched * 0.8); // Realistic revenue calculation
-          
+
           monthlyStats.set(month, { month, minutesWatched, enrollments, revenue });
           totalMinutesWatched += minutesWatched;
         });
@@ -475,7 +475,7 @@ class DashboardService {
           const viewed = Math.round(40 + (Math.random() * 30 - 15)); // 25-55 range
           const dropped = Math.round(5 + (Math.random() * 10 - 5)); // 0-10 range
           const amountConsumed = Math.round(60 + (Math.random() * 40 - 20)); // 40-80 range
-          
+
           coursePerformance.set(`course-${index + 1}`, {
             courseId: `course-${index + 1}`,
             courseTitle: title,
@@ -491,7 +491,7 @@ class DashboardService {
           tablet: Math.round(20 + (Math.random() * 15 - 7)),  // 13-27%
           laptop: 0 // Will be calculated
         };
-        
+
         // Normalize to 100%
         const total = deviceStats.mobile + deviceStats.tablet;
         deviceStats.mobile = Math.round((deviceStats.mobile / total) * 100);
@@ -514,7 +514,7 @@ class DashboardService {
 
       // Process real data if it exists
       watchTimeSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         const watchMinutes = data.watchMinutes || 0;
         totalMinutesWatched += watchMinutes;
 
@@ -550,9 +550,9 @@ class DashboardService {
         where('year', '==', currentYear)
       );
       const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-      
+
       enrollmentsSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         const month = data.month;
         if (monthlyStats.has(month)) {
           const monthStat = monthlyStats.get(month)!;
@@ -563,24 +563,24 @@ class DashboardService {
       // Calculate active learners (students who watched content in the last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const activeLearnersQuery = query(
         collection(db, this.WATCH_TIME_COLLECTION),
         where('instructorId', '==', instructorId),
         where('timestamp', '>=', thirtyDaysAgo)
       );
       const activeLearnersSnapshot = await getDocs(activeLearnersQuery);
-      
+
       const activeLearnerIds = new Set();
       activeLearnersSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         activeLearnerIds.add(data.studentId);
       });
 
       // Calculate average completion rate based on watch time vs course duration
       let totalCompletionRate = 0;
       let courseCount = 0;
-      
+
       coursePerformance.forEach(course => {
         // Simulate completion rate based on amount consumed
         const completionRate = Math.min((course.amountConsumed / 100) * 100, 100); // Assuming 100 minutes = 100% completion
@@ -640,10 +640,10 @@ class DashboardService {
       months.forEach(month => monthlyRevenue.set(month, 0));
 
       payoutSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         const month = data.month;
         const amount = data.amount || 0;
-        
+
         if (monthlyRevenue.has(month)) {
           monthlyRevenue.set(month, monthlyRevenue.get(month)! + amount);
         }
@@ -651,7 +651,7 @@ class DashboardService {
 
       // Calculate percentages
       const maxRevenue = Math.max(...Array.from(monthlyRevenue.values()));
-      
+
       return months.map(month => ({
         month: month.slice(-2), // Just the month number
         revenue: monthlyRevenue.get(month) || 0,
@@ -672,14 +672,14 @@ class DashboardService {
         where('instructorId', '==', instructorId)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      
+
       if (coursesSnapshot.empty) {
         return this.getMockCoursesData();
       }
 
       const courses: CourseData[] = [];
       coursesSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         courses.push({
           id: doc.id,
           title: data.title || data.courseTitle || 'Unknown Course',
@@ -688,9 +688,9 @@ class DashboardService {
           isActive: data.isActive !== false
         });
       });
-      
+
       return courses.sort((a, b) => a.title.localeCompare(b.title));
-      
+
     } catch (error) {
       console.error('Error getting courses data:', error);
       return this.getMockCoursesData();
@@ -705,21 +705,21 @@ class DashboardService {
         where('instructorId', '==', instructorId)
       );
       const coursesSnapshot = await getDocs(coursesQuery);
-      
+
       if (coursesSnapshot.empty) {
         return ['Development', 'Design', 'Business'];
       }
 
       const categories = new Set<string>();
       coursesSnapshot.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         if (data.category) {
           categories.add(data.category);
         }
       });
-      
+
       return Array.from(categories).sort();
-      
+
     } catch (error) {
       console.error('Error getting course categories:', error);
       return ['Development', 'Design', 'Business'];

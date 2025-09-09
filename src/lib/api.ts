@@ -11,5 +11,6 @@
 //   API_BASE_URL = 'http://zktutorials.baawanerp.com/';
 // }
 
-// export { API_BASE_URL }; 
-export const API_BASE_URL = 'https://zktutorials.baawanerp.com/api/1/'; 
+// export { API_BASE_URL };
+// export const API_BASE_URL = 'https://zktutorials.baawanerp.com/api/1/';
+export const API_BASE_URL = 'https://103.87.175.111:8152/api/1/';

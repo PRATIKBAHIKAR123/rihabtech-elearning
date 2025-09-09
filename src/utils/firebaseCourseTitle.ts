@@ -9,7 +9,7 @@ export const createNewCourseDraft = async (): Promise<string> => {
       status: "draft",
       progress: 0
     };
-    
+
     const docRef = await addDoc(collection(db, "courseDrafts"), courseData);
     return docRef.id;
   } catch (error) {
@@ -33,7 +33,7 @@ export const getCourseTitle = async (courseId: string) => {
   const courseRef = doc(db, "courseDrafts", courseId);
   const docSnap = await getDoc(courseRef);
   if (docSnap.exists()) {
-    return docSnap.data().title || "";
+    return (docSnap.data() as any).title || "";
   } else {
     return "";
   }
