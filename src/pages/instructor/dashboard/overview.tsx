@@ -83,6 +83,12 @@ export const Overview = () =>{
         
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
+            title="Total Watch Time" 
+            value={dashboardStats?.totalStudents.toLocaleString() || '0'}
+            growth={dashboardStats?.totalCourses.toString() || '0'}
+            period="Total Courses" 
+          />
+          <StatsCard 
             title="Total Revenue" 
             value={`₹${dashboardStats?.totalRevenue.toLocaleString() || '0'}`}
             growth={dashboardStats?.currentMonthRevenue.toLocaleString() || '0'}

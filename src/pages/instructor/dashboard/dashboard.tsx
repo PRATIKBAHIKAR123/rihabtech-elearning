@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Overview } from "./overview";
 import { Students } from "./students";
 import Reviews from "./reviews";
+import { CourseWiseReports } from "./coursewiseReports";
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("overview");
@@ -9,6 +10,7 @@ export default function Dashboard() {
     const tabs = [
         { id: "overview", label: "Overview" },
         { id: "students", label: "Students" },
+        { id: "courses", label: "Courses" },
         { id: "reviews", label: "Reviews" }
     ];
 
@@ -31,6 +33,11 @@ export default function Dashboard() {
                         <Overview />
                     </div>
                 )}
+                {
+                    activeTab === "courses" && (
+                        <CourseWiseReports />
+                    )
+                }
                 {
                     activeTab === "students" && (
                         <Students />
