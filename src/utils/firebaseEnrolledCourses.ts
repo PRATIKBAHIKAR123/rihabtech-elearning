@@ -13,6 +13,8 @@ export interface EnrolledCourse extends Course {
 // Get all enrolled courses for a student
 export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCourse[]> => {
   try {
+    console.log("Searching for enrollments with studentId:", studentId);
+
     // Get all enrollments for the student
     const enrollmentsRef = collection(db, "studentEnrollments");
     const enrollmentsQuery = query(
@@ -22,12 +24,28 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
     );
 
     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+    console.log("Enrollments query result:", enrollmentsSnapshot.docs.length, "documents found");
+
     const enrollments = enrollmentsSnapshot.docs.map(doc => {
       const data = doc.data() as any;
-      return {
+      console.log("Enrollment data:", doc.id, data);
+
+      // Convert Firestore timestamps to JavaScript Date objects
+      const enrollment: StudentEnrollment = {
         id: doc.id,
-        ...data
-      } as StudentEnrollment;
+        studentId: data.studentId,
+        courseId: data.courseId,
+        enrolledAt: data.enrolledAt?.toDate ? data.enrolledAt.toDate() : new Date(data.enrolledAt),
+        isActive: data.isActive,
+        lastAccessedAt: data.lastAccessedAt?.toDate ? data.lastAccessedAt.toDate() : new Date(data.lastAccessedAt),
+        progress: data.progress,
+        totalWatchTime: data.totalWatchTime,
+        completedModules: data.completedModules || [],
+        currentModuleId: data.currentModuleId,
+        currentPosition: data.currentPosition
+      };
+
+      return enrollment;
     });
 
     // Get course data for each enrollment
@@ -35,10 +53,12 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
 
     for (const enrollment of enrollments) {
       try {
+        console.log("Looking for course with ID:", enrollment.courseId);
         const courseRef = doc(db, "courseDrafts", enrollment.courseId);
         const courseDoc = await getDoc(courseRef);
 
         if (courseDoc.exists()) {
+          console.log("Course found:", enrollment.courseId);
           const courseData = courseDoc.data() as Course;
           const course: Course = {
             ...courseData,
@@ -54,6 +74,8 @@ export const getEnrolledCourses = async (studentId: string): Promise<EnrolledCou
             courseProgress: progress,
             lastAccessedAt: enrollment.lastAccessedAt
           });
+        } else {
+          console.log("Course not found in courseDrafts:", enrollment.courseId);
         }
       } catch (error) {
         console.error(`Error fetching course ${enrollment.courseId}:`, error);
