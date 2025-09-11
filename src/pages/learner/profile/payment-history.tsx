@@ -754,61 +754,80 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
   }
 
   return (
-    <div className="space-y-6 mt-8">
+    <div className="space-y-8 mt-8">
       {/* Header with Stats */}
-      <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-[#ff7700]">Payment History</h2>
-          <div className="text-sm text-gray-600">
-            {transactions.length} Transaction
-            {transactions.length !== 1 ? "s" : ""}
+      <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-[#ff7700] mb-2">
+              Payment History
+            </h2>
+            <p className="text-gray-600">
+              Track all your payment transactions and receipts
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-gray-900">
+              {transactions.length}
+            </div>
+            <div className="text-sm text-gray-600">
+              Transaction{transactions.length !== 1 ? "s" : ""}
+            </div>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-green-600 mr-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-green-900">
+                <div className="text-3xl font-bold text-green-900 mb-1">
                   {formatAmount(
                     transactions
                       .filter((t) => t.status === "completed")
                       .reduce((sum, t) => sum + t.totalAmount, 0)
                   )}
                 </div>
-                <div className="text-sm text-green-700">Total Paid</div>
+                <div className="text-sm font-medium text-green-700">
+                  Total Paid
+                </div>
               </div>
+              <DollarSign className="w-10 h-10 text-green-600" />
             </div>
           </div>
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <CreditCard className="w-8 h-8 text-blue-600 mr-3" />
+
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-blue-900">
+                <div className="text-3xl font-bold text-blue-900 mb-1">
                   {transactions.length}
                 </div>
-                <div className="text-sm text-blue-700">Total Payments</div>
+                <div className="text-sm font-medium text-blue-700">
+                  Total Payments
+                </div>
               </div>
+              <CreditCard className="w-10 h-10 text-blue-600" />
             </div>
           </div>
-          <div className="bg-purple-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <CheckCircle className="w-8 h-8 text-purple-600 mr-3" />
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-purple-900">
+                <div className="text-3xl font-bold text-purple-900 mb-1">
                   {transactions.filter((t) => t.status === "completed").length}
                 </div>
-                <div className="text-sm text-purple-700">Successful</div>
+                <div className="text-sm font-medium text-purple-700">
+                  Successful
+                </div>
               </div>
+              <CheckCircle className="w-10 h-10 text-purple-600" />
             </div>
           </div>
-          <div className="bg-orange-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-orange-600 mr-3" />
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-orange-900">
+                <div className="text-3xl font-bold text-orange-900 mb-1">
                   {transactions.length > 0
                     ? formatAmount(
                         transactions
@@ -820,8 +839,11 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                       )
                     : "₹0"}
                 </div>
-                <div className="text-sm text-orange-700">Last Payment</div>
+                <div className="text-sm font-medium text-orange-700">
+                  Last Payment
+                </div>
               </div>
+              <DollarSign className="w-10 h-10 text-orange-600" />
             </div>
           </div>
         </div>
@@ -829,36 +851,45 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
 
       {/* Transactions List */}
       {transactions.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-8">
+        <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-12">
           <div className="text-center">
-            <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <DollarSign className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
               No Payment History
             </h3>
-            <p className="text-gray-600 mb-4">
-              This learner hasn't made any payments yet.
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              This learner hasn't made any payments yet. All transactions will
+              appear here once payments are made.
             </p>
             <Button
               onClick={loadPaymentHistory}
-              className="bg-[#ff7700] hover:bg-[#e55e00] text-white"
+              className="bg-[#ff7700] hover:bg-[#e55e00] text-white px-6 py-2"
             >
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Transaction Details
-              </h3>
-              <div className="flex gap-2">
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Transaction Details
+                </h3>
+                <p className="text-gray-600">
+                  View and manage your payment transactions
+                </p>
+              </div>
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={downloadExcel}
-                  className="flex items-center"
+                  className="flex items-center px-4 py-2 border-gray-300 hover:bg-gray-50"
                 >
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Export Excel
@@ -871,7 +902,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                     // Refresh functionality
                     loadPaymentHistory();
                   }}
-                  className="flex items-center"
+                  className="flex items-center px-4 py-2 border-gray-300 hover:bg-gray-50"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
@@ -882,75 +913,106 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
                       Transaction ID
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Plan
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      Plan Details
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
                       Amount
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Receipt
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {transactions.map((transaction) => (
+                <tbody className="divide-y divide-gray-100">
+                  {transactions.map((transaction, index) => (
                     <tr
                       key={transaction.id}
-                      className="border-b border-gray-100 hover:bg-gray-50"
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                      }`}
                     >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
+                      <td className="py-6 px-6">
+                        <div className="flex items-center space-x-3">
                           {getStatusIcon(transaction.status)}
-                          <span className="ml-2 text-sm font-mono text-gray-600">
-                            {transaction.razorpayPaymentId}
-                          </span>
+                          <div>
+                            <div className="text-sm font-mono text-gray-900 font-medium">
+                              {transaction.razorpayPaymentId}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Order: {transaction.razorpayOrderId}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm">
-                        <div>
-                          <div className="font-medium text-gray-900">
+                      <td className="py-6 px-6">
+                        <div className="space-y-1">
+                          <div className="font-medium text-gray-900 text-sm">
                             {transaction.planName}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Duration: {transaction.planDuration}
                           </div>
                           {transaction.categoryName && (
                             <div className="text-xs text-gray-500">
-                              {transaction.categoryName}
+                              Category: {transaction.categoryName}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm font-semibold text-gray-900">
-                        {formatAmount(transaction.amount)}
-                      </td>
-                      <td className="py-3 px-4">
-                        {getStatusBadge(transaction.status)}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {formatDate(transaction.createdAt)}
+                      <td className="py-6 px-6">
+                        <div className="space-y-1">
+                          <div className="text-lg font-bold text-gray-900">
+                            {formatAmount(transaction.totalAmount)}
+                          </div>
+                          {transaction.amount > 0 && (
+                            <div className="text-xs text-gray-500">
+                              Base: {formatAmount(transaction.amount)}
+                            </div>
+                          )}
+                          {transaction.taxAmount > 0 && (
+                            <div className="text-xs text-gray-500">
+                              Tax: {formatAmount(transaction.taxAmount)}
+                            </div>
+                          )}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-1">
+                      <td className="py-6 px-6">
+                        {getStatusBadge(transaction.status)}
+                      </td>
+                      <td className="py-6 px-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                            {formatDate(transaction.createdAt)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {transaction.paymentMethod} •{" "}
+                            {transaction.paymentDetails.bank}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-6">
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => downloadPDF(transaction)}
-                            className="text-xs"
+                            className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
                             title="Download PDF Receipt"
                           >
-                            <Download className="w-3 h-3" />
+                            <Download className="w-3 h-3 mr-1" />
+                            PDF
                           </Button>
                           <Button
                             variant="outline"
@@ -958,10 +1020,11 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                             onClick={() =>
                               window.open(transaction.receipt, "_blank")
                             }
-                            className="text-xs"
+                            className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
                             title="View Receipt"
                           >
                             <Eye className="w-3 h-3 mr-1" />
+                            View
                           </Button>
                         </div>
                       </td>
