@@ -95,6 +95,8 @@ class DashboardService {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const currentYear = new Date().getFullYear();
 
+      console.log(`Getting dashboard stats for instructor: ${instructorId}, current month: ${currentMonth}`);
+
       // Get total revenue from payouts
       let conditions = [
   where("instructorId", "==", instructorId),
@@ -110,12 +112,15 @@ const payoutQuery = query(
   ...conditions
 );
       const payoutSnapshot = await getDocs(payoutQuery);
+      console.log(`Found ${payoutSnapshot.size} payout documents`);
+      
       let totalRevenue = 0;
       let totalWatchtime = 0;
       let currentMonthRevenue = 0;
 
       payoutSnapshot.forEach(doc => {
         const data = doc.data() as any;
+        console.log("Payout data:", data);
         const amount = data.amount || 0;
         totalRevenue += amount;
         totalWatchtime += data.watchTimeMinutes || 0;
@@ -125,7 +130,31 @@ const payoutQuery = query(
         }
       });
 
-      // Get total enrollments and students
+      // Also get watch time from watchTimeData collection
+      const watchTimeQuery = query(
+        collection(db, this.WATCH_TIME_COLLECTION),
+        where('instructorId', '==', instructorId)
+      );
+      const watchTimeSnapshot = await getDocs(watchTimeQuery);
+      
+      let watchTimeFromData = 0;
+      watchTimeSnapshot.forEach(doc => {
+        const data = doc.data() as any;
+        watchTimeFromData += data.watchMinutes || 0;
+      });
+
+      // Use the higher value between payout data and watch time data
+      totalWatchtime = Math.max(totalWatchtime, watchTimeFromData);
+
+      // Get instructor's courses first
+      const instructorCoursesQuery = query(
+        collection(db, this.COURSES_COLLECTION),
+        where('instructorId', '==', instructorId)
+      );
+      const instructorCoursesSnapshot = await getDocs(instructorCoursesQuery);
+      const instructorCourseIds = instructorCoursesSnapshot.docs.map(doc => doc.id);
+
+      // Get total enrollments and students for instructor's courses
       const enrollmentQuery = query(
         collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
       );
@@ -136,9 +165,7 @@ const payoutQuery = query(
 
       enrollmentSnapshot.forEach(doc => {
         const data = doc.data() as any;
-        if (data.courseId) {
-          // Check if this course belongs to the instructor
-          // For now, we'll count all enrollments
+        if (data.courseId && instructorCourseIds.includes(data.courseId)) {
           totalEnrollments++;
           uniqueStudents.add(data.studentId);
 
@@ -656,7 +683,11 @@ if (selectedCourse && selectedCourse !== "all-courses") {
       const payoutSnapshot = await getDocs(payoutQuery);
 
       const monthlyRevenue = new Map<string, number>();
-      months.forEach(month => monthlyRevenue.set(month, 0));
+      const monthlyEnrollments = new Map<string, number>();
+      months.forEach(month => {
+        monthlyRevenue.set(month, 0);
+        monthlyEnrollments.set(month, 0);
+      });
 
       payoutSnapshot.forEach(doc => {
         const data = doc.data() as any;
@@ -668,13 +699,38 @@ if (selectedCourse && selectedCourse !== "all-courses") {
         }
       });
 
+      // Get enrollment data for the year
+      const instructorCoursesQuery = query(
+        collection(db, this.COURSES_COLLECTION),
+        where('instructorId', '==', instructorId)
+      );
+      const instructorCoursesSnapshot = await getDocs(instructorCoursesQuery);
+      const instructorCourseIds = instructorCoursesSnapshot.docs.map(doc => doc.id);
+
+      const enrollmentQuery = query(
+        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
+      );
+      const enrollmentSnapshot = await getDocs(enrollmentQuery);
+
+      enrollmentSnapshot.forEach(doc => {
+        const data = doc.data() as any;
+        if (data.courseId && instructorCourseIds.includes(data.courseId)) {
+          const enrolledDate = data.enrolledAt?.toDate() || new Date();
+          const month = enrolledDate.toISOString().slice(0, 7);
+          
+          if (monthlyEnrollments.has(month)) {
+            monthlyEnrollments.set(month, monthlyEnrollments.get(month)! + 1);
+          }
+        }
+      });
+
       // Calculate percentages
       const maxRevenue = Math.max(...Array.from(monthlyRevenue.values()));
 
       return months.map(month => ({
         month: month.slice(-2), // Just the month number
         revenue: monthlyRevenue.get(month) || 0,
-        enrollments: 0, // Could be calculated from enrollments
+        enrollments: monthlyEnrollments.get(month) || 0,
         percentage: maxRevenue > 0 ? ((monthlyRevenue.get(month) || 0) / maxRevenue) * 100 : 0
       }));
     } catch (error) {

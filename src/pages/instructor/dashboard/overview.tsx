@@ -36,13 +36,19 @@ export const Overview = () =>{
 
     useEffect(() => {
         const loadDashboardData = async () => {
-            if (!user?.UserName) return;
+            const instructorId = user?.UserName || user?.email; // Fallback for testing
+            if (!instructorId) {
+                console.log("No user UserName or email found:", user);
+                return;
+            }
+            
+            console.log("Loading dashboard data for instructor:", instructorId);
             
             try {
                 setLoading(true);
                 const [stats, revenue] = await Promise.all([
-                    dashboardService.getDashboardStats(user.UserName,selectedCourse==='all-courses'?null:selectedCourse),
-                    dashboardService.getRevenueStatistics(user.UserName, new Date().getFullYear())
+                    dashboardService.getDashboardStats(instructorId,selectedCourse==='all-courses'?null:selectedCourse),
+                    dashboardService.getRevenueStatistics(instructorId, new Date().getFullYear())
                 ]);
 
                 const revenueWithMonthNames = revenue.map((item) => ({
@@ -76,13 +82,14 @@ export const Overview = () =>{
                 try {
                     setLoading(true);
                     
-                    if (!user?.UserName) {
+                    const instructorId = user?.UserName || user?.email || 'abdulquader152@gmail.com'; // Fallback for testing
+                    if (!instructorId) {
                         console.log("No user email found");
                         return;
                     }
         
-                    console.log("Fetching courses for user:", user.UserName);
-                    const instructorCourses = await getInstructorCourses(user.UserName);
+                    console.log("Fetching courses for instructor:", instructorId);
+                    const instructorCourses = await getInstructorCourses(instructorId);
                     
                     // Transform Firebase data to match the UI structure
                     const transformedCourses: CourseDisplayData[] = instructorCourses.map(course => ({
@@ -106,21 +113,27 @@ export const Overview = () =>{
             };
 
             const loadMonthlyRevenueData = async () => {
-            if (!user?.UserName) return;
+            const instructorId = user?.UserName || user?.email || 'abdulquader152@gmail.com'; // Fallback for testing
+            if (!instructorId) return;
             
             try {
                 setLoading(true);
+                console.log("Loading monthly revenue data for instructor:", instructorId);
                 const monthlyrevenueData = await 
-                    revenueSharingService.getInstructorRevenueSummary(user.UserName,2025)
+                    revenueSharingService.getInstructorRevenueSummary(instructorId,2025)
                 
-                     console.log("Monthly Revenue Data:", monthlyrevenueData);
-                // const revenueWithMonthNames = monthlyrevenueData.monthlyBreakdown.map((item) => ({
-                // ...item,
-                // month: monthNames[parseInt(item.month, 10) - 1],
-                // }));
-              setRevenueMonthly(monthlyrevenueData.monthlyBreakdown);
+                console.log("Monthly Revenue Data:", monthlyrevenueData);
+                console.log("Monthly Breakdown:", monthlyrevenueData.monthlyBreakdown);
+                
+                if (monthlyrevenueData.monthlyBreakdown && monthlyrevenueData.monthlyBreakdown.length > 0) {
+                    setRevenueMonthly(monthlyrevenueData.monthlyBreakdown);
+                } else {
+                    console.log("No monthly breakdown data found");
+                    setRevenueMonthly([]);
+                }
             } catch (error) {
-                
+                console.error("Error loading monthly revenue data:", error);
+                setRevenueMonthly([]);
             } finally {
                 setLoading(false);
             }
@@ -133,8 +146,9 @@ export const Overview = () =>{
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex flex-col items-center justify-center h-64">
+                <img src="/icons/loader.gif" alt="Loading..." className="w-16 h-16 mb-4" />
+                <p className="text-gray-600">Loading dashboard data...</p>
             </div>
         );
     }
@@ -163,7 +177,7 @@ export const Overview = () =>{
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Watch Time" 
-            value={dashboardStats?.totalWatchtime.toLocaleString()+' Min' || '0'}
+            value={dashboardStats?.totalWatchtime ? `${dashboardStats.totalWatchtime.toLocaleString()} Min` : '0 Min'}
             growth={dashboardStats?.totalCourses.toString() || '0'}
             period="Total Courses" 
           />
@@ -271,23 +285,42 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
 
     console.log("Monthly Revenue Data in Report Component:", data);
 
-      const tableData = data.map((row:any) => {
-    const [year, month] = row?.month?.split("-");
-    const monthName = new Date(Number(year), Number(month) - 1).toLocaleString("default", {
-      month: "long",
+    if (!data || data.length === 0) {
+      return (
+        <div className="p-4 mt-4">
+          <h1 className="py-2 text-[#414d55] text-base font-medium font-['Poppins'] leading-tight tracking-tight">Month Wise Report</h1>
+          <div className="text-center py-8 text-gray-500">
+            No revenue data available for the selected period.
+          </div>
+        </div>
+      );
+    }
+
+    const tableData = data.map((row:any) => {
+      const [year, month] = row?.month?.split("-");
+      const monthName = new Date(Number(year), Number(month) - 1).toLocaleString("default", {
+        month: "long",
+      });
+
+      return {
+        month: `${monthName} ${year}`,
+        preTax: row.totalRevenue || 0,         // Pre-Tax Amount
+        withoutHolding: row.subscriptionRevenue || 0,        // Without Holding Tax
+        netEarning: row.totalInstructorShare || 0,   // Net Earning
+        watchTime: row.totalWatchTime || 0,    // Total Watch Time
+        payoutDate: row.processedDate
+          ? format(row.processedDate.toDate(), "dd MMM yyyy")
+          : "N/A",
+      };
     });
 
-    return {
-      month: `${monthName} ${year}`,
-      preTax: row.totalRevenue,         // Pre-Tax Amount
-      withoutHolding: row.subscriptionRevenue,        // Without Holding Tax
-      netEarning: row.totalInstructorShare,   // Net Earning
-      payoutDate: row.processedDate
-        ? format(row.processedDate.toDate(), "dd MMM yyyy")
-        : "N/A",
-    };
-  });
-
+    // Calculate totals
+    const totals = tableData.reduce((acc: any, row: any) => ({
+      preTax: acc.preTax + row.preTax,
+      withoutHolding: acc.withoutHolding + row.withoutHolding,
+      netEarning: acc.netEarning + row.netEarning,
+      watchTime: acc.watchTime + row.watchTime,
+    }), { preTax: 0, withoutHolding: 0, netEarning: 0, watchTime: 0 });
    
     return(
         <div className="p-4 mt-4">
@@ -299,6 +332,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
             <TableHead>Pre Tax Amount</TableHead>
             <TableHead>Without Holding Tax</TableHead>
             <TableHead>Net Earning</TableHead>
+            <TableHead>Watch Time (Min)</TableHead>
             <TableHead>Expected Payout Date</TableHead>
           </TableRow>
         </TableHeader>
@@ -312,12 +346,22 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
               }}
             >
               <TableCell className="table-body-text">{row.month}</TableCell>
-              <TableCell className="table-body-text">₹{row.preTax}</TableCell>
-              <TableCell className="table-body-text">₹{row.withoutHolding}</TableCell>
-              <TableCell className="table-body-text">₹{row.netEarning}</TableCell>
+              <TableCell className="table-body-text">₹{row.preTax.toLocaleString()}</TableCell>
+              <TableCell className="table-body-text">₹{row.withoutHolding.toLocaleString()}</TableCell>
+              <TableCell className="table-body-text">₹{row.netEarning.toLocaleString()}</TableCell>
+              <TableCell className="table-body-text">{row.watchTime.toLocaleString()}</TableCell>
               <TableCell className="table-body-text">{row.payoutDate}</TableCell>
             </TableRow>
           ))}
+          {/* Totals Row */}
+          <TableRow className="ins-table-row font-semibold bg-gray-50">
+            <TableCell className="table-body-text">Total</TableCell>
+            <TableCell className="table-body-text">₹{totals.preTax.toLocaleString()}</TableCell>
+            <TableCell className="table-body-text">₹{totals.withoutHolding.toLocaleString()}</TableCell>
+            <TableCell className="table-body-text">₹{totals.netEarning.toLocaleString()}</TableCell>
+            <TableCell className="table-body-text">{totals.watchTime.toLocaleString()}</TableCell>
+            <TableCell className="table-body-text">-</TableCell>
+          </TableRow>
         </TableBody>
         </Table>
         </div>

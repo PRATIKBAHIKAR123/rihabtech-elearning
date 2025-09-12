@@ -24,6 +24,7 @@ export interface MonthlyRevenueSummary {
   courseRevenue: number;
   breakdown: RevenueShareBreakdown[];
   watchMinutes?: number; // Optional, for course revenue
+  totalWatchTime?: number; // Total watch time for the month
 }
 
 export interface InstructorRevenueSummary {
@@ -208,52 +209,66 @@ class RevenueSharingService {
         months.push(month);
       }
 
+      // Get payout data for the instructor for the year
+      const payoutQuery = query(
+        collection(db, 'payoutRequests'),
+        where('instructorId', '==', instructorId),
+        where('year', '==', year)
+      );
+      const payoutSnapshot = await getDocs(payoutQuery);
+      
+      console.log(`Found ${payoutSnapshot.size} payout documents for instructor ${instructorId} in year ${year}`);
+
       const monthlyBreakdowns: MonthlyRevenueSummary[] = [];
       let totalEarnings = 0;
       let subscriptionEarnings = 0;
       let courseEarnings = 0;
 
-      for (const month of months) {
-        try {
-          const [subscriptionRevenue, courseRevenue] = await Promise.all([
-            this.getSubscriptionRevenueForInstructor(instructorId, month, year),
-            this.getCourseRevenueForInstructor(instructorId, month, year)
-          ]);
-          console.log(`Month: ${month}, courseRevenue:`, courseRevenue);
-          const allBreakdowns = [...subscriptionRevenue, ...courseRevenue];
-          
-          const monthlySummary: MonthlyRevenueSummary = {
-            month,
-            year,
-            totalRevenue: allBreakdowns.reduce((sum, b) => sum + b.totalAmount, 0),
-            totalTax: allBreakdowns.reduce((sum, b) => sum + b.taxAmount, 0),
-            totalPlatformFee: allBreakdowns.reduce((sum, b) => sum + b.platformFee, 0),
-            totalInstructorShare: allBreakdowns.reduce((sum, b) => sum + b.instructorShare, 0),
-            subscriptionRevenue: subscriptionRevenue.reduce((sum, b) => sum + b.instructorShare, 0),
-            courseRevenue: courseRevenue.reduce((sum, b) => sum + b.instructorShare, 0),
-            breakdown: allBreakdowns,
-            watchMinutes: courseRevenue.reduce((sum, b) => sum + (b.watchMinutes || 0), 0)
-          };
+      // Group payouts by month
+      const monthlyPayouts = new Map<string, any[]>();
+      months.forEach(month => monthlyPayouts.set(month, []));
 
-          monthlyBreakdowns.push(monthlySummary);
-          totalEarnings += monthlySummary.totalInstructorShare;
-          subscriptionEarnings += monthlySummary.subscriptionRevenue;
-          courseEarnings += monthlySummary.courseRevenue;
-        } catch (error) {
-          console.error(`Error getting revenue for ${month}:`, error);
-          // Add empty month
-          monthlyBreakdowns.push({
-            month,
-            year,
-            totalRevenue: 0,
-            totalTax: 0,
-            totalPlatformFee: 0,
-            totalInstructorShare: 0,
-            subscriptionRevenue: 0,
-            courseRevenue: 0,
-            breakdown: []
-          });
+      payoutSnapshot.forEach(doc => {
+        const data = doc.data() as any;
+        console.log("Processing payout data:", data);
+        const month = data.month;
+        if (monthlyPayouts.has(month)) {
+          monthlyPayouts.get(month)!.push(data);
         }
+      });
+
+      // Process each month
+      for (const month of months) {
+        const monthPayouts = monthlyPayouts.get(month) || [];
+        
+        const monthlySummary: MonthlyRevenueSummary = {
+          month,
+          year,
+          totalRevenue: monthPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
+          totalTax: monthPayouts.reduce((sum, p) => sum + (p.taxAmount || 0), 0),
+          totalPlatformFee: monthPayouts.reduce((sum, p) => sum + (p.platformFee || 0), 0),
+          totalInstructorShare: monthPayouts.reduce((sum, p) => sum + (p.instructorShare || 0), 0),
+          subscriptionRevenue: 0, // No subscription data in current structure
+          courseRevenue: monthPayouts.reduce((sum, p) => sum + (p.instructorShare || 0), 0),
+          breakdown: monthPayouts.map(p => ({
+            baseAmount: p.amount || 0,
+            taxAmount: p.taxAmount || 0,
+            platformFee: p.platformFee || 0,
+            instructorShare: p.instructorShare || 0,
+            totalAmount: p.amount || 0,
+            revenueType: 'course' as const,
+            sourceId: p.courseId || 'unknown',
+            sourceName: p.courseTitle || 'Unknown Course',
+            watchMinutes: p.watchTimeMinutes || 0
+          })),
+          watchMinutes: monthPayouts.reduce((sum, p) => sum + (p.watchTimeMinutes || 0), 0),
+          totalWatchTime: monthPayouts.reduce((sum, p) => sum + (p.watchTimeMinutes || 0), 0)
+        };
+
+        console.log(`Month ${month} summary:`, monthlySummary);
+        monthlyBreakdowns.push(monthlySummary);
+        totalEarnings += monthlySummary.totalInstructorShare;
+        courseEarnings += monthlySummary.courseRevenue;
       }
 
       // Get current month for pending/processed calculations
