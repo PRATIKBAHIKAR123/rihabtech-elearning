@@ -16,6 +16,7 @@ import { Badge } from '../../../components/ui/badge';
 import { useAuth } from '../../../context/AuthContext';
 import { chatService, ChatConversation, ChatMessage, ChatStats } from '../../../utils/chatService';
 import { toast } from 'sonner';
+import AnnouncementModule from './announcementModule';
 
 export default function ChatInterface() {
   const [activeTab, setActiveTab] = useState("Messages");
@@ -387,13 +388,7 @@ export default function ChatInterface() {
       )}
 
       {activeTab === 'Announcements' && (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Announcements</p>
-            <p className="text-sm">Announcement features coming soon</p>
-          </div>
-        </div>
+        <AnnouncementModule/>
       )}
     </div>
   );
