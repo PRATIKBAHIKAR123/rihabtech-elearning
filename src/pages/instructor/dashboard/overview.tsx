@@ -19,8 +19,10 @@ import { getInstructorCourses } from "../../../utils/firebaseInstructorCourses";
 import { format } from "date-fns";
 import revenueSharingService, { MonthlyRevenueSummary } from "../../../utils/revenueSharingService";
 import courseWatchTimeService, { CourseWatchTimeData } from "../../../utils/courseWatchTimeService";
+import { useNavigate } from "react-router-dom";
 
 export const Overview = () =>{
+    const navigate = useNavigate();
     const [revenueMonthly, setRevenueMonthly] = useState<MonthlyRevenueSummary[]>([]);
     const [showmonthWiseReport, setShowMonthWiseReport] = useState(false);
     const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -414,6 +416,7 @@ export const Overview = () =>{
             </div>
           </div>
         </div>
+
       </div>
     )
 }

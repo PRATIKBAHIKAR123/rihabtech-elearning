@@ -72,7 +72,7 @@ export default function AnnouncementModule() {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('Delete this announcement?')) return;
+    if (!window.confirm('Delete this announcement?')) return;
     setAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 

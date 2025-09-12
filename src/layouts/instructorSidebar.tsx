@@ -1,4 +1,4 @@
-import { BarChartBig, LucideMessageCircleQuestion, X } from 'lucide-react';
+import { BarChartBig, LucideMessageCircleQuestion, X, DollarSign } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 

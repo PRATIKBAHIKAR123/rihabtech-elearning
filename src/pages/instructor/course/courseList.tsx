@@ -269,8 +269,8 @@ export default function CourseList() {
             <div className="ins-heading">
                 Courses
             </div>
-            {/* Payout Notification Banner - Only show if there are pending payouts or available earnings */}
-            {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
+                    {/* Payout Notification Banner - Only show if there are pending payouts or available earnings */}
+                    {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
                 <div className="rounded-[15px] border border-gray p-6 bg-gradient-to-r from-blue-50 to-green-50">
                     <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex flex-col md:flex-row items-start md:items-center gap-2">
                         <Button className="rounded-none bg-green-600 text-white hover:bg-green-700">
@@ -698,5 +698,5 @@ export default function CourseList() {
     </div>
   </div>
 </div>
-  );
+    );
 };
