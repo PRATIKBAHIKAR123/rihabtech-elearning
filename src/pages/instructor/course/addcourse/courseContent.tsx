@@ -1,5 +1,5 @@
 import { JSX, useEffect, useState } from "react";
-import { Check, ChevronRight, Book, BarChart2, Users, HelpCircle, MessageSquare, Film, FileText, Type, Layout, DollarSign, Megaphone, Captions } from 'lucide-react';
+import { Check, ChevronRight, Book, BarChart2, Users, HelpCircle, MessageSquare, Film, FileText, Type, Layout, DollarSign, Megaphone, Captions, } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "../../../../components/ui/radio";
 import { IntendentLearners } from "./intendedLearners";
 import { CourseStructure } from "./courseStructur";
@@ -15,6 +15,7 @@ import PracticeTest from "../addPracticetest/practiceMCQ";
 import { SubmitReviewDialog } from "../../../../components/ui/submitReviewDialog";
 import { SubmitRequirementsDialog } from "../../../../components/ui/submitrequiremntdialog";
 import Pricing from "./pricing";
+import CourseCouponsPage from "./coupens";
 
 const CourseContent = () => {
     const [selectedItem, setSelectedItem] = useState("intended-learners");
@@ -56,6 +57,7 @@ const CourseContent = () => {
                 { id: "practice-test", icon: <Users size={18} />, label: "Practise Test" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
+                { id: "coupens", icon: <Type size={18} />, label: "Coupens" },
                 // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
@@ -71,6 +73,7 @@ const CourseContent = () => {
                 // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
+                { id: "coupens", icon: <Type size={18} />, label: "Coupens" },
                 // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
@@ -147,6 +150,10 @@ const CourseContent = () => {
                 <Pricing 
                   draftId={localStorage.getItem('draftId') || 'test-draft-id'}
                   onSubmit={()=>{setSelectedItem('course-messages')}}
+                />
+            )}
+            {selectedItem === "coupens"&&(
+                <CourseCouponsPage
                 />
             )}
             {selectedItem === "promotions" && (

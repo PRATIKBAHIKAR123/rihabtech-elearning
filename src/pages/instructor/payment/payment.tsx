@@ -15,13 +15,15 @@ import {
   BarChart3,
   BookOpen,
   Users,
-  X
+  X,
+  CreditCard
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { payoutService, PayoutRequest, EarningsSummary, PayoutBreakdown, CourseEarnings } from "../../../utils/payoutService";
 import { toast } from "sonner";
 import { db } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { File } from "lucide-react";
 
 export default function InstructorPayment() {
   console.log('=== InstructorPayment component START ===');
@@ -430,7 +432,7 @@ export default function InstructorPayment() {
             <nav className="-mb-px flex space-x-8">
               {[
                 { id: 'overview', label: 'Overview', icon: BarChart3 },
-                { id: 'earnings', label: 'Earnings', icon: DollarSign },
+                { id: 'earnings', label: 'Earnings', icon: CreditCard },
                 { id: 'history', label: 'Payout History', icon: Clock },
                 { id: 'analytics', label: 'Analytics', icon: TrendingUp }
               ].map((tab) => {
@@ -462,7 +464,7 @@ export default function InstructorPayment() {
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg">
-                    <DollarSign className="h-6 w-6 text-green-600" />
+                    <CreditCard className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Earnings</p>

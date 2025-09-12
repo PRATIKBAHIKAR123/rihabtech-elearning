@@ -62,7 +62,7 @@ const PreviewCourse = () => {
 
 
   const goToDashboard = () => {
-    window.location.hash = '#/instructor/dashboard';
+    window.location.hash = '#/instructor/course-test-selection';
   };
 
   // Submit for Review handler
@@ -88,7 +88,7 @@ const PreviewCourse = () => {
             </ul>
           </div>
           <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow" onClick={goToDashboard}>
-            Go to Dashboard
+            Go to Courses
           </Button>
         </div>
       </div>

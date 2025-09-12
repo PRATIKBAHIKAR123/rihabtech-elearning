@@ -7,6 +7,7 @@ export interface DashboardStats {
   totalStudents: number;
   totalCourses: number;
   currentMonthRevenue: number;
+  totalWatchtime: number;
   currentMonthEnrollments: number;
 }
 
@@ -89,25 +90,35 @@ class DashboardService {
   private readonly MODULE_PROGRESS_COLLECTION = 'moduleProgress';
 
   // Get overview statistics
-  async getDashboardStats(instructorId: string): Promise<DashboardStats> {
+  async getDashboardStats(instructorId: string, selectedCourse: string | null): Promise<DashboardStats> {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const currentYear = new Date().getFullYear();
 
       // Get total revenue from payouts
-      const payoutQuery = query(
-        collection(db, this.PAYOUT_REQUESTS_COLLECTION),
-        where('instructorId', '==', instructorId),
-        where('status', '==', 'processed')
-      );
+      let conditions = [
+  where("instructorId", "==", instructorId),
+  where("status", "==", "processed"),
+];
+
+      if (selectedCourse && selectedCourse !== "all-courses") {
+  conditions.push(where("courseId", "==", selectedCourse));
+}
+
+const payoutQuery = query(
+  collection(db, this.PAYOUT_REQUESTS_COLLECTION),
+  ...conditions
+);
       const payoutSnapshot = await getDocs(payoutQuery);
       let totalRevenue = 0;
+      let totalWatchtime = 0;
       let currentMonthRevenue = 0;
 
       payoutSnapshot.forEach(doc => {
         const data = doc.data() as any;
         const amount = data.amount || 0;
         totalRevenue += amount;
+        totalWatchtime += data.watchTimeMinutes || 0;
 
         if (data.month === currentMonth && data.year === currentYear) {
           currentMonthRevenue += amount;
@@ -138,10 +149,17 @@ class DashboardService {
         }
       });
 
+      let courseConditions = [
+  where('instructorId', '==', instructorId)
+];
+
+if (selectedCourse && selectedCourse !== "all-courses") {
+  courseConditions.push(where("id", "==", selectedCourse));
+}
       // Get total courses
       const coursesQuery = query(
         collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
+        ...courseConditions
       );
       const coursesSnapshot = await getDocs(coursesQuery);
       const totalCourses = coursesSnapshot.size;
@@ -151,6 +169,7 @@ class DashboardService {
         totalEnrollments,
         totalStudents: uniqueStudents.size,
         totalCourses,
+        totalWatchtime,
         currentMonthRevenue,
         currentMonthEnrollments
       };
@@ -760,6 +779,7 @@ class DashboardService {
       totalEnrollments: 9999999,
       totalStudents: 9999999,
       totalCourses: 3,
+      totalWatchtime: 9999999,
       currentMonthRevenue: 40000,
       currentMonthEnrollments: 999999
     };

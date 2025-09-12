@@ -10,6 +10,7 @@ export interface RevenueShareBreakdown {
   revenueType: 'subscription' | 'course';
   sourceId: string; // subscription ID or course ID
   sourceName: string; // plan name or course title
+  watchMinutes?: number; // Optional, for course revenue
 }
 
 export interface MonthlyRevenueSummary {
@@ -22,6 +23,7 @@ export interface MonthlyRevenueSummary {
   subscriptionRevenue: number;
   courseRevenue: number;
   breakdown: RevenueShareBreakdown[];
+  watchMinutes?: number; // Optional, for course revenue
 }
 
 export interface InstructorRevenueSummary {
@@ -180,6 +182,7 @@ class RevenueSharingService {
 
         revenueBreakdowns.push({
           ...breakdown,
+          watchMinutes: data.watchMinutes,
           revenueType: 'course',
           sourceId: courseId,
           sourceName: data.courseTitle
@@ -216,7 +219,7 @@ class RevenueSharingService {
             this.getSubscriptionRevenueForInstructor(instructorId, month, year),
             this.getCourseRevenueForInstructor(instructorId, month, year)
           ]);
-
+          console.log(`Month: ${month}, courseRevenue:`, courseRevenue);
           const allBreakdowns = [...subscriptionRevenue, ...courseRevenue];
           
           const monthlySummary: MonthlyRevenueSummary = {
@@ -228,7 +231,8 @@ class RevenueSharingService {
             totalInstructorShare: allBreakdowns.reduce((sum, b) => sum + b.instructorShare, 0),
             subscriptionRevenue: subscriptionRevenue.reduce((sum, b) => sum + b.instructorShare, 0),
             courseRevenue: courseRevenue.reduce((sum, b) => sum + b.instructorShare, 0),
-            breakdown: allBreakdowns
+            breakdown: allBreakdowns,
+            watchMinutes: courseRevenue.reduce((sum, b) => sum + (b.watchMinutes || 0), 0)
           };
 
           monthlyBreakdowns.push(monthlySummary);

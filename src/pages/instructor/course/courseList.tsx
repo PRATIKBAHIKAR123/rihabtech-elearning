@@ -9,7 +9,7 @@ import {
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
 
 // Extended interface for UI display with additional properties
-interface CourseDisplayData extends InstructorCourse {
+export interface CourseDisplayData extends InstructorCourse {
   earnings: number;
   enrollments: number;
   ratings: number;
@@ -250,7 +250,7 @@ export default function CourseList() {
                 <div className="rounded-[15px] border border-gray p-6 bg-gradient-to-r from-blue-50 to-green-50">
                     <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex flex-col md:flex-row items-start md:items-center gap-2">
                         <Button className="rounded-none bg-green-600 text-white hover:bg-green-700">
-                            <DollarSign className="h-4 w-4 mr-2" />
+                            {/* <DollarSign className="h-4 w-4 mr-2" /> */}
                             New
                         </Button> 
                         <span className="flex items-center">
@@ -389,14 +389,14 @@ export default function CourseList() {
                             className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between hover:shadow-lg cursor-pointer" 
                             onClick={() => handleCourseClick(course)}
                         >
-                            <div className="flex gap-2 items-center">
+                            <div className="flex gap-2 items-center w-full md:w-1/3">
                                 <img 
                                     src={course.thumbnail || "Images/4860253.png"} 
                                     className="w-20 h-[82.29px] rounded-lg object-cover" 
                                     alt={course.title}
                                 />
                                 <div>
-                                    <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
+                                    <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins'] truncate max-w-md">
                                         {course.title || "Untitled Course"}
                                     </div>
                                     <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">

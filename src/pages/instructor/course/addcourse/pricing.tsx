@@ -13,7 +13,7 @@ import {
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { X, UserPlus, Globe, Smartphone, Lock, Users } from "lucide-react";
 
-interface Member {
+export interface Member {
   id: string;
   email: string;
   role: string;
