@@ -18,6 +18,7 @@ import { CourseDisplayData } from "../course/courseList";
 import { getInstructorCourses } from "../../../utils/firebaseInstructorCourses";
 import { format } from "date-fns";
 import revenueSharingService, { MonthlyRevenueSummary } from "../../../utils/revenueSharingService";
+import courseWatchTimeService, { CourseWatchTimeData } from "../../../utils/courseWatchTimeService";
 
 export const Overview = () =>{
     const [revenueMonthly, setRevenueMonthly] = useState<MonthlyRevenueSummary[]>([]);
@@ -25,6 +26,7 @@ export const Overview = () =>{
     const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
     const [revenueStats, setRevenueStats] = useState<RevenueData[]>([]);
     const [courses, setCourses] = useState<CourseDisplayData[]>([]);
+    const [courseWatchTimeData, setCourseWatchTimeData] = useState<CourseWatchTimeData[]>([]);
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -33,6 +35,21 @@ export const Overview = () =>{
     const [selectedCourse, setSelectedCourse] = useState<string >('all-courses');
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
+
+    // Format watch time function
+    const formatWatchTime = (minutes: number): string => {
+        if (minutes < 60) {
+            return `${Math.round(minutes)} Min`;
+        } else if (minutes < 1440) { // Less than 24 hours
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = Math.round(minutes % 60);
+            return `${hours}h ${remainingMinutes}m`;
+        } else {
+            const days = Math.floor(minutes / 1440);
+            const remainingHours = Math.floor((minutes % 1440) / 60);
+            return `${days}d ${remainingHours}h`;
+        }
+    };
 
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -46,9 +63,10 @@ export const Overview = () =>{
             
             try {
                 setLoading(true);
-                const [stats, revenue] = await Promise.all([
+                const [stats, revenue, watchTimeData] = await Promise.all([
                     dashboardService.getDashboardStats(instructorId,selectedCourse==='all-courses'?null:selectedCourse),
-                    dashboardService.getRevenueStatistics(instructorId, new Date().getFullYear())
+                    dashboardService.getRevenueStatistics(instructorId, new Date().getFullYear()),
+                    courseWatchTimeService.getCourseWatchTimeData(instructorId)
                 ]);
 
                 const revenueWithMonthNames = revenue.map((item) => ({
@@ -57,6 +75,8 @@ export const Overview = () =>{
                 }));
               setDashboardStats(stats);
               setRevenueStats(revenueWithMonthNames);
+              setCourseWatchTimeData(watchTimeData);
+              console.log("Course watch time data loaded:", watchTimeData);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 // Fallback to mock data
@@ -122,14 +142,76 @@ export const Overview = () =>{
                 const monthlyrevenueData = await 
                     revenueSharingService.getInstructorRevenueSummary(instructorId,2025)
                 
-                console.log("Monthly Revenue Data:", monthlyrevenueData);
+                     console.log("Monthly Revenue Data:", monthlyrevenueData);
                 console.log("Monthly Breakdown:", monthlyrevenueData.monthlyBreakdown);
                 
                 if (monthlyrevenueData.monthlyBreakdown && monthlyrevenueData.monthlyBreakdown.length > 0) {
-                    setRevenueMonthly(monthlyrevenueData.monthlyBreakdown);
+                    console.log("Setting revenue monthly data:", monthlyrevenueData.monthlyBreakdown);
+                    console.log("Number of months in breakdown:", monthlyrevenueData.monthlyBreakdown.length);
+                    console.log("Months in breakdown:", monthlyrevenueData.monthlyBreakdown.map(m => m.month));
+                    
+                    // Ensure we have exactly 12 months
+                    const allMonths = [];
+                    for (let i = 1; i <= 12; i++) {
+                        const monthKey = `2025-${i.toString().padStart(2, '0')}`;
+                        const existingMonth = monthlyrevenueData.monthlyBreakdown.find(m => m.month === monthKey);
+                        if (existingMonth) {
+                            allMonths.push(existingMonth);
+                        } else {
+                            // Create empty month data
+                            // Calculate expected payout date for empty months
+                            const [year, monthNum] = monthKey.split("-");
+                            const nextMonth = parseInt(monthNum) === 12 ? 1 : parseInt(monthNum) + 1;
+                            const nextYear = parseInt(monthNum) === 12 ? parseInt(year) + 1 : parseInt(year);
+                            const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
+                            
+                            allMonths.push({
+                                month: monthKey,
+                                year: 2025,
+                                totalRevenue: 0,
+                                totalTax: 0,
+                                totalPlatformFee: 0,
+                                totalInstructorShare: 0,
+                                subscriptionRevenue: 0,
+                                courseRevenue: 0,
+                                withoutHoldingTax: 0,
+                                processedDate: expectedPayoutDate,
+                                breakdown: [],
+                                watchMinutes: 0,
+                                totalWatchTime: 0
+                            });
+                        }
+                    }
+                    
+                    console.log("Final months data (12 months):", allMonths.length);
+                    setRevenueMonthly(allMonths);
                 } else {
-                    console.log("No monthly breakdown data found");
-                    setRevenueMonthly([]);
+                    console.log("No monthly breakdown data found, creating empty 12 months");
+                    // Create empty 12 months
+                    const emptyMonths = [];
+                    for (let i = 1; i <= 12; i++) {
+                        // Calculate expected payout date for empty months
+                        const nextMonth = i === 12 ? 1 : i + 1;
+                        const nextYear = i === 12 ? 2026 : 2025;
+                        const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
+                        
+                        emptyMonths.push({
+                            month: `2025-${i.toString().padStart(2, '0')}`,
+                            year: 2025,
+                            totalRevenue: 0,
+                            totalTax: 0,
+                            totalPlatformFee: 0,
+                            totalInstructorShare: 0,
+                            subscriptionRevenue: 0,
+                            courseRevenue: 0,
+                            withoutHoldingTax: 0,
+                            processedDate: expectedPayoutDate,
+                            breakdown: [],
+                            watchMinutes: 0,
+                            totalWatchTime: 0
+                        });
+                    }
+                    setRevenueMonthly(emptyMonths);
                 }
             } catch (error) {
                 console.error("Error loading monthly revenue data:", error);
@@ -204,6 +286,134 @@ export const Overview = () =>{
         {showmonthWiseReport&&
             <MonthWiseReports data={revenueMonthly}/>
         }
+        
+        {/* Course-wise Watch Time Section */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Course-wise Watch Time</h2>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Watch Time</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatWatchTime(courseWatchTimeData.reduce((sum, course) => sum + course.totalWatchTime, 0))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Students</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {courseWatchTimeData.reduce((sum, course) => sum + course.totalStudents, 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Avg. Watch Time</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatWatchTime(
+                        courseWatchTimeData.reduce((sum, course) => sum + course.totalStudents, 0) > 0
+                          ? courseWatchTimeData.reduce((sum, course) => sum + course.totalWatchTime, 0) / 
+                            courseWatchTimeData.reduce((sum, course) => sum + course.totalStudents, 0)
+                          : 0
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Courses</p>
+                    <p className="text-2xl font-bold text-gray-900">{courseWatchTimeData.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Watch Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Watch Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Accessed</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {courseWatchTimeData.map((course) => (
+                    <tr key={course.courseId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{course.courseTitle}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 font-semibold">{formatWatchTime(course.totalWatchTime)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{course.totalStudents}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatWatchTime(course.averageWatchTime)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${course.completionRate}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-900">{Math.round(course.completionRate)}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {course.lastAccessed.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     )
 }
@@ -284,6 +494,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
   const MonthWiseReports = ({data}:any) =>{
 
     console.log("Monthly Revenue Data in Report Component:", data);
+    console.log("Number of months received:", data?.length);
 
     if (!data || data.length === 0) {
       return (
@@ -296,23 +507,32 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
       );
     }
 
-    const tableData = data.map((row:any) => {
-      const [year, month] = row?.month?.split("-");
-      const monthName = new Date(Number(year), Number(month) - 1).toLocaleString("default", {
-        month: "long",
-      });
+      const tableData = data.map((row:any) => {
+      console.log("Processing row:", row);
+    const [year, month] = row?.month?.split("-");
+    const monthName = new Date(Number(year), Number(month) - 1).toLocaleString("default", {
+      month: "long",
+    });
 
-      return {
-        month: `${monthName} ${year}`,
+      console.log(`Month: ${row?.month}, Year: ${year}, Month: ${month}, MonthName: ${monthName}`);
+
+    return {
+      month: `${monthName} ${year}`,
         preTax: row.totalRevenue || 0,         // Pre-Tax Amount
-        withoutHolding: row.subscriptionRevenue || 0,        // Without Holding Tax
+        withoutHolding: row.withoutHoldingTax || 0,        // Without Holding Tax
         netEarning: row.totalInstructorShare || 0,   // Net Earning
         watchTime: row.totalWatchTime || 0,    // Total Watch Time
-        payoutDate: row.processedDate
-          ? format(row.processedDate.toDate(), "dd MMM yyyy")
-          : "N/A",
-      };
-    });
+      payoutDate: row.processedDate
+        ? format(
+            row.processedDate.toDate ? row.processedDate.toDate() : row.processedDate,
+            "dd MMM yyyy"
+          )
+        : "N/A",
+    };
+  });
+
+    console.log("Table data after processing:", tableData);
+    console.log("Months in table data:", tableData.map((t: any) => t.month));
 
     // Calculate totals
     const totals = tableData.reduce((acc: any, row: any) => ({

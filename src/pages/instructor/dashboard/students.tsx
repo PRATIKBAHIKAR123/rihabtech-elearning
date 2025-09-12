@@ -36,8 +36,8 @@ export const Students = () =>{
             } catch (error) {
                 console.error('Error loading data:', error);
                 // Fallback to mock data
-                setStudents(dashboardService.getMockStudentsData());
-                setCourses(dashboardService.getMockCoursesData());
+                setStudents([]);
+                setCourses([]);
             } finally {
                 setLoading(false);
             }
@@ -50,10 +50,23 @@ export const Students = () =>{
     const filteredStudents = selectedCourse === "all" 
         ? students 
         : students.filter(student => {
-            // For now, we'll show all students since we don't have course-specific enrollment data
-            // In a real implementation, you'd filter by actual course enrollments
-            return true;
+            // Filter by courseId if available, otherwise by course name
+            const courseMatch = student.courseId === selectedCourse || student.course === courses.find(c => c.id === selectedCourse)?.title;
+            console.log(`Student ${student.name} - courseId: ${student.courseId}, course: ${student.course}, selectedCourse: ${selectedCourse}, match: ${courseMatch}`);
+            return courseMatch;
         });
+
+    console.log(`Selected course: ${selectedCourse}, Total students: ${students.length}, Filtered students: ${filteredStudents.length}`);
+
+    // Calculate statistics for filtered students
+    const totalStudents = filteredStudents.length;
+    const activeStudents = filteredStudents.filter(s => s.status === 'active').length;
+    const completedStudents = filteredStudents.filter(s => s.status === 'completed').length;
+    const inactiveStudents = filteredStudents.filter(s => s.status === 'inactive').length;
+    const totalCoursesEnrolled = filteredStudents.reduce((sum, s) => sum + s.numberOfCourses, 0);
+    const averageProgress = filteredStudents.length > 0 
+        ? Math.round(filteredStudents.reduce((sum, s) => sum + s.progress, 0) / filteredStudents.length)
+        : 0;
 
     if (loading) {
         return (
@@ -73,40 +86,64 @@ export const Students = () =>{
                                 <SelectValue placeholder="Choose a Course" />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
-                                <SelectItem value="all">All Courses</SelectItem>
-                                {courses.map(course => (
-                                    <SelectItem key={course.id} value={course.id}>
-                                        {course.title}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="all">All Courses ({students.length} students)</SelectItem>
+                                {courses.map(course => {
+                                    const courseStudents = students.filter(s => s.courseId === course.id).length;
+                                    return (
+                                        <SelectItem key={course.id} value={course.id}>
+                                            {course.title} ({courseStudents} students)
+                                        </SelectItem>
+                                    );
+                                })}
                             </SelectContent>
                         </Select>
           </div>
           
         </div>
         
+        {/* Filter Summary */}
+        {selectedCourse !== "all" && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                    Showing students for: <strong>{courses.find(c => c.id === selectedCourse)?.title}</strong> 
+                    ({filteredStudents.length} of {students.length} students)
+                </p>
+            </div>
+        )}
+        
         <div className="flex flex-col md:flex-row gap-2 mb-4">
           <StatsCard 
             title="Total Students Enrolled" 
-            value={filteredStudents.length.toString()}
-            growth={filteredStudents.filter(s => s.status === 'active').length.toString()}
+            value={totalStudents.toString()}
+            growth={activeStudents.toString()}
             period="Active Students" 
           />
           <StatsCard 
             title="Total Students Enrolled (Paid Courses)" 
-            value={filteredStudents.filter(s => s.status === 'completed').length.toString()}
-            growth={filteredStudents.filter(s => s.status === 'inactive').length.toString()}
+            value={completedStudents.toString()}
+            growth={inactiveStudents.toString()}
             period="Completed/Inactive" 
           />
           <StatsCard 
             title="Total Students Enrolled (Free Courses)" 
-            value={filteredStudents.reduce((sum, s) => sum + s.numberOfCourses, 0).toString()}
-            growth={filteredStudents.reduce((sum, s) => sum + s.progress, 0).toString()}
+            value={totalCoursesEnrolled.toString()}
+            growth={averageProgress.toString()}
             period="Avg Progress %" 
           />
         </div>
         
-            <MonthWiseReports students={filteredStudents}/>
+            {filteredStudents.length > 0 ? (
+                <MonthWiseReports students={filteredStudents}/>
+            ) : (
+                <div className="p-4 mt-4 text-center">
+                    <div className="text-gray-500 py-8">
+                        {selectedCourse === "all" 
+                            ? "No students found." 
+                            : `No students found for the selected course.`
+                        }
+                    </div>
+                </div>
+            )}
       </div>
     )
 }

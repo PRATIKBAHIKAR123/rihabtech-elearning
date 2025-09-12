@@ -22,9 +22,11 @@ export interface MonthlyRevenueSummary {
   totalInstructorShare: number;
   subscriptionRevenue: number;
   courseRevenue: number;
+  withoutHoldingTax: number; // Without Holding Tax amount
   breakdown: RevenueShareBreakdown[];
   watchMinutes?: number; // Optional, for course revenue
   totalWatchTime?: number; // Total watch time for the month
+  processedDate?: any; // Expected payout date
 }
 
 export interface InstructorRevenueSummary {
@@ -237,19 +239,35 @@ class RevenueSharingService {
         }
       });
 
-      // Process each month
+      // Process each month - ensure all 12 months are included
       for (const month of months) {
         const monthPayouts = monthlyPayouts.get(month) || [];
         
+        const totalRevenue = monthPayouts.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const totalTax = monthPayouts.reduce((sum, p) => sum + (p.taxAmount || 0), 0);
+        const totalPlatformFee = monthPayouts.reduce((sum, p) => sum + (p.platformFee || 0), 0);
+        const totalInstructorShare = monthPayouts.reduce((sum, p) => sum + (p.instructorShare || 0), 0);
+        
+        // Calculate Without Holding Tax (Pre-tax amount minus platform fee)
+        const withoutHoldingTax = totalRevenue - totalPlatformFee;
+        
+        // Calculate Expected Payout Date (15th of the following month)
+        const [year, monthNum] = month.split("-");
+        const nextMonth = parseInt(monthNum) === 12 ? 1 : parseInt(monthNum) + 1;
+        const nextYear = parseInt(monthNum) === 12 ? parseInt(year) + 1 : parseInt(year);
+        const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
+
         const monthlySummary: MonthlyRevenueSummary = {
           month,
-          year,
-          totalRevenue: monthPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
-          totalTax: monthPayouts.reduce((sum, p) => sum + (p.taxAmount || 0), 0),
-          totalPlatformFee: monthPayouts.reduce((sum, p) => sum + (p.platformFee || 0), 0),
-          totalInstructorShare: monthPayouts.reduce((sum, p) => sum + (p.instructorShare || 0), 0),
+          year: parseInt(year),
+          totalRevenue,
+          totalTax,
+          totalPlatformFee,
+          totalInstructorShare,
           subscriptionRevenue: 0, // No subscription data in current structure
-          courseRevenue: monthPayouts.reduce((sum, p) => sum + (p.instructorShare || 0), 0),
+          courseRevenue: totalInstructorShare,
+          withoutHoldingTax,
+          processedDate: expectedPayoutDate,
           breakdown: monthPayouts.map(p => ({
             baseAmount: p.amount || 0,
             taxAmount: p.taxAmount || 0,
@@ -270,6 +288,10 @@ class RevenueSharingService {
         totalEarnings += monthlySummary.totalInstructorShare;
         courseEarnings += monthlySummary.courseRevenue;
       }
+
+      // Ensure we have exactly 12 months, even if some are empty
+      console.log(`Generated ${monthlyBreakdowns.length} monthly breakdowns`);
+      console.log('Months included:', monthlyBreakdowns.map(m => m.month));
 
       // Get current month for pending/processed calculations
       const currentMonth = new Date().toISOString().slice(0, 7);
@@ -376,13 +398,14 @@ class RevenueSharingService {
 
           const monthlySummary: MonthlyRevenueSummary = {
             month,
-            year,
+            year: year,
             totalRevenue: monthRevenue,
             totalTax: monthTax,
             totalPlatformFee: monthPlatformFee,
             totalInstructorShare: monthInstructorShare,
             subscriptionRevenue: monthSubscriptionRevenue,
             courseRevenue: 0, // Course revenue would be calculated separately
+            withoutHoldingTax: monthRevenue - monthPlatformFee,
             breakdown: []
           };
 
@@ -402,6 +425,7 @@ class RevenueSharingService {
             totalInstructorShare: 0,
             subscriptionRevenue: 0,
             courseRevenue: 0,
+            withoutHoldingTax: 0,
             breakdown: []
           });
         }
@@ -441,6 +465,7 @@ class RevenueSharingService {
           totalInstructorShare: 6000,
           subscriptionRevenue: 4000,
           courseRevenue: 2000,
+          withoutHoldingTax: 6000,
           breakdown: []
         },
         {
@@ -452,6 +477,7 @@ class RevenueSharingService {
           totalInstructorShare: 7200,
           subscriptionRevenue: 5000,
           courseRevenue: 2200,
+          withoutHoldingTax: 7200,
           breakdown: []
         }
       ]

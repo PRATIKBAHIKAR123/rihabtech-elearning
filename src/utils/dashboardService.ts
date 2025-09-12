@@ -217,8 +217,8 @@ if (selectedCourse && selectedCourse !== "all-courses") {
       const studentsSnapshot = await getDocs(studentsQuery);
 
       if (studentsSnapshot.empty) {
-        // Return mock data if no students found
-        return this.getMockStudentsData();
+        // Return empty array if no students found
+        return [];
       }
 
       // Convert Firestore data to StudentData format
@@ -249,101 +249,11 @@ if (selectedCourse && selectedCourse !== "all-courses") {
 
     } catch (error) {
       console.error('Error getting students data:', error);
-      // Fallback to mock data
-      return this.getMockStudentsData();
+      // Return empty array if no data found
+      return [];
     }
   }
 
-  // Mock students data for fallback
-  getMockStudentsData(): StudentData[] {
-    return [
-      {
-        id: '1',
-        name: 'Mehul Shah',
-        email: 'mehul.shah@email.com',
-        location: 'Mumbai, Maharashtra',
-        phone: '+91 98765 43210',
-        education: 'B.Tech Computer Science',
-        enrolledDate: new Date('2025-01-15'),
-        enrollmentDate: new Date('2025-01-15'),
-        numberOfCourses: 3,
-        status: 'active',
-        progress: 75,
-        lastAccessedAt: new Date('2025-08-22'),
-        lastActive: new Date('2025-08-22'),
-        course: 'Web Development Masterclass',
-        courseId: 'course-1'
-      },
-      {
-        id: '2',
-        name: 'Rajesh Kumar',
-        email: 'rajesh.kumar@email.com',
-        location: 'Delhi, NCR',
-        phone: '+91 98765 43211',
-        education: 'MCA',
-        enrolledDate: new Date('2025-01-20'),
-        enrollmentDate: new Date('2025-01-20'),
-        numberOfCourses: 2,
-        status: 'active',
-        progress: 45,
-        lastAccessedAt: new Date('2025-08-21'),
-        lastActive: new Date('2025-08-21'),
-        course: 'React.js Fundamentals',
-        courseId: 'course-2'
-      },
-      {
-        id: '3',
-        name: 'Priya Singh',
-        email: 'priya.singh@email.com',
-        location: 'Bangalore, Karnataka',
-        phone: '+91 98765 43212',
-        education: 'B.Sc Information Technology',
-        enrolledDate: new Date('2025-02-05'),
-        enrollmentDate: new Date('2025-02-05'),
-        numberOfCourses: 4,
-        status: 'completed',
-        progress: 100,
-        lastAccessedAt: new Date('2025-08-22'),
-        lastActive: new Date('2025-08-22'),
-        course: 'Full Stack Development',
-        courseId: 'course-3'
-      },
-      {
-        id: '4',
-        name: 'Amit Patel',
-        email: 'amit.patel@email.com',
-        location: 'Ahmedabad, Gujarat',
-        phone: '+91 98765 43213',
-        education: 'B.E Information Technology',
-        enrolledDate: new Date('2025-02-15'),
-        enrollmentDate: new Date('2025-02-15'),
-        numberOfCourses: 1,
-        status: 'inactive',
-        progress: 25,
-        lastAccessedAt: new Date('2025-07-15'),
-        lastActive: new Date('2025-07-15'),
-        course: 'Python for Beginners',
-        courseId: 'course-4'
-      },
-      {
-        id: '5',
-        name: 'Neha Sharma',
-        email: 'neha.sharma@email.com',
-        location: 'Pune, Maharashtra',
-        phone: '+91 98765 43214',
-        education: 'M.Tech Computer Science',
-        enrolledDate: new Date('2025-03-01'),
-        enrollmentDate: new Date('2025-03-01'),
-        numberOfCourses: 2,
-        status: 'dropped',
-        progress: 15,
-        lastAccessedAt: new Date('2025-06-20'),
-        lastActive: new Date('2025-06-20'),
-        course: 'Data Science Basics',
-        courseId: 'course-5'
-      }
-    ];
-  }
 
   // Get reviews data
   async getReviewsData(instructorId: string): Promise<ReviewData[]> {
@@ -749,7 +659,7 @@ if (selectedCourse && selectedCourse !== "all-courses") {
       const coursesSnapshot = await getDocs(coursesQuery);
 
       if (coursesSnapshot.empty) {
-        return this.getMockCoursesData();
+        return [];
       }
 
       const courses: CourseData[] = [];
@@ -768,7 +678,7 @@ if (selectedCourse && selectedCourse !== "all-courses") {
 
     } catch (error) {
       console.error('Error getting courses data:', error);
-      return this.getMockCoursesData();
+      return [];
     }
   }
 
@@ -801,32 +711,6 @@ if (selectedCourse && selectedCourse !== "all-courses") {
     }
   }
 
-  // Mock courses data for fallback
-  getMockCoursesData(): CourseData[] {
-    return [
-      {
-        id: '1',
-        title: 'Web Development Fundamentals',
-        category: 'Development',
-        subcategory: 'Web Development',
-        isActive: true
-      },
-      {
-        id: '2',
-        title: 'React.js Masterclass',
-        category: 'Development',
-        subcategory: 'Frontend Development',
-        isActive: true
-      },
-      {
-        id: '3',
-        title: 'Node.js Backend Development',
-        category: 'Development',
-        subcategory: 'Backend Development',
-        isActive: true
-      }
-    ];
-  }
 
   // Mock data for development/testing
   getMockDashboardStats(): DashboardStats {

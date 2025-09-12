@@ -51,8 +51,8 @@ export const Students = () => {
       } catch (error) {
         console.error('Error loading data:', error);
         // Fallback to mock data
-        const mockStudents = dashboardService.getMockStudentsData();
-        const mockCourses = dashboardService.getMockCoursesData();
+        const mockStudents: any[] = [];
+        const mockCourses: any[] = [];
         setStudents(mockStudents);
         setFilteredStudents(mockStudents);
         setCourses(mockCourses);
