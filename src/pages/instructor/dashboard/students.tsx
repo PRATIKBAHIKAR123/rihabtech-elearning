@@ -93,13 +93,13 @@ export const Students = () =>{
             period="Active Students" 
           />
           <StatsCard 
-            title="Total Students Enrolled" 
+            title="Total Students Enrolled (Paid Courses)" 
             value={filteredStudents.filter(s => s.status === 'completed').length.toString()}
             growth={filteredStudents.filter(s => s.status === 'inactive').length.toString()}
             period="Completed/Inactive" 
           />
           <StatsCard 
-            title="Total Students Enrolled" 
+            title="Total Students Enrolled (Free Courses)" 
             value={filteredStudents.reduce((sum, s) => sum + s.numberOfCourses, 0).toString()}
             growth={filteredStudents.reduce((sum, s) => sum + s.progress, 0).toString()}
             period="Avg Progress %" 
@@ -120,17 +120,17 @@ interface StatsCardProps {
 
 const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
     return (
-      <div className="p-4 bg-white rounded-lg shadow-[0px_1px_4px_0px_rgba(0,0,0,0.25)] shadow-sm flex-1">
+      <div className="p-4 bg-white rounded-lg shadow-[0px_1px_4px_0px_rgba(0,0,0,0.25)] shadow-md flex-1">
         <h3 className="text-black text-xl font-normal font-['Inter'] leading-[30px] mb-2">{title}</h3>
         <div className="flex justify-between items-start">
           <div>
             
             <p className=" text-primary text-[27px] font-semibold font-['Inter'] leading-10">{value}</p>
           </div>
-          <div className="text-right">
+          {/* <div className="text-right">
             <p className="text-primary text-[15px] font-semibold font-['Inter'] leading-snug">₹{growth}</p>
             <p className="text-black text-[10px] font-semibold font-['Inter'] leading-[15px]">{period}</p>
-          </div>
+          </div> */}
         </div>
       </div>
     );
@@ -142,7 +142,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
         return date.toLocaleDateString('en-GB', {
             day: '2-digit',
             month: '2-digit',
-            year: '2-digit'
+            year: 'numeric'
         }).replace(/\//g, ' / ');
     };
 
@@ -150,8 +150,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
         switch (status) {
             case 'active':
                 return <Badge className="bg-blue-100 text-blue-800">Active</Badge>;
-            case 'completed':
-                return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+           
             case 'inactive':
                 return <Badge className="bg-gray-100 text-gray-800">Non Active</Badge>;
             default:
@@ -164,9 +163,9 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
           <TableHeader className="ins-table-header">
             <TableRow className="table-head-text">
               <TableHead>Student Name</TableHead>
-              <TableHead>Location</TableHead>
+              {/* <TableHead>Location</TableHead> */}
               <TableHead>Enrolled Date</TableHead>
-              <TableHead>No. Of Courses</TableHead>
+              <TableHead>No. Of Courses Enrolled</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -174,7 +173,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
             {students.map((student, index) => (
               <TableRow key={student.id} className="ins-table-row cursor-pointer">
                 <TableCell className="table-body-text" onClick={()=>{window.location.hash='#/instructor/learner-profile'}}>{student.name}</TableCell>
-                <TableCell className="table-body-text">{student.location}</TableCell>
+                {/* <TableCell className="table-body-text">{student.location}</TableCell> */}
                 <TableCell className="table-body-text">{formatDate(student.enrolledDate)}</TableCell>
                 <TableCell className="table-body-text">{student.numberOfCourses.toString().padStart(2, '0')}</TableCell>
                 <TableCell className="table-body-text">{getStatusBadge(student.status)}</TableCell>
