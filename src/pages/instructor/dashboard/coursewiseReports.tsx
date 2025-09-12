@@ -8,9 +8,12 @@ import {
     TableRow,
   } from "../../../components/ui/table";
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { useAuth } from "../../../context/AuthContext";
+import { getInstructorCourses, InstructorCourse } from "../../../utils/firebaseInstructorCourses";
+import { CourseDisplayData } from "../course/courseList";
 
 export const CourseWiseReports = () =>{
     const data = [
@@ -55,18 +58,6 @@ export const CourseWiseReports = () =>{
         <div className="p-6">
         <div className="flex items-center">
           <h1 className="form-title mr-6">Revenue Report</h1>
-          <div>
-          <Select defaultValue="april">
-                            <SelectTrigger className="rounded-none text-primary border border-primary">
-                                <SelectValue placeholder="Choose a Currency" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                                <SelectItem value="april">April</SelectItem>
-                                <SelectItem value="development">May</SelectItem>
-
-                            </SelectContent>
-                        </Select>
-                        </div>
           </div>
 
           <div className="bg-gray-50 p-6 flex flex-col space-y-6 md:flex-row md:space-y-0 md:space-x-6">
@@ -96,12 +87,14 @@ export const CourseWiseReports = () =>{
         
         <div className="p-4 mt-4">
             <h1 className="py-2 text-[#414d55] text-base font-medium font-['Poppins'] leading-tight tracking-tight">Revenue List</h1>
-            <Table>
+            <Table className="border">
           <TableHeader className="ins-table-header">
             <TableRow className="table-head-text">
               <TableHead>Sr. No.</TableHead>
               {/* <TableHead>Pre Tax Amount</TableHead> */}
               <TableHead>Course Name</TableHead>
+              <TableHead>Tax Amount</TableHead>
+              <TableHead>Platform Charges</TableHead>
               <TableHead>Net Earning</TableHead>
               <TableHead>Total Watch time</TableHead>
             </TableRow>
@@ -125,22 +118,25 @@ export const CourseWiseReports = () =>{
 
   const DATA = {
     lifetimeRevenue: [
-      { name: 'Udemy Organic', value: 60, color: '#FFD700' },
-      { name: 'Ad Program', value: 15, color: '#3B82F6' },
-      { name: 'Your Promotions', value: 15, color: '#FCA5A5' },
-      { name: 'Refunds', value: 10, color: '#DC2626' },
+      { name: 'Platform Charges', value: 60, color: '#FFD700' },
+      
+      //{ name: 'Your Promotions', value: 15, color: '#00b318ff' },
+      { name: 'Tax', value: 10, color: '#DC2626' },
+      { name: 'Net Earning', value: 15, color: '#3B82F6' },
     ],
     promotionActivity: [
-      { name: 'Udemy Organic', value: 55, color: '#FF8C00' },
-      { name: 'Ad Program', value: 15, color: '#3B82F6' },
-      { name: 'Your Promotions', value: 15, color: '#FCA5A5' },
-      { name: 'Empty', value: 15, color: '#F3F4F6' },
+      { name: 'Platform Charges', value: 55, color: '#FF8C00' },
+     
+      //{ name: 'Your Promotions', value: 15, color: '#00b318ff' },
+      { name: 'Tax', value: 15, color: '#F3F4F6' },
+       { name: 'Net Earning', value: 15, color: '#3B82F6' },
     ],
     courseEarnings: [
-      { name: 'Udemy Organic', value: 55, color: '#FF8C00' },
-      { name: 'Ad Program', value: 15, color: '#3B82F6' },
-      { name: 'Your Promotions', value: 15, color: '#FCA5A5' },
-      { name: 'Empty', value: 15, color: '#F3F4F6' },
+      { name: 'Platform Charges', value: 55, color: '#FF8C00' },
+      
+      //{ name: 'Your Promotions', value: 15, color: '#00b318ff' },
+      { name: 'Tax', value: 15, color: '#F3F4F6' },
+      { name: 'Net Earning', value: 15, color: '#3B82F6' },
     ]
   };
 
@@ -155,64 +151,55 @@ interface RevenueCardProps {
 
 const RevenueCard = ({ title, data, showDropdown = false, showLegend = false }: RevenueCardProps) => {
     const [isOpen, setIsOpen] = useState(false);
-    const courses = [
-  "Web Development Bootcamp",
-  "React.js Fundamentals",
-  "Advanced JavaScript",
-  "Flutter Mobile App Development",
-  "Python for Data Science",
-  "Machine Learning Basics",
-  "UI/UX Design Principles",
-  "Digital Marketing Essentials",
-  "Cloud Computing with AWS",
-  "Cybersecurity Fundamentals"
-];
+    const [courses, setCourses] = useState<InstructorCourse[]>([]);
+        const [loading, setLoading] = useState(true);
+        const { user } = useAuth();
+        const [selectedCourse, setSelectedCourse] = useState<string>("all");
 
-const [selectedCourse, setSelectedCourse] = useState(courses[0]);
+        useEffect(() => {
+            fetchInstructorCourses();
+        }, [user?.UserName]);
+
+
+const fetchInstructorCourses = async () => {
+                try {
+                    setLoading(true);
+                    
+                    if (!user?.UserName) {
+                        console.log("No user email found");
+                        return;
+                    }
+        
+                    console.log("Fetching courses for user:", user.UserName);
+                    const instructorCourses = await getInstructorCourses(user.UserName);
+                    setCourses(instructorCourses);
+        
+                } catch (err) {
+                    console.error("Error fetching courses:", err);
+                    
+                } finally {
+                    setLoading(false);
+                }
+            };
     
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 h-full">
-        <div className="flex flex-col mb-4">
+        <div className="w-64 mb-4">
       {/* Header with dropdown */}
-      <div className="flex justify-start items-center">
-        <h2 className="text-lg font-semibold text-gray-800">
-          {selectedCourse} {/* show selected value */}
-        </h2>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="ml-2 text-gray-500 focus:outline-none"
-        >
-          <ChevronDown
-            className={`h-4 w-4 transition-transform duration-200 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-      </div>
+      <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Choose a Course" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                                <SelectItem value="all">All Courses</SelectItem>
+                                {courses.map(course => (
+                                    <SelectItem key={course.id} value={course.id}>
+                                        {course.title}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-      {/* Dropdown list */}
-      {isOpen && (
-        <div className="mt-2 bg-white border border-gray-200 rounded-md shadow-md">
-          <ul className="divide-y divide-gray-100">
-            {courses.map((course, index) => (
-              <li
-                key={index}
-                onClick={() => {
-                  setSelectedCourse(course);
-                  setIsOpen(false); // close dropdown after select
-                }}
-                className={`px-4 py-2 text-sm cursor-pointer ${
-                  course === selectedCourse
-                    ? "bg-orange-500 text-white font-semibold"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {course}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
         
         <div className="flex flex-col items-center justify-center flex-grow">
