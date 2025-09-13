@@ -84,7 +84,7 @@ export interface CourseData {
 
 class DashboardService {
   private readonly WATCH_TIME_COLLECTION = 'watchTimeData';
-  private readonly COURSES_COLLECTION = 'courses';
+  private readonly COURSES_COLLECTION = 'courseDrafts';
   private readonly PAYOUT_REQUESTS_COLLECTION = 'payoutRequests';
   private readonly STUDENT_ENROLLMENTS_COLLECTION = 'studentEnrollments';
   private readonly MODULE_PROGRESS_COLLECTION = 'moduleProgress';

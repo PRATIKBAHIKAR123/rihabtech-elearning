@@ -249,7 +249,7 @@ export const setupDemoPayoutData = async (instructorId: string) => {
     // Add courses
     console.log('Adding courses...');
     for (const course of courses) {
-      const docRef = doc(db, 'courses', course.courseId || `course_${Date.now()}`);
+      const docRef = doc(db, 'courseDrafts', course.courseId || `course_${Date.now()}`);
       batch.set(docRef, course);
     }
 
@@ -392,7 +392,7 @@ export const getDataSummary = async (instructorId: string) => {
     
     // Get courses count
     const coursesQuery = query(
-      collection(db, 'courses'),
+      collection(db, 'courseDrafts'),
       where('instructorId', '==', instructorId)
     );
     const coursesSnapshot = await getDocs(coursesQuery);

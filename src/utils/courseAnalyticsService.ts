@@ -37,7 +37,7 @@ class CourseAnalyticsService {
   private PAYOUT_REQUESTS_COLLECTION = 'payoutRequests';
   private STUDENT_ENROLLMENTS_COLLECTION = 'studentEnrollments';
   private WATCH_TIME_DATA_COLLECTION = 'watchTimeData';
-  private COURSES_COLLECTION = 'courses';
+  private COURSES_COLLECTION = 'courseDrafts';
   private USERS_COLLECTION = 'users';
 
   async getCourseAnalytics(instructorId: string): Promise<CourseAnalyticsData[]> {

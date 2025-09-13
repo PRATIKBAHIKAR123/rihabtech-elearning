@@ -24,7 +24,7 @@ export interface StudentCourseProgress {
 }
 
 class CourseWatchTimeService {
-  private COURSES_COLLECTION = 'courses';
+  private COURSES_COLLECTION = 'courseDrafts';
   private ENROLLMENTS_COLLECTION = 'studentEnrollments';
   private USERS_COLLECTION = 'users';
 

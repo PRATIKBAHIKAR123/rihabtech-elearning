@@ -62,7 +62,7 @@ class RevenueSharingService {
   private readonly SUBSCRIPTION_ORDERS_COLLECTION = 'subscriptionOrders';
   private readonly PAYMENT_TRANSACTIONS_COLLECTION = 'paymentTransactions';
   private readonly WATCH_TIME_COLLECTION = 'watchTimeData';
-  private readonly COURSES_COLLECTION = 'courses';
+  private readonly COURSES_COLLECTION = 'courseDrafts';
   private readonly USERS_COLLECTION = 'users';
   private readonly REVENUE_SHARING_COLLECTION = 'revenueSharing';
 
