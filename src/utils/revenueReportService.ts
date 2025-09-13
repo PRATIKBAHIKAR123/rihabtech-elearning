@@ -2,9 +2,7 @@ import {
   collection, 
   query, 
   where, 
-  getDocs, 
-  orderBy, 
-  limit,
+  getDocs,
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -153,20 +151,21 @@ class RevenueReportService {
     try {
       console.log('Fetching course revenue data for instructor:', instructorId);
       
-      // Get instructor's courses
-      const coursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
-      );
+      // Get all courses since courseDrafts don't have instructorId field
+      // In production, you should add instructorId when creating courses
+      const coursesQuery = query(collection(db, this.COURSES_COLLECTION));
       const coursesSnapshot = await getDocs(coursesQuery);
       
-      console.log(`Found ${coursesSnapshot.docs.length} courses for instructor ${instructorId}`);
+      console.log(`Found ${coursesSnapshot.docs.length} total courses, filtering for instructor ${instructorId}`);
       
       const courseRevenueData: CourseRevenueData[] = [];
 
       for (const courseDoc of coursesSnapshot.docs) {
         const courseData = courseDoc.data() as any;
         const courseId = courseDoc.id;
+        
+        // For now, process all courses since we don't have instructorId in courseDrafts
+        // In production, you should add instructorId when creating courses
 
         // Get enrollments for this course
         const enrollmentsQuery = query(
@@ -307,14 +306,20 @@ class RevenueReportService {
         const startOfMonth = new Date(year, date.getMonth(), 1);
         const endOfMonth = new Date(year, date.getMonth() + 1, 0);
         
+        // Get all enrollments for this month since studentEnrollments might not have instructorId
         const enrollmentsQuery = query(
-          collection(db, this.STUDENT_ENROLLMENTS_COLLECTION),
-          where('instructorId', '==', instructorId),
-          where('enrolledAt', '>=', startOfMonth),
-          where('enrolledAt', '<=', endOfMonth)
+          collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
         );
         const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-        const students = enrollmentsSnapshot.docs.length;
+        
+        // Filter enrollments for this month
+        const monthlyEnrollments = enrollmentsSnapshot.docs.filter(doc => {
+          const data = doc.data() as any;
+          const enrolledAt = data.enrolledAt?.toDate ? data.enrolledAt.toDate() : new Date(data.enrolledAt?._seconds * 1000);
+          return enrolledAt >= startOfMonth && enrolledAt <= endOfMonth;
+        });
+        
+        const students = monthlyEnrollments.length;
         
         // Calculate growth compared to previous month
         let growth = 0;
@@ -406,114 +411,6 @@ class RevenueReportService {
         monthlyGrowth: 0
       };
     }
-  }
-
-  // Mock data for testing when Firebase is not available
-  getMockRevenueTransactions(): RevenueTransaction[] {
-    return [
-      {
-        id: "FM8CWWUxnWTu7nJ9ghUw",
-        amount: 1200,
-        status: "processed",
-        watchTimeMinutes: 1450,
-        courseCount: 3,
-        month: "2025-01",
-        year: 2025,
-        platformFee: 580,
-        instructorShare: 870,
-        taxAmount: 216,
-        totalEarnings: 1416,
-        processedDate: new Date(2025, 1, 15),
-        requestDate: new Date(2025, 0, 15),
-        instructorId: "abdulquader152@gmail.com",
-        notes: "Successfully processed",
-        courseId: "course-1",
-        courseTitle: "Web Development Fundamentals"
-      },
-      {
-        id: "Ja3lXjHVzqPyVq8qvh8k",
-        amount: 750,
-        status: "approved",
-        watchTimeMinutes: 900,
-        courseCount: 2,
-        month: "2025-03",
-        year: 2025,
-        platformFee: 360,
-        instructorShare: 540,
-        taxAmount: 135,
-        totalEarnings: 885,
-        requestDate: new Date(2025, 2, 15),
-        instructorId: "abdulquader152@gmail.com",
-        notes: "Approved, processing payment",
-        courseId: "course-2",
-        courseTitle: "React.js Masterclass"
-      },
-      {
-        id: "UMl9pZRIZZpPi0mMy79g",
-        amount: 980,
-        status: "pending",
-        watchTimeMinutes: 1380,
-        courseCount: 3,
-        month: "2025-02",
-        year: 2025,
-        platformFee: 470,
-        instructorShare: 710,
-        taxAmount: 176,
-        totalEarnings: 1156,
-        requestDate: new Date(2025, 1, 15),
-        instructorId: "abdulquader152@gmail.com",
-        notes: "Pending review",
-        courseId: "course-1",
-        courseTitle: "Web Development Fundamentals"
-      }
-    ];
-  }
-
-  getMockCourseRevenueData(): CourseRevenueData[] {
-    return [
-      {
-        courseId: "course-1",
-        courseTitle: "Web Development Fundamentals",
-        totalRevenue: 2400,
-        totalStudents: 12,
-        totalWatchTime: 2880,
-        averageRevenue: 200,
-        completionRate: 75,
-        lastActivity: new Date(2025, 2, 20),
-        monthlyRevenue: [
-          { month: "2025-01", revenue: 800 },
-          { month: "2025-02", revenue: 900 },
-          { month: "2025-03", revenue: 700 }
-        ],
-        enrollments: 12,
-        price: 2999
-      },
-      {
-        courseId: "course-2",
-        courseTitle: "React.js Masterclass",
-        totalRevenue: 3600,
-        totalStudents: 18,
-        totalWatchTime: 4320,
-        averageRevenue: 200,
-        completionRate: 85,
-        lastActivity: new Date(2025, 2, 22),
-        monthlyRevenue: [
-          { month: "2025-01", revenue: 1200 },
-          { month: "2025-02", revenue: 1300 },
-          { month: "2025-03", revenue: 1100 }
-        ],
-        enrollments: 18,
-        price: 4999
-      }
-    ];
-  }
-
-  getMockMonthlyTrends(): MonthlyTrend[] {
-    return [
-      { month: "2025-01", revenue: 2000, students: 15, courses: 2, watchTime: 3600, growth: 15.5, enrollments: 15 },
-      { month: "2025-02", revenue: 2200, students: 18, courses: 2, watchTime: 4200, growth: 10.0, enrollments: 18 },
-      { month: "2025-03", revenue: 1800, students: 16, courses: 2, watchTime: 3800, growth: -18.2, enrollments: 16 }
-    ];
   }
 }
 

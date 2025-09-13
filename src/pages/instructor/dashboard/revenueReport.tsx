@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
@@ -7,10 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   DollarSign, 
   TrendingUp, 
-  Calendar, 
   BarChart3, 
   Download,
-  Filter,
   RefreshCw,
   Eye,
   Clock,
@@ -18,7 +16,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import revenueReportService, { 
   RevenueTransaction, 
   CourseRevenueData, 
@@ -27,7 +25,7 @@ import revenueReportService, {
 } from '../../../utils/revenueReportService';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 // Interfaces are now imported from the service
 
@@ -47,9 +45,77 @@ const RevenueReport: React.FC = () => {
   console.log('Current user:', user);
   console.log('Using instructorId:', instructorId);
 
+  const loadRevenueData = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log('Loading revenue data for instructor:', instructorId);
+      
+      const period = parseInt(selectedPeriod);
+      
+      console.log('Fetching real-time data from Firebase...');
+      
+      // Test Firebase connection first
+      console.log('Testing Firebase connection...');
+      const testQuery = query(collection(db, 'payoutRequests'), where('instructorId', '==', instructorId));
+      const testSnapshot = await getDocs(testQuery);
+      console.log('Firebase test query result:', testSnapshot.docs.length, 'documents found');
+      
+      if (testSnapshot.docs.length > 0) {
+        console.log('Sample Firebase document:', testSnapshot.docs[0].data());
+      }
+      
+      const [transactions, courses, trends, analyticsData] = await Promise.all([
+        revenueReportService.getRevenueTransactions(instructorId, period, selectedStatus, selectedCourse),
+        revenueReportService.getCourseRevenueData(instructorId),
+        revenueReportService.getMonthlyTrends(instructorId, period),
+        revenueReportService.getRevenueAnalytics(instructorId, period)
+      ]);
+
+      console.log('Firebase data fetched successfully:');
+      console.log('Transactions:', transactions.length);
+      console.log('Courses:', courses.length);
+      console.log('Trends:', trends.length);
+      console.log('Analytics:', analyticsData);
+      console.log('Sample transaction:', transactions[0]);
+      console.log('Sample course:', courses[0]);
+
+      console.log('Setting state with real data:');
+      console.log('Setting revenueData:', transactions.length, 'items');
+      console.log('Setting courseRevenueData:', courses.length, 'items');
+      console.log('Setting monthlyTrends:', trends.length, 'items');
+      console.log('Setting analytics:', analyticsData);
+      
+      setRevenueData(transactions);
+      setCourseRevenueData(courses);
+      setMonthlyTrends(trends);
+      setAnalytics(analyticsData);
+      
+    } catch (error) {
+      console.error('Error loading revenue data:', error);
+      // Set empty data instead of mock data
+      setRevenueData([]);
+      setCourseRevenueData([]);
+      setMonthlyTrends([]);
+      setAnalytics({
+        totalRevenue: 0,
+        totalPending: 0,
+        totalProcessed: 0,
+        totalWatchTime: 0,
+        totalStudents: 0,
+        totalCourses: 0,
+        averageRevenuePerStudent: 0,
+        averageWatchTimePerStudent: 0,
+        completionRate: 0,
+        monthlyGrowth: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [instructorId, selectedPeriod, selectedStatus, selectedCourse]);
+
   useEffect(() => {
     loadRevenueData();
-  }, [selectedPeriod, selectedStatus, selectedCourse, instructorId]);
+  }, [loadRevenueData]);
 
   // Debug effect to monitor state changes
   useEffect(() => {
@@ -60,91 +126,6 @@ const RevenueReport: React.FC = () => {
     console.log('analytics:', analytics);
     console.log('===================');
   }, [revenueData, courseRevenueData, monthlyTrends, analytics]);
-
-  const loadRevenueData = async () => {
-    try {
-      setLoading(true);
-      console.log('Loading revenue data for instructor:', instructorId);
-      
-      const period = parseInt(selectedPeriod);
-      
-      // Try to fetch real data from Firebase
-      try {
-        console.log('Attempting to fetch Firebase data...');
-        
-        // Test Firebase connection first
-        console.log('Testing Firebase connection...');
-        const testQuery = query(collection(db, 'payoutRequests'), where('instructorId', '==', instructorId));
-        const testSnapshot = await getDocs(testQuery);
-        console.log('Firebase test query result:', testSnapshot.docs.length, 'documents found');
-        
-        if (testSnapshot.docs.length > 0) {
-          console.log('Sample Firebase document:', testSnapshot.docs[0].data());
-        }
-        
-        const [transactions, courses, trends, analyticsData] = await Promise.all([
-          revenueReportService.getRevenueTransactions(instructorId, period, selectedStatus, selectedCourse),
-          revenueReportService.getCourseRevenueData(instructorId),
-          revenueReportService.getMonthlyTrends(instructorId, period),
-          revenueReportService.getRevenueAnalytics(instructorId, period)
-        ]);
-
-        console.log('Firebase data fetched successfully:');
-        console.log('Transactions:', transactions.length);
-        console.log('Courses:', courses.length);
-        console.log('Trends:', trends.length);
-        console.log('Analytics:', analyticsData);
-        console.log('Sample transaction:', transactions[0]);
-        console.log('Sample course:', courses[0]);
-
-        console.log('Setting state with data:');
-        console.log('Setting revenueData:', transactions.length, 'items');
-        console.log('Setting courseRevenueData:', courses.length, 'items');
-        console.log('Setting monthlyTrends:', trends.length, 'items');
-        console.log('Setting analytics:', analyticsData);
-        
-        setRevenueData(transactions);
-        setCourseRevenueData(courses);
-        setMonthlyTrends(trends);
-        setAnalytics(analyticsData);
-      } catch (firebaseError) {
-        console.warn('Firebase data not available, using mock data:', firebaseError);
-        console.error('Firebase error details:', firebaseError);
-        
-        // Fallback to mock data
-        const mockTransactions = revenueReportService.getMockRevenueTransactions();
-        const mockCourses = revenueReportService.getMockCourseRevenueData();
-        const mockTrends = revenueReportService.getMockMonthlyTrends();
-        const mockAnalytics = {
-          totalRevenue: 6000,
-          totalPending: 1156,
-          totalProcessed: 1416,
-          totalWatchTime: 3730,
-          totalStudents: 30,
-          totalCourses: 2,
-          averageRevenuePerStudent: 200,
-          averageWatchTimePerStudent: 124,
-          completionRate: 80,
-          monthlyGrowth: -18.2
-        };
-        
-        console.log('Using mock data:');
-        console.log('Mock Transactions:', mockTransactions.length);
-        console.log('Mock Courses:', mockCourses.length);
-        console.log('Mock Trends:', mockTrends.length);
-        console.log('Mock Analytics:', mockAnalytics);
-        
-        setRevenueData(mockTransactions);
-        setCourseRevenueData(mockCourses);
-        setMonthlyTrends(mockTrends);
-        setAnalytics(mockAnalytics);
-      }
-    } catch (error) {
-      console.error('Error loading revenue data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -223,20 +204,36 @@ const RevenueReport: React.FC = () => {
   console.log('Monthly Trends:', monthlyTrends.length);
   console.log('Analytics:', analytics);
 
-  // Show debug info in UI
+  // Show message when there's no data
   if (revenueData.length === 0 && !loading) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Revenue Data Available</h3>
-          <p className="text-gray-600 mb-4">Loading data for instructor: {instructorId}</p>
-          <p className="text-sm text-gray-500">Check browser console for debugging information.</p>
-          <button 
-            onClick={loadRevenueData}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Retry Loading Data
-          </button>
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <DollarSign className="w-12 h-12 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Revenue Data Found</h3>
+          <p className="text-gray-600 mb-4">
+            No revenue transactions found for instructor: <span className="font-medium">{instructorId}</span>
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            This could mean you haven't received any payouts yet, or there might be an issue with the data connection.
+          </p>
+          <div className="flex justify-center space-x-3">
+            <Button 
+              onClick={loadRevenueData}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Data
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.hash = '#/instructor/dashboard'}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );

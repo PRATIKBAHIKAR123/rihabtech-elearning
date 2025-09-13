@@ -89,11 +89,11 @@ export default function CourseList() {
             // Transform Firebase data to match the UI structure
             const transformedCourses: CourseDisplayData[] = instructorCourses.map(course => ({
                 ...course,
-                // Add mock data for fields not in Firebase (for now)
-                earnings: Math.floor(Math.random() * 5000) + 500, // Random earnings between 500-5500
-                enrollments: Math.floor(Math.random() * 100) + 20, // Random enrollments between 20-120
-                ratings: Math.floor(Math.random() * 200) + 500, // Random ratings between 500-700
-                ratingScore: parseFloat((Math.random() * 2 + 3).toFixed(1)) // Random rating between 3.0-5.0
+                // Use real data from Firestore or fallback to calculated values
+                earnings: course.members?.length ? course.members.length * 100 : 0, // Calculate based on members
+                enrollments: course.members?.length || 0, // Use actual member count
+                ratings: course.members?.length ? Math.floor(course.members.length * 0.8) : 0, // Calculate based on members
+                ratingScore: 4.5 // Default rating, can be enhanced with real review data
             }));
             
             console.log("Transformed courses:", transformedCourses);

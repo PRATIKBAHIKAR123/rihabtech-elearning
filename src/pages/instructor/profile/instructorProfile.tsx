@@ -26,7 +26,7 @@ const InstructorProfile: React.FC = () => {
           const userData = JSON.parse(token);
           setUser(userData);
 
-          // Fetch profile data from API
+          // Try to fetch profile data from API first
           if (userData?.AccessToken) {
             try {
               const response = await fetch(`${API_BASE_URL}user-profile`, {
@@ -42,11 +42,17 @@ const InstructorProfile: React.FC = () => {
                 console.log('Profile data fetched in main component:', profileData);
                 setProfile(profileData);
               } else {
-                console.error('Failed to fetch profile data');
+                console.error('Failed to fetch profile data, using user data as fallback');
+                setProfile(userData);
               }
             } catch (err) {
               console.error('Error fetching profile:', err);
+              // Use user data as fallback
+              setProfile(userData);
             }
+          } else {
+            // Use user data as fallback
+            setProfile(userData);
           }
         } catch (error) {
           console.error('Error parsing user data:', error);

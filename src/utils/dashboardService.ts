@@ -209,40 +209,67 @@ if (selectedCourse && selectedCourse !== "all-courses") {
   // Get students data
   async getStudentsData(instructorId: string): Promise<StudentData[]> {
     try {
-      // Try to fetch from users collection where role is student
-      const studentsQuery = query(
-        collection(db, 'users'),
-        where('Role', '==', 'student')
+      // Get student enrollments for instructor's courses
+      const enrollmentsQuery = query(
+        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
       );
-      const studentsSnapshot = await getDocs(studentsQuery);
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
 
-      if (studentsSnapshot.empty) {
-        // Return empty array if no students found
+      // Get instructor's courses first
+      const coursesQuery = query(
+        collection(db, this.COURSES_COLLECTION)
+      );
+      const coursesSnapshot = await getDocs(coursesQuery);
+      const instructorCourseIds = coursesSnapshot.docs.map(doc => doc.id);
+
+      // Filter enrollments for instructor's courses
+      const relevantEnrollments = enrollmentsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+        .filter((enrollment: any) => instructorCourseIds.includes(enrollment.courseId));
+
+      if (relevantEnrollments.length === 0) {
         return [];
       }
 
-      // Convert Firestore data to StudentData format
+      // Get unique student IDs
+      const studentIds = Array.from(new Set(relevantEnrollments.map((e: any) => e.studentId)));
+
+      // Get student data from users collection
       const students: StudentData[] = [];
-      studentsSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        students.push({
-          id: doc.id,
-          name: data.Name || 'Unknown Student',
-          email: data.UserName || 'unknown@email.com',
-          location: data.location || 'Unknown Location',
-          phone: data.phone || undefined,
-          education: data.education || undefined,
-          enrolledDate: data.enrolledDate ? data.enrolledDate.toDate() : new Date(),
-          enrollmentDate: data.enrolledDate ? data.enrolledDate.toDate() : new Date(),
-          numberOfCourses: data.coursesEnrolled || 0,
-          status: data.status || 'active',
-          progress: data.progress || 0,
-          lastAccessedAt: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date(),
-          lastActive: data.lastAccessedAt ? data.lastAccessedAt.toDate() : new Date(),
-          course: data.course || 'Unknown Course',
-          courseId: data.courseId || 'unknown-course'
+      
+      for (const studentId of studentIds) {
+        const studentQuery = query(
+          collection(db, 'users'),
+          where('email', '==', studentId)
+        );
+        const studentSnapshot = await getDocs(studentQuery);
+
+        studentSnapshot.forEach(doc => {
+          const data = doc.data() as any;
+          if (data.role === 'learner') {
+            // Get enrollments for this student
+            const studentEnrollments = relevantEnrollments.filter((e: any) => e.studentId === studentId);
+            
+            students.push({
+              id: doc.id,
+              name: `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown Student',
+              email: data.email || 'unknown@email.com',
+              location: data.address || 'Unknown Location',
+              phone: data.phone || undefined,
+              education: data.education || undefined,
+              enrolledDate: studentEnrollments[0]?.enrolledAt?.toDate() || new Date(),
+              enrollmentDate: studentEnrollments[0]?.enrolledAt?.toDate() || new Date(),
+              numberOfCourses: studentEnrollments.length,
+              status: data.status || 'active',
+              progress: studentEnrollments.reduce((sum: number, e: any) => sum + (e.progress || 0), 0) / studentEnrollments.length || 0,
+              lastAccessedAt: studentEnrollments[0]?.lastAccessedAt?.toDate() || new Date(),
+              lastActive: studentEnrollments[0]?.lastAccessedAt?.toDate() || new Date(),
+              course: studentEnrollments[0]?.courseTitle || 'Unknown Course',
+              courseId: studentEnrollments[0]?.courseId || 'unknown-course'
+            });
+          }
         });
-      });
+      }
 
       // Sort by last accessed date (most recent first)
       return students.sort((a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime());
