@@ -477,7 +477,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
                 axisLine={false}
                 tickLine={false}
                 ticks={[0, 2500, 5000, 7500, 10000]}
-                tickFormatter={(value) => `${value / 1000}k`}
+                tickFormatter={(value) => `₹${value / 1000}k`}
               />
               <CartesianGrid vertical={false} color="#bbb" strokeDasharray="0" />
               <Bar dataKey="value" fill="#FF6B00" width={0.20} radius={[5, 5, 0, 0]} />
@@ -563,10 +563,10 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
           {tableData.map((row:any, index:number) => (
             <TableRow
               key={index}
-              className="ins-table-row cursor-pointer"
-              onClick={() => {
-                window.location.hash = "#/instructor/monthly-revenue";
-              }}
+              className="ins-table-row"
+              // onClick={() => {
+              //   window.location.hash = "#/instructor/monthly-revenue";
+              // }}
             >
               <TableCell className="table-body-text">{row.month}</TableCell>
               <TableCell className="table-body-text">₹{row.preTax.toLocaleString()}</TableCell>

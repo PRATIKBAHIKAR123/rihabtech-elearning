@@ -120,7 +120,7 @@ const BankDetails: React.FC = () => {
   }
 
   return (
-    <div className="bg-white border border-[#E6E6E6] shadow-sm p-6">
+    <div className="bg-white border border-[#E6E6E6] shadow-sm p-6 mt-[32px]">
       {hasBankDetails ? (
         <div>
           {!isEditMode ? (

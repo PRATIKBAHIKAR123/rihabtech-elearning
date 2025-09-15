@@ -2,7 +2,7 @@ import React from 'react';
 
 const AccountSettings: React.FC = () => {
   return (
-    <div className="bg-white border border-[#E6E6E6] shadow-sm p-6">
+    <div className="bg-white border border-[#E6E6E6] mt-[32px] shadow-sm p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">Account & Security</h2>
         <p className="text-gray-600">

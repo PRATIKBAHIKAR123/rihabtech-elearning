@@ -265,7 +265,8 @@ export default function CourseList() {
       };
 
     return (
-        <div className="flex flex-col min-h-screen p-4 md:p-8">
+        <div className=" p-4 md:p-8">
+        <div className="flex flex-col min-h-screen">
             <div className="ins-heading">
                 Courses
             </div>
@@ -552,6 +553,7 @@ export default function CourseList() {
                     ))}
                 </div>
             )}
+        </div>
         </div>
     );
 }

@@ -44,6 +44,11 @@ const InstructorProfile: React.FC = () => {
               } else {
                 console.error('Failed to fetch profile data, using user data as fallback');
                 setProfile(userData);
+                localStorage.removeItem('token');
+      localStorage.setItem('logoutSuccess', 'true');
+      // Optionally, clear any other user state here
+      // Redirect to sign-in page
+      window.location.replace('/#/login');
               }
             } catch (err) {
               console.error('Error fetching profile:', err);

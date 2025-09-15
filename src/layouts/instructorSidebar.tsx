@@ -5,11 +5,11 @@ import { useAuth } from '../context/AuthContext';
 const Sidebar = () => {
  
   return (
-    <div className="group w-[82px] hover:w-60 transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
-      <nav className="mt-6 h-[98%] max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
+    <div className="group transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
+      <nav className="mt-6 h-full max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
         <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
         <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
-        <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
+        <SidebarItem icon={<ChatIcon />} text="Communications" route='#/instructor/chat' />
         <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
         <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/groups' />
         <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/students' />
