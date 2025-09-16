@@ -196,7 +196,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
     };
     return(
         <div className="p-4 mt-4">
-            <Table>
+            <Table className="border">
           <TableHeader className="ins-table-header">
             <TableRow className="table-head-text">
               <TableHead>Student Name</TableHead>

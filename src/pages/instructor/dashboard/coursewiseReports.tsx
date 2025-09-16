@@ -99,7 +99,7 @@ export const CourseWiseReports = () =>{
                         : 'text-gray-600 hover:text-gray-900'
                 }`}
             >
-                <DollarSign className="w-4 h-4 mr-2" />
+                <div className="mr-2" >₹</div>
                 Revenue Report
             </button>
             <button

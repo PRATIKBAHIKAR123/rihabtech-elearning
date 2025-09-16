@@ -315,7 +315,7 @@ const PreviewCourse = () => {
 
       {/* Pricing & Access */}
       <div className="mb-8">
-        <h3 className="text-xl font-bold flex items-center gap-2 mb-2"><DollarSign className="inline-block text-yellow-500" /> Pricing & Access</h3>
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-2"><div className="inline-block text-yellow-500" >₹</div> Pricing & Access</h3>
         <div className="mb-2"><strong>Pricing:</strong> {course.pricing ? course.pricing.charAt(0).toUpperCase() + course.pricing.slice(1) : 'N/A'}</div>
         <div className="mb-2">
           <strong>Access Platforms:</strong>

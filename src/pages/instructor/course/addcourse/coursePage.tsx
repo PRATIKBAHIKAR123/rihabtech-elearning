@@ -173,6 +173,9 @@ export function CourseLandingPage({ onSubmit }: any) {
               setThumbnailImage(draft.thumbnailUrl);
               formik.setFieldValue('thumbnail', draft.thumbnailUrl);
             }
+            else{
+              setThumbnailImage('/Images/icons/image_3748512.png');
+            }
             if (draft.promoVideoUrl) {
               setPromoVideo(draft.promoVideoUrl);
               formik.setFieldValue('promoVideo', draft.promoVideoUrl);
@@ -375,7 +378,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               />
             ) : (
               <img
-                src="/Images/image_3748512.png"
+                src="/Images/icons/image_3748512.png"
                 alt="Placeholder course"
                 className="rounded-lg w-80 h-48"
               />
@@ -416,7 +419,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               />
             ) : (
               <img
-                src="/Images/multimedia.png"
+                src="/Images/icons/multimedia.png"
                 alt="Placeholder promo"
                 className="rounded-lg w-80 h-48"
               />

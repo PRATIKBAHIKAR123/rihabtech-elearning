@@ -548,7 +548,7 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
     return(
         <div className="p-4 mt-4">
             <h1 className="py-2 text-[#414d55] text-base font-medium font-['Poppins'] leading-tight tracking-tight">Month Wise Report</h1>
-            <Table>
+            <Table className="border">
           <TableHeader className="ins-table-header">
           <TableRow className="table-head-text">
             <TableHead>Time Period</TableHead>

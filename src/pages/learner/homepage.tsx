@@ -175,7 +175,7 @@ export default function HomePage() {
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg mb-4">You haven't enrolled in any courses yet.</p>
               <Button
-                onClick={() => window.location.href = '/#/courses'}
+                onClick={() => window.location.href = '/#/courselist'}
                 className="px-6 py-3 bg-blue-600 text-white hover:bg-blue-700"
               >
                 Browse Courses
