@@ -37,15 +37,20 @@ export default function ChatInterface() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.UserName) return;
+      if (!user?.UserName) {
+        console.log('No user.UserName available for instructor:', user);
+        return;
+      }
       
       try {
         setLoading(true);
+        console.log('Loading conversations for instructor:', user.UserName);
         const [conversationsData, statsData, coursesData] = await Promise.all([
           chatService.getConversations(user.UserName),
           chatService.getChatStats(user.UserName),
           chatService.getConversationCourses(user.UserName)
         ]);
+        console.log('Loaded instructor conversations:', conversationsData);
         
         setConversations(conversationsData);
         setStats(statsData);

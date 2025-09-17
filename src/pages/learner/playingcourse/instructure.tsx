@@ -14,6 +14,7 @@ export default function Instructor({ instructorId, loading = false }: Instructor
 
   useEffect(() => {
     const fetchInstructor = async () => {
+      console.log("Instructor component - instructorId:", instructorId);
       if (!instructorId) {
         setInstructorLoading(false);
         return;
@@ -22,7 +23,9 @@ export default function Instructor({ instructorId, loading = false }: Instructor
       try {
         setInstructorLoading(true);
         setError(null);
+        console.log("Fetching instructor with ID:", instructorId);
         const instructorData = await getInstructorById(instructorId);
+        console.log("Instructor data received:", instructorData);
         if (instructorData) {
           setInstructor(instructorData);
         } else {
@@ -106,7 +109,7 @@ export default function Instructor({ instructorId, loading = false }: Instructor
     <div className="w-full">
       <div className="mb-12">
         <div className="text-primary text-[15px] font-medium font-['Poppins'] leading-[15px] mb-4">INSTRUCTOR</div>
-        <h1 className="text-xl font-semibold text-primary mt-4 hover:underline cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>
+        <h1 className="text-xl font-semibold text-primary mt-4 hover:underline cursor-pointer" onClick={()=>{window.location.href = `/#/instructorDetails?id=${instructor.id}`}}>
           {instructor.firstName} {instructor.lastName}
         </h1>
         <p className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed mb-4">

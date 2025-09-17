@@ -1,15 +1,23 @@
 import { useState, useEffect } from "react";
-import { Facebook, Linkedin, Share2, Star, Twitter, User } from "lucide-react";
+import { Facebook, Linkedin, Share2, Star, Twitter, User, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import InstructorCourses from "./courses";
 import {
   getInstructorById,
   InstructorDetails,
 } from "../../../../utils/instructorService";
+import { chatService } from "../../../../utils/chatService";
+import { useAuth } from "../../../../context/AuthContext";
+import { toast } from "sonner";
+import { testFirebaseConnection, testChatConversationWrite } from "../../../../utils/firebaseTest";
 
 export default function InstructorDetailsPage() {
   const [instructor, setInstructor] = useState<InstructorDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchInstructor = async () => {
@@ -17,11 +25,15 @@ export default function InstructorDetailsPage() {
         setLoading(true);
         setError(null);
 
-        // Get instructor ID from URL or use a default for demo
-        const urlParams = new URLSearchParams(window.location.search);
-        const instructorId = urlParams.get("id") || "demo@instructor.com";
-
+        // Get instructor ID from URL (handle hash-based routing)
+        const hash = window.location.hash;
+        const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+        const instructorId = urlParams.get("id") || ""; // Demo Instructor
+        
+        console.log("Fetching instructor with ID:", instructorId);
         const instructorData = await getInstructorById(instructorId);
+        console.log("Instructor data received:", instructorData);
+
         if (instructorData) {
           setInstructor(instructorData);
         } else {
@@ -37,6 +49,105 @@ export default function InstructorDetailsPage() {
 
     fetchInstructor();
   }, []);
+
+  const handleMessageInstructor = async () => {
+    if (!user || !instructor) {
+      toast.error("Please login to message the instructor");
+      return;
+    }
+
+    if (!user.UserName) {
+      toast.error("User information is incomplete. Please login again.");
+      return;
+    }
+
+    try {
+      setIsCreatingConversation(true);
+      console.log("Creating conversation with instructor:", instructor.id);
+      console.log("User info:", user);
+
+      // Test Firebase connectivity first (optional - we'll still try to create conversation)
+      try {
+        const connectionTest = await testFirebaseConnection();
+        if (!connectionTest) {
+          console.warn("Firebase connection test failed, but continuing with conversation creation");
+        }
+
+        const writeTest = await testChatConversationWrite();
+        if (!writeTest) {
+          console.warn("Firestore write test failed, but continuing with conversation creation");
+        }
+
+        console.log("Firebase tests completed");
+      } catch (firebaseError) {
+        console.warn("Firebase connection test failed, but continuing:", firebaseError);
+      }
+
+      // Get URL parameters for course context (handle hash-based routing)
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+      const courseId = urlParams.get("courseId");
+      const courseName = urlParams.get("courseName");
+
+      console.log("URL parameters:", { courseId, courseName });
+
+        // Check if conversation already exists using the dedicated method
+        console.log('Searching for existing conversation with:', {
+          instructorId: instructor.id,
+          learnerId: user.UserName,
+          courseId: courseId || undefined
+        });
+        const existingConversation = await chatService.findExistingConversation(
+          instructor.id,
+          user.UserName,
+          courseId || undefined
+        );
+        console.log('Existing conversation found:', existingConversation);
+
+      console.log("Found existing conversation:", existingConversation);
+
+      if (existingConversation) {
+        // Navigate to existing conversation
+        console.log("Using existing conversation:", existingConversation.id);
+        navigate(`/learner/chat?conversationId=${existingConversation.id}`);
+        toast.success("Redirecting to existing conversation");
+      } else {
+        // Create new conversation
+        console.log("No existing conversation found, creating new one");
+
+        const conversationData = {
+          participants: [instructor.id, user.UserName],
+          participantNames: [instructor.firstName + " " + instructor.lastName, user.UserName],
+          lastMessage: "",
+          lastMessageTime: new Date(),
+          unreadCount: 0,
+          isActive: true,
+          // Only include courseId and courseName if they have values
+          ...(courseId && courseId.trim() !== "" && { courseId: courseId.trim() }),
+          ...(courseName && courseName.trim() !== "" && { courseName: courseName.trim() })
+        };
+
+        console.log("Creating new conversation with data:", conversationData);
+        const newConversation = await chatService.createConversation(conversationData);
+        console.log("Conversation created successfully:", newConversation);
+
+        // Navigate to new conversation
+        navigate(`/learner/chat?conversationId=${newConversation.id}`);
+        toast.success("Conversation created! You can now message the instructor.");
+      }
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        user: user,
+        instructor: instructor
+      });
+      toast.error(`Failed to create conversation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  };
 
   // Show loading state
   if (loading) {
@@ -125,6 +236,20 @@ export default function InstructorDetailsPage() {
   const fullStars = Math.floor(ratingValue);
   const hasHalfStar = ratingValue % 1 >= 0.5;
 
+  // Debug logging
+  console.log("Rendering instructor details page:", {
+    instructor: instructor,
+    user: user,
+    loading: loading,
+    error: error,
+    isCreatingConversation: isCreatingConversation
+  });
+
+  // Check if user is logged in
+  if (!user) {
+    console.log("User not logged in - Send Message button will not work");
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="gradient-header">
@@ -150,6 +275,25 @@ export default function InstructorDetailsPage() {
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl font-bold">
                   {instructor.firstName.charAt(0)}
                   {instructor.lastName.charAt(0)}
+                </div>
+              )}
+            </div>
+
+            {/* Message Button - Prominent like Udemy */}
+            <div className="w-full mt-6">
+              {user ? (
+                <button
+                  onClick={handleMessageInstructor}
+                  disabled={isCreatingConversation}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MessageCircle size={20} />
+                  {isCreatingConversation ? "Creating..." : "Send Message"}
+                </button>
+              ) : (
+                <div className="w-full bg-gray-100 text-gray-600 font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2">
+                  <MessageCircle size={20} />
+                  Please login to send message
                 </div>
               )}
             </div>
@@ -198,13 +342,12 @@ export default function InstructorDetailsPage() {
                     <Star
                       key={i}
                       size={18}
-                      className={`${
-                        i < fullStars
+                      className={`${i < fullStars
                           ? "fill-yellow-400 text-yellow-400"
                           : i === fullStars && hasHalfStar
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }`}
                     />
                   ))}
                   <span className="text-[#181818] text-[12px] md:text-sm font-medium font-['Poppins'] leading-[14px] ml-1">

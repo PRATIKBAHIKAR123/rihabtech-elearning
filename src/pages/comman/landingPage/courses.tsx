@@ -20,12 +20,12 @@ interface Course {
   subcategory: string;
   status: string;
   isPublished: boolean;
-  members: Array<{
+  members?: Array<{
     id: string;
     email: string;
     role: string;
   }>;
-  curriculum: {
+  curriculum?: {
     sections: Array<{
       name: string;
       items: Array<{
@@ -78,20 +78,28 @@ export default function Courses() {
   };
 
   // Function to calculate total duration from curriculum
-  const calculateTotalDuration = (curriculum: Course['curriculum']): number => {
+  const calculateTotalDuration = (curriculum?: Course['curriculum']): number => {
+    if (!curriculum || !curriculum.sections) {
+      return 0;
+    }
     let totalDuration = 0;
     curriculum.sections.forEach(section => {
-      section.items.forEach(item => {
-        if (item.duration) {
-          totalDuration += item.duration;
-        }
-      });
+      if (section.items) {
+        section.items.forEach(item => {
+          if (item.duration) {
+            totalDuration += item.duration;
+          }
+        });
+      }
     });
     return Math.round(totalDuration / 60); // Convert to minutes and round
   };
 
   // Function to count students (members with student role)
-  const countStudents = (members: Course['members']): number => {
+  const countStudents = (members?: Course['members']): number => {
+    if (!members || !Array.isArray(members)) {
+      return 0;
+    }
     return members.filter(member => member.role === 'student').length;
   };
 

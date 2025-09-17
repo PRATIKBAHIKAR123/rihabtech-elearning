@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, getDocs, query, where, orderBy, addDoc, updateDoc, doc, serverTimestamp, Timestamp, writeBatch, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, getDocs, getDoc, query, where, orderBy, addDoc, updateDoc, doc, serverTimestamp, Timestamp, writeBatch, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface ChatMessage {
   id: string;
@@ -27,6 +27,18 @@ export interface ChatConversation {
   courseName?: string;
 }
 
+// Type for creating conversations (without undefined values)
+export interface CreateConversationData {
+  participants: string[];
+  participantNames: string[];
+  lastMessage: string;
+  lastMessageTime: Date;
+  unreadCount: number;
+  isActive: boolean;
+  courseId?: string;
+  courseName?: string;
+}
+
 export interface ChatStats {
   totalConversations: number;
   unreadMessages: number;
@@ -38,24 +50,28 @@ class ChatService {
   private readonly CONVERSATIONS_COLLECTION = 'chatConversations';
   private readonly MESSAGES_COLLECTION = 'chatMessages';
 
-  // Get all conversations for an instructor
-  async getConversations(instructorId: string): Promise<ChatConversation[]> {
+  // Get all conversations for a user (instructor or learner)
+  async getConversations(userId: string): Promise<ChatConversation[]> {
     try {
+      console.log('Getting conversations for user:', userId);
+      // First get all conversations with the user as participant (without orderBy to avoid index requirement)
       const conversationsQuery = query(
         collection(db, this.CONVERSATIONS_COLLECTION),
-        where('participants', 'array-contains', instructorId),
-        orderBy('updatedAt', 'desc')
+        where('participants', 'array-contains', userId)
       );
       const conversationsSnapshot = await getDocs(conversationsQuery);
 
+      console.log('Found conversations count:', conversationsSnapshot.size);
+
       if (conversationsSnapshot.empty) {
-        return this.getMockConversations(instructorId);
+        console.log('No conversations found, returning empty array');
+        return [];
       }
 
       const conversations: ChatConversation[] = [];
       conversationsSnapshot.forEach(doc => {
         const data = doc.data() as any;
-        conversations.push({
+        const conversation = {
           id: doc.id,
           participants: data.participants || [],
           participantNames: data.participantNames || [],
@@ -67,13 +83,107 @@ class ChatService {
           updatedAt: data.updatedAt?.toDate() || new Date(),
           courseId: data.courseId,
           courseName: data.courseName
-        });
+        };
+        conversations.push(conversation);
+        console.log('Added conversation:', conversation.id, 'participants:', conversation.participants);
       });
 
+      // Sort conversations by updatedAt in descending order (most recent first)
+      conversations.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+      console.log('Returning conversations:', conversations.length);
       return conversations;
     } catch (error) {
       console.error('Error getting conversations:', error);
-      return this.getMockConversations(instructorId);
+      return [];
+    }
+  }
+
+  // Find existing conversation by participants and course
+  async findExistingConversation(
+    instructorId: string, 
+    learnerId: string, 
+    courseId?: string
+  ): Promise<ChatConversation | null> {
+    try {
+      console.log('Searching for existing conversation:', { instructorId, learnerId, courseId });
+      
+      // Search from instructor's perspective
+      const instructorConversations = await this.getConversations(instructorId);
+      let existingConversation = instructorConversations.find(conv => {
+        const hasBothParticipants = conv.participants.includes(instructorId) && 
+                                   conv.participants.includes(learnerId);
+        
+        if (courseId && courseId.trim() !== "") {
+          return hasBothParticipants && conv.courseId === courseId.trim();
+        }
+        
+        return hasBothParticipants;
+      });
+
+      if (existingConversation) {
+        console.log('Found existing conversation from instructor perspective:', existingConversation.id);
+        return existingConversation;
+      }
+
+      // Search from learner's perspective
+      const learnerConversations = await this.getConversations(learnerId);
+      existingConversation = learnerConversations.find(conv => {
+        const hasBothParticipants = conv.participants.includes(instructorId) && 
+                                   conv.participants.includes(learnerId);
+        
+        if (courseId && courseId.trim() !== "") {
+          return hasBothParticipants && conv.courseId === courseId.trim();
+        }
+        
+        return hasBothParticipants;
+      });
+
+      if (existingConversation) {
+        console.log('Found existing conversation from learner perspective:', existingConversation.id);
+        return existingConversation;
+      }
+
+      console.log('No existing conversation found');
+      return null;
+    } catch (error) {
+      console.error('Error finding existing conversation:', error);
+      return null;
+    }
+  }
+
+  // Get a specific conversation by ID
+  async getConversationById(conversationId: string): Promise<ChatConversation | null> {
+    try {
+      console.log('Getting conversation by ID:', conversationId);
+      const conversationRef = doc(db, this.CONVERSATIONS_COLLECTION, conversationId);
+      const conversationSnapshot = await getDoc(conversationRef);
+
+      if (!conversationSnapshot.exists()) {
+        console.log('Conversation not found:', conversationId);
+        return null;
+      }
+
+      const data = conversationSnapshot.data() as any;
+      const conversation = {
+        id: conversationSnapshot.id,
+        participants: data.participants || [],
+        participantNames: data.participantNames || [],
+        lastMessage: data.lastMessage || '',
+        lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+        unreadCount: data.unreadCount || 0,
+        isActive: data.isActive || true,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        courseId: data.courseId,
+        courseName: data.courseName
+      };
+
+      console.log('Found conversation:', conversation);
+      return conversation;
+    } catch (error) {
+      console.error('Error getting conversation by ID:', error);
+      return null;
     }
   }
 
@@ -155,13 +265,33 @@ class ChatService {
   }
 
   // Create a new conversation
-  async createConversation(conversationData: Omit<ChatConversation, 'id' | 'createdAt' | 'updatedAt'>): Promise<ChatConversation> {
+  async createConversation(conversationData: CreateConversationData): Promise<ChatConversation> {
     try {
+      console.log('Attempting to create conversation with data:', conversationData);
+      
+      // Validate required fields
+      if (!conversationData.participants || conversationData.participants.length === 0) {
+        throw new Error('Participants array is required and cannot be empty');
+      }
+      
+      if (!conversationData.participantNames || conversationData.participantNames.length === 0) {
+        throw new Error('Participant names array is required and cannot be empty');
+      }
+
+      // Filter out undefined values to prevent Firebase errors
+      const cleanData = Object.fromEntries(
+        Object.entries(conversationData).filter(([_, value]) => value !== undefined)
+      );
+
+      console.log('Cleaned conversation data:', cleanData);
+
       const conversationRef = await addDoc(collection(db, this.CONVERSATIONS_COLLECTION), {
-        ...conversationData,
+        ...cleanData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      console.log('Conversation created successfully with ID:', conversationRef.id);
 
       return {
         ...conversationData,
@@ -171,7 +301,21 @@ class ChatService {
       };
     } catch (error) {
       console.error('Error creating conversation:', error);
-      throw new Error('Failed to create conversation');
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('permission-denied')) {
+          throw new Error('Permission denied. Please check your authentication status.');
+        } else if (error.message.includes('unavailable')) {
+          throw new Error('Service temporarily unavailable. Please try again later.');
+        } else if (error.message.includes('invalid-argument')) {
+          throw new Error('Invalid data provided. Please check your input.');
+        } else if (error.message.includes('Unsupported field value: undefined')) {
+          throw new Error('Invalid data: undefined values are not allowed. Please check your input data.');
+        }
+      }
+      
+      throw new Error(`Failed to create conversation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

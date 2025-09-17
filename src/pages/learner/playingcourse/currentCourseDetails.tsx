@@ -119,6 +119,10 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     // Course info (for demonstration)
   const instructorId = courseData?.instructorId || "instructor-456";
   const studentId = "student-789";
+  
+  // Debug logging
+  console.log("Course data:", courseData);
+  console.log("Instructor ID from course:", instructorId);
 
 
 
