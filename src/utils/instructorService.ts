@@ -1,22 +1,28 @@
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import { InstructorDetails } from "./instructorService";
+import { doc, getDoc } from "firebase/firestore";
 
-export const getAllUsers = async () => {
-  const querySnapshot = await getDocs(collection(db, "users"));
-  return querySnapshot.docs.map((doc) => {
-    const data = doc.data() as any;
-    return { id: doc.id, ...data };
-  });
-};
+export interface InstructorDetails {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  bio: string;
+  address: string;
+  phone: string;
+  profilePicture: string;
+  rating: number;
+  totalStudents: number;
+  totalCourses: number;
+  isVerified: boolean;
+  joinDate: any;
+  role: string;
+}
 
-export const getInstructorById = async (
-  instructorId: string
-): Promise<InstructorDetails | null> => {
+export const getInstructorById = async (instructorId: string): Promise<InstructorDetails | null> => {
   try {
     const instructorRef = doc(db, "users", instructorId);
     const instructorSnap = await getDoc(instructorRef);
-
+    
     if (instructorSnap.exists()) {
       const data = instructorSnap.data() as any;
       return {
@@ -33,7 +39,7 @@ export const getInstructorById = async (
         totalCourses: data.totalCourses || 0,
         isVerified: data.isVerified || false,
         joinDate: data.joinDate,
-        role: data.role || "instructor",
+        role: data.role || "instructor"
       } as InstructorDetails;
     } else {
       console.log("Instructor not found with ID:", instructorId);
@@ -44,3 +50,5 @@ export const getInstructorById = async (
     return null;
   }
 };
+
+

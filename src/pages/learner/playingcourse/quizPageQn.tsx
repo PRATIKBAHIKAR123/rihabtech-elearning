@@ -3,19 +3,41 @@ import { Clock, CheckCircle, XCircle, ArrowLeft, ArrowRight, Flag, AlertCircle }
 import { Button } from '../../../components/ui/button';
 import { Checkbox } from '../../../components/ui/checkbox';
 
-const QuizPage = () => {
-  // Quiz data
-  const [quizData] = useState({
-    id: 1,
-    title: "Knowledge Check: Research Basics",
-    description: "Test your understanding of basic UX research concepts. This quiz covers fundamental principles, methods, and best practices in user experience research.",
-    duration: 15, // minutes
-    passingScore: 80,
+interface QuizQuestion {
+  question: string;
+  options?: string[];
+  correctOption?: number[];
+  answer?: string;
+  marks?: number;
+  maxWordLimit?: number;
+  type: 'multiple_choice' | 'essay';
+}
+
+interface QuizData {
+  quizTitle: string;
+  quizDescription: string;
+  duration: number;
+  questions: QuizQuestion[];
+  totalMarks?: number;
+  isAssignment?: boolean;
+}
+
+interface QuizPageProps {
+  quizData?: QuizData | null;
+  loading?: boolean;
+}
+
+const QuizPage: React.FC<QuizPageProps> = ({ quizData: propQuizData, loading = false }) => {
+  console.log('QuizPage received props:', { propQuizData, loading });
+  
+  // Default quiz data for fallback
+  const defaultQuizData: QuizData = {
+    quizTitle: "Knowledge Check: Research Basics",
+    quizDescription: "Test your understanding of basic UX research concepts. This quiz covers fundamental principles, methods, and best practices in user experience research.",
+    duration: 15,
     questions: [
       {
-        id: 1,
         question: "What are the primary goals of UX research? (Select all that apply)",
-        type: "multiple",
         options: [
           "Understanding user needs and behaviors",
           "Validating design decisions",
@@ -23,72 +45,31 @@ const QuizPage = () => {
           "Identifying usability issues",
           "Reducing development costs"
         ],
-        correctAnswers: [0, 1, 3] // indices of correct answers
-      },
-      {
-        id: 2,
-        question: "Which research methods are considered qualitative? (Select all that apply)",
-        type: "multiple",
-        options: [
-          "User interviews",
-          "A/B testing",
-          "Usability testing",
-          "Analytics data analysis",
-          "Focus groups",
-          "Card sorting"
-        ],
-        correctAnswers: [0, 2, 4]
-      },
-      {
-        id: 3,
-        question: "What should you do before conducting user interviews? (Select all that apply)",
-        type: "multiple",
-        options: [
-          "Prepare a discussion guide",
-          "Define research objectives",
-          "Set up recording equipment",
-          "Schedule participants",
-          "All of the above"
-        ],
-        correctAnswers: [0, 1, 2, 3]
-      },
-      {
-        id: 4,
-        question: "Which of these are key principles of good survey design? (Select all that apply)",
-        type: "multiple",
-        options: [
-          "Ask leading questions",
-          "Use clear, simple language",
-          "Keep questions neutral",
-          "Include as many questions as possible",
-          "Test the survey before launching"
-        ],
-        correctAnswers: [1, 2, 4]
-      },
-      {
-        id: 5,
-        question: "What are common biases in UX research? (Select all that apply)",
-        type: "multiple",
-        options: [
-          "Confirmation bias",
-          "Selection bias",
-          "Recency bias",
-          "Anchoring bias",
-          "Social desirability bias"
-        ],
-        correctAnswers: [0, 1, 2, 3, 4]
+        correctOption: [0, 1, 3],
+        type: 'multiple_choice'
       }
     ]
-  });
+  };
+
+  // Use prop data or default data
+  const quizData = propQuizData || defaultQuizData;
+  
+  console.log('QuizPage final quizData:', quizData);
 
   // Quiz state
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number[]>>({});
+  const [essayAnswers, setEssayAnswers] = useState<Record<number, string>>({});
   const [timeRemaining, setTimeRemaining] = useState(quizData.duration * 60); // in seconds
-  const [quizStarted, setQuizStarted] = useState(true);
+  const [quizStarted, setQuizStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
+
+  // Update time remaining when quiz data changes
+  useEffect(() => {
+    setTimeRemaining(quizData.duration * 60);
+  }, [quizData.duration]);
 
   // Timer effect
   useEffect(() => {
@@ -115,19 +96,27 @@ const QuizPage = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle answer selection
-  const handleAnswerSelect = (questionId: number, optionIndex: number) => {
-    setSelectedAnswers((prev:any) => {
-      const currentAnswers = prev[questionId] || [];
+  // Handle answer selection for multiple choice
+  const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
+    setSelectedAnswers((prev) => {
+      const currentAnswers = prev[questionIndex] || [];
       const newAnswers = currentAnswers.includes(optionIndex)
-        ? currentAnswers.filter((idx:number) => idx !== optionIndex)
+        ? currentAnswers.filter((idx) => idx !== optionIndex)
         : [...currentAnswers, optionIndex];
       
       return {
         ...prev,
-        [questionId]: newAnswers
+        [questionIndex]: newAnswers
       };
     });
+  };
+
+  // Handle essay answer input
+  const handleEssayAnswer = (questionIndex: number, answer: string) => {
+    setEssayAnswers((prev) => ({
+      ...prev,
+      [questionIndex]: answer
+    }));
   };
 
   // Navigate questions
@@ -148,13 +137,13 @@ const QuizPage = () => {
   };
 
   // Flag/unflag question
-  const toggleFlag = (questionId:any) => {
+  const toggleFlag = (questionIndex: number) => {
     setFlaggedQuestions(prev => {
       const newFlags = new Set(prev);
-      if (newFlags.has(questionId)) {
-        newFlags.delete(questionId);
+      if (newFlags.has(questionIndex)) {
+        newFlags.delete(questionIndex);
       } else {
-        newFlags.add(questionId);
+        newFlags.add(questionIndex);
       }
       return newFlags;
     });
@@ -170,23 +159,80 @@ const QuizPage = () => {
   const calculateResults = () => {
     let totalCorrect = 0;
     let totalQuestions = quizData.questions.length;
+    let totalMarks = 0;
+    let earnedMarks = 0;
 
-    quizData.questions.forEach((question:any) => {
-      const userAnswers = selectedAnswers[question.id] || [];
-      const correctAnswers = question.correctAnswers;
-      
-      // Check if user answers match correct answers exactly
-      if (userAnswers.length === correctAnswers.length &&
-          userAnswers.every((answer:any) => correctAnswers.includes(answer))) {
-        totalCorrect++;
+    quizData.questions.forEach((question, index) => {
+      if (question.type === 'multiple_choice') {
+        const userAnswers = selectedAnswers[index] || [];
+        const correctAnswers = question.correctOption || [];
+        
+        // Check if user answers match correct answers exactly
+        if (userAnswers.length === correctAnswers.length &&
+            userAnswers.every((answer) => correctAnswers.includes(answer))) {
+          totalCorrect++;
+          earnedMarks += question.marks || 100;
+        }
+        totalMarks += question.marks || 100;
+      } else if (question.type === 'essay') {
+        const userAnswer = essayAnswers[index] || '';
+        const correctAnswer = question.answer || '';
+        
+        // Simple text comparison for essay questions
+        // In a real app, you might want more sophisticated comparison
+        const similarity = calculateTextSimilarity(userAnswer.toLowerCase(), correctAnswer.toLowerCase());
+        const questionMarks = question.marks || 100;
+        
+        if (similarity > 0.7) { // 70% similarity threshold
+          totalCorrect++;
+          earnedMarks += questionMarks;
+        } else if (similarity > 0.4) { // Partial credit
+          earnedMarks += questionMarks * 0.5;
+        }
+        
+        totalMarks += questionMarks;
       }
     });
 
-    const percentage = Math.round((totalCorrect / totalQuestions) * 100);
-    const passed = percentage >= quizData.passingScore;
+    const percentage = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
+    const passed = percentage >= 80; // Default passing score
 
-    return { totalCorrect, totalQuestions, percentage, passed };
+    return { 
+      totalCorrect, 
+      totalQuestions, 
+      percentage, 
+      passed, 
+      earnedMarks, 
+      totalMarks 
+    };
   };
+
+  // Simple text similarity calculation
+  const calculateTextSimilarity = (text1: string, text2: string) => {
+    if (!text1 || !text2) return 0;
+    
+    const words1 = text1.split(/\s+/).filter(word => word.length > 2);
+    const words2 = text2.split(/\s+/).filter(word => word.length > 2);
+    
+    if (words1.length === 0 || words2.length === 0) return 0;
+    
+    const commonWords = words1.filter(word => words2.includes(word));
+    return commonWords.length / Math.max(words1.length, words2.length);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading quiz...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Quiz start screen
   if (!quizStarted) {
@@ -197,8 +243,8 @@ const QuizPage = () => {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{quizData.title}</h1>
-            <p className="text-gray-600">{quizData.description}</p>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">{quizData.quizTitle}</h1>
+            <p className="text-gray-600">{quizData.quizDescription}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -209,13 +255,13 @@ const QuizPage = () => {
             </div>
             <div className="bg-green-50 p-4 rounded-lg text-center">
               <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
-              <p className="text-sm text-green-600 font-medium">Questions</p>
+              <p className="text-sm text-green-600 font-medium">{quizData.isAssignment ? 'Assignments' : 'Questions'}</p>
               <p className="text-lg font-bold text-green-800">{quizData.questions.length}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg text-center">
               <Flag className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-              <p className="text-sm text-purple-600 font-medium">Passing Score</p>
-              <p className="text-lg font-bold text-purple-800">{quizData.passingScore}%</p>
+              <p className="text-sm text-purple-600 font-medium">{quizData.isAssignment ? 'Total Marks' : 'Passing Score'}</p>
+              <p className="text-lg font-bold text-purple-800">{quizData.isAssignment ? `${quizData.totalMarks || 100}` : '80%'}</p>
             </div>
           </div>
 
@@ -226,8 +272,18 @@ const QuizPage = () => {
                 <h3 className="font-medium text-yellow-800 mb-1">Instructions:</h3>
                 <ul className="text-sm text-yellow-700 space-y-1">
                   <li>• Read each question carefully</li>
-                  <li>• Select all answers that apply using checkboxes</li>
-                  <li>• You can flag questions for review</li>
+                  {quizData.isAssignment ? (
+                    <>
+                      <li>• Write detailed answers in the text boxes provided</li>
+                      <li>• Pay attention to word limits and marking criteria</li>
+                      <li>• Your answers will be automatically graded</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• Select all answers that apply using checkboxes</li>
+                      <li>• You can flag questions for review</li>
+                    </>
+                  )}
                   <li>• Navigate between questions using the sidebar</li>
                   <li>• Submit when you're ready or when time runs out</li>
                 </ul>
@@ -239,7 +295,7 @@ const QuizPage = () => {
             onClick={() => setQuizStarted(true)}
             className="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            Start Quiz
+            Start {quizData.isAssignment ? 'Assignment' : 'Quiz'}
           </button>
         </div>
       </div>
@@ -280,9 +336,11 @@ const QuizPage = () => {
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-gray-600 font-medium">Questions Correct</p>
+              <p className="text-sm text-gray-600 font-medium">
+                {quizData.isAssignment ? 'Marks Earned' : 'Questions Correct'}
+              </p>
               <p className="text-3xl font-bold text-gray-800">
-                {results.totalCorrect}/{results.totalQuestions}
+                {quizData.isAssignment ? `${results.earnedMarks}/${results.totalMarks}` : `${results.totalCorrect}/${results.totalQuestions}`}
               </p>
             </div>
           </div>
@@ -295,12 +353,13 @@ const QuizPage = () => {
                 setShowResults(false);
                 setCurrentQuestionIndex(0);
                 setSelectedAnswers({});
+                setEssayAnswers({});
                 setTimeRemaining(quizData.duration * 60);
                 setFlaggedQuestions(new Set());
               }}
               className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors"
             >
-              Retake Quiz
+              Retake {quizData.isAssignment ? 'Assignment' : 'Quiz'}
             </button>
             <button
               onClick={() => window.history.back()}
@@ -325,8 +384,10 @@ const QuizPage = () => {
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-800">{quizData.title}</h1>
-              <p className="text-sm text-gray-600">Question {currentQuestionIndex + 1} of {quizData.questions.length}</p>
+              <h1 className="text-xl font-bold text-gray-800">{quizData.quizTitle}</h1>
+              <p className="text-sm text-gray-600">
+                {quizData.isAssignment ? 'Assignment' : 'Question'} {currentQuestionIndex + 1} of {quizData.questions.length}
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <div className={`flex items-center px-3 py-1 rounded-full ${
@@ -339,7 +400,7 @@ const QuizPage = () => {
                 onClick={submitQuiz}
                 className="rounded-none"
               >
-                Submit Quiz
+                Submit {quizData.isAssignment ? 'Assignment' : 'Quiz'}
               </Button>
             </div>
           </div>
@@ -364,9 +425,9 @@ const QuizPage = () => {
                   {currentQuestion.question}
                 </h2>
                 <button
-                  onClick={() => toggleFlag(currentQuestion.id)}
+                  onClick={() => toggleFlag(currentQuestionIndex)}
                   className={`p-2 rounded-full transition-colors ${
-                    flaggedQuestions.has(currentQuestion.id)
+                    flaggedQuestions.has(currentQuestionIndex)
                       ? 'bg-yellow-100 text-yellow-600'
                       : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                   }`}
@@ -376,20 +437,42 @@ const QuizPage = () => {
               </div>
 
               <div className="space-y-3 mb-8">
-                {currentQuestion.options.map((option, index) => (
-                  <label
-                    key={index}
-                    className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedAnswers[currentQuestion.id]?.includes(index) || false}
-                      onChange={() => handleAnswerSelect(currentQuestion.id, index)}
-                      onCheckedChange={()=>handleAnswerSelect(currentQuestion.id, index)}
-                      className="mt-1 mr-3 text-blue-600 focus:ring-blue-500"
+                {currentQuestion.type === 'multiple_choice' ? (
+                  currentQuestion.options?.map((option, index) => (
+                    <label
+                      key={index}
+                      className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedAnswers[currentQuestionIndex]?.includes(index) || false}
+                        onChange={() => handleAnswerSelect(currentQuestionIndex, index)}
+                        onCheckedChange={()=>handleAnswerSelect(currentQuestionIndex, index)}
+                        className="mt-1 mr-3 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">{option}</span>
+                    </label>
+                  ))
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-blue-800">Marks: {currentQuestion.marks || 100}</span>
+                        <span className="text-sm text-blue-600">
+                          Word limit: {currentQuestion.maxWordLimit || 500} words
+                        </span>
+                      </div>
+                    </div>
+                    <textarea
+                      value={essayAnswers[currentQuestionIndex] || ''}
+                      onChange={(e) => handleEssayAnswer(currentQuestionIndex, e.target.value)}
+                      placeholder="Write your answer here..."
+                      className="w-full h-40 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <span className="text-gray-700">{option}</span>
-                  </label>
-                ))}
+                    <div className="text-sm text-gray-500">
+                      Word count: {(essayAnswers[currentQuestionIndex] || '').split(/\s+/).filter(word => word.length > 0).length} / {currentQuestion.maxWordLimit || 500}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Navigation buttons */}
@@ -402,40 +485,59 @@ const QuizPage = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Previous
                 </button>
-                <button
-                  onClick={nextQuestion}
-                  disabled={currentQuestionIndex === quizData.questions.length - 1}
-                  className="flex items-center px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </button>
+                {currentQuestionIndex === quizData.questions.length - 1 || quizData.questions.length === 1 ? (
+                  <button
+                    onClick={submitQuiz}
+                    className="flex items-center px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Submit {quizData.isAssignment ? 'Assignment' : 'Quiz'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={nextQuestion}
+                    className="flex items-center px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* Question Navigation Sidebar */}
           <div className="bg-white rounded-lg shadow-sm p-4 h-fit">
-            <h3 className="font-semibold text-gray-800 mb-4">Questions</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">
+              {quizData.isAssignment ? 'Assignments' : 'Questions'}
+            </h3>
             <div className="grid grid-cols-5 lg:grid-cols-3 gap-2">
-              {quizData.questions.map((question, index) => (
-                <button
-                  key={question.id}
-                  onClick={() => goToQuestion(index)}
-                  className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
-                    currentQuestionIndex === index
-                      ? 'bg-primary text-white'
-                      : selectedAnswers[question.id]?.length > 0
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {index + 1}
-                  {flaggedQuestions.has(question.id) && (
-                    <Flag className="w-3 h-3 absolute -top-1 -right-1 text-yellow-500" />
-                  )}
-                </button>
-              ))}
+              {quizData.questions.map((question, index) => {
+                const isAnswered = question.type === 'multiple_choice' 
+                  ? selectedAnswers[index]?.length > 0
+                  : essayAnswers[index]?.length > 0;
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => goToQuestion(index)}
+                    className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
+                      currentQuestionIndex === index
+                        ? 'bg-primary text-white'
+                        : isAnswered
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {index + 1}
+                    {flaggedQuestions.has(index) && (
+                      <Flag className="w-3 h-3 absolute -top-1 -right-1 text-yellow-500" />
+                    )}
+                    {question.type === 'essay' && (
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
             
             <div className="mt-4 pt-4 border-t">
@@ -451,6 +553,10 @@ const QuizPage = () => {
                 <div className="flex items-center">
                   <Flag className="w-3 h-3 text-yellow-500 mr-2" />
                   <span>Flagged</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                  <span>Essay question</span>
                 </div>
               </div>
             </div>

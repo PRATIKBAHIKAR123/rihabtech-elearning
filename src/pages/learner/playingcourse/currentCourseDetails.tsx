@@ -8,9 +8,14 @@ import CourseReviews from './reviews';
 import LearningTools from './learningtools';
 import ReactPlayer from 'react-player';
 import QNA from './qna';
+import { getFullCourseData, CourseDetails, extractQuizData } from '../../../utils/firebaseCoursePreview';
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState("Notes");
+  const [courseData, setCourseData] = useState<CourseDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [courseModules] = useState([
     { 
       text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
@@ -45,122 +50,50 @@ export default function CourseDetailsPage() {
       completed: false
     }
   ]);
-    const [courseData] = useState({
-    title: "Complete UX Research Masterclass",
-    sections: [
-      {
-        id: 1,
-        title: "Introduction to UX Research",
-        isExpanded: true,
-        modules: [
-          {
-            id: 1,
-            type: 'video',
-            title: "Emily - The power of UX research",
-            description: "Understanding the fundamentals of UX research and its impact on product design.",
-            duration: "15:30",
-            completed: true,
-            videoUrl: "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf",
-            thumbnail: "Images/Banners/Person.jpg",
-            instructor: "Emilie Bryant",
-            category: "Motivation"
-          },
-          {
-            id: 2,
-            type: 'video',
-            title: "Research Methods Overview",
-            description: "Comprehensive overview of qualitative and quantitative research methods.",
-            duration: "22:45",
-            completed: true,
-            videoUrl: "https://example.com/video2",
-            thumbnail: "Images/thumbnails/methods.jpg"
-          },
-          {
-            id: 3,
-            type: 'quiz',
-            title: "Knowledge Check: Research Basics",
-            description: "Test your understanding of basic UX research concepts.",
-            questions: 10,
-            timeLimit: "15 minutes",
-            completed: false,
-            passingScore: 80
-          }
-        ]
-      },
-      {
-        id: 2,
-        title: "User Interview Techniques",
-        isExpanded: false,
-        modules: [
-          {
-            id: 4,
-            type: 'document',
-            title: "Interview Planning Template",
-            description: "Downloadable template for planning effective user interviews.",
-            fileType: "PDF",
-            fileSize: "2.3 MB",
-            completed: false,
-            downloadUrl: "/documents/interview-template.pdf"
-          },
-          {
-            id: 5,
-            type: 'video',
-            title: "Conducting User Interviews",
-            description: "Best practices for conducting insightful user interviews.",
-            duration: "28:15",
-            completed: false,
-            videoUrl: "https://example.com/video3",
-            thumbnail: "Images/thumbnails/interviews.jpg"
-          },
-          {
-            id: 6,
-            type: 'quiz',
-            title: "Interview Scenarios Quiz",
-            description: "Practice with real-world interview scenarios.",
-            questions: 15,
-            timeLimit: "20 minutes",
-            completed: false,
-            passingScore: 85
-          }
-        ]
-      },
-      {
-        id: 3,
-        title: "Data Analysis & Insights",
-        isExpanded: false,
-        modules: [
-          {
-            id: 7,
-            type: 'video',
-            title: "Analyzing Qualitative Data",
-            description: "Techniques for analyzing and interpreting qualitative research data.",
-            duration: "35:20",
-            completed: false,
-            videoUrl: "https://example.com/video4",
-            thumbnail: "Images/thumbnails/analysis.jpg"
-          },
-          {
-            id: 8,
-            type: 'document',
-            title: "Data Analysis Worksheet",
-            description: "Structured worksheet for organizing your research findings.",
-            fileType: "Excel",
-            fileSize: "1.8 MB",
-            completed: false,
-            downloadUrl: "/documents/analysis-worksheet.xlsx"
-          }
-        ]
+
+  // Get course ID from URL params or use a default for testing
+  // In a real app, you'd get this from React Router or props
+  const courseId = "8NjLqdGGeNuJKtjLFzxo"; // Using the ID from your Firebase data
+
+  // Fetch course data from Firebase
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getFullCourseData(courseId);
+        if (data) {
+          setCourseData(data);
+        } else {
+          setError("Course not found");
+        }
+      } catch (err) {
+        console.error("Error fetching course data:", err);
+        setError("Failed to load course data");
+      } finally {
+        setLoading(false);
       }
-    ]
-  });
+    };
+
+    fetchCourseData();
+  }, [courseId]);
+
+  // Set active module when course data is loaded
+  useEffect(() => {
+    if (courseData?.curriculum?.sections?.[0]?.items?.[0]) {
+      const firstModule = courseData.curriculum.sections[0].items[0];
+      console.log('Setting active module:', firstModule);
+      setActiveModule(firstModule);
+    }
+  }, [courseData]);
   
      const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
-    const [activeModule, setActiveModule] = useState(courseData.sections[0].modules[0]);
-  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
+    const [activeModule, setActiveModule] = useState<any>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   // Watch time tracking states
   const [totalWatched, setTotalWatched] = useState(0); // in seconds
   type WatchSession = {
@@ -184,23 +117,22 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
 
 
     // Course info (for demonstration)
-  const courseId = "course-123";
-  const instructorId = "instructor-456";
+  const instructorId = courseData?.instructorId || "instructor-456";
   const studentId = "student-789";
 
 
 
-  const toggleSection = (sectionId:any) => {
-    setExpandedSections((prev:any) => ({
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId]
     }));
   };
 
-  const selectModule = (module:any) => {
+  const selectModule = (module: any) => {
     setActiveModule(module);
     // Reset video state when switching modules
-    if (module.type === 'video') {
+    if (module.contentType === 'video' || module.contentType === 'lecture') {
       setIsPlaying(false);
       setCurrentTime(0);
     }
@@ -476,7 +408,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   className={`relative h-[450px]`}>
                   <ReactPlayer
             ref={playerRef}
-            url="https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf" // Replace with your video URL
+            url={module.contentFiles?.[0]?.url || "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf"}
             playing={isPlaying}
             playbackRate={playbackRate}
             controls={false}
@@ -489,7 +421,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
             onPause={handlePause}
             onSeek={(seconds) => handleSeek(seconds)}
             onEnded={handleEnded}
-            light="Images/Banners/Person.jpg" // Replace with your thumbnail
+            light={courseData?.thumbnailUrl || "Images/Banners/Person.jpg"}
             playIcon={
               <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <div
@@ -658,7 +590,9 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
               
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                <h1 className="text-[#181818] text-2xl font-medium font-['Kumbh_Sans'] leading-[30px]">Emily - The power of UX research</h1>
+                <h1 className="text-[#181818] text-2xl font-medium font-['Kumbh_Sans'] leading-[30px]">
+                  {module.lectureName || courseData?.title || "Loading..."}
+                </h1>
                 <div className="flex items-center mt-2">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -673,48 +607,79 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
                   <div className="flex gap-3 cursor-pointer items-center text-primary text-[15px] font-medium font-['Poppins'] leading-relaxed" 
                   onClick={() => setActiveTab('Instructor')}>
                     <img src="Images/icons/orange-user-laptop.png" className="h-[20px]" />
-                    <span>By Emilie Bryant</span>
+                    <span>By {courseData?.instructorId || "Instructor"}</span>
                   </div>
                   <Divider className="h-4 bg-[#DBDBDB]" />
                   <div className="flex gap-3 cursor-pointer items-center text-primary text-[15px] font-medium font-['Poppins'] leading-relaxed">
                   <img src="Images/icons/orange-world.png" className="h-[20px]" />
-                    <span>Motivation</span>
+                    <span>{courseData?.level || "Course"}</span>
                   </div>
                 </div>
               </div>
             </div>
   );
 
-  const renderQuiz = (module:any) => (
-    <div className="bg-white border rounded-lg p-6 mb-6">
-      <div className="flex items-center mb-4">
-        <HelpCircle className="text-blue-500 mr-3" size={32} />
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{module.title}</h2>
-          <p className="text-gray-600 text-sm">{module.description}</p>
+  const renderQuiz = (module: any) => {
+    console.log('renderQuiz called with module:', module);
+    
+    // Extract quiz data from the module using helper function
+    const quizData = extractQuizData(module);
+    
+    console.log('Extracted quiz data:', quizData);
+    
+    if (!quizData) {
+      console.log('No quiz data extracted, showing error');
+      return (
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <div className="text-center py-8">
+            <p className="text-gray-500">Invalid quiz data</p>
+          </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        <div className="bg-blue-50 p-3 rounded">
-          <p className="text-sm text-blue-600">Questions</p>
-          <p className="font-bold text-lg">{module.questions}</p>
-        </div>
-        <div className="bg-green-50 p-3 rounded">
-          <p className="text-sm text-green-600">Time Limit</p>
-          <p className="font-bold text-lg">{module.timeLimit}</p>
-        </div>
-        <div className="bg-purple-50 p-3 rounded">
-          <p className="text-sm text-purple-600">Passing Score</p>
-          <p className="font-bold text-lg">{module.passingScore}%</p>
-        </div>
-      </div>
+      );
+    }
 
-      <button className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors" onClick={()=>window.location.hash='#/learner/quiz'}>
-        {module.completed ? 'Retake Quiz' : 'Start Quiz'}
-      </button>
-    </div>
-  );
+    return (
+      <div className="bg-white border rounded-lg p-6 mb-6">
+        <div className="flex items-center mb-4">
+          <HelpCircle className="text-blue-500 mr-3" size={32} />
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">{quizData.quizTitle}</h2>
+            <p className="text-gray-600 text-sm">{quizData.quizDescription}</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="bg-blue-50 p-3 rounded">
+            <p className="text-sm text-blue-600">Questions</p>
+            <p className="font-bold text-lg">{quizData.questions.length}</p>
+          </div>
+          <div className="bg-green-50 p-3 rounded">
+            <p className="text-sm text-green-600">Time Limit</p>
+            <p className="font-bold text-lg">{quizData.duration} minutes</p>
+          </div>
+          <div className="bg-purple-50 p-3 rounded">
+            <p className="text-sm text-purple-600">Passing Score</p>
+            <p className="font-bold text-lg">80%</p>
+          </div>
+        </div>
+
+        <button 
+          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors" 
+          onClick={() => {
+            console.log('Start Quiz button clicked, quiz data:', quizData);
+            const encodedData = encodeURIComponent(JSON.stringify(quizData));
+            console.log('Encoded data:', encodedData);
+            const url = `#/learner/quiz?data=${encodedData}`;
+            console.log('Navigating to:', url);
+            // Navigate to quiz page with quiz data
+            window.location.hash = url;
+          }}
+        >
+          {module.published ? `Retake ${quizData.isAssignment ? 'Assignment' : 'Quiz'}` : `Start ${quizData.isAssignment ? 'Assignment' : 'Quiz'}`}
+        </button>
+      </div>
+    );
+  };
 
   const renderDocument = (module:any) => (
     <div className="bg-white border rounded-lg p-6 mb-6">
@@ -744,50 +709,98 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   );
 
   const renderModuleContent = () => {
-    switch (activeModule.type) {
+    if (!activeModule) {
+      return (
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <div className="text-center py-8">
+            <p className="text-gray-500">Select a module to view content</p>
+          </div>
+        </div>
+      );
+    }
+
+    console.log('Rendering module content for:', activeModule);
+
+    // Check if this module has questions (for assignments with questions)
+    const hasQuestions = (activeModule as any).questions && (activeModule as any).questions.length > 0;
+    const isQuiz = activeModule.contentType === 'quiz' || (activeModule as any).type === 'quiz';
+    const isAssignment = activeModule.contentType === 'assignment' || (activeModule as any).type === 'assignment';
+    
+    console.log('Module analysis:', { hasQuestions, isQuiz, isAssignment, contentType: activeModule.contentType, type: (activeModule as any).type });
+
+    switch (activeModule.contentType) {
       case 'video':
+      case 'lecture':
         return renderVideoPlayer(activeModule);
       case 'quiz':
         return renderQuiz(activeModule);
       case 'document':
         return renderDocument(activeModule);
+      case 'assignment':
+        // If assignment has questions, render as quiz, otherwise as document
+        if (hasQuestions) {
+          return renderQuiz(activeModule);
+        } else {
+          return renderDocument(activeModule);
+        }
       default:
-        return <div>Unsupported module type</div>;
+        // Check if it's an unsupported type but has questions
+        if (hasQuestions) {
+          return renderQuiz(activeModule);
+        }
+        return (
+          <div className="bg-white border rounded-lg p-6 mb-6">
+            <div className="text-center py-8">
+              <p className="text-gray-500">Unsupported module type: {activeModule.contentType}</p>
+            </div>
+          </div>
+        );
     }
   };
 
-  const getModuleIcon = (type: any, completed: any) => {
+  const getModuleIcon = (type: any, completed: any, module: any = null) => {
     const iconProps = { size: 12, className: `${completed ? 'text-white' : 'text-orange-500'} ml-0.5` };
     
-    switch (type) {
+    // Check if this module has questions (for assignments with questions)
+    const hasQuestions = module && module.questions && module.questions.length > 0;
+    const moduleType = module?.type || type;
+    
+    switch (moduleType) {
       case 'video':
+      case 'lecture':
         return <Play {...iconProps} />;
       case 'quiz':
         return <HelpCircle {...iconProps} />;
       case 'document':
         return <FileText {...iconProps} />;
+      case 'assignment':
+        // If assignment has questions, show quiz icon, otherwise document icon
+        return hasQuestions ? <HelpCircle {...iconProps} /> : <FileText {...iconProps} />;
       default:
-        return <Play {...iconProps} />;
+        // If it's an unsupported type but has questions, show quiz icon
+        return hasQuestions ? <HelpCircle {...iconProps} /> : <Play {...iconProps} />;
     }
   };
 
     const renderCourseContent = () => (
     <div className="space-y-4">
-      {courseData.sections.map((section) => (
-        <div key={section.id} className="mb-4">
+      {courseData?.curriculum?.sections?.map((section, sectionIndex) => {
+        const sectionId = section.id || sectionIndex.toString();
+        return (
+        <div key={sectionId} className="mb-4">
           <button
-            onClick={() => toggleSection(section.id)}
+            onClick={() => toggleSection(sectionId)}
             className="w-full flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <span className="font-medium text-gray-800">{section.title}</span>
+            <span className="font-medium text-gray-800">{section.name}</span>
             <span className="text-gray-500">
-              {expandedSections[section.id] ? '−' : '+'}
+              {expandedSections[sectionId] ? '−' : '+'}
             </span>
           </button>
 
-          {expandedSections[section.id] && (
+          {expandedSections[sectionId] && (
             <div className="mt-2 space-y-2">
-              {section.modules.map((module) => (
+              {section.items?.map((module) => (
                 <div
                   key={module.id}
                   onClick={() => selectModule(module)}
@@ -798,26 +811,44 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
                   {/* Module icon */}
                   <div className="absolute left-2 top-4 w-6 h-6 rounded-full flex items-center justify-center border-2 border-orange-500">
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                      module.completed ? 'bg-orange-500' : 'bg-white'
+                      module.published ? 'bg-orange-500' : 'bg-white'
                     }`}>
-                      {getModuleIcon(module.type, module.completed)}
+                      {getModuleIcon(module.contentType, module.published, module)}
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-gray-800 text-sm mb-1">{module.title}</h4>
+                    <h4 className="font-medium text-gray-800 text-sm mb-1">
+                      {(module as any).title || (module as any).quizTitle || 'Untitled Module'}
+                    </h4>
                     <p className="text-gray-600 text-xs mb-2">{module.description}</p>
                     
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span className="capitalize">{module.type}</span>
+                      <span className="capitalize">
+                        {(() => {
+                          const moduleType = (module as any).type || module.contentType;
+                          const hasQuestions = (module as any).questions && (module as any).questions.length > 0;
+                          
+                          if (moduleType === 'assignment' && hasQuestions) {
+                            return 'Assignment';
+                          } else if (moduleType === 'quiz') {
+                            return 'Quiz';
+                          } else {
+                            return moduleType;
+                          }
+                        })()}
+                      </span>
                       <div className="flex items-center space-x-2">
-                        {module.duration && (
+                        {module.contentFiles?.[0]?.duration && (
                           <span className="flex items-center">
                             <Clock size={10} className="mr-1" />
-                            {module.duration}
+                            {typeof module.contentFiles[0].duration === 'number' 
+                              ? `${Math.floor(module.contentFiles[0].duration / 60)}:${Math.floor(module.contentFiles[0].duration % 60).toString().padStart(2, '0')}`
+                              : module.contentFiles[0].duration
+                            }
                           </span>
                         )}
-                        {module.completed ? (
+                        {module.published ? (
                           <CheckCircle size={12} className="text-green-500" />
                         ) : (
                           <LockIcon size={10} className="text-gray-400" />
@@ -830,7 +861,8 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -840,15 +872,15 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         return renderCourseContent();
       case 'Overview':
         return (
-          <Overview/>
+          <Overview courseData={courseData} loading={loading} />
         );
       case 'Notes':
         return (
-          <Notes/>
+          <Notes courseId={courseId} loading={loading} />
         );
       case 'Instructor':
         return (
-          <Instructor/>
+          <Instructor instructorId={courseData?.instructorId} loading={loading} />
         );
       case 'Reviews':
         return (
@@ -926,6 +958,36 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   };
 
 
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
   <div className="min-h-screen bg-gray-50">

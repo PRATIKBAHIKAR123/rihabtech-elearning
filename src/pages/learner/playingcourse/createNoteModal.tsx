@@ -4,7 +4,7 @@ import {
   DialogHeader,
   
 } from "../../../components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "../../../components/ui/textarea";
 import { Button } from "../../../components/ui/button";
 import { DialogTitle } from "../../../components/ui/dialog";
@@ -13,15 +13,30 @@ interface CreateNoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (note: { heading: string; content: string }) => void;
+  initialData?: { heading: string; content: string };
+  title?: string;
 }
 
 export function CreateNoteDialog({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
+  title = "Create New Note"
 }: CreateNoteDialogProps) {
-  const [heading, setHeading] = useState("");
-  const [content, setContent] = useState("");
+  const [heading, setHeading] = useState(initialData?.heading || "");
+  const [content, setContent] = useState(initialData?.content || "");
+
+  // Update form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setHeading(initialData.heading);
+      setContent(initialData.content);
+    } else {
+      setHeading("");
+      setContent("");
+    }
+  }, [initialData]);
 
   const handleSubmit = () => {
     if (heading.trim() && content.trim()) {
@@ -36,7 +51,7 @@ export function CreateNoteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Note</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -66,7 +81,7 @@ export function CreateNoteDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleSubmit}>
-            Save Note
+            {initialData ? "Update Note" : "Save Note"}
           </Button>
         </div>
       </DialogContent>
