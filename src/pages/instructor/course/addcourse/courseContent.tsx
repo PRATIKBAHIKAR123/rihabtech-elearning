@@ -29,8 +29,8 @@ const CourseContent = () => {
        const [showReviewDialog, setShowReviewDialog] = useState(false);
 
     const handleSubmitReview = () => {
-        // Add your submit logic here
-        setShowReviewDialog(true);
+        window.location.hash = '#/instructor/course-preview';
+        // setShowReviewDialog(true);
     };
 
     const fullItems: CreationItem[] = [
@@ -101,7 +101,7 @@ const CourseContent = () => {
                 onClick={() => setSelectedItem(item.id)}
               />
             ))}
-            <Button className="rounded-none hidden md:block" onClick={handleSubmitReview}>Submit for Review</Button>
+            <Button className="rounded-none hidden md:block" onClick={handleSubmitReview}>Preview Course</Button>
           </div>
           
           
@@ -176,7 +176,7 @@ const CourseContent = () => {
         </div>
       </div>
       <div className="my-2">
-      <Button className="rounded-none block md:hidden w-full" onClick={handleSubmitReview}>Submit for Review</Button>
+      <Button className="rounded-none block md:hidden w-full" onClick={handleSubmitReview}>Preview Course</Button>
       </div>
       </div>
                   <SubmitRequirementsDialog 

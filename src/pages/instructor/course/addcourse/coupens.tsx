@@ -185,7 +185,7 @@ export default function CourseCouponsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this coupon?')) return;
+    //if (!confirm('Delete this coupon?')) return;
     const ok = await deleteCoupon(id);
     if (ok) await loadCoupons(); else alert('Failed to delete');
   };
