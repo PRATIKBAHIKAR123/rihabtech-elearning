@@ -19,6 +19,7 @@ export default function ChatInterface() {
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -39,15 +40,15 @@ export default function ChatInterface() {
         const hash = window.location.hash;
         const urlParams = new URLSearchParams(hash.split('?')[1] || '');
         const conversationId = urlParams.get('conversationId');
-        
+
         console.log('Hash:', hash);
         console.log('ConversationId from URL:', conversationId);
         console.log('Available conversations:', conversationsData);
-        
+
         if (conversationId) {
           let conversation = conversationsData.find(conv => conv.id === conversationId);
           console.log('Found conversation:', conversation);
-          
+
           if (conversation) {
             setSelectedConversation(conversation);
             await loadMessages(conversationId);
@@ -103,6 +104,37 @@ export default function ChatInterface() {
     };
 
     loadConversations();
+    
+    // Add a manual refresh function that can be called when needed
+    const refreshConversations = async () => {
+      if (user?.UserName) {
+        try {
+          console.log('Refreshing learner conversations...');
+          const conversationsData = await chatService.getConversations(user.UserName);
+          setConversations(conversationsData);
+          console.log('Learner conversations refreshed:', conversationsData);
+        } catch (error) {
+          console.error('Error refreshing conversations:', error);
+        }
+      }
+    };
+    
+    // Store refresh function globally for external calls
+    (window as any).refreshLearnerChat = refreshConversations;
+    
+    // Also refresh conversations when the page becomes visible (user switches tabs)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.UserName) {
+        refreshConversations();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      delete (window as any).refreshLearnerChat;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.UserName]);
 
   // Also listen for hash changes to handle navigation
@@ -129,6 +161,15 @@ export default function ChatInterface() {
     try {
       const messagesData = await chatService.getConversationMessages(conversationId);
       setMessages(messagesData);
+      
+      // Mark messages as read when conversation is selected
+      if (user?.UserName) {
+        await chatService.markMessagesAsRead(conversationId, user.UserName);
+        // Update conversation unread count
+        setConversations(prev => prev.map(conv => 
+          conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
+        ));
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
       toast.error('Failed to load messages');
@@ -152,15 +193,33 @@ export default function ChatInterface() {
 
       await chatService.sendMessage(messageData);
       
-      // Add message to local state
+      // Add message to local state immediately
       const newMessage: ChatMessage = {
         id: Date.now().toString(),
         ...messageData,
         timestamp: new Date()
       };
       
+      // Update messages immediately
       setMessages(prev => [...prev, newMessage]);
       setMessage('');
+      
+      // Update conversation's last message and timestamp immediately
+      setConversations(prev => prev.map(conv => 
+        conv.id === selectedConversation.id 
+          ? { 
+              ...conv, 
+              lastMessage: newMessage.message, 
+              lastMessageTime: new Date(),
+              updatedAt: new Date()
+            }
+          : conv
+      ));
+      
+      // Refresh instructor chat if it's open to show unread count
+      if ((window as any).refreshInstructorChat) {
+        (window as any).refreshInstructorChat();
+      }
       
       toast.success('Message sent successfully!');
     } catch (error) {
@@ -170,6 +229,17 @@ export default function ChatInterface() {
       setIsSending(false);
     }
   };
+
+  // Filter conversations based on search only
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = searchTerm === '' || 
+      conv.participantNames.some(name => 
+        name.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || 
+      conv.courseName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
 
   return (
     <div className="flex w-full h-screen bg-gray-50">
@@ -185,7 +255,9 @@ export default function ChatInterface() {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Pesquisar chat"
+                  placeholder="Search conversations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-4 py-2 outline outline-2 outline-gray-300 bg-white rounded-[10px]"
                 />
                 <div className="absolute inset-y-0 left-2 flex items-center">
@@ -194,7 +266,6 @@ export default function ChatInterface() {
                   </svg>
                 </div>
               </div>
-             <Button variant={'link'}>CHAT <Plus/></Button>
             </div>
           </div>
 
@@ -203,44 +274,46 @@ export default function ChatInterface() {
               <div className="flex items-center justify-center p-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : conversations.length === 0 ? (
+            ) : filteredConversations.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p>No conversations yet</p>
+                <p>{conversations.length === 0 ? 'No conversations yet' : 'No conversations match your filters'}</p>
               </div>
             ) : (
-              conversations.map((conversation, index) => (
+              filteredConversations.map((conversation, index) => (
                 <div
                   key={conversation.id}
-                  className={`flex items-center p-4 cursor-pointer hover:bg-gray-50 ${
+                className={`flex items-center p-4 cursor-pointer hover:bg-gray-50 ${
                     selectedConversation?.id === conversation.id ? 'bg-white rounded-[10px] border border-[#dfe0eb] shadow-[0px_0px_8px_0px_rgba(255,119,0,0.29)]' : ''
-                  }`}
+                  } ${
+                    conversation.unreadCount > 0 ? 'bg-blue-50 border-l-4 border-l-primary' : ''
+                }`}
                   onClick={() => {
                     setSelectedConversation(conversation);
                     loadMessages(conversation.id);
                   }}
-                >
+              >
                   <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-medium">
                     {conversation.participantNames.find(name => name !== user?.UserName)?.charAt(0) || 'I'}
                   </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between">
-                      <div className='flex flex-col justify-between'>
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between">
+                    <div className='flex flex-col justify-between'>
                         <p className="text-black text-sm font-semibold font-['Public_Sans']">
                           {conversation.participantNames.find(name => name !== user?.UserName) || 'Instructor'}
                         </p>
                         <p className="text-xs text-gray-500">{conversation.courseName || 'General Chat'}</p>
-                      </div>
-                      <div className="flex flex-col items-center">
+                    </div>
+                    <div className="flex flex-col items-center">
                         {conversation.unreadCount > 0 && (
-                          <span className="inline-block px-2 py-1 text-xs rounded-full bg-primary text-white text-xs font-normal font-['Public_Sans']">
+                          <span className="inline-block px-2 py-1 text-xs rounded-full bg-primary text-white font-bold min-w-[20px] text-center">
                             {conversation.unreadCount}
-                          </span>
+                      </span>
                         )}
-                        <p className="text-xs text-gray-500">
+                        <p className={`text-xs ${conversation.unreadCount > 0 ? 'text-primary font-semibold' : 'text-gray-500'}`}>
                           {conversation.lastMessageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <span className="text-primary">▶</span>
+                        <span className={`${conversation.unreadCount > 0 ? 'text-primary' : 'text-gray-400'}`}>▶</span>
                       </div>
                     </div>
                   </div>
@@ -254,21 +327,21 @@ export default function ChatInterface() {
         <div className="w-2/3 flex flex-col bg-white">
           {selectedConversation ? (
             <>
-              {/* Chat header */}
-              <div className="p-4 border-b border-gray-200 flex items-center">
+          {/* Chat header */}
+          <div className="p-4 border-b border-gray-200 flex items-center">
                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-medium">
                   {selectedConversation.participantNames.find(name => name !== user?.UserName)?.charAt(0) || 'I'}
                 </div>
-                <div className="ml-3">
+            <div className="ml-3">
                   <p className="font-semibold">
                     {selectedConversation.participantNames.find(name => name !== user?.UserName) || 'Instructor'}
                   </p>
                   <p className="text-xs text-gray-500">{selectedConversation.courseName || 'General Chat'}</p>
-                </div>
-                <div className="ml-auto">
-                  <span className="text-primary font-bold">●</span>
-                </div>
-              </div>
+            </div>
+            <div className="ml-auto">
+              <span className="text-primary font-bold">●</span>
+            </div>
+          </div>
             </>
           ) : (
             <div className="p-4 border-b border-gray-200 flex items-center">
@@ -285,7 +358,7 @@ export default function ChatInterface() {
           {/* Messages */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
             {selectedConversation ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -295,22 +368,22 @@ export default function ChatInterface() {
                 ) : (
                   messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.senderRole === 'student' ? 'justify-end' : 'justify-start'}`}>
-                      <div className="flex items-center space-x-2 max-w-md">
+                  <div className="flex items-center space-x-2 max-w-md">
                         {msg.senderRole === 'instructor' && (
                           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-medium text-sm">
                             {msg.senderName.charAt(0)}
                           </div>
                         )}
-                        <div className='flex flex-col gap-2'>
-                          <div 
-                            className={`px-4 py-2 rounded-lg text-sm ${
+                    <div className='flex flex-col gap-2'>
+                    <div 
+                      className={`px-4 py-2 rounded-lg text-sm ${
                               msg.senderRole === 'student' 
-                                ? 'bg-primary text-white rounded-br-none' 
-                                : 'bg-white rounded-[10px] border border-primary text-primary rounded-bl-none'
-                            }`}
-                          >
-                            {msg.message}
-                          </div>
+                          ? 'bg-primary text-white rounded-br-none' 
+                          : 'bg-white rounded-[10px] border border-primary text-primary rounded-bl-none'
+                      }`}
+                    >
+                      {msg.message}
+                    </div>
                           <div className="text-[#333333] text-[10px] font-normal font-['Public_Sans']">
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -320,7 +393,7 @@ export default function ChatInterface() {
                     </div>
                   ))
                 )}
-              </div>
+                  </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500">
                 <div className="text-center">
@@ -328,40 +401,40 @@ export default function ChatInterface() {
                   <p className="text-lg font-medium">Select a conversation</p>
                   <p className="text-sm">Choose a conversation from the list to start chatting</p>
                 </div>
-              </div>
+            </div>
             )}
           </div>
 
           {/* Message input */}
           {selectedConversation && (
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center">
-                <div className="flex-1 border border-primary bg-white rounded-[10px] p-2 flex items-center">
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    className="flex-1 outline-none border-none"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-1 border border-primary bg-white rounded-[10px] p-2 flex items-center">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  className="flex-1 outline-none border-none"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isSending}
-                  />
-                  <div className="flex items-center space-x-2">
-                    <button 
-                      className="text-primary hover:text-gray-700"
+                />
+                <div className="flex items-center space-x-2">
+                <button 
+                    className="text-primary hover:text-gray-700"
                       onClick={() => {/* Logic for attach file */}}
-                    >
+                  >
                       <img src='Images/icons/attach-file.png' alt="Attach file" className='h-6 w-6'/>
-                    </button>
-                    <button 
-                      className="text-primary hover:text-gray-700"
+                  </button>
+                  <button 
+                    className="text-primary hover:text-gray-700"
                       onClick={() => {/* Logic for other actions */}}
-                    >
+                  >
                       <img src='Images/icons/check.png' alt="Check" className='h-6 w-6'/>
-                    </button>
-                    <Button 
+                  </button>
+                  <Button 
                       className={`p-1.5 ${message.trim() ? 'bg-primary text-white' : 'bg-gray-300 text-gray-500'}`}
-                      onClick={handleSendMessage}
+                    onClick={handleSendMessage}
                       disabled={!message.trim() || isSending}
                     >
                       {isSending ? (
@@ -369,7 +442,7 @@ export default function ChatInterface() {
                       ) : (
                         <img src='Images/icons/send.png' alt="Send" className='h-6 w-6'/>
                       )}
-                    </Button>
+                  </Button>
                   </div>
                 </div>
               </div>

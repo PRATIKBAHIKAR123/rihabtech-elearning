@@ -51,6 +51,7 @@ export default function ChatInterface() {
           chatService.getConversationCourses(user.UserName)
         ]);
         console.log('Loaded instructor conversations:', conversationsData);
+        console.log('Loaded instructor courses:', coursesData);
         
         setConversations(conversationsData);
         setStats(statsData);
@@ -64,6 +65,43 @@ export default function ChatInterface() {
     };
 
     loadData();
+    
+    // Add a manual refresh function that can be called when needed
+    const refreshData = async () => {
+      if (user?.UserName) {
+        try {
+          console.log('Refreshing instructor data...');
+          const [conversationsData, statsData, coursesData] = await Promise.all([
+            chatService.getConversations(user.UserName),
+            chatService.getChatStats(user.UserName),
+            chatService.getConversationCourses(user.UserName)
+          ]);
+          setConversations(conversationsData);
+          setStats(statsData);
+          setCourses(coursesData);
+          console.log('Instructor data refreshed:', conversationsData);
+        } catch (error) {
+          console.error('Error refreshing data:', error);
+        }
+      }
+    };
+    
+    // Store refresh function globally for external calls
+    (window as any).refreshInstructorChat = refreshData;
+    
+    // Also refresh data when the page becomes visible (user switches tabs)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.UserName) {
+        refreshData();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      delete (window as any).refreshInstructorChat;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.UserName]);
 
   useEffect(() => {
@@ -80,6 +118,10 @@ export default function ChatInterface() {
       // Mark messages as read
       if (user?.UserName) {
         await chatService.markMessagesAsRead(conversationId, user.UserName);
+        // Update conversation unread count
+        setConversations(prev => prev.map(conv => 
+          conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
+        ));
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -104,22 +146,28 @@ export default function ChatInterface() {
 
       await chatService.sendMessage(messageData);
       
-      // Add message to local state
+      // Add message to local state immediately
       const message: ChatMessage = {
         id: Date.now().toString(),
         ...messageData,
         timestamp: new Date()
       };
       
+      // Update messages immediately
       setMessages(prev => [...prev, message]);
       setNewMessage('');
       
-      // Update conversation in list
+      // Update conversation in list immediately
       setConversations(prev => prev.map(conv => 
         conv.id === selectedConversation.id 
           ? { ...conv, lastMessage: newMessage.trim(), lastMessageTime: new Date(), updatedAt: new Date() }
           : conv
       ));
+      
+      // Refresh learner chat if it's open to show unread count
+      if ((window as any).refreshLearnerChat) {
+        (window as any).refreshLearnerChat();
+      }
       
       toast.success('Message sent successfully!');
     } catch (error) {
@@ -227,11 +275,15 @@ export default function ChatInterface() {
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">All Courses</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.name}
-                    </option>
-                  ))}
+                  {courses.length > 0 ? (
+                    courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="no-courses" disabled>No courses available</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -250,6 +302,8 @@ export default function ChatInterface() {
                       key={conversation.id}
                       className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
                         selectedConversation?.id === conversation.id ? 'bg-blue-50 border-r-2 border-primary' : ''
+                      } ${
+                        conversation.unreadCount > 0 ? 'bg-blue-50 border-l-4 border-l-primary' : ''
                       }`}
                       onClick={() => setSelectedConversation(conversation)}
                     >
@@ -266,9 +320,11 @@ export default function ChatInterface() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-gray-500">{formatTime(conversation.lastMessageTime)}</p>
+                          <p className={`text-xs ${conversation.unreadCount > 0 ? 'text-primary font-semibold' : 'text-gray-500'}`}>
+                            {formatTime(conversation.lastMessageTime)}
+                          </p>
                           {conversation.unreadCount > 0 && (
-                            <Badge className="ml-2 bg-primary text-white text-xs">
+                            <Badge className="ml-2 bg-primary text-white text-xs font-bold min-w-[20px] text-center">
                               {conversation.unreadCount}
                             </Badge>
                           )}

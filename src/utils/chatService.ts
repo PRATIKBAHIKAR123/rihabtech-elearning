@@ -228,13 +228,38 @@ class ChatService {
         timestamp: serverTimestamp()
       });
 
-      // Update conversation's last message and timestamp
+      // Get the conversation to update unread count
       const conversationRef = doc(db, this.CONVERSATIONS_COLLECTION, messageData.conversationId);
-      await updateDoc(conversationRef, {
-        lastMessage: messageData.message,
-        lastMessageTime: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      const conversationDoc = await getDoc(conversationRef);
+      
+      if (conversationDoc.exists()) {
+        const conversationData = conversationDoc.data();
+        if (conversationData) {
+          const participants = conversationData.participants || [];
+          
+          // Find the recipient (the other participant)
+          const recipient = participants.find((p: string) => p !== messageData.senderId);
+          
+          if (recipient) {
+            // Update conversation's last message, timestamp, and increment unread count for recipient
+            await updateDoc(conversationRef, {
+              lastMessage: messageData.message,
+              lastMessageTime: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              unreadCount: (conversationData.unreadCount || 0) + 1
+            });
+            
+            console.log('Updated conversation with unread count:', (conversationData.unreadCount || 0) + 1);
+          } else {
+            // Fallback if recipient not found
+            await updateDoc(conversationRef, {
+              lastMessage: messageData.message,
+              lastMessageTime: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       throw new Error('Failed to send message');
@@ -255,7 +280,7 @@ class ChatService {
       const batch = writeBatch(db);
 
       messagesSnapshot.forEach(docSnapshot => {
-        batch.update(doc(db, 'courseMessages', docSnapshot.id), { isRead: true });
+        batch.update(doc(db, this.MESSAGES_COLLECTION, docSnapshot.id), { isRead: true });
       });
 
       await batch.commit();
@@ -320,9 +345,9 @@ class ChatService {
   }
 
   // Get unique courses from conversations
-  async getConversationCourses(instructorId: string): Promise<{ id: string; name: string }[]> {
+  async getConversationCourses(userId: string): Promise<{ id: string; name: string }[]> {
     try {
-      const conversations = await this.getConversations(instructorId);
+      const conversations = await this.getConversations(userId);
       const uniqueCourses = Array.from(new Set(conversations.map(conv => conv.courseId)))
         .filter(Boolean)
         .map(courseId => {
