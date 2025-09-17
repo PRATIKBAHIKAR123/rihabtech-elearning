@@ -66,7 +66,7 @@ export interface CourseEarnings {
 class PayoutService {
   private readonly COLLECTION_NAME = 'payoutRequests';
   private readonly WATCH_TIME_COLLECTION = 'watchTimeData';
-  private readonly COURSES_COLLECTION = 'courses';
+  private readonly COURSES_COLLECTION = 'courseDrafts';
   private readonly USERS_COLLECTION = 'users';
 
   // Calculate earnings based on watch time (BRD requirement)

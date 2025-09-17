@@ -1,15 +1,15 @@
-import { BarChartBig, LucideMessageCircleQuestion, X } from 'lucide-react';
+import { BarChartBig, LucideMessageCircleQuestion, X, DollarSign } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
  
   return (
-    <div className="group w-[82px] hover:w-60 transition-all duration-300 ease-in-out bg-white shadow-md max-h-full px-4 overflow-hidden">
-      <nav className="mt-6 h-[98%] max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
+    <div className="group transition-all duration-300 ease-in-out bg-white shadow-md h-[calc(100vh-2rem)] px-4 overflow-hidden">
+      <nav className="mt-6 h-full max-h-[calc(100vh-2rem)] bg-gray-50 rounded-[18px] py-8">
         <SidebarItem icon={<DocumentIcon />} text="Courses" active={true} route='#/instructor/courses'/>
         <SidebarItem icon={<CreditCardIcon />} text="Payment" route='#/instructor/payment' />
-        <SidebarItem icon={<ChatIcon />} text="Chat" badge={1} route='#/instructor/chat' />
+        <SidebarItem icon={<ChatIcon />} text="Communications" route='#/instructor/chat' />
         <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
         <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/groups' />
         <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/students' />
@@ -96,9 +96,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
     }, [user]);
     return (
       <div
-        className={`fixed top-0 left-0 h-full w-[300px] bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed top-0 left-0 h-full w-[300px] bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        }`} style={{zIndex: 99}}
       >
         {/* Close Button */}
         <div className="flex justify-end p-4 md:hidden">

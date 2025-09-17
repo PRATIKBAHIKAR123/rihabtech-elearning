@@ -11,7 +11,7 @@ function InstructorHeader({ onMenuClick }: InstructorHeaderProps) {
 
 
     return (
-        <header className={` "top-0 sticky z-52 bg-primary md:bg-white shadow-sm"`}>
+        <header className={` top-0 fixed bg-primary md:bg-white shadow-sm z-99 w-full `} style={{zIndex: 99}}>
               <div className="flex items-center p-2 space-x-1 cursor-pointer md:hidden">
               <button onClick={onMenuClick}>
           <Menu className="text-white" />

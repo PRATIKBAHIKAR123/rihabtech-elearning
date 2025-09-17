@@ -15,6 +15,7 @@ export interface GroupData {
   name: string;
   description: string;
   instructorId: string;
+  courseId: string;
   status: 'active' | 'inactive' | 'archived';
   memberCount: number;
   courseCount: number;
@@ -37,7 +38,7 @@ class GroupsService {
       const groupsQuery = query(
         collection(db, this.GROUPS_COLLECTION),
         where('instructorId', '==', instructorId),
-        orderBy('createdAt', 'desc')
+        // orderBy('createdAt', 'desc')
       );
       const groupsSnapshot = await getDocs(groupsQuery);
 
@@ -89,13 +90,14 @@ class GroupsService {
           name: groupData?.name || 'Unknown Group',
           description: groupData?.description || '',
           instructorId: groupData?.instructorId || instructorId,
+          courseId: groupData?.courseId || '',
           status: groupData?.status || 'active',
           memberCount: members.length,
           courseCount: courses.length,
           maxMembers: groupData?.maxMembers || 50,
           createdAt: groupData?.createdAt?.toDate() || new Date(),
           updatedAt: groupData?.updatedAt?.toDate() || new Date(),
-          members,
+          members: groupData?.members || members,
           courses,
           tags: groupData?.tags || []
         });
@@ -116,6 +118,8 @@ class GroupsService {
         name: groupData.name || 'New Group',
         description: groupData.description || '',
         instructorId,
+        courseId: groupData.courseId || '',
+        members: groupData.members || [],
         status: groupData.status || 'active',
         maxMembers: groupData.maxMembers || 50,
         createdAt: serverTimestamp(),
@@ -131,13 +135,14 @@ class GroupsService {
         name: newGroup.name,
         description: newGroup.description,
         instructorId,
+        courseId: newGroup.courseId,
         status: newGroup.status,
-        memberCount: 0,
-        courseCount: 0,
+        memberCount: newGroup.members.length,
+        courseCount: 1,
         maxMembers: newGroup.maxMembers,
         createdAt: new Date(),
         updatedAt: new Date(),
-        members: [],
+        members: newGroup.members || [],
         courses: [],
         tags: newGroup.tags
       };
@@ -317,6 +322,7 @@ class GroupsService {
         name: 'Web Development Cohort 2025',
         description: 'Advanced web development group for experienced developers looking to master modern frameworks and tools.',
         instructorId: 'instructor-1',
+        courseId: 'course-1',
         status: 'active',
         memberCount: 24,
         courseCount: 3,
@@ -347,6 +353,7 @@ class GroupsService {
         name: 'Data Science Beginners',
         description: 'Introduction to data science concepts, Python programming, and statistical analysis for beginners.',
         instructorId: 'instructor-1',
+        courseId: 'course-4',
         status: 'active',
         memberCount: 18,
         courseCount: 2,
@@ -370,6 +377,7 @@ class GroupsService {
         name: 'UI/UX Design Workshop',
         description: 'Hands-on workshop for learning user interface and user experience design principles.',
         instructorId: 'instructor-1',
+        courseId: 'course-6',
         status: 'inactive',
         memberCount: 12,
         courseCount: 1,
@@ -393,6 +401,7 @@ class GroupsService {
         name: 'Mobile App Development',
         description: 'Comprehensive mobile app development using React Native and Flutter frameworks.',
         instructorId: 'instructor-1',
+        courseId: 'course-7',
         status: 'active',
         memberCount: 31,
         courseCount: 4,

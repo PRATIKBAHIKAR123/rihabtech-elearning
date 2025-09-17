@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc, addDoc, collection } from "firebase/firestore";
 export const createNewCourseDraft = async (): Promise<string> => {
   try {
     const courseData = {
+      instructorId:'',
       title: "",
       createdAt: new Date(),
       status: "draft",
@@ -18,12 +19,12 @@ export const createNewCourseDraft = async (): Promise<string> => {
   }
 };
 
-export const saveCourseTitle = async (courseId: string, title: string) => {
+export const saveCourseTitle = async (courseId: string, title: string, instructorId?: string) => {
   if (!courseId) {
     throw new Error("Course ID is required");
   }
   const courseRef = doc(db, "courseDrafts", courseId);
-  await setDoc(courseRef, { title }, { merge: true });
+  await setDoc(courseRef, { title,instructorId }, { merge: true });
 };
 
 export const getCourseTitle = async (courseId: string) => {

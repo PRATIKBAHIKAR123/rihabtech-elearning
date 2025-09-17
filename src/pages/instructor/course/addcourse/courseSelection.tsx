@@ -182,17 +182,6 @@ const CourseSelection = () => {
                 onDelete={handleDeleteCourse}
               />
             ))}
-            
-            {drafts.length > 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">
-                  Based on your experience, we think these resources will be helpful.
-                </p>
-                <button className="text-primary font-medium hover:text-purple-700 transition-colors">
-                  View More Resources
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>

@@ -5,12 +5,14 @@ import { Input } from "../../../../components/ui/input";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { saveCourseTitle, getCourseTitle, createNewCourseDraft } from "../../../../utils/firebaseCourseTitle";
+import { useAuth } from "../../../../context/AuthContext";
 
 
 const CourseTitle = () => {
    const draftId = useRef<string>(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
+  const { user } = useAuth();
   
   const formik = useFormik({
     initialValues: {
@@ -21,7 +23,7 @@ const CourseTitle = () => {
     }),
     onSubmit: async(values) => {
       setLoading(true);
-      await saveCourseTitle(draftId.current, values.title);
+      await saveCourseTitle(draftId.current, values.title,user?.UserName );
       setLoading(false);
       window.location.hash = "#/instructor/course-category";
     },

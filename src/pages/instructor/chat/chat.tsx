@@ -16,6 +16,8 @@ import { Badge } from '../../../components/ui/badge';
 import { useAuth } from '../../../context/AuthContext';
 import { chatService, ChatConversation, ChatMessage, ChatStats } from '../../../utils/chatService';
 import { toast } from 'sonner';
+import AnnouncementModule from './announcementModule';
+import { Trash2 } from 'lucide-react';
 
 export default function ChatInterface() {
   const [activeTab, setActiveTab] = useState("Messages");
@@ -179,9 +181,9 @@ export default function ChatInterface() {
       </div>
 
       {activeTab === 'Messages' && (
-        <div className="flex-1 flex">
+  <div className="flex-1 flex min-h-0">
           {/* Conversations Sidebar */}
-          <div className="w-80 bg-white border-r flex flex-col">
+          <div className="w-80 bg-white border-r flex flex-col min-h-0">
             {/* Stats */}
             {stats && (
               <div className="p-4 border-b bg-gray-50">
@@ -230,7 +232,7 @@ export default function ChatInterface() {
             </div>
 
             {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {filteredConversations.length === 0 ? (
                 <div className="p-4 text-center text-gray-500">
                   <MessageCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
@@ -278,7 +280,7 @@ export default function ChatInterface() {
           {/* Chat Area */}
           <div className="flex-1 flex flex-col bg-gray-50">
             {selectedConversation ? (
-              <>
+              <div className='relative flex flex-col h-full'>
                 {/* Chat Header */}
                 <div className="bg-white border-b p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -294,10 +296,7 @@ export default function ChatInterface() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm">
-                      <Phone className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Video className="w-4 h-4" />
+                     <Trash2 className="text-red mr-2"/> Delete Conversation
                     </Button>
                     <Button variant="outline" size="sm">
                       <MoreVertical className="w-4 h-4" />
@@ -306,7 +305,7 @@ export default function ChatInterface() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -339,30 +338,32 @@ export default function ChatInterface() {
                   )}
                 </div>
 
-                {/* Message Input */}
-                <div className="bg-white border-t p-4">
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                {/* Message Input - sticky within chat column */}
+                <div className="sticky bottom-0 bg-white border-t p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    {/* <Button variant="outline" size="sm">
                       <Paperclip className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                     <input
                       type="text"
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full sm:flex-1 px-3 py-2 border border-solid border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={isSending || !newMessage.trim()}
-                      size="sm"
-                    >
-                      {isSending ? 'Sending...' : <Send className="w-4 h-4" />}
-                    </Button>
+                    <div className="flex-shrink-0">
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={isSending || !newMessage.trim()}
+                        size="sm"
+                      >
+                        {isSending ? 'Sending...' : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500">
                 <div className="text-center">
@@ -387,13 +388,7 @@ export default function ChatInterface() {
       )}
 
       {activeTab === 'Announcements' && (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Announcements</p>
-            <p className="text-sm">Announcement features coming soon</p>
-          </div>
-        </div>
+        <AnnouncementModule/>
       )}
     </div>
   );

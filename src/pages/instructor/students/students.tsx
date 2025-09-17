@@ -51,8 +51,8 @@ export const Students = () => {
       } catch (error) {
         console.error('Error loading data:', error);
         // Fallback to mock data
-        const mockStudents = dashboardService.getMockStudentsData();
-        const mockCourses = dashboardService.getMockCoursesData();
+        const mockStudents: any[] = [];
+        const mockCourses: any[] = [];
         setStudents(mockStudents);
         setFilteredStudents(mockStudents);
         setCourses(mockCourses);
@@ -272,7 +272,7 @@ export const Students = () => {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
-                        <p className="text-sm text-gray-500">{student.email}</p>
+                        {/* <p className="text-sm text-gray-500">{student.email}</p> */}
                       </div>
                       <Badge className={getStatusColor(student.status)}>
                         {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
@@ -310,7 +310,7 @@ export const Students = () => {
                     
                     {/* Additional Info */}
                     <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                      {student.location && (
+                      {/* {student.location && (
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
                           <span>{student.location}</span>
@@ -327,7 +327,7 @@ export const Students = () => {
                           <GraduationCap className="w-3 h-3" />
                           <span>{student.education}</span>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </div>
                   
@@ -369,10 +369,10 @@ export const Students = () => {
             
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <p className="text-gray-900">{selectedStudent.email}</p>
-                </div>
+                </div> */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <Badge className={getStatusColor(selectedStudent.status)}>
@@ -397,26 +397,26 @@ export const Students = () => {
                 </div>
               </div>
               
-              {selectedStudent.location && (
+              {/* {selectedStudent.location && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                   <p className="text-gray-900">{selectedStudent.location}</p>
                 </div>
-              )}
+              )} */}
               
-              {selectedStudent.phone && (
+              {/* {selectedStudent.phone && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <p className="text-gray-900">{selectedStudent.phone}</p>
                 </div>
-              )}
+              )} */}
               
-              {selectedStudent.education && (
+              {/* {selectedStudent.education && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Education</label>
                   <p className="text-gray-900">{selectedStudent.education}</p>
                 </div>
-              )}
+              )} */}
               
               <div className="pt-4 border-t">
                 <div className="flex gap-3">

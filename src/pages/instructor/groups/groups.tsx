@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Calendar, BookOpen, Search, Filter, MoreVertical, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Users, Calendar, BookOpen, Search, Filter, MoreVertical, Edit, Trash2, Eye, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -7,6 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../../../context/AuthContext';
 import { groupsService, GroupData, GroupMember } from '../../../utils/groupsService';
 import { toast } from 'sonner';
+import { getInstructorCourses } from '../../../utils/firebaseInstructorCourses';
+import { CourseDisplayData } from '../course/courseList';
+import { StudentData } from '../../../utils/dashboardService';
+import { getAllUsers } from '../../../utils/firebaseUsers';
 
 export const Groups = () => {
   const [groups, setGroups] = useState<GroupData[]>([]);
@@ -34,6 +38,7 @@ export const Groups = () => {
         const groupsData = await groupsService.getGroupsData(user.UserName);
         setGroups(groupsData);
         setFilteredGroups(groupsData);
+        console.log('Loaded groups:', groupsData);
       } catch (error) {
         console.error('Error loading groups:', error);
         // Fallback to mock data
@@ -87,13 +92,14 @@ export const Groups = () => {
           name: groupData.name || 'New Group',
           description: groupData.description || '',
           instructorId: user.UserName,
+          courseId: groupData.courseId || '',
           status: groupData.status || 'active',
           memberCount: 0,
           courseCount: 0,
           maxMembers: groupData.maxMembers || 50,
           createdAt: new Date(),
           updatedAt: new Date(),
-          members: [],
+          members: groupData.members || [],
           courses: [],
           tags: groupData.tags || []
         };
@@ -440,6 +446,7 @@ export const Groups = () => {
                         {group.status.charAt(0).toUpperCase() + group.status.slice(1)}
                       </Badge>
                     </div>
+                    <p className="font-bold mb-3">Course: {group.courseId}</p>
                     
                                          <p className="text-gray-600 mb-3">{group.description}</p>
                      
@@ -597,20 +604,175 @@ export const Groups = () => {
  }
 
  const CreateGroupModal = ({ onClose, onSubmit, isCreating }: CreateGroupModalProps) => {
+  const [courses, setCourses] = useState<CourseDisplayData[]>([]);
+  const [members, setmembers] = useState<User[]>([]);
+  const [open, setOpen] = useState(false);
+  const [filteredmembers, setFilteredmembers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
      const [formData, setFormData] = useState({
      name: '',
      description: '',
+     courseId: '',
+     members: [] as GroupMember[],
      status: 'active' as 'active' | 'inactive' | 'archived',
      maxMembers: 50,
      tags: [] as string[]
    });
 
+     useEffect(() => {
+       const loadStudentsData = async () => {
+         if (!user?.UserName) return;
+         
+         try {
+           //setLoading(true);
+           
+           const tempmembers = await getAllUsers();
+               
+               setmembers(tempmembers as User[]);
+               console.log("searchTerm", searchTerm);
+               const filteredOptions = tempmembers;
+  setFilteredmembers(filteredOptions as  User[]);
+  console.log("filteredOptions:", filteredOptions);
+         } catch (error) {
+           console.error('Error loading data:', error);
+           // Fallback to mock data
+           
+         } finally {
+           //setLoading(false);
+         }
+       };
+   
+       loadStudentsData();
+     }, [user?.UserName]);
+
+
+      useEffect(() => {
+   const fetchInstructorCourses = async () => {
+           try {
+               //setLoading(true);
+               
+               if (!user?.UserName) {
+                   console.log("No user email found");
+                   return;
+               }
+   
+               const instructorCourses = await getInstructorCourses(user.UserName);
+               
+               // Transform Firebase data to match the UI structure
+               const transformedCourses: CourseDisplayData[] = instructorCourses.map(course => ({
+                   ...course,
+                   // Add mock data for fields not in Firebase (for now)
+                   earnings: Math.floor(Math.random() * 5000) + 500, // Random earnings between 500-5500
+                   enrollments: Math.floor(Math.random() * 100) + 20, // Random enrollments between 20-120
+                   ratings: Math.floor(Math.random() * 200) + 500, // Random ratings between 500-700
+                   ratingScore: parseFloat((Math.random() * 2 + 3).toFixed(1)) // Random rating between 3.0-5.0
+               }));
+               
+               console.log("Transformed courses:", transformedCourses);
+               setCourses(transformedCourses);
+   
+           } catch (err) {
+               console.error("Error fetching courses:", err);
+               // Fallback to mock data if Firebase fails
+               const mockCourses: CourseDisplayData[] = [
+                   {
+                       id: "1",
+                       title: "Design Course",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 1000,
+                       enrollments: 78,
+                       ratings: 720,
+                       ratingScore: 5.0,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 85,
+                       lastModified: new Date(),
+                       createdAt: new Date(),
+                       instructorId: "mock-user",
+                       description: "Complete guide to design principles"
+                   },
+                   {
+                       id: "2",
+                       title: "Web Development Course",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 1500,
+                       enrollments: 92,
+                       ratings: 650,
+                       ratingScore: 4.8,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 75,
+                       lastModified: new Date(Date.now() - 86400000), // 1 day ago
+                       createdAt: new Date(Date.now() - 86400000),
+                       instructorId: "mock-user",
+                       description: "Learn web development from scratch"
+                   },
+                   {
+                       id: "3",
+                       title: "Mobile App Development",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 800,
+                       enrollments: 45,
+                       ratings: 420,
+                       ratingScore: 4.9,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 60,
+                       lastModified: new Date(Date.now() - 172800000), // 2 days ago
+                       createdAt: new Date(Date.now() - 172800000),
+                       instructorId: "mock-user",
+                       description: "Build mobile apps for iOS and Android"
+                   }
+               ];
+               setCourses(mockCourses);
+           } finally {
+               //setLoading(false);
+           }
+       };
+        fetchInstructorCourses();
+       }, [user?.UserName]);
+       
+
+    const handleSelect = (member: User) => {
+    setFormData((prev) => {
+      const alreadySelected = prev.members.some((m) => m.id === member.id);
+      return {
+        ...prev,
+        members: alreadySelected
+          ? prev.members.filter((m) => m.id !== member.id) // remove if already selected
+          : [
+              ...prev.members,
+              {
+                id: member.id,
+                name: `${member.firstName} ${member.lastName}`,
+                email: member.email,
+                role: member.role,
+                joinedAt: new Date(),
+              } as GroupMember,
+            ], // add new as GroupMember
+      };
+    });
+  };
+
+  const handleRemove = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      members: prev.members.filter((m) => m.id !== id),
+    }));
+  };
+
      const handleSubmit = (e: React.FormEvent) => {
      e.preventDefault();
-     if (!formData.name.trim() || !formData.description.trim()) {
+     console.log('Form data before validation:', formData);
+     if (!formData.name.trim() || !formData.description.trim() || !formData.courseId || formData.members.length<=0) {
        toast.error('Please fill in all required fields');
        return;
      }
+     console.log('Submitting form data:', formData);
      onSubmit(formData);
    };
 
@@ -645,7 +807,94 @@ export const Groups = () => {
               required
             />
           </div>
-          
+
+          <Select value={formData.courseId} onValueChange={(value) => setFormData(prev => ({ ...prev, courseId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+          <div className="w-full">
+      <Select open={open} onOpenChange={setOpen}>
+        <SelectTrigger className="w-full">Select members</SelectTrigger>
+        <SelectContent>
+          {/* Search Input */}
+          <div className="p-2">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchTerm(value);
+                const search = value.toLowerCase();
+                const filteredOptions = members.filter(
+                  (option) =>
+                    option.firstName?.toLowerCase().includes(search) ||
+                    option.lastName?.toLowerCase().includes(search) ||
+                    option.email?.toLowerCase().includes(search)
+                );
+                setFilteredmembers(filteredOptions);
+              }}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+
+          {/* Filtered Options */}
+          {filteredmembers.length > 0 ? (
+            filteredmembers.map((option) => {
+              const isSelected = formData.members.some((m) => m.id === option.id);
+              return (
+                <div
+                  key={option.id}
+                  className={`cursor-pointer p-2 rounded flex justify-between items-center ${
+                    isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                  }`}
+                  onClick={() => {handleSelect(option);
+                    setOpen(false);
+                  }}
+                >
+                  <span>
+                    {option.firstName} {option.lastName} ({option.email})
+                  </span>
+                  {isSelected && <span className="text-blue-600 font-bold">✔</span>}
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-2 text-gray-500">No results found</div>
+          )}
+        </SelectContent>
+      </Select>
+
+      {/* Show Selected Members */}
+      <div className="mt-4">
+        <h4 className="font-semibold mb-2">Selected Members:</h4>
+        <div className="flex flex-wrap gap-2">
+          {formData.members.map((m) => (
+            <div
+              key={m.id}
+              className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full"
+            >
+              <span>
+                {m.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(m.id)}
+                className="ml-1 text-blue-600 hover:text-red-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -716,93 +965,332 @@ export const Groups = () => {
  }
  
  const EditGroupModal = ({ group, onClose, onSubmit, isUpdating }: EditGroupModalProps) => {
-   const [formData, setFormData] = useState({
+  const [open, setOpen] = useState(false);
+   const [courses, setCourses] = useState<CourseDisplayData[]>([]);
+  const [members, setmembers] = useState<User[]>([]);
+  const [filteredmembers, setFilteredmembers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
+     const [formData, setFormData] = useState({
      name: group.name,
      description: group.description,
-     status: group.status,
-     maxMembers: group.maxMembers,
-     tags: group.tags || []
+     courseId: group.courseId || '',
+     members: group.members as GroupMember[],
+     status: group.status as 'active' | 'inactive' | 'archived',
+     maxMembers: group.maxMembers || 50,
+     tags: group.tags as string[]
    });
- 
-   const handleSubmit = (e: React.FormEvent) => {
+
+     useEffect(() => {
+       const loadStudentsData = async () => {
+         if (!user?.UserName) return;
+         
+         try {
+           //setLoading(true);
+           
+           const tempmembers = await getAllUsers();
+               
+               setmembers(tempmembers as User[]);
+               console.log("searchTerm", searchTerm);
+               const filteredOptions = tempmembers;
+  setFilteredmembers(filteredOptions as  User[]);
+  console.log("filteredOptions:", filteredOptions);
+         } catch (error) {
+           console.error('Error loading data:', error);
+           // Fallback to mock data
+           
+         } finally {
+           //setLoading(false);
+         }
+       };
+   
+       loadStudentsData();
+     }, [user?.UserName]);
+
+
+      useEffect(() => {
+   const fetchInstructorCourses = async () => {
+           try {
+               //setLoading(true);
+               
+               if (!user?.UserName) {
+                   console.log("No user email found");
+                   return;
+               }
+   
+               const instructorCourses = await getInstructorCourses(user.UserName);
+               
+               // Transform Firebase data to match the UI structure
+               const transformedCourses: CourseDisplayData[] = instructorCourses.map(course => ({
+                   ...course,
+                   // Add mock data for fields not in Firebase (for now)
+                   earnings: Math.floor(Math.random() * 5000) + 500, // Random earnings between 500-5500
+                   enrollments: Math.floor(Math.random() * 100) + 20, // Random enrollments between 20-120
+                   ratings: Math.floor(Math.random() * 200) + 500, // Random ratings between 500-700
+                   ratingScore: parseFloat((Math.random() * 2 + 3).toFixed(1)) // Random rating between 3.0-5.0
+               }));
+               
+               console.log("Transformed courses:", transformedCourses);
+               setCourses(transformedCourses);
+   
+           } catch (err) {
+               console.error("Error fetching courses:", err);
+               // Fallback to mock data if Firebase fails
+               const mockCourses: CourseDisplayData[] = [
+                   {
+                       id: "1",
+                       title: "Design Course",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 1000,
+                       enrollments: 78,
+                       ratings: 720,
+                       ratingScore: 5.0,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 85,
+                       lastModified: new Date(),
+                       createdAt: new Date(),
+                       instructorId: "mock-user",
+                       description: "Complete guide to design principles"
+                   },
+                   {
+                       id: "2",
+                       title: "Web Development Course",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 1500,
+                       enrollments: 92,
+                       ratings: 650,
+                       ratingScore: 4.8,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 75,
+                       lastModified: new Date(Date.now() - 86400000), // 1 day ago
+                       createdAt: new Date(Date.now() - 86400000),
+                       instructorId: "mock-user",
+                       description: "Learn web development from scratch"
+                   },
+                   {
+                       id: "3",
+                       title: "Mobile App Development",
+                       status: "Live",
+                       thumbnail: "Images/4860253.png",
+                       earnings: 800,
+                       enrollments: 45,
+                       ratings: 420,
+                       ratingScore: 4.9,
+                       // Required InstructorCourse properties
+                       visibility: "public",
+                       progress: 60,
+                       lastModified: new Date(Date.now() - 172800000), // 2 days ago
+                       createdAt: new Date(Date.now() - 172800000),
+                       instructorId: "mock-user",
+                       description: "Build mobile apps for iOS and Android"
+                   }
+               ];
+               setCourses(mockCourses);
+           } finally {
+               //setLoading(false);
+           }
+       };
+        fetchInstructorCourses();
+       }, [user?.UserName]);
+       
+
+    const handleSelect = (member: User) => {
+    setFormData((prev) => {
+      const alreadySelected = prev.members.some((m) => m.id === member.id);
+      return {
+        ...prev,
+        members: alreadySelected
+          ? prev.members.filter((m) => m.id !== member.id) // remove if already selected
+          : [
+              ...prev.members,
+              {
+                id: member.id,
+                name: `${member.firstName} ${member.lastName}`,
+                email: member.email,
+                role: member.role,
+                joinedAt: new Date(),
+              } as GroupMember,
+            ], // add new as GroupMember
+      };
+    });
+  };
+
+  const handleRemove = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      members: prev.members.filter((m) => m.id !== id),
+    }));
+  };
+
+     const handleSubmit = (e: React.FormEvent) => {
      e.preventDefault();
-     if (!formData.name.trim() || !formData.description.trim()) {
+     if (!formData.name.trim() || !formData.description.trim() || !formData.courseId || formData.members.length<=0) {
        toast.error('Please fill in all required fields');
        return;
      }
+     console.log('Submitting form data:', formData);
      onSubmit(formData);
    };
  
    return (
      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-         <h2 className="text-xl font-semibold mb-4">Edit Group</h2>
-         
-         <form onSubmit={handleSubmit} className="space-y-4">
-           <div>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h2 className="text-xl font-semibold mb-4">Edit Group</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Group Name
+            </label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter group name"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter group description"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={3}
+              required
+            />
+          </div>
+
+          <Select value={formData.courseId} onValueChange={(value) => setFormData(prev => ({ ...prev, courseId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+          <div className="w-full">
+      <Select open={open} onOpenChange={setOpen}>
+        <SelectTrigger className="w-full">Select members</SelectTrigger>
+        <SelectContent>
+          {/* Search Input */}
+          <div className="p-2">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchTerm(value);
+                const search = value.toLowerCase();
+                const filteredOptions = members.filter(
+                  (option) =>
+                    option.firstName?.toLowerCase().includes(search) ||
+                    option.lastName?.toLowerCase().includes(search) ||
+                    option.email?.toLowerCase().includes(search)
+                );
+                setFilteredmembers(filteredOptions);
+              }}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+
+          {/* Filtered Options */}
+          {filteredmembers.length > 0 ? (
+            filteredmembers.map((option) => {
+              const isSelected = formData.members.some((m) => m.id === option.id);
+              return (
+                <div
+                  key={option.id}
+                  className={`cursor-pointer p-2 rounded flex justify-between items-center ${
+                    isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                  }`}
+                  onClick={() => {handleSelect(option)
+                    setOpen(false);
+                  }}
+                >
+                  <span>
+                    {option.firstName} {option.lastName} ({option.email})
+                  </span>
+                  {isSelected && <span className="text-blue-600 font-bold">✔</span>}
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-2 text-gray-500">No results found</div>
+          )}
+        </SelectContent>
+      </Select>
+
+      {/* Show Selected Members */}
+      <div className="mt-4">
+        <h4 className="font-semibold mb-2">Selected Members:</h4>
+        <div className="flex flex-wrap gap-2">
+          {formData.members.map((m) => (
+            <div
+              key={m.id}
+              className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full"
+            >
+              <span>
+                {m.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(m.id)}
+                className="ml-1 text-blue-600 hover:text-red-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'active' | 'inactive' | 'archived' }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+                     <div>
              <label className="block text-sm font-medium text-gray-700 mb-1">
-               Group Name
+               Max Members
              </label>
              <Input
-               value={formData.name}
-               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-               placeholder="Enter group name"
-               required
+               type="number"
+               value={formData.maxMembers}
+               onChange={(e) => setFormData(prev => ({ ...prev, maxMembers: parseInt(e.target.value) }))}
+               min="1"
+               max="1000"
              />
-           </div>
-           
-           <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">
-               Description
-             </label>
-             <textarea
-               value={formData.description}
-               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-               placeholder="Enter group description"
-               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-               rows={3}
-               required
-             />
-           </div>
-           
-           <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">
-               Status
-             </label>
-             <Select
-               value={formData.status}
-               onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'active' | 'inactive' | 'archived' }))}
-             >
-               <SelectTrigger>
-                 <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="active">Active</SelectItem>
-                 <SelectItem value="inactive">Inactive</SelectItem>
-                 <SelectItem value="archived">Archived</SelectItem>
-               </SelectContent>
-             </Select>
            </div>
            
                        <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Max Members
-              </label>
-              <Input
-                type="number"
-                value={formData.maxMembers}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxMembers: parseInt(e.target.value) }))}
-                min="1"
-                max="1000"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tags (comma-separated)
               </label>
               <Input
-                value={formData.tags.join(', ')}
                 placeholder="web-development, react, nodejs"
                 onChange={(e) => {
                   const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
@@ -813,8 +1301,8 @@ export const Groups = () => {
                 Add tags to help organize and categorize your groups
               </p>
             </div>
-            
-            <div className="flex gap-3 pt-4">
+          
+                     <div className="flex gap-3 pt-4">
              <Button type="submit" className="flex-1" disabled={isUpdating}>
                {isUpdating ? 'Updating...' : 'Update Group'}
              </Button>
@@ -822,9 +1310,9 @@ export const Groups = () => {
                Cancel
              </Button>
            </div>
-         </form>
-       </div>
-     </div>
+        </form>
+      </div>
+    </div>
    );
  };
  
@@ -886,75 +1374,92 @@ const ViewGroupModal = ({ group, onClose }: ViewGroupModalProps) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-xl font-semibold">{group.name}</h2>
           <Button variant="outline" size="sm" onClick={onClose}>
             ✕
           </Button>
         </div>
-        
+
         <div className="space-y-4">
+          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <p className="text-gray-900">{group.description}</p>
           </div>
-          
-                     <div className="grid grid-cols-2 gap-4">
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-               <Badge className="bg-green-100 text-green-800">{group.status}</Badge>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Member Count</label>
-               <p className="text-gray-900">{group.memberCount} / {group.maxMembers}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Course Count</label>
-               <p className="text-gray-900">{group.courseCount}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
-               <p className="text-gray-900">{new Date(group.createdAt).toLocaleDateString()}</p>
-             </div>
-           </div>
-           
-           {group.tags && group.tags.length > 0 && (
-             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-               <div className="flex flex-wrap gap-2">
-                 {group.tags.map((tag, index) => (
-                   <span
-                     key={index}
-                     className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                   >
-                     {tag}
-                   </span>
-                 ))}
-               </div>
-             </div>
-           )}
-          
+
+          {/* Status + Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <Badge className="bg-green-100 text-green-800">{group.status}</Badge>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Member Count</label>
+              <p className="text-gray-900">
+                {group.members?.length} / {group.maxMembers}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+              <p className="text-gray-900">
+                {group.courseId || "—"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
+              <p className="text-gray-900">
+                {new Date(group.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Tags */}
+          {group.tags && group.tags.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+              <div className="flex flex-wrap gap-2">
+                {group.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Members */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Members</label>
-            <div className="space-y-2">
-              {group.members.slice(0, 5).map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      {member.name.charAt(0)}
+            <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-2">
+              {group.members?.length > 0 ? (
+                group.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* <img
+                        src={member.profilePicture || "https://via.placeholder.com/40"}
+                        alt={member.name}
+                        className="w-8 h-8 rounded-full"
+                      /> */}
+                      <div>
+                        <p className="font-medium">
+                          {member.name}
+                        </p>
+                        <p className="text-sm text-gray-500">{member.email}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.email}</p>
-                    </div>
+                    <Badge variant="outline">{member.role || "member"}</Badge>
                   </div>
-                  <Badge variant="outline">{member.role}</Badge>
-                </div>
-              ))}
-              {group.members.length > 5 && (
-                <p className="text-sm text-gray-500 text-center py-2">
-                  +{group.members.length - 5} more members
-                </p>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No members added</p>
               )}
             </div>
           </div>
@@ -963,5 +1468,27 @@ const ViewGroupModal = ({ group, onClose }: ViewGroupModalProps) => {
     </div>
   );
 };
+
+export interface User {
+  id: string;
+  address: string;
+  bio: string;
+  categoryId: string;
+  email: string;
+  firstName: string;
+  isVerified: boolean;
+  joinDate: Date;        // stored as Firestore timestamp, convert to Date in code
+  lastLogin: Date;       // same as above
+  lastName: string;
+  phone: string;
+  profilePicture: string;
+  rating: number;
+  role: string;          // e.g., "learner", "instructor"
+  status: string;        // e.g., "active", "inactive"
+  subCategoryId: string;
+  totalCourses: number;
+  totalStudents: number;
+  userName: string;
+}
 
 export default Groups;

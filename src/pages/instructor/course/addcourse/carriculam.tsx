@@ -1707,49 +1707,113 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               const files = Array.from(e.target.files || []);
                                                                               if (files.length === 0) return;
 
-                                                                              const fileObjects = await Promise.all(files.map(async (file) => {
+                                                                              // Insert placeholder entries with 'uploading' status so UI shows progress
+                                                                              const placeholders = files.map((file) => ({
+                                                                                file,
+                                                                                name: file.name,
+                                                                                url: '',
+                                                                                cloudinaryUrl: '',
+                                                                                cloudinaryPublicId: '',
+                                                                                duration: 0,
+                                                                                status: 'uploading' as VideoStatus,
+                                                                                uploadProgress: 0,
+                                                                                uploadedAt: null
+                                                                              }));
+
+                                                                              const currentFiles = item.contentFiles || [];
+                                                                              const newFilesWithPlaceholders = [...currentFiles, ...placeholders];
+                                                                              formik.setFieldValue(
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                newFilesWithPlaceholders
+                                                                              );
+
+                                                                              // Upload sequentially to allow progress updates per-file
+                                                                              for (let i = 0; i < files.length; i++) {
+                                                                                const file = files[i];
+                                                                                const placeholderIndex = currentFiles.length + i;
+                                                                                const fileKey = `${sectionIdx}-${itemIdx}-${placeholderIndex}`;
+
                                                                                 try {
                                                                                   console.log('Uploading individual video to Cloudinary:', file.name);
-                                                                                  
-                                                                                  // Upload to Cloudinary
-                                                                                  const uploadResult = await uploadToCloudinary(file, 'video');
+
+                                                                                  const uploadResult = await uploadToCloudinary(file, 'video', (percent) => {
+                                                                                    // Update progress on the placeholder entry
+                                                                                    const updated = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
+                                                                                    if (updated[placeholderIndex]) {
+                                                                                      updated[placeholderIndex] = {
+                                                                                        ...updated[placeholderIndex],
+                                                                                        uploadProgress: percent,
+                                                                                        status: 'uploading'
+                                                                                      };
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                        updated
+                                                                                      );
+                                                                                    }
+                                                                                  });
+
                                                                                   const cloudinaryUrl = uploadResult.url;
                                                                                   const cloudinaryPublicId = uploadResult.publicId;
                                                                                   const duration = uploadResult.duration || 0;
-                                                                                  
-                                                                                  console.log('Individual video upload successful:', {
-                                                                                    url: cloudinaryUrl,
-                                                                                    publicId: cloudinaryPublicId,
-                                                                                    duration: duration
-                                                                                  });
-                                                                                  
-                                                                                  return {
-                                                                                    file,
-                                                                                    url: cloudinaryUrl, // Use Cloudinary URL
-                                                                                    cloudinaryUrl,
-                                                                                    cloudinaryPublicId,
-                                                                                    name: file.name,
-                                                                                    duration,
-                                                                                    status: 'uploaded' as VideoStatus,
-                                                                                    uploadedAt: new Date()
-                                                                                  };
+
+                                                                                  // Replace placeholder with final uploaded metadata
+                                                                                  const updatedFiles = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
+                                                                                  if (updatedFiles[placeholderIndex]) {
+                                                                                    updatedFiles[placeholderIndex] = {
+                                                                                      file,
+                                                                                      url: cloudinaryUrl,
+                                                                                      cloudinaryUrl,
+                                                                                      cloudinaryPublicId,
+                                                                                      name: file.name,
+                                                                                      duration,
+                                                                                      status: 'uploaded' as VideoStatus,
+                                                                                      uploadProgress: 100,
+                                                                                      uploadedAt: new Date()
+                                                                                    };
+                                                                                  } else {
+                                                                                    updatedFiles.push({
+                                                                                      file,
+                                                                                      url: cloudinaryUrl,
+                                                                                      cloudinaryUrl,
+                                                                                      cloudinaryPublicId,
+                                                                                      name: file.name,
+                                                                                      duration,
+                                                                                      status: 'uploaded' as VideoStatus,
+                                                                                      uploadProgress: 100,
+                                                                                      uploadedAt: new Date()
+                                                                                    });
+                                                                                  }
+
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                    updatedFiles
+                                                                                  );
+
                                                                                 } catch (error) {
                                                                                   console.error('Failed to upload individual video to Cloudinary:', error);
-                                                                                  // Show error to user instead of fallback
+                                                                                  // Mark placeholder as failed
+                                                                                  const updated = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
+                                                                                  if (updated[placeholderIndex]) {
+                                                                                    updated[placeholderIndex] = {
+                                                                                      ...updated[placeholderIndex],
+                                                                                      status: 'failed',
+                                                                                      uploadProgress: 0
+                                                                                    };
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                      updated
+                                                                                    );
+                                                                                  }
+                                                                                  // Optionally notify the user
                                                                                   alert(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                                                                                  throw error;
                                                                                 }
-                                                                              }));
+                                                                              }
 
                                                                               // Set lecture name to the first file's name (without extension)
                                                                               const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
                                                                               formik.setFieldValue(
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
                                                                                 fileNameWithoutExt
-                                                                              );
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                fileObjects
                                                                               );
                                                                             }}
                                                                           />

@@ -62,7 +62,7 @@ const PreviewCourse = () => {
 
 
   const goToDashboard = () => {
-    window.location.hash = '#/instructor/dashboard';
+    window.location.hash = '#/instructor/course-test-selection';
   };
 
   // Submit for Review handler
@@ -88,7 +88,7 @@ const PreviewCourse = () => {
             </ul>
           </div>
           <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow" onClick={goToDashboard}>
-            Go to Dashboard
+            Go to Courses
           </Button>
         </div>
       </div>
@@ -315,7 +315,7 @@ const PreviewCourse = () => {
 
       {/* Pricing & Access */}
       <div className="mb-8">
-        <h3 className="text-xl font-bold flex items-center gap-2 mb-2"><DollarSign className="inline-block text-yellow-500" /> Pricing & Access</h3>
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-2"><div className="inline-block text-yellow-500" >₹</div> Pricing & Access</h3>
         <div className="mb-2"><strong>Pricing:</strong> {course.pricing ? course.pricing.charAt(0).toUpperCase() + course.pricing.slice(1) : 'N/A'}</div>
         <div className="mb-2">
           <strong>Access Platforms:</strong>

@@ -54,8 +54,9 @@ export const getVideoDuration = async (file: File): Promise<number> => {
 
 // Cloudinary upload function
 export const uploadToCloudinary = async (
-  file: File, 
-  resourceType: 'video' | 'image' | 'raw' | 'auto' = 'auto'
+  file: File,
+  resourceType: 'video' | 'image' | 'raw' | 'auto' = 'auto',
+  onProgress?: (percent: number) => void
 ): Promise<{ url: string; publicId: string; duration?: number }> => {
   if (!file) {
     throw new Error('File is required');
@@ -84,44 +85,103 @@ export const uploadToCloudinary = async (
       uploadPreset: CLOUDINARY_CONFIG.UPLOAD_PRESET,
       resourceType: actualResourceType,
       fileName: file.name,
-      fileSize: file.size
+      fileSize: file.size,
+      usingProgress: !!onProgress
     });
 
+    // If caller provided an onProgress callback, use XHR to get upload progress events
+    if (onProgress) {
+      return await new Promise((resolve, reject) => {
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/upload`);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              try { onProgress(percent); } catch (e) { /* ignore callback errors */ }
+            }
+          };
+
+          xhr.onload = async () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              let data: any;
+              try {
+                data = JSON.parse(xhr.responseText);
+              } catch (err) {
+                return reject(new Error('Invalid JSON response from Cloudinary'));
+              }
+
+              if (!data.secure_url || !data.public_id) {
+                return reject(new Error('Invalid response from Cloudinary'));
+              }
+
+              let duration: number | undefined;
+              if (actualResourceType === 'video') {
+                if (data.duration && typeof data.duration === 'number' && data.duration > 0) {
+                  duration = data.duration;
+                } else {
+                  try {
+                    duration = await getVideoDuration(file);
+                  } catch (e) {
+                    duration = 0;
+                  }
+                }
+              }
+
+              resolve({ url: data.secure_url, publicId: data.public_id, duration });
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status} - ${xhr.statusText}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during Cloudinary upload'));
+
+          const fd2 = new FormData();
+          fd2.append('file', file);
+          fd2.append('upload_preset', CLOUDINARY_CONFIG.UPLOAD_PRESET);
+          fd2.append('resource_type', actualResourceType);
+          xhr.send(fd2);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    // Fallback: use fetch for simple uploads (no progress)
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/upload`, 
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.CLOUD_NAME}/upload`,
       {
         method: 'POST',
         body: formData,
       }
     );
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Cloudinary upload failed:', response.status, errorText);
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
-    
+
     const data = await response.json();
     console.log('Cloudinary upload response:', data);
-    
+
     if (!data.secure_url || !data.public_id) {
       throw new Error('Invalid response from Cloudinary');
     }
-    
+
     // For videos, try to get duration from Cloudinary response
     let duration: number | undefined;
     if (actualResourceType === 'video') {
-      // Try to get duration from Cloudinary response first
       if (data.duration && typeof data.duration === 'number' && data.duration > 0) {
         duration = data.duration;
         console.log('Duration from Cloudinary:', duration);
       } else {
-        // Fallback to getting duration from the file
         console.log('No duration from Cloudinary, getting from file...');
         duration = await getVideoDuration(file);
       }
     }
-    
+
     return {
       url: data.secure_url,
       publicId: data.public_id,

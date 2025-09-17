@@ -89,7 +89,7 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user }) =
       name: profile?.name || '',
       email: profile?.emailId || '',
       phone: profile?.phoneNumber || '',
-      gender: profile?.gender || '',
+      gender: profile?.gender || 'Male',
       address: profile?.address || '',
     },
     enableReinitialize: true,
