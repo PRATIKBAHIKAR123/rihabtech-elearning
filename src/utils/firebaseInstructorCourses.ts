@@ -13,6 +13,31 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 
+// Coupon interface for instructor courses
+export interface InstructorCourseCoupon {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  isActive: boolean;
+  validFrom: any; // Timestamp
+  validUntil: any; // Timestamp;
+  maxUses: number;
+  usedCount: number;
+  maxUsesPerUser: number;
+  minAmount: number;
+  maxDiscount?: number;
+  priority: number;
+  creatorType: 'admin' | 'instructor';
+  isGlobal: boolean;
+  courseId?: string;
+  instructorId?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
 export interface InstructorCourse {
   id: string;
   title: string;
@@ -31,6 +56,8 @@ export interface InstructorCourse {
   pricing?: string;
   isPublished?: boolean;
   featured?: boolean;
+  // Add coupons property
+  coupons?: InstructorCourseCoupon[];
   members?: Array<{
     id: string;
     email: string;
@@ -57,91 +84,178 @@ export interface InstructorCourse {
   };
 }
 
-// Get all courses for a specific instructor
-export const getInstructorCourses = async (instructorId: string): Promise<InstructorCourse[]> => {
+// Get coupons for a specific course (both global and course-specific)
+const getCouponsForCourse = async (courseId: string, instructorId?: string): Promise<InstructorCourseCoupon[]> => {
+  try {
+    const couponsRef = collection(db, "coupons");
+    
+    // Create queries for different coupon types
+    const queries = [
+      // Global admin coupons
+      // query(
+      //   couponsRef,
+      //   where("isGlobal", "==", true),
+      //   where("isActive", "==", true)
+      // ),
+      // Course-specific coupons
+      query(
+        couponsRef,
+        where("courseId", "==", courseId),
+        where("isActive", "==", true)
+      )
+    ];
+
+    // If instructorId is provided, also get instructor-specific coupons
+    if (instructorId) {
+      queries.push(
+        query(
+          couponsRef,
+          where("instructorId", "==", instructorId),
+          where("isActive", "==", true)
+        )
+      );
+    }
+
+    const snapshots = await Promise.all(queries.map(q => getDocs(q)));
+    
+    // Combine all coupons and remove duplicates
+    const allCoupons = new Map<string, InstructorCourseCoupon>();
+    
+    snapshots.forEach(snapshot => {
+      snapshot.docs.forEach(doc => {
+        const couponData = {
+          id: doc.id,
+          ...(doc.data() as object)
+        } as InstructorCourseCoupon;
+        
+        // Use Map to avoid duplicates (in case a coupon appears in multiple queries)
+        allCoupons.set(doc.id, couponData);
+      });
+    });
+
+    // Convert to array and sort by priority (higher priority first)
+    return Array.from(allCoupons.values())
+      .sort((a, b) => b.priority - a.priority);
+    
+  } catch (error) {
+    console.error("Error fetching coupons for course:", error);
+    return [];
+  }
+};
+
+// Get instructor-created coupons only
+const getInstructorCoupons = async (instructorId: string): Promise<InstructorCourseCoupon[]> => {
+  try {
+    const couponsRef = collection(db, "coupons");
+    const instructorCouponsQuery = query(
+      couponsRef,
+      where("instructorId", "==", instructorId),
+      where("creatorType", "==", "instructor"),
+      orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(instructorCouponsQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as object)
+    } as InstructorCourseCoupon));
+    
+  } catch (error) {
+    console.error("Error fetching instructor coupons:", error);
+    return [];
+  }
+};
+
+// Get all courses for a specific instructor (with optional coupons)
+export const getInstructorCourses = async (
+  instructorId: string, 
+  includeCoupons: boolean = true
+): Promise<InstructorCourse[]> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
 
-    // Get all courses and filter by instructorId
     console.log("Getting all courses to filter by instructorId:", instructorId);
 
-        const coursesQuery = query(
+    const coursesQuery = query(
       coursesRef,
-      where("instructorId", "==", instructorId),
-      //orderBy("createdAt", "desc")
+      where("instructorId", "==", instructorId)
     );
     const allCoursesSnapshot = await getDocs(coursesQuery);
 
-const allCourses = allCoursesSnapshot.docs.map((doc) => {
-  const data = doc.data() as any;
+    const allCourses = allCoursesSnapshot.docs.map((doc) => {
+      const data = doc.data() as any;
 
-  const course: InstructorCourse = {
-    id: doc.id,
-    title: data.title || "Untitled Course",
-    description: data.description || "",
-    status: data.status || "draft",
-    visibility: data.visibility || "private",
-    progress: data.progress || 0,
+      const course: InstructorCourse = {
+        id: doc.id,
+        title: data.title || "Untitled Course",
+        description: data.description || "",
+        status: data.status || "draft",
+        visibility: data.visibility || "private",
+        progress: data.progress || 0,
 
-    // ✅ Safe conversion
-    lastModified:
-      toDateSafe(data.lastModified) ||
-      toDateSafe(data.createdAt) ||
-      toDateSafe(data.submittedAt) ||
-      new Date(),
+        lastModified:
+          toDateSafe(data.lastModified) ||
+          toDateSafe(data.createdAt) ||
+          toDateSafe(data.submittedAt) ||
+          new Date(),
 
-    createdAt:
-      toDateSafe(data.createdAt) ||
-      toDateSafe(data.submittedAt) ||
-      new Date(),
+        createdAt:
+          toDateSafe(data.createdAt) ||
+          toDateSafe(data.submittedAt) ||
+          new Date(),
 
-    instructorId: data.instructorId || data.instructor || instructorId, // fallback
-    thumbnail: data.thumbnailUrl || data.thumbnail || data.thumbnailImage || null,
-    category: data.category || "",
-    subcategory: data.subcategory || "",
-    level: data.level || "",
-    language: data.language || "",
-    pricing: data.pricing || "",
-    isPublished:
-      data.isPublished || data.status === "published" || data.status === "approved",
-    featured: data.featured || false,
-    members: data.members || [],
-    curriculum: data.curriculum || { sections: [] },
-  };
+        instructorId: data.instructorId || data.instructor || instructorId,
+        thumbnail: data.thumbnailUrl || data.thumbnail || data.thumbnailImage || null,
+        category: data.category || "",
+        subcategory: data.subcategory || "",
+        level: data.level || "",
+        language: data.language || "",
+        pricing: data.pricing || "",
+        isPublished:
+          data.isPublished || data.status === "published" || data.status === "approved",
+        featured: data.featured || false,
+        members: data.members || [],
+        curriculum: data.curriculum || { sections: [] },
+      };
 
-  return course;
-});
-
-    console.log("Total courses found:", allCourses.length);
-    console.log("Available instructorIds:", Array.from(new Set(allCourses.map(c => c.instructorId))));
-
-    // Filter courses by instructorId - since courseDrafts don't have instructorId, 
-    // we'll return all courses for now and let the UI handle filtering
-    // In a real app, you'd want to add instructorId to courseDrafts when creating courses
-    const userCourses = allCourses.filter(course => {
-      // For now, return all courses since we don't have instructorId in the data
-      // This should be fixed by adding instructorId when creating courses
-      return true;
+      return course;
     });
 
-    console.log("Filtered courses for instructorId", instructorId, ":", userCourses.length);
+    console.log("Total courses found:", allCourses.length);
 
-    return userCourses;
+    // If coupons are requested, fetch them for each course
+    if (includeCoupons && allCourses.length > 0) {
+      const coursesWithCoupons = await Promise.all(
+        allCourses.map(async (course) => {
+          const coupons = await getCouponsForCourse(course.id, instructorId);
+          return {
+            ...course,
+            coupons
+          };
+        })
+      );
+      return coursesWithCoupons;
+    }
+    return allCourses;
   } catch (error) {
     console.error("Error fetching instructor courses:", error);
     return [];
   }
 };
 
-// Get course by ID
-export const getCourseById = async (courseId: string): Promise<InstructorCourse | null> => {
+// Get course by ID (with optional coupons)
+export const getCourseById = async (
+  courseId: string, 
+  includeCoupons: boolean = true,
+  instructorId?: string
+): Promise<InstructorCourse | null> => {
   try {
     const courseRef = doc(db, "courseDrafts", courseId);
     const docSnap = await getDoc(courseRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return {
+      const course: InstructorCourse = {
         id: docSnap.id,
         ...data,
         lastModified: data?.lastModified?.toDate() || data?.createdAt?.toDate() || new Date(),
@@ -150,6 +264,14 @@ export const getCourseById = async (courseId: string): Promise<InstructorCourse 
         status: data?.status || "draft",
         visibility: data?.visibility || "private"
       } as InstructorCourse;
+
+      // If coupons are requested, fetch them
+      if (includeCoupons) {
+        const coupons = await getCouponsForCourse(courseId, instructorId);
+        course.coupons = coupons;
+      }
+
+      return course;
     }
 
     return null;
@@ -205,12 +327,23 @@ export const calculateCourseProgress = (course: InstructorCourse): number => {
   return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 };
 
-// Get course statistics for instructor
+// Get course statistics for instructor (with coupon stats)
 export const getInstructorCourseStats = async (instructorId: string) => {
   try {
-    const courses = await getInstructorCourses(instructorId);
+    const [courses, instructorCoupons] = await Promise.all([
+      getInstructorCourses(instructorId, false),
+      getInstructorCoupons(instructorId)
+    ]);
+
+    const activeCoupons = instructorCoupons.filter(c => c.isActive);
+    const expiredCoupons = instructorCoupons.filter(c => {
+      const now = new Date();
+      const validUntil = c.validUntil.toDate ? c.validUntil.toDate() : new Date(c.validUntil);
+      return validUntil < now;
+    });
 
     const stats = {
+      // Course stats
       total: courses.length,
       published: courses.filter(c => c.isPublished).length,
       drafts: courses.filter(c => c.status === "draft").length,
@@ -218,7 +351,16 @@ export const getInstructorCourseStats = async (instructorId: string) => {
       approved: courses.filter(c => c.status === "approved").length,
       averageProgress: courses.length > 0
         ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length)
-        : 0
+        : 0,
+      
+      // Coupon stats
+      coupons: {
+        total: instructorCoupons.length,
+        active: activeCoupons.length,
+        expired: expiredCoupons.length,
+        totalUsed: instructorCoupons.reduce((sum, c) => sum + c.usedCount, 0),
+        totalCapacity: instructorCoupons.reduce((sum, c) => sum + c.maxUses, 0)
+      }
     };
 
     return stats;
@@ -230,8 +372,66 @@ export const getInstructorCourseStats = async (instructorId: string) => {
       drafts: 0,
       pending: 0,
       approved: 0,
-      averageProgress: 0
+      averageProgress: 0,
+      coupons: {
+        total: 0,
+        active: 0,
+        expired: 0,
+        totalUsed: 0,
+        totalCapacity: 0
+      }
     };
+  }
+};
+
+// Get courses with active coupons for instructor dashboard
+export const getCoursesWithActiveCoupons = async (instructorId: string): Promise<InstructorCourse[]> => {
+  try {
+    const coursesWithCoupons = await getInstructorCourses(instructorId, true);
+    
+    // Filter courses that have active coupons
+    return coursesWithCoupons.filter(course => 
+      course.coupons && course.coupons.some(coupon => coupon.isActive)
+    );
+  } catch (error) {
+    console.error("Error fetching courses with active coupons:", error);
+    return [];
+  }
+};
+
+// Get coupon performance analytics for instructor
+export const getCouponAnalytics = async (instructorId: string) => {
+  try {
+    const instructorCoupons = await getInstructorCoupons(instructorId);
+    const now = new Date();
+
+    const analytics = {
+      totalCoupons: instructorCoupons.length,
+      activeCoupons: instructorCoupons.filter(c => c.isActive).length,
+      expiredCoupons: instructorCoupons.filter(c => {
+        const validUntil = c.validUntil.toDate ? c.validUntil.toDate() : new Date(c.validUntil);
+        return validUntil < now;
+      }).length,
+      totalRedemptions: instructorCoupons.reduce((sum, c) => sum + c.usedCount, 0),
+      averageUsageRate: instructorCoupons.length > 0 
+        ? instructorCoupons.reduce((sum, c) => sum + (c.usedCount / c.maxUses * 100), 0) / instructorCoupons.length
+        : 0,
+      topPerformingCoupons: instructorCoupons
+        .sort((a, b) => b.usedCount - a.usedCount)
+        .slice(0, 5)
+        .map(c => ({
+          code: c.code,
+          name: c.name,
+          usedCount: c.usedCount,
+          maxUses: c.maxUses,
+          usageRate: (c.usedCount / c.maxUses * 100).toFixed(1)
+        }))
+    };
+
+    return analytics;
+  } catch (error) {
+    console.error("Error fetching coupon analytics:", error);
+    return null;
   }
 };
 

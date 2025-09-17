@@ -256,13 +256,13 @@ export default function CourseCouponsPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="percentage">Percentage (%)</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="value">Discount Value * {formData.type === 'percentage' ? '(%)' : '($)'}</label>
+                  <label htmlFor="value">Discount Value * {formData.type === 'percentage' ? '(%)' : '(₹)'}</label>
                   <Input id="value" type="number" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} placeholder={formData.type === 'percentage' ? '50' : '25.00'} min="0" max={formData.type === 'percentage' ? '100' : undefined} step={formData.type === 'fixed' ? '0.01' : '1'} />
                 </div>
 
@@ -288,13 +288,13 @@ export default function CourseCouponsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="minAmount">Minimum Purchase ($)</label>
+                  <label htmlFor="minAmount">Minimum Purchase (₹)</label>
                   <Input id="minAmount" type="number" value={formData.minAmount} onChange={(e) => setFormData({ ...formData, minAmount: e.target.value })} placeholder="0.00" min="0" step="0.01" />
                 </div>
 
                 {formData.type === 'percentage' && (
                   <div className="space-y-2">
-                    <label htmlFor="maxDiscount">Maximum Discount ($)</label>
+                    <label htmlFor="maxDiscount">Maximum Discount (₹)</label>
                     <Input id="maxDiscount" type="number" value={formData.maxDiscount} onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })} placeholder="100.00" min="0" step="0.01" />
                   </div>
                 )}
@@ -358,13 +358,13 @@ export default function CourseCouponsPage() {
                       {coupon.minAmount !== undefined && (
                         <div>
                           <span className="font-medium text-gray-500">Min Purchase:</span>
-                          <p>${coupon.minAmount}</p>
+                          <p>₹{coupon.minAmount}</p>
                         </div>
                       )}
                       {coupon.maxDiscount && (
                         <div>
                           <span className="font-medium text-gray-500">Max Discount:</span>
-                          <p>${coupon.maxDiscount}</p>
+                          <p>₹{coupon.maxDiscount}</p>
                         </div>
                       )}
                     </div>
