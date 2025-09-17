@@ -13,6 +13,7 @@ import {
 } from '../../../../utils/firebaseCoursePreviewHelpers';
 import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
 import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
+import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -23,6 +24,8 @@ const PreviewCourse = () => {
   const [intendedLearners, setIntendedLearners] = useState<any[]>([]);
   const [structure, setStructure] = useState<any[]>([]);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [missingRequirements, setMissingRequirements] = useState<Record<string, string[]>>({});
   const [categoryName, setCategoryName] = useState<string>('');
   const [subcategoryName, setSubcategoryName] = useState<string>('');
   const draftId = useRef<string>(localStorage.getItem('draftId') || '');
@@ -68,10 +71,88 @@ const PreviewCourse = () => {
   // Submit for Review handler
   const handleSubmitForReview = async () => {
     if (!draftId.current) return;
+
+    // compute validations one more time before actually submitting
+    const { canSubmit } = computeMissingAndCanSubmit();
+    if (!canSubmit) {
+      setShowMissingDialog(true);
+      return;
+    }
+
     const draftRef = doc(db, 'courseDrafts', draftId.current);
     await updateDoc(draftRef, { submittedForReview: true, submittedAt: new Date().toISOString() });
     setSubmitted(true);
   };
+
+  const computeMissingAndCanSubmit = () => {
+    const missing: Record<string, string[]> = {};
+
+    // Curriculum checks
+    const sections = course?.curriculum?.sections || [];
+    // Count video seconds
+    let totalVideoSeconds = 0;
+    let lectureCount = 0;
+    let lecturesWithoutContent: string[] = [];
+    sections.forEach((s: any, sIdx: number) => {
+      (s.items || []).forEach((it: any, iIdx: number) => {
+        if (it.type === 'lecture') {
+          lectureCount += 1;
+          const duration = it.duration || (it.contentFiles && it.contentFiles.reduce((acc: number, f: any) => acc + (f.duration || 0), 0)) || 0;
+          totalVideoSeconds += duration;
+          const hasContent = (it.contentFiles && it.contentFiles.length > 0) || it.contentType || it.url;
+          if (!hasContent) {
+            lecturesWithoutContent.push(`Section ${sIdx + 1} - ${it.lectureName || it.title || 'Lecture ' + (iIdx + 1)}`);
+          }
+        }
+      });
+    });
+
+    if (totalVideoSeconds < 30 * 60) {
+      missing['Curriculum'] = missing['Curriculum'] || [];
+      missing['Curriculum'].push('Have at least 30 minutes of video content');
+    }
+    if (lectureCount < 1) {
+      missing['Curriculum'] = missing['Curriculum'] || [];
+      missing['Curriculum'].push('Have at least 2 lectures');
+    }
+    if (lecturesWithoutContent.length > 0) {
+      missing['Curriculum'] = missing['Curriculum'] || [];
+      missing['Curriculum'].push('Have content for all lectures');
+      // add small summary
+      lecturesWithoutContent.slice(0, 6).forEach((t) => missing['Curriculum']!.push(`Missing content: ${t}`));
+    }     
+    // Landing page checks
+    const landing = course.landingPage || course || {};
+    const landingMissing: string[] = [];
+    const desc = (course.description || landing.description).replace(/<[^>]*>/g, '').trim();
+    const wordCount = desc ? desc.split(/\s+/).filter(Boolean).length : 0;
+    console.log('wordCount',wordCount)
+    if (wordCount < 50) landingMissing.push('Have a course description with at least 50 words');
+    if (!landing.subtitle && !course.subtitle) landingMissing.push('Have a course subtitle');
+    // if (!course.instructorDescription && !(landing.instructorDescription)) landingMissing.push('Have an instructor description with at least 50 words');
+    if (!course.category && !landing.category) landingMissing.push('Select the category of your course');
+    if (!course.level && !landing.level) landingMissing.push('Select the level of your course');
+    if (!course.subcategory && !landing.subcategory) landingMissing.push('Select the subcategory of your course');
+    if (!course.learn && course.learn.length<=0) landingMissing.push('Select what is primarily taught in your course');
+    if (!course.thumbnailUrl && !landing.thumbnailUrl) landingMissing.push('Upload a course image');
+    if (landingMissing.length > 0) missing['Course landing page'] = landingMissing;
+
+    // Pricing checks
+    const pricingMissing: string[] = [];
+    if (!course.pricing) pricingMissing.push('Select a price for your course');
+    if (pricingMissing.length > 0) missing['Pricing'] = pricingMissing;
+
+    const canSubmit = Object.keys(missing).length === 0;
+    setMissingRequirements(missing);
+    return { missing, canSubmit };
+  };
+
+  // compute missing once when course/landing/curriculum load
+  useEffect(() => {
+    if (!loading && course) {
+      computeMissingAndCanSubmit();
+    }
+  }, [loading, course, landingPage, curriculum]);
 
   if (submitted) {
     return (
@@ -360,11 +441,27 @@ const PreviewCourse = () => {
         {(!course.welcomeMessage && !course.congratulationsMessage) && <div className="text-gray-400">No course messages.</div>}
       </div>
 
-      <div className="mt-8 flex justify-end">
-        <Button className="bg-primary text-white px-6 py-2 rounded shadow-lg" onClick={handleSubmitForReview}>
-          Submit for Review
-        </Button>
+      <div className="mt-8 flex flex-col items-end gap-3">
+        {Object.keys(missingRequirements).length > 0 && (
+          <div className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-100 rounded px-3 py-2">
+            You cannot submit yet. {Object.keys(missingRequirements).length} sections have missing items. Click "Submit for Review" to see details.
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <Button
+            className="bg-primary text-white px-6 py-2 rounded shadow-lg"
+            onClick={() => {
+              const { canSubmit } = computeMissingAndCanSubmit();
+              if (!canSubmit) setShowMissingDialog(true);
+              else handleSubmitForReview();
+            }}
+          >
+            Submit for Review
+          </Button>
+        </div>
       </div>
+
+      <SubmitRequirementsDialog open={showMissingDialog} onOpenChange={setShowMissingDialog} missing={missingRequirements} />
 
       {/* Members Modal */}
       {showMembersModal && (

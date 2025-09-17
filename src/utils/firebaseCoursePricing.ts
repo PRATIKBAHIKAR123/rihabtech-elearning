@@ -4,7 +4,9 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  addDoc,
+  collection
 } from 'firebase/firestore';
 
 export interface CoursePricingData {
@@ -33,6 +35,12 @@ export const savePricingData = async (data: CoursePricingData): Promise<void> =>
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+       const courseRef = doc(db, "courseDrafts", data.draftId);
+  await setDoc(courseRef, {
+    pricing: data.pricing,
+  }, { merge: true });
+
   } catch (error) {
     console.error('Error saving course pricing data:', error);
     throw new Error('Failed to save course pricing data');

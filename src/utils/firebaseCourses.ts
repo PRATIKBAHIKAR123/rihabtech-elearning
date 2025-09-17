@@ -19,6 +19,8 @@ export interface Course {
   pricing: string;
   submittedAt: string;
   approvedAt?: string;
+  // Add coupons property
+  coupons?: CourseCoupon[];
   curriculum?: {
     sections: Array<{
       id?: string;
@@ -44,6 +46,27 @@ export interface Course {
     email: string;
     role: string;
   }>;
+}
+
+// Define coupon interface for course context
+export interface CourseCoupon {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  isActive: boolean;
+  validFrom: any; // Timestamp
+  validUntil: any; // Timestamp
+  maxUses: number;
+  usedCount: number;
+  maxUsesPerUser: number;
+  minAmount: number;
+  maxDiscount?: number;
+  priority: number;
+  creatorType: 'admin' | 'instructor';
+  isGlobal: boolean;
 }
 
 // Helper function to calculate course duration from curriculum
@@ -102,14 +125,56 @@ export const calculateCourseDuration = (course: Course): number => {
   return Math.round(hours * 10) / 10; // Round to 1 decimal place
 };
 
-// Get all courses without any filters
-export const getAllCourses = async (): Promise<Course[]> => {
+// Get coupons for a specific course
+const getCourseCoupons = async (courseId: string): Promise<CourseCoupon[]> => {
   try {
+    const couponsRef = collection(db, "coupons");
+    
+    // Get both global coupons and course-specific coupons
+    const [globalCouponsQuery, courseCouponsQuery] = [
+      query(
+        couponsRef,
+        where("isGlobal", "==", true),
+        where("isActive", "==", true),
+        orderBy("priority", "desc")
+      ),
+      query(
+        couponsRef,
+        where("courseId", "==", courseId),
+        where("isActive", "==", true),
+        orderBy("priority", "desc")
+      )
+    ];
 
+    const [globalSnapshot, courseSnapshot] = await Promise.all([
+      getDocs(globalCouponsQuery),
+      getDocs(courseCouponsQuery)
+    ]);
 
+    const globalCoupons = globalSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data() as object
+    } as CourseCoupon));
+
+    const courseCoupons = courseSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data() as object
+    } as CourseCoupon));
+
+    // Combine and sort by priority (higher priority first)
+    const allCoupons = [...globalCoupons, ...courseCoupons];
+    return allCoupons.sort((a, b) => b.priority - a.priority);
+  } catch (error) {
+    console.error("Error fetching course coupons:", error);
+    return [];
+  }
+};
+
+// Get all courses without any filters (with coupons)
+export const getAllCourses = async (includeCoupons: boolean = false): Promise<Course[]> => {
+  try {
     const coursesRef = collection(db, "courseDrafts");
     const querySnapshot = await getDocs(coursesRef);
-
 
     const allCourses = querySnapshot.docs.map(doc => {
       const data = doc.data() as any;
@@ -119,17 +184,29 @@ export const getAllCourses = async (): Promise<Course[]> => {
       } as Course;
     });
 
-    if (allCourses.length > 0) {
+    // If coupons are requested, fetch them for each course
+    if (includeCoupons && allCourses.length > 0) {
+      const coursesWithCoupons = await Promise.all(
+        allCourses.map(async (course) => {
+          const coupons = await getCourseCoupons(course.id);
+          return {
+            ...course,
+            coupons
+          };
+        })
+      );
+      return coursesWithCoupons;
     }
 
     return allCourses;
   } catch (error) {
+    console.error("Error fetching all courses:", error);
     return [];
   }
 };
 
-// Get featured courses
-export const getFeaturedCourses = async (): Promise<Course[]> => {
+// Get featured courses (with optional coupons)
+export const getFeaturedCourses = async (includeCoupons: boolean = false): Promise<Course[]> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
     const featuredQuery = query(
@@ -140,7 +217,7 @@ export const getFeaturedCourses = async (): Promise<Course[]> => {
     );
 
     const featuredSnapshot = await getDocs(featuredQuery);
-    const featuredCourses = featuredSnapshot.docs.map(doc => {
+    let featuredCourses = featuredSnapshot.docs.map(doc => {
       const data = doc.data() as any;
       return {
         id: doc.id,
@@ -157,7 +234,7 @@ export const getFeaturedCourses = async (): Promise<Course[]> => {
       );
 
       const fallbackSnapshot = await getDocs(fallbackQuery);
-      return fallbackSnapshot.docs.map(doc => {
+      featuredCourses = fallbackSnapshot.docs.map(doc => {
         const data = doc.data() as any;
         return {
           id: doc.id,
@@ -166,14 +243,29 @@ export const getFeaturedCourses = async (): Promise<Course[]> => {
       });
     }
 
+    // If coupons are requested, fetch them for each course
+    if (includeCoupons && featuredCourses.length > 0) {
+      const coursesWithCoupons = await Promise.all(
+        featuredCourses.map(async (course) => {
+          const coupons = await getCourseCoupons(course.id);
+          return {
+            ...course,
+            coupons
+          };
+        })
+      );
+      return coursesWithCoupons;
+    }
+
     return featuredCourses;
   } catch (error) {
+    console.error("Error fetching featured courses:", error);
     return [];
   }
 };
 
-// Get courses by category
-export const getCoursesByCategory = async (categoryId: string): Promise<Course[]> => {
+// Get courses by category (with optional coupons)
+export const getCoursesByCategory = async (categoryId: string, includeCoupons: boolean = false): Promise<Course[]> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
     const categoryQuery = query(
@@ -184,19 +276,120 @@ export const getCoursesByCategory = async (categoryId: string): Promise<Course[]
     );
 
     const categorySnapshot = await getDocs(categoryQuery);
-    return categorySnapshot.docs.map(doc => {
+    const courses = categorySnapshot.docs.map(doc => {
       const data = doc.data() as any;
       return {
         id: doc.id,
         ...data
       } as Course;
     });
+
+    // If coupons are requested, fetch them for each course
+    if (includeCoupons && courses.length > 0) {
+      const coursesWithCoupons = await Promise.all(
+        courses.map(async (course) => {
+          const coupons = await getCourseCoupons(course.id);
+          return {
+            ...course,
+            coupons
+          };
+        })
+      );
+      return coursesWithCoupons;
+    }
+
+    return courses;
   } catch (error) {
+    console.error("Error fetching courses by category:", error);
     return [];
   }
 };
 
-// Get course count by category
+// Get single course with coupons
+export const getCourseWithCoupons = async (courseId: string): Promise<Course | null> => {
+  try {
+    const coursesRef = collection(db, "courseDrafts");
+    const courseQuery = query(coursesRef, where("__name__", "==", courseId));
+    const courseSnapshot = await getDocs(courseQuery);
+
+    if (courseSnapshot.empty) {
+      return null;
+    }
+
+    const courseDoc = courseSnapshot.docs[0];
+    const courseData = {
+      id: courseDoc.id,
+      ...(courseDoc.data() as object)
+    } as Course;
+
+    // Fetch coupons for this course
+    const coupons = await getCourseCoupons(courseId);
+    
+    return {
+      ...courseData,
+      coupons
+    };
+  } catch (error) {
+    console.error("Error fetching course with coupons:", error);
+    return null;
+  }
+};
+
+// Get applicable coupons for checkout (filters by amount and validity)
+export const getApplicableCouponsForCourse = async (
+  courseId: string, 
+  cartAmount: number,
+  userId?: string
+): Promise<CourseCoupon[]> => {
+  try {
+    const allCoupons = await getCourseCoupons(courseId);
+    const now = new Date();
+
+    return allCoupons.filter(coupon => {
+      // Check if coupon is active
+      if (!coupon.isActive) return false;
+
+      // Check minimum amount requirement
+      if (coupon.minAmount && cartAmount < coupon.minAmount) return false;
+
+      // Check usage limits
+      if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) return false;
+
+      // Check date validity
+      const validFrom = coupon.validFrom.toDate ? coupon.validFrom.toDate() : new Date(coupon.validFrom);
+      const validUntil = coupon.validUntil.toDate ? coupon.validUntil.toDate() : new Date(coupon.validUntil);
+      
+      if (now < validFrom || now > validUntil) return false;
+
+      return true;
+    });
+  } catch (error) {
+    console.error("Error fetching applicable coupons:", error);
+    return [];
+  }
+};
+
+// Calculate discount amount for a coupon
+export const calculateCouponDiscount = (
+  coupon: CourseCoupon, 
+  coursePrice: number
+): number => {
+  if (coupon.type === 'percentage') {
+    let discount = (coursePrice * coupon.value) / 100;
+    
+    // Apply maximum discount limit if set
+    if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+      discount = coupon.maxDiscount;
+    }
+    
+    return Math.round(discount * 100) / 100; // Round to 2 decimal places
+  } else {
+    // Fixed amount discount
+    return Math.min(coupon.value, coursePrice); // Don't discount more than the course price
+  }
+};
+
+// Get course count by category (existing function unchanged)
 export const getCourseCountByCategory = async (categoryId: string): Promise<number> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
@@ -210,11 +403,12 @@ export const getCourseCountByCategory = async (categoryId: string): Promise<numb
     const snapshot = await getCountFromServer(countQuery);
     return (snapshot.data() as any).count;
   } catch (error) {
+    console.error("Error getting course count by category:", error);
     return 0;
   }
 };
 
-// Get all course counts by category
+// Get all course counts by category (existing function unchanged)
 export const getAllCourseCountsByCategory = async (): Promise<Record<string, number>> => {
   try {
     const categories = await getDocs(collection(db, "categories"));
@@ -228,6 +422,7 @@ export const getAllCourseCountsByCategory = async (): Promise<Record<string, num
 
     return courseCounts;
   } catch (error) {
+    console.error("Error getting all course counts by category:", error);
     return {};
   }
 };

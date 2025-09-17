@@ -2,13 +2,14 @@ import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCa
 import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
 import { useCountdown } from "../utils/countdown_subscribtion";
 import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
+import { getCategories, getSubCategories } from "../utils/firebaseCategory";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -176,93 +177,93 @@ interface SectionHeading {
 }
 
 // Course menu items
-const courseMenuItems: SectionHeading[] = [
-  {
-    title: "Design",
-    items: [
-      {
-        title: "UI UX",
-        href: "/#/courselist",
-        icon: <BarChart3 className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Web Design",
-        href: "/#/courselist",
-        icon: <PlayCircle className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Photoshop",
-        href: "/#/courselist",
-        icon: <LayoutGrid className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Figma",
-        href: "/#/courselist",
-        icon: <User className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Adobe",
-        href: "/#/courselist",
-        icon: <Calendar className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Game Design",
-        href: "/#/courselist",
-        icon: <GraduationCap className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-    ],
-  },
-  {
-    title: "DEVELOPMENT",
-    items: [
-      {
-        title: "Web Development",
-        href: "/#/courselist",
-        icon: <Settings className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "App Development",
-        href: "/#/courselist",
-        icon: <FileText className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-      {
-        title: "Programming",
-        href: "/#/courselist",
-        icon: <LayoutGrid className="h-5 w-5 text-primary" />,
-        description: "Lorem ipsum dolor sit amet",
-      },
-    ],
-  },
-  {
-    title: "ALWAYS IMPROVING",
-    items: [
-      {
-        image: 'Images/courses/Illustration Components.png',
-        icon: undefined,
-        title: "",
-        href: ""
-      },
-      {
-        title: "Lorem ipsum dolor sit amet",
-        href: "/#/courselist",
-        icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
-      },
-      {
-        title: "Lorem ipsum dolor sit amet",
-        href: "/#/courselist",
-        icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
-      },
-    ],
-  },
-];
+// const courseMenuItems: SectionHeading[] = [
+//   {
+//     title: "Design",
+//     items: [
+//       {
+//         title: "UI UX",
+//         href: "/#/courselist",
+//         icon: <BarChart3 className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Web Design",
+//         href: "/#/courselist",
+//         icon: <PlayCircle className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Photoshop",
+//         href: "/#/courselist",
+//         icon: <LayoutGrid className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Figma",
+//         href: "/#/courselist",
+//         icon: <User className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Adobe",
+//         href: "/#/courselist",
+//         icon: <Calendar className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Game Design",
+//         href: "/#/courselist",
+//         icon: <GraduationCap className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//     ],
+//   },
+//   {
+//     title: "DEVELOPMENT",
+//     items: [
+//       {
+//         title: "Web Development",
+//         href: "/#/courselist",
+//         icon: <Settings className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "App Development",
+//         href: "/#/courselist",
+//         icon: <FileText className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//       {
+//         title: "Programming",
+//         href: "/#/courselist",
+//         icon: <LayoutGrid className="h-5 w-5 text-primary" />,
+//         description: "Lorem ipsum dolor sit amet",
+//       },
+//     ],
+//   },
+//   {
+//     title: "ALWAYS IMPROVING",
+//     items: [
+//       {
+//         image: 'Images/courses/Illustration Components.png',
+//         icon: undefined,
+//         title: "",
+//         href: ""
+//       },
+//       {
+//         title: "Lorem ipsum dolor sit amet",
+//         href: "/#/courselist",
+//         icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
+//       },
+//       {
+//         title: "Lorem ipsum dolor sit amet",
+//         href: "/#/courselist",
+//         icon: <CheckCircle2Icon className="h-5 w-5 text-primary" />,
+//       },
+//     ],
+//   },
+// ];
 
 
 // List Item component for courses
@@ -313,10 +314,13 @@ const IconListItem = React.forwardRef<
             {image && <img src={image} />}
           </div>
           <div>
-            <div className="text-sm font-medium leading-none">{title}</div>
-            <p className="text-[#677489] text-sm font-medium leading-snug text-muted-foreground mt-1">
+            {!title?<p className="text-[#677489] text-sm font-medium leading-snug text-muted-foreground mt-1">
+              No Courses Available
+            </p>:
+            <div className="text-sm font-medium leading-none">{title}</div>}
+            {/* <p className="text-[#677489] text-sm font-medium leading-snug text-muted-foreground mt-1">
               {children}
-            </p>
+            </p> */}
           </div>
         </a>
       </NavigationMenuLink>
@@ -327,62 +331,66 @@ IconListItem.displayName = "IconListItem";
 
 // Courses Navigation Menu Component
 export const CoursesMenu: React.FC = () => {
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [subCategories, setSubCategories] = useState<
+    { id: string; name: string; categoryId: string }[]
+  >([]);
+
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" })));
+    });
+    getSubCategories().then((data) => {
+      setSubCategories(
+        data.map((sub: any) => ({
+          id: sub.id,
+          name: sub.name ?? "",
+          categoryId: sub.categoryId ?? "",
+        }))
+      );
+    });
+  }, []);
+
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="p-0 text-base font-semibold font-['Barlow'] capitalize leading-relaxed bg-transparent font-medium text-[#000927] hover:text-blue-600 hover:text-primary hover:bg-transparent focus:bg-transparent">
         Courses
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-white shadow-lg rounded-md w-full">
-        <div className="grid w-[400px] gap-2 p-4 md:w-[600px] md:grid-cols-2 gap-8 p-6">
-          <div className="col-span-1 space-y-6">
-            {courseMenuItems.slice(0, 1).map((section) => (
-              <div key={section.title}>
+        <div className="grid w-[400px] gap-6 p-6 md:w-[600px] md:grid-cols-2">
+          {/* Loop through categories */}
+          {categories.map((category) => {
+            const relatedSubs = subCategories.filter(
+              (sub) => sub.categoryId === category.id
+            );
+
+            return (
+              <div key={category.id} className="col-span-1 space-y-6">
                 <div className="text-[#677489] text-xs font-medium font-['Urbanist'] uppercase leading-[21px] mb-3">
-                  {section.title}
-                </div>
-                <ul className="grid grid-cols-1 gap-1">
-                  {section.items.map((item) => (
-                    <IconListItem
-                      key={item.title}
-                      title={item.title}
-                      href={item.href}
-                      icon={item.icon}
-                      image={item.image}
-                    >
-                      {item.description}
-                    </IconListItem>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="col-span-1 space-y-6">
-            {courseMenuItems.slice(1).map((section) => (
-              <div key={section.title}>
-                <div className="text-[#677489] text-xs font-medium font-['Urbanist'] uppercase leading-[21px] mb-3">
-                  {section.title}
+                  {category.name}
                 </div>
                 <ul className="space-y-1">
-                  {section.items.map((item) => (
+                  {relatedSubs.map((sub) => (
                     <IconListItem
-                      key={item.title}
-                      title={item.title}
-                      href={item.href}
-                      icon={item.icon}
-                      image={item.image}
+                      key={sub.id}
+                      title={sub.name}
+                      href={`#/courses/${category.name}`} // 🔑 update route as needed
+                      icon={null} // or your icon
+                      //image={null} // if you have images
                     >
-                      {item.description}
+                      {sub.name}
                     </IconListItem>
                   ))}
                 </ul>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
 };
+
 
 // My Learnings Navigation Menu Component
 export const MyLearningsMenu: React.FC = () => {
