@@ -347,8 +347,12 @@ const downloadQuizSampleExcel = () => {
 // Helper to recursively remove File objects and undefined values from curriculum data
 function stripFilesFromCurriculum(curriculum: any): any {
   if (!curriculum) return curriculum;
+  
+  console.log('Original curriculum before stripping:', curriculum);
+  
   // Deep clone to avoid mutating original
   const clone = JSON.parse(JSON.stringify(curriculum));
+  
   function clean(obj: any): any {
     if (Array.isArray(obj)) {
       return obj.map(clean).filter(v => v !== undefined);
@@ -359,23 +363,53 @@ function stripFilesFromCurriculum(curriculum: any): any {
           // Special handling for contentFiles
           if (key === 'contentFiles' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((cf: any) => {
-              const { name, url, duration, status, uploadedAt } = cf || {};
-              // Only add defined fields
+              if (!cf) return null;
+              
+              const { 
+                name, 
+                url, 
+                cloudinaryUrl, 
+                cloudinaryPublicId,
+                duration, 
+                status, 
+                uploadedAt,
+                type
+              } = cf;
+              
+              // Only add defined fields, prioritizing Cloudinary URLs
               const result: any = {};
               if (name !== undefined) result.name = name;
-              if (url !== undefined) result.url = url;
+              if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl; // Use Cloudinary URL as primary URL
+              else if (url !== undefined) result.url = url;
+              if (cloudinaryPublicId !== undefined) result.cloudinaryPublicId = cloudinaryPublicId;
               if (duration !== undefined) result.duration = duration;
               if (status !== undefined) result.status = status;
               if (uploadedAt !== undefined) result.uploadedAt = uploadedAt;
+              if (type !== undefined) result.type = type;
+              
               return result;
-            });
+            }).filter(Boolean); // Remove null entries
           } else if (key === 'resources' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((res: any) => {
-              const { name } = res || {};
+              if (!res) return null;
+              
+              const { 
+                name, 
+                url, 
+                cloudinaryUrl, 
+                cloudinaryPublicId,
+                type 
+              } = res;
+              
               const result: any = {};
               if (name !== undefined) result.name = name;
+              if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl;
+              else if (url !== undefined) result.url = url;
+              if (cloudinaryPublicId !== undefined) result.cloudinaryPublicId = cloudinaryPublicId;
+              if (type !== undefined) result.type = type;
+              
               return result;
-            });
+            }).filter(Boolean);
           } else {
             newObj[key] = clean(obj[key]);
           }
@@ -385,8 +419,138 @@ function stripFilesFromCurriculum(curriculum: any): any {
     }
     return obj;
   }
-  return clean(clone);
+  
+  const cleaned = clean(clone);
+  console.log('Cleaned curriculum after stripping:', cleaned);
+  return cleaned;
 }
+
+// Validation function to check if curriculum is ready for submission
+const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!curriculum.sections || curriculum.sections.length === 0) {
+    errors.push('At least one section is required');
+  }
+  
+  curriculum.sections.forEach((section, sectionIndex) => {
+    if (!section.name || section.name.trim() === '') {
+      errors.push(`Section ${sectionIndex + 1} must have a name`);
+    }
+    
+    if (!section.items || section.items.length === 0) {
+      errors.push(`Section "${section.name}" must have at least one item`);
+    }
+    
+    section.items.forEach((item, itemIndex) => {
+      if (item.type === 'lecture') {
+        const lecture = item as LectureItem;
+        if (!lecture.lectureName || lecture.lectureName.trim() === '') {
+          errors.push(`Lecture ${itemIndex + 1} in section "${section.name}" must have a name`);
+        }
+        
+        if (lecture.contentType === 'video' && (!lecture.contentFiles || lecture.contentFiles.length === 0)) {
+          errors.push(`Video lecture "${lecture.lectureName}" must have a video file`);
+        }
+        
+        // Check for failed uploads
+        if (lecture.contentFiles) {
+          const failedUploads = lecture.contentFiles.filter(file => file.status === 'failed');
+          if (failedUploads.length > 0) {
+            errors.push(`Video "${lecture.lectureName}" has failed uploads. Please retry or remove them.`);
+          }
+          
+          const uploadingFiles = lecture.contentFiles.filter(file => file.status === 'uploading');
+          if (uploadingFiles.length > 0) {
+            errors.push(`Video "${lecture.lectureName}" is still uploading. Please wait for upload to complete.`);
+          }
+        }
+      } else if (item.type === 'quiz') {
+        const quiz = item as QuizItem;
+        if (!quiz.quizTitle || quiz.quizTitle.trim() === '') {
+          errors.push(`Quiz ${itemIndex + 1} in section "${section.name}" must have a title`);
+        }
+        
+        if (!quiz.questions || quiz.questions.length === 0) {
+          errors.push(`Quiz "${quiz.quizTitle}" must have at least one question`);
+        }
+      } else if (item.type === 'assignment') {
+        const assignment = item as Assignment;
+        if (!assignment.title || assignment.title.trim() === '') {
+          errors.push(`Assignment ${itemIndex + 1} in section "${section.name}" must have a title`);
+        }
+        
+        if (!assignment.questions || assignment.questions.length === 0) {
+          errors.push(`Assignment "${assignment.title}" must have at least one question`);
+        }
+      }
+    });
+  });
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+// Debug function to log curriculum data
+const debugCurriculumData = (curriculum: CurriculumFormValues, label: string) => {
+  console.log(`=== ${label} ===`);
+  console.log('Draft ID:', localStorage.getItem("draftId"));
+  console.log('Sections count:', curriculum.sections?.length || 0);
+  
+  curriculum.sections?.forEach((section, sectionIndex) => {
+    console.log(`Section ${sectionIndex + 1}:`, {
+      name: section.name,
+      published: section.published,
+      itemsCount: section.items?.length || 0
+    });
+    
+    section.items?.forEach((item, itemIndex) => {
+      if (item.type === 'lecture') {
+        const lecture = item as LectureItem;
+        console.log(`  Lecture ${itemIndex + 1}:`, {
+          name: lecture.lectureName,
+          contentType: lecture.contentType,
+          videoSource: lecture.videoSource,
+          contentFilesCount: lecture.contentFiles?.length || 0,
+          contentUrl: lecture.contentUrl,
+          published: lecture.published,
+          isPromotional: lecture.isPromotional
+        });
+        
+        lecture.contentFiles?.forEach((file, fileIndex) => {
+          console.log(`    File ${fileIndex + 1}:`, {
+            name: file.name,
+            url: file.url,
+            cloudinaryUrl: file.cloudinaryUrl,
+            cloudinaryPublicId: file.cloudinaryPublicId,
+            status: file.status,
+            duration: file.duration
+          });
+        });
+      } else if (item.type === 'quiz') {
+        const quiz = item as QuizItem;
+        console.log(`  Quiz ${itemIndex + 1}:`, {
+          title: quiz.quizTitle,
+          description: quiz.quizDescription,
+          questionsCount: quiz.questions?.length || 0,
+          duration: quiz.duration
+        });
+      } else if (item.type === 'assignment') {
+        const assignment = item as Assignment;
+        console.log(`  Assignment ${itemIndex + 1}:`, {
+          title: assignment.title,
+          description: assignment.description,
+          questionsCount: assignment.questions?.length || 0,
+          totalMarks: assignment.totalMarks,
+          duration: assignment.duration
+        });
+      }
+    });
+  });
+  console.log(`=== End ${label} ===`);
+};
 
 export function CourseCarriculam({ onSubmit }: any) {
   const draftId = useRef<string>(localStorage.getItem("draftId") || "");
@@ -547,26 +711,67 @@ export function CourseCarriculam({ onSubmit }: any) {
     initialValues: formInitialValues,
     validationSchema,
     onSubmit: async (values) => {
-      const serializableCurriculum = stripFilesFromCurriculum(values);
-      await saveCourseDraft(draftId.current, {
-        curriculum: serializableCurriculum,
-        progress: 24, // or next step value
-        isCurriculumFinal: true,
-      });
-      onSubmit(values);
+      try {
+        console.log('Curriculum submission started:', { draftId: draftId.current, values });
+        
+        // Validate that we have a valid draftId
+        if (!draftId.current) {
+          throw new Error('No draft ID found. Please refresh the page and try again.');
+        }
+
+        // Debug: Log original curriculum data
+        debugCurriculumData(values, 'Original Curriculum Data');
+
+        // Validate curriculum before submission
+        const validation = validateCurriculumForSubmission(values);
+        if (!validation.isValid) {
+          console.error('Curriculum validation failed:', validation.errors);
+          throw new Error(`Please fix the following issues:\n${validation.errors.join('\n')}`);
+        }
+
+        // Serialize curriculum data properly
+        const serializableCurriculum = stripFilesFromCurriculum(values);
+        console.log('Serialized curriculum:', serializableCurriculum);
+        
+        // Debug: Log serialized curriculum data
+        debugCurriculumData(serializableCurriculum, 'Serialized Curriculum Data');
+
+        // Save to Firebase with error handling
+        await saveCourseDraft(draftId.current, {
+          curriculum: serializableCurriculum,
+          progress: 24,
+          isCurriculumFinal: true,
+        });
+
+        console.log('Curriculum saved successfully to Firebase');
+        onSubmit(values);
+      } catch (error) {
+        console.error('Error saving curriculum:', error);
+        // You might want to show an error message to the user here
+        throw error;
+      }
     },
   });
 
   // Autosave on change (debounced)
   useEffect(() => {
-    if (!loading) {
-      const timeout = setTimeout(() => {
-        const serializableCurriculum = stripFilesFromCurriculum(formik.values);
-        saveCourseDraft(draftId.current, {
-          curriculum: serializableCurriculum,
-          progress: 24,
-          isCurriculumFinal: false,
-        });
+    if (!loading && draftId.current) {
+      const timeout = setTimeout(async () => {
+        try {
+          const serializableCurriculum = stripFilesFromCurriculum(formik.values);
+          console.log('Autosaving curriculum:', { draftId: draftId.current, curriculum: serializableCurriculum });
+          
+          await saveCourseDraft(draftId.current, {
+            curriculum: serializableCurriculum,
+            progress: 24,
+            isCurriculumFinal: false,
+          });
+          
+          console.log('Curriculum autosaved successfully');
+        } catch (error) {
+          console.error('Error during autosave:', error);
+          // Don't throw error for autosave failures, just log them
+        }
       }, 800);
       return () => clearTimeout(timeout);
     }
@@ -3491,8 +3696,48 @@ export function CourseCarriculam({ onSubmit }: any) {
                 try {
                   console.log('Starting video upload to Cloudinary for:', file.name);
                   
-                  // Upload to Cloudinary with improved duration detection
-                  const uploadResult = await uploadToCloudinary(file, 'video');
+                  // Update status to uploading
+                  const tempLecture = {
+                    type: 'lecture' as const,
+                    lectureName: file.name.replace(/\.[^/.]+$/, ""),
+                    contentType: 'video' as const,
+                    videoSource: 'upload' as const,
+                    contentFiles: [{
+                      file,
+                      url: '', // Will be set after upload
+                      name: file.name,
+                      status: 'uploading' as VideoStatus,
+                      uploadedAt: new Date(),
+                      uploadProgress: 0
+                    }],
+                    contentUrl: '',
+                    contentText: '',
+                    articleSource: 'upload' as const,
+                    resources: [],
+                    published: false,
+                    description: '',
+                    isPromotional: false
+                  };
+
+                  // Add the lecture immediately with uploading status
+                  const newSections = [...formik.values.sections];
+                  newSections[sectionIdx].items.push(tempLecture);
+                  formik.setValues({ sections: newSections });
+
+                  // Upload to Cloudinary with progress tracking
+                  const uploadResult = await uploadToCloudinary(file, 'video', (progress) => {
+                    // Update progress in the UI
+                    const updatedSections = [...formik.values.sections];
+                    const lectureIndex = updatedSections[sectionIdx].items.length - 1;
+                    if (updatedSections[sectionIdx].items[lectureIndex].type === 'lecture') {
+                      const lecture = updatedSections[sectionIdx].items[lectureIndex] as LectureItem;
+                      if (lecture.contentFiles[0]) {
+                        lecture.contentFiles[0].uploadProgress = progress;
+                        formik.setValues({ sections: updatedSections });
+                      }
+                    }
+                  });
+                  
                   cloudinaryUrl = uploadResult.url;
                   cloudinaryPublicId = uploadResult.publicId;
                   duration = uploadResult.duration || 0;
@@ -3510,11 +3755,56 @@ export function CourseCarriculam({ onSubmit }: any) {
                   
                 } catch (error) {
                   console.error('Failed to upload video to Cloudinary:', error);
+                  
+                  // Update status to failed
+                  const updatedSections = [...formik.values.sections];
+                  const lectureIndex = updatedSections[sectionIdx].items.length - 1;
+                  if (updatedSections[sectionIdx].items[lectureIndex].type === 'lecture') {
+                    const lecture = updatedSections[sectionIdx].items[lectureIndex] as LectureItem;
+                    if (lecture.contentFiles[0]) {
+                      lecture.contentFiles[0].status = 'failed';
+                      formik.setValues({ sections: updatedSections });
+                    }
+                  }
+                  
                   // Don't fallback to blob URLs - require Cloudinary upload
                   throw new Error(`Video upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
 
-                console.log('Creating lecture with duration:', duration);
+                console.log('Updating lecture with Cloudinary data:', duration);
+                
+                // Update the existing lecture with Cloudinary data
+                const updatedSections = [...formik.values.sections];
+                const lectureIndex = updatedSections[sectionIdx].items.length - 1;
+                
+                if (updatedSections[sectionIdx].items[lectureIndex].type === 'lecture') {
+                  const lecture = updatedSections[sectionIdx].items[lectureIndex] as LectureItem;
+                  
+                  // Update the content file with Cloudinary data
+                  if (lecture.contentFiles[0]) {
+                    lecture.contentFiles[0] = {
+                      ...lecture.contentFiles[0],
+                      url: cloudinaryUrl,
+                      cloudinaryUrl,
+                      cloudinaryPublicId,
+                      duration,
+                      status: 'uploaded' as VideoStatus,
+                      uploadProgress: 100
+                    };
+                  }
+                  
+                  // Update lecture properties
+                  lecture.contentUrl = cloudinaryUrl;
+                  lecture.duration = duration;
+                  
+                  // Update the form values
+                  formik.setValues({ sections: updatedSections });
+                  
+                  console.log('Updated lecture object:', lecture);
+                  return lecture;
+                }
+                
+                // Fallback: create new lecture if update failed
                 const lecture = {
                   type: 'lecture' as const,
                   lectureName: file.name.replace(/\.[^/.]+$/, ""),
@@ -3522,7 +3812,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                   videoSource: 'upload' as const,
                   contentFiles: [{
                     file,
-                    url: cloudinaryUrl, // Store Cloudinary URL as primary URL
+                    url: cloudinaryUrl,
                     cloudinaryUrl,
                     cloudinaryPublicId,
                     name: file.name,
@@ -3530,14 +3820,14 @@ export function CourseCarriculam({ onSubmit }: any) {
                     status: 'uploaded' as VideoStatus,
                     uploadedAt: new Date()
                   }],
-                  contentUrl: '',
+                  contentUrl: cloudinaryUrl,
                   contentText: '',
                   articleSource: 'upload' as const,
                   resources: [],
                   published: false,
                   isPromotional: false,
                 };
-                console.log('Created lecture object:', lecture);
+                console.log('Created fallback lecture object:', lecture);
                 return lecture;
               })
             );
