@@ -301,7 +301,13 @@ const getCourseCoupons = async (courseId: string): Promise<CourseCoupon[]> => {
 export const getAllCourses = async (includeCoupons: boolean = false): Promise<Course[]> => {
   try {
     const coursesRef = collection(db, "courseDrafts");
-    const querySnapshot = await getDocs(coursesRef);
+    const coursesQuery = query(
+            coursesRef,
+            where("status", "==", "approved"),
+            where("isPublished", "==", true)
+          );
+    
+    const querySnapshot = await getDocs(coursesQuery);
 
     const allCourses = querySnapshot.docs.map(doc => {
       const data = doc.data() as any;

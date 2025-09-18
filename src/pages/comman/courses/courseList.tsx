@@ -5,6 +5,8 @@ import Divider from "../../../components/ui/divider";
 import { useState, useEffect } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
+import { useParams } from "react-router-dom";
+import { Category, getCategories } from "../../../utils/firebaseCategory";
 
 export default function CourseList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -22,6 +24,8 @@ export default function CourseList() {
   const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+    const [categoryName, setcategoryName] = useState<string | null>(null);
+    const { categoryId } = useParams<{ categoryId?: string }>();
   
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
@@ -44,7 +48,7 @@ export default function CourseList() {
         const firebaseCourses = await getAllCourses();
         // Filter only published and approved courses
         const publishedCourses = firebaseCourses.filter(course => 
-          course.isPublished && course.status === COURSE_STATUS.APPROVED
+          categoryId ? course.category === categoryId : false
         );
         setCourses(publishedCourses);
         setFilteredCourses(publishedCourses);
@@ -59,6 +63,31 @@ export default function CourseList() {
 
     fetchCourses();
   }, []);
+
+     useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const fetchedCategories = await getCategories();
+      console.log('Raw fetched categories:', fetchedCategories);
+
+      // ✅ find category by ID
+      const category = fetchedCategories.find((c: any) => c.id === categoryId);
+
+      console.log('Processed category:', category);
+      if (category) {
+        setcategoryName(category.name);
+      }
+
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchCategories();
+}, [categoryId]);
 
   // Apply filters to courses
   const applyFilters = () => {
@@ -173,13 +202,13 @@ export default function CourseList() {
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
               <a href="#" className="text-[#000927] text-base font-normal font-['Barlow'] leading-relaxed hover:text-primary">Courses</a>
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
-              <span className="text-gray-500 text-base font-normal font-['Barlow'] leading-relaxed">Design</span>
+              <span className="text-gray-500 text-base font-normal font-['Barlow'] leading-relaxed">{categoryName??'All Courses'}</span>
             </div>
           </div>
 
           {/* Design Category Header */}
           <div className="container mx-auto px-4 py-2">
-            <h1 className="page-title mb-6">All Courses</h1>
+            <h1 className="page-title mb-6">{categoryName??'All Courses'}</h1>
 
             {loading ? (
               <div className="flex items-center justify-center py-8">

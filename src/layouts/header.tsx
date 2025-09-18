@@ -10,6 +10,7 @@ import { useCountdown } from "../utils/countdown_subscribtion";
 import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
 import { getCategories, getSubCategories } from "../utils/firebaseCategory";
+import { LearnerCourse, learnerService } from "../utils/learnerService";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -374,7 +375,7 @@ export const CoursesMenu: React.FC = () => {
                     <IconListItem
                       key={sub.id}
                       title={sub.name}
-                      href={`#/courses/${category.name}`} // 🔑 update route as needed
+                      href={`#/courselist/${category.id}`} // 🔑 update route as needed
                       icon={null} // or your icon
                       //image={null} // if you have images
                     >
@@ -394,21 +395,65 @@ export const CoursesMenu: React.FC = () => {
 
 // My Learnings Navigation Menu Component
 export const MyLearningsMenu: React.FC = () => {
+    const [courses, setCourses] = useState<LearnerCourse[]>([]);
+      const { user } = useAuth();
+    
+      useEffect(() => {
+        const fetchLearnerData = async () => {
+          
+          if (!user?.uid) {
+            console.log('❌ No user UID found, returning early');
+            return;
+          }
+          
+          //setLoading(true);
+          try {
+            // Get email directly from localStorage since that's what the service expects
+            const userData = localStorage.getItem('key');
+            let userEmail = user.email || '';
+            
+            if (userData) {
+              try {
+                const parsedUser = JSON.parse(userData);
+                userEmail = parsedUser.UserName || user.email || '';
+              } catch (e) {
+                console.log('Could not parse user data from localStorage');
+              }
+            }
+            
+            if (!userEmail) {
+              console.error('❌ No valid email found');
+              return;
+            }
+            
+            const learningCourses = await 
+              learnerService.getMyLearnings(userEmail);
+            
+            setCourses(learningCourses);
+          } catch (error) {
+            console.error('❌ Error fetching learner data:', error);
+          } finally {
+            //setLoading(false);
+          }
+        };
+    
+        fetchLearnerData();
+      }, [user]);
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-base font-medium text-[#000927] font-['Barlow'] capitalize leading-relaxed text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
         My Learnings
       </NavigationMenuTrigger>
 
-      <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
-        {mylearnigs.map((course, idx) => (
+      {courses.length?<NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
+        {courses.map((course, idx) => (
           <div
             key={idx}
             className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
             onClick={()=>{window.location.hash = '#/learner/my-learnings'}}
           >
             <img
-              src={course.imageUrl}
+              src={course.image}
               alt={course.title}
               className="w-22 h-16 object-cover rounded-md"
             />
@@ -422,43 +467,25 @@ export const MyLearningsMenu: React.FC = () => {
                 <div className="relative h-2 bg-gray-200 rounded-full">
                   <div
                     className="absolute top-0 left-0 h-2 bg-primary rounded-full"
-                    style={{ width: `${course.progress * 100}%` }}
+                    style={{ width: `${course?.completionPercentage}%` }}
                   >
 
                   </div>
                 </div>
                 <div className="text-right text-xs font-semibold text-primary mt-1">
-                  {(course.progress * 100).toFixed(0)}% Completed
+                  {course?.progress}% Completed
                 </div>
               </div>
             </div>
           </div>
         ))}
-      </NavigationMenuContent>
+      </NavigationMenuContent>:<NavigationMenuContent className="bg-white rounded-lg shadow-xl p-4"><div className="w-full text-gray-500 text-center">No Enrollments Found</div>
+      <Button variant={'link'}>Browse Courses</Button></NavigationMenuContent>}
     </NavigationMenuItem>
   );
 };
 
-const mylearnigs = [
-  {
-    title: 'Design Course',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-    imageUrl: 'Images/courses/Rectangle 24.png',
-    progress: 0.5,
-  },
-  {
-    title: 'Design Course',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-    imageUrl: 'Images/courses/Rectangle 24.png',
-    progress: 0.5,
-  },
-  {
-    title: 'Design Course',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam placerat ac augue ac sagittis.',
-    imageUrl: 'Images/courses/Rectangle 24.png',
-    progress: 0.5,
-  },
-];
+
 
 
 

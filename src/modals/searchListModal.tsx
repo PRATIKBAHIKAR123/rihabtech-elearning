@@ -14,11 +14,11 @@ export default function SearchWithPopup() {
     const fetchCourses = async () => {
       try {
         const firebaseCourses = await getAllCourses();
-        const publishedCourses = firebaseCourses.filter(
-          (course) => course.isPublished && course.status === COURSE_STATUS.APPROVED
-        );
-        setCourses(publishedCourses);
-        setFilteredCourses(publishedCourses);
+        // const publishedCourses = firebaseCourses.filter(
+        //   (course) => course.isPublished && course.status === COURSE_STATUS.APPROVED
+        // );
+        setCourses(firebaseCourses);
+        setFilteredCourses(firebaseCourses);
       } catch (error) {
         console.error("Error fetching courses:", error);
         setCourses([]);
