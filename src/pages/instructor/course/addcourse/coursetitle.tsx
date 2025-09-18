@@ -37,7 +37,7 @@ const CourseTitle = () => {
       // If no draftId exists, create a new course draft
       if (!draftId.current) {
         try {
-          const newDraftId = await createNewCourseDraft();
+          const newDraftId = await createNewCourseDraft(formik.values.title,user?.UserName);
           draftId.current = newDraftId;
           localStorage.setItem("draftId", newDraftId);
         } catch (error) {

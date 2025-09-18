@@ -1,13 +1,14 @@
 import { db } from "../lib/firebase";
 import { doc, getDoc, setDoc, addDoc, collection } from "firebase/firestore";
+import { COURSE_STATUS } from "./firebaseCourses";
 
-export const createNewCourseDraft = async (): Promise<string> => {
+export const createNewCourseDraft = async (title: string, instructorId?: string): Promise<string> => {
   try {
     const courseData = {
-      instructorId:'',
-      title: "",
+      instructorId:instructorId,
+      title: title,
       createdAt: new Date(),
-      status: "draft",
+      status: COURSE_STATUS.DRAFT,
       progress: 0
     };
 
