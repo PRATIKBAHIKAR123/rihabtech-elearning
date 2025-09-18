@@ -122,18 +122,8 @@ export default function ChatInterface() {
     // Store refresh function globally for external calls
     (window as any).refreshLearnerChat = refreshConversations;
     
-    // Also refresh conversations when the page becomes visible (user switches tabs)
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.UserName) {
-        refreshConversations();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       delete (window as any).refreshLearnerChat;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user?.UserName]);
 

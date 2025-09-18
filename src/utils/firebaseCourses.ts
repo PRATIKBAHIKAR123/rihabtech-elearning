@@ -1,6 +1,77 @@
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from "firebase/firestore";
 
+// Course status constants
+export const COURSE_STATUS = {
+  DRAFT: 'draft',
+  PENDING_APPROVAL: 'pending_approval',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  NEEDS_REVISION: 'needs_revision',
+  PUBLISHED: 'published',
+  ARCHIVED: 'archived'
+} as const;
+
+export type CourseStatus = typeof COURSE_STATUS[keyof typeof COURSE_STATUS];
+
+// Course edit types for determining re-approval requirements
+export const COURSE_EDIT_TYPE = {
+  MINOR: 'minor',
+  MAJOR: 'major'
+} as const;
+
+export type CourseEditType = typeof COURSE_EDIT_TYPE[keyof typeof COURSE_EDIT_TYPE];
+
+// Approval information interface
+export interface ApprovalInfo {
+  approvedBy: {
+    name: string;
+    email: string;
+    userId: string;
+    timestamp: Date;
+  };
+  approvedAt: Date;
+  approvalNotes?: string;
+  featured: boolean;
+}
+
+// Rejection information interface
+export interface RejectionInfo {
+  rejectedBy: {
+    name: string;
+    email: string;
+    userId: string;
+    timestamp: Date;
+  };
+  rejectedAt: Date;
+  rejectionReason: string;
+  rejectionNotes?: string;
+}
+
+// Course version information
+export interface CourseVersion {
+  versionNumber: number;
+  createdAt: Date;
+  createdBy: string;
+  changes: string[];
+  status: CourseStatus;
+}
+
+// Course history entry
+export interface CourseHistoryEntry {
+  id: string;
+  action: string;
+  performedBy: {
+    name: string;
+    email: string;
+    userId: string;
+  };
+  timestamp: Date;
+  details: string;
+  previousStatus?: CourseStatus;
+  newStatus?: CourseStatus;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -10,7 +81,7 @@ export interface Course {
   promoVideoUrl?: string;
   featured: boolean;
   isPublished: boolean;
-  status: string;
+  status: CourseStatus;
   category: string;
   subcategory?: string;
   level: string;
@@ -19,6 +90,51 @@ export interface Course {
   pricing: string;
   submittedAt: string;
   approvedAt?: string;
+  
+  // Enhanced approval workflow fields
+  instructorId: string;
+  instructorName: string;
+  instructorEmail: string;
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Approval and rejection information
+  approvalInfo?: ApprovalInfo;
+  rejectionInfo?: RejectionInfo;
+  
+  // Course locking during review
+  isLocked: boolean;
+  lockedBy?: string;
+  lockedAt?: Date;
+  lockReason?: string;
+  
+  // Versioning and history
+  version: number;
+  versions?: CourseVersion[];
+  history?: CourseHistoryEntry[];
+  
+  // Content requirements
+  objectives: string[];
+  syllabus: string;
+  requirements: string[];
+  targetAudience: string;
+  
+  // Media and content
+  mediaFiles?: Array<{
+    id: string;
+    type: 'video' | 'pdf' | 'audio' | 'image' | 'quiz';
+    name: string;
+    url: string;
+    duration?: number;
+    size?: number;
+    uploadedAt: Date;
+  }>;
+  
+  // Quality assurance
+  qualityScore?: number;
+  complianceChecked: boolean;
+  accessibilityChecked: boolean;
+  
   // Add coupons property
   coupons?: CourseCoupon[];
   curriculum?: {

@@ -19,9 +19,9 @@ import { isUserEnrolledInCourse } from "../../../utils/paymentService";
 import { toast } from "sonner";
 
 // Extended Course interface with additional properties from Firebase
-interface ExtendedCourse extends Course {
+interface ExtendedCourse extends Omit<Course, 'requirements'> {
   learn?: string[];
-  requirements?: string[];
+  requirements: string[];
   target?: string[];
   welcomeMessage?: string;
 }
@@ -76,7 +76,8 @@ export default function CourseDetails() {
         const courseData = doc.data() as ExtendedCourse;
         courses.push({
           ...courseData,
-          id: doc.id
+          id: doc.id,
+          requirements: courseData.requirements || []
         });
       });
 
@@ -122,7 +123,8 @@ export default function CourseDetails() {
           const courseData = courseSnap.data() as ExtendedCourse;
           const courseWithId = {
             ...courseData,
-            id: courseSnap.id
+            id: courseSnap.id,
+            requirements: courseData.requirements || []
           };
           setCourse(courseWithId);
 

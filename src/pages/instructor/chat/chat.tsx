@@ -17,6 +17,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { chatService, ChatConversation, ChatMessage, ChatStats } from '../../../utils/chatService';
 import { toast } from 'sonner';
 import AnnouncementModule from './announcementModule';
+import AssignmentTab from './assignmentTab';
 import { Trash2 } from 'lucide-react';
 
 export default function ChatInterface() {
@@ -89,18 +90,8 @@ export default function ChatInterface() {
     // Store refresh function globally for external calls
     (window as any).refreshInstructorChat = refreshData;
     
-    // Also refresh data when the page becomes visible (user switches tabs)
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.UserName) {
-        refreshData();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       delete (window as any).refreshInstructorChat;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user?.UserName]);
 
@@ -438,15 +429,7 @@ export default function ChatInterface() {
         </div>
       )}
 
-      {activeTab === 'Assignment' && (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">Assignment Management</p>
-            <p className="text-sm">Assignment features coming soon</p>
-          </div>
-        </div>
-      )}
+      {activeTab === 'Assignment' && <AssignmentTab />}
 
       {activeTab === 'Announcements' && (
         <AnnouncementModule/>
