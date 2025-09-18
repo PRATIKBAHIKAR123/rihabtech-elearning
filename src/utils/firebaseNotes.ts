@@ -8,7 +8,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   onSnapshot,
   DocumentData
@@ -16,7 +15,7 @@ import {
 
 export interface CourseNote {
   id: string;
-  studentId: string;
+  studentId: string; // This will map to userId in Firebase
   courseId: string;
   heading: string;
   content: string;
@@ -32,17 +31,40 @@ class FirebaseNotesService {
   // Create a new note
   async createNote(note: Omit<CourseNote, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const noteData = {
-        ...note,
+      console.log('Firebase Notes Service: Creating note with data:', note);
+      
+      const noteData: any = {
+        userId: note.studentId, // Map studentId to userId for Firebase
+        courseId: note.courseId,
+        heading: note.heading,
+        content: note.content,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
+      // Only add moduleId if it's defined and not null
+      if (note.moduleId !== undefined && note.moduleId !== null) {
+        noteData.moduleId = note.moduleId;
+      }
+
+      // Only add timestamp if it's defined and not null
+      if (note.timestamp !== undefined && note.timestamp !== null) {
+        noteData.timestamp = note.timestamp;
+      }
+
+      console.log('Firebase Notes Service: Mapped data for Firebase:', noteData);
+      
       const docRef = await addDoc(collection(db, this.COLLECTION_NAME), noteData);
+      console.log('Firebase Notes Service: Note created with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
-      console.error('Error creating note:', error);
-      throw new Error('Failed to create note');
+      console.error('Firebase Notes Service: Error creating note:', error);
+      console.error('Error details:', {
+        code: (error as any)?.code,
+        message: (error as any)?.message,
+        stack: (error as any)?.stack
+      });
+      throw new Error(`Failed to create note: ${(error as any)?.message || 'Unknown error'}`);
     }
   }
 
@@ -50,19 +72,19 @@ class FirebaseNotesService {
   async getCourseNotes(studentId: string, courseId: string): Promise<CourseNote[]> {
     try {
       const notesRef = collection(db, this.COLLECTION_NAME);
+      // Simplified query to avoid index requirement - only filter by userId and courseId
       const q = query(
         notesRef,
-        where('studentId', '==', studentId),
-        where('courseId', '==', courseId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', studentId), // Use userId instead of studentId
+        where('courseId', '==', courseId)
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => {
+      const notes = snapshot.docs.map(doc => {
         const data = doc.data() as DocumentData;
         return {
           id: doc.id,
-          studentId: data.studentId,
+          studentId: data.userId, // Map userId back to studentId
           courseId: data.courseId,
           heading: data.heading,
           content: data.content,
@@ -72,6 +94,13 @@ class FirebaseNotesService {
           updatedAt: data.updatedAt?.toDate() || new Date()
         } as CourseNote;
       });
+      
+      // Sort by createdAt in memory to avoid index requirement
+      notes.sort((a: CourseNote, b: CourseNote) => {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+      
+      return notes;
     } catch (error) {
       console.error('Error fetching course notes:', error);
       throw new Error('Failed to fetch notes');
@@ -109,21 +138,27 @@ class FirebaseNotesService {
     courseId: string,
     callback: (notes: CourseNote[]) => void
   ): () => void {
+    console.log('Firebase Notes Service: Setting up subscription for', { studentId, courseId });
+    
     const notesRef = collection(db, this.COLLECTION_NAME);
+    // Simplified query to avoid index requirement - only filter by userId and courseId
     const q = query(
       notesRef,
-      where('studentId', '==', studentId),
-      where('courseId', '==', courseId),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', studentId), // Use userId instead of studentId
+      where('courseId', '==', courseId)
     );
+
+    console.log('Firebase Notes Service: Query created, setting up listener');
 
     return onSnapshot(q, {
       next: (snapshot) => {
+        console.log('Firebase notes subscription: received snapshot', (snapshot as any).docs.length, 'docs');
         const notes = (snapshot as any).docs.map((doc: any) => {
           const data = doc.data() as DocumentData;
+          console.log('Processing note doc:', doc.id, data);
           return {
             id: doc.id,
-            studentId: data.studentId,
+            studentId: data.userId, // Map userId back to studentId
             courseId: data.courseId,
             heading: data.heading,
             content: data.content,
@@ -133,10 +168,23 @@ class FirebaseNotesService {
             updatedAt: data.updatedAt?.toDate() || new Date()
           } as CourseNote;
         });
+        
+        // Sort by createdAt in memory to avoid index requirement
+        notes.sort((a: CourseNote, b: CourseNote) => {
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        });
+        
+        console.log('Firebase notes subscription: processed notes', notes);
         callback(notes);
       },
       error: (error: Error) => {
-        console.error('Error in notes subscription:', error);
+        console.error('Firebase Notes Service: Error in subscription:', error);
+        console.error('Error details:', {
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          stack: (error as any)?.stack
+        });
+        callback([]); // Return empty array on error
       }
     });
   }
@@ -145,20 +193,20 @@ class FirebaseNotesService {
   async getModuleNotes(studentId: string, courseId: string, moduleId: string): Promise<CourseNote[]> {
     try {
       const notesRef = collection(db, this.COLLECTION_NAME);
+      // Simplified query to avoid index requirement - only filter by userId, courseId, and moduleId
       const q = query(
         notesRef,
-        where('studentId', '==', studentId),
+        where('userId', '==', studentId), // Use userId instead of studentId
         where('courseId', '==', courseId),
-        where('moduleId', '==', moduleId),
-        orderBy('createdAt', 'desc')
+        where('moduleId', '==', moduleId)
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => {
+      const notes = snapshot.docs.map(doc => {
         const data = doc.data() as DocumentData;
         return {
           id: doc.id,
-          studentId: data.studentId,
+          studentId: data.userId, // Map userId back to studentId
           courseId: data.courseId,
           heading: data.heading,
           content: data.content,
@@ -168,6 +216,13 @@ class FirebaseNotesService {
           updatedAt: data.updatedAt?.toDate() || new Date()
         } as CourseNote;
       });
+      
+      // Sort by createdAt in memory to avoid index requirement
+      notes.sort((a: CourseNote, b: CourseNote) => {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+      
+      return notes;
     } catch (error) {
       console.error('Error fetching module notes:', error);
       throw new Error('Failed to fetch module notes');

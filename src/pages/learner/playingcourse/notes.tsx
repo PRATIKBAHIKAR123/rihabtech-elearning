@@ -20,41 +20,92 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
 
   // Load notes when component mounts or courseId changes
   useEffect(() => {
-    if (!user?.uid || !courseId) return;
+    console.log('Notes: User object from AuthContext:', user);
+    
+    // Get the actual user ID - prioritize email since that's what's stored in Firebase
+    const userId = user?.email || user?.UserName || user?.uid || 'unknown';
+    
+    if (!userId || !courseId) {
+      console.log('Notes: Missing user or courseId', { userId, courseId, user });
+      return;
+    }
 
+    console.log('Notes: Starting to load notes for', { userId, courseId, user });
     setLoadingNotes(true);
     setError(null);
 
     // Subscribe to real-time updates
     const unsubscribe = firebaseNotesService.subscribeToCourseNotes(
-      user.uid,
+      userId,
       courseId,
       (notes) => {
+        console.log('Notes: Received notes from Firebase', notes);
         setNotes(notes);
         setLoadingNotes(false);
       }
     );
 
-    return () => unsubscribe();
-  }, [user?.uid, courseId]);
+    // Fallback: Also try to fetch notes once in case subscription doesn't work
+    const fetchNotesOnce = async () => {
+      try {
+        const notes = await firebaseNotesService.getCourseNotes(userId, courseId);
+        console.log('Notes: Fallback fetch result', notes);
+        if (notes.length > 0) {
+          setNotes(notes);
+          setLoadingNotes(false);
+        }
+      } catch (err) {
+        console.error('Notes: Fallback fetch failed', err);
+        setError('Failed to load notes');
+        setLoadingNotes(false);
+      }
+    };
+
+    // Run fallback after a short delay
+    const fallbackTimeout = setTimeout(fetchNotesOnce, 2000);
+
+    return () => {
+      console.log('Notes: Cleaning up subscription');
+      clearTimeout(fallbackTimeout);
+      unsubscribe();
+    };
+  }, [user?.uid, user?.email, user?.UserName, courseId]);
 
   const handleCreateNote = async (note: { heading: string; content: string }) => {
-    if (!user?.uid) {
+    // Use the same logic as the useEffect to ensure consistency
+    const userId = user?.email || user?.UserName || user?.uid;
+    if (!userId) {
       setError("User not authenticated");
       return;
     }
 
     try {
       setError(null);
-      await firebaseNotesService.createNote({
-        studentId: user.uid,
+      console.log('Creating note with data:', {
+        userId,
+        courseId,
+        heading: note.heading,
+        content: note.content,
+        user: user
+      });
+      
+      const noteId = await firebaseNotesService.createNote({
+        studentId: userId,
         courseId,
         heading: note.heading,
         content: note.content
+        // moduleId and timestamp are optional and will be handled by the service
       });
+      
+      console.log('Note created successfully with ID:', noteId);
     } catch (err) {
       console.error("Error creating note:", err);
-      setError("Failed to create note");
+      console.error("Error details:", {
+        message: (err as any)?.message,
+        code: (err as any)?.code,
+        stack: (err as any)?.stack
+      });
+      setError(`Failed to create note: ${(err as any)?.message || 'Unknown error'}`);
     }
   };
 
@@ -121,11 +172,16 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
   }
 
   // No user state
-  if (!user?.uid) {
+  if (!user?.uid && !user?.email) {
     return (
       <div className="container mx-auto px-2 py-2">
         <div className="flex flex-col items-center justify-center gap-4 py-8">
           <p className="text-gray-500 text-center">Please log in to view and create notes</p>
+          <div className="text-sm text-gray-400">
+            <p>Debug info:</p>
+            <p>User object: {JSON.stringify(user, null, 2)}</p>
+            <p>Course ID: {courseId}</p>
+          </div>
         </div>
       </div>
     );
@@ -140,7 +196,7 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
             setEditingNote(null);
             setIsDialogOpen(true);
           }} 
-          className="border border-primary text-primary hover:bg-primary hover:text-white px-4 py-2 rounded flex items-center"
+          className="bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded flex items-center font-medium"
         >
           <span>Create A Note</span>
           <Plus size={16} className="ml-2" />
@@ -158,7 +214,28 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
             <Play size={24} className="text-gray-400" />
           </div>
-          <p className="text-gray-500 text-center">No notes yet. Create your first note to get started!</p>
+          <p className="text-gray-500 text-center mb-4">No notes yet. Create your first note to get started!</p>
+          
+          <Button
+            onClick={() => {
+              setEditingNote(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-primary text-white hover:bg-primary/90 px-6 py-2 rounded flex items-center font-medium"
+          >
+            <Plus size={16} className="mr-2" />
+            Create Your First Note
+          </Button>
+          
+          {/* Debug information */}
+          <div className="mt-8 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 max-w-md">
+            <p className="font-medium mb-2">Debug Information:</p>
+            <p><strong>User ID:</strong> {user?.email || user?.UserName || user?.uid || 'Not available'}</p>
+            <p><strong>Course ID:</strong> {courseId}</p>
+            <p><strong>Loading:</strong> {loadingNotes ? 'Yes' : 'No'}</p>
+            <p><strong>Error:</strong> {error || 'None'}</p>
+            <p><strong>User Object:</strong> {JSON.stringify(user, null, 2)}</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
