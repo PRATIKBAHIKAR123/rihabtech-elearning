@@ -107,7 +107,7 @@ const PreviewCourse = () => {
       });
     });
 
-    if (totalVideoSeconds < 30 * 60) {
+    if (totalVideoSeconds < 30 * 1) {
       missing['Curriculum'] = missing['Curriculum'] || [];
       missing['Curriculum'].push('Have at least 30 minutes of video content');
     }
