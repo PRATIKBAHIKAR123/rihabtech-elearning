@@ -6,6 +6,7 @@ import Notes from './notes';
 import Instructor from './instructure';
 import CourseReviews from './reviews';
 import LearningTools from './learningtools';
+import Announcements from './announcements';
 import ReactPlayer from 'react-player';
 import QNA from './qna';
 import { getFullCourseData, CourseDetails, extractQuizData } from '../../../utils/firebaseCoursePreview';
@@ -894,6 +895,10 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         return (
           <LearningTools courseId={courseId} instructorId={courseData?.instructorId}/>
         );
+      case 'Announcements':
+        return (
+          <Announcements courseId={courseId} loading={loading}/>
+        );
       case 'QNA':
         return (
       <QNA/>
@@ -1007,7 +1012,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
               <div className="flex space-x-2 overflow-x-auto pb-2">
                 {/* Mobile tabs (includes Course Content) */}
                 <div className="lg:hidden flex space-x-2">
-                  {["Course Content", "Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "QNA"].map((tab) => (
+                  {["Course Content", "Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "Announcements", "QNA"].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 text-sm font-medium rounded-full shadow-sm border whitespace-nowrap ${
@@ -1024,7 +1029,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
                 
                 {/* Desktop tabs (excludes Course Content) */}
                 <div className="hidden lg:flex space-x-2">
-                  {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "QNA"].map((tab) => (
+                  {["Overview", "Notes", "Instructor", "Reviews", "Learning Tools", "Announcements", "QNA"].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 text-sm font-medium rounded-full shadow-sm border whitespace-nowrap ${
