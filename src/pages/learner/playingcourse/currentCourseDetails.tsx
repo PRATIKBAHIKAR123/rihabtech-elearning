@@ -892,7 +892,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         );
       case 'Learning Tools':
         return (
-          <LearningTools/>
+          <LearningTools courseId={courseId} instructorId={courseData?.instructorId}/>
         );
       case 'QNA':
         return (

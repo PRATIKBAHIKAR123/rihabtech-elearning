@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, Search, Clock } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
 import { RadioGroup, RadioGroupItem } from '../../../components/ui/radio';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
+import { firebaseLearningRemindersService, CourseOption } from '../../../utils/firebaseLearningReminders';
+import { useAuth } from '../../../context/AuthContext';
 
-// Mock shadcn/ui components - replace with actual imports
+interface LearningReminderDialogProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  onSave?: (reminderData: any) => void;
+  editingReminder?: any;
+  courseId?: string;
+  instructorId?: string;
+}
 
-
-const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
-  //const [isOpen, setIsOpen] = useState(false);
+const LearningReminderDialog = ({ isOpen, setIsOpen, onSave, editingReminder, courseId, instructorId }: LearningReminderDialogProps) => {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: 'Learning reminder',
@@ -18,12 +26,14 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
     time: '12:00 PM',
     selectedDays: []
   });
+  const [courses, setCourses] = useState<CourseOption[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const courses = [
-    'Course: The Python Developer Essentials Immersive Bootcamp',
-    'Course: React JS Frontend Web Development for Beginners',
-    'Course: Introduction To Python Programming'
-  ];
+  // Filter courses based on search term
+  const filteredCourses = courses.filter(course =>
+    course.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const days: { short: string; full: string }[] = [
     { short: 'Su', full: 'Sunday' },
@@ -35,12 +45,87 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
     { short: 'Sa', full: 'Saturday' }
   ];
 
+  // Load courses when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadCourses();
+    }
+  }, [isOpen]);
+
+  // Initialize form data when editing
+  useEffect(() => {
+    if (editingReminder) {
+      setFormData({
+        name: editingReminder.name || 'Learning reminder',
+        attachedContent: editingReminder.courseId ? `course-${editingReminder.courseId}` : 'none',
+        frequency: editingReminder.frequency || 'daily',
+        time: editingReminder.time || '12:00 PM',
+        selectedDays: editingReminder.selectedDays || []
+      });
+    } else {
+      setFormData({
+        name: 'Learning reminder',
+        attachedContent: 'none',
+        frequency: 'daily',
+        time: '12:00 PM',
+        selectedDays: []
+      });
+    }
+  }, [editingReminder]);
+
+  const loadCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      console.log('Loading courses for user:', user?.email || user?.UserName || user?.uid);
+      
+      // Get user ID - prioritize email since that's what's stored in Firebase
+      const userId = user?.email || user?.UserName || user?.uid;
+      
+      if (!userId) {
+        console.log('No user ID available, using fallback courses');
+        setCourses([
+          { id: '1', title: 'Course: The Python Developer Essentials Immersive Bootcamp', instructorId: instructorId || 'instructor1' },
+          { id: '2', title: 'Course: React JS Frontend Web Development for Beginners', instructorId: instructorId || 'instructor2' },
+          { id: '3', title: 'Course: Introduction To Python Programming', instructorId: instructorId || 'instructor3' }
+        ]);
+        return;
+      }
+
+      const availableCourses = await firebaseLearningRemindersService.getAvailableCourses(userId, instructorId);
+      console.log('Loaded courses from Firebase:', availableCourses);
+      
+      if (availableCourses.length === 0) {
+        console.log('No courses found, using fallback courses');
+        setCourses([
+          { id: '1', title: 'Course: The Python Developer Essentials Immersive Bootcamp', instructorId: instructorId || 'instructor1' },
+          { id: '2', title: 'Course: React JS Frontend Web Development for Beginners', instructorId: instructorId || 'instructor2' },
+          { id: '3', title: 'Course: Introduction To Python Programming', instructorId: instructorId || 'instructor3' }
+        ]);
+      } else {
+        setCourses(availableCourses);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+      // Fallback to mock courses if Firebase fails
+      setCourses([
+        { id: '1', title: 'Course: The Python Developer Essentials Immersive Bootcamp', instructorId: instructorId || 'instructor1' },
+        { id: '2', title: 'Course: React JS Frontend Web Development for Beginners', instructorId: instructorId || 'instructor2' },
+        { id: '3', title: 'Course: Introduction To Python Programming', instructorId: instructorId || 'instructor3' }
+      ]);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
   const handleNext = () => {
     if (step < 3) {
       setStep(step + 1);
     } else {
       // Handle final submission
-      console.log('Learning reminder created:', formData);
+      console.log('Learning reminder created/updated:', formData);
+      if (onSave) {
+        onSave(formData);
+      }
       setIsOpen(false);
       setStep(1);
     }
@@ -85,32 +170,49 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
         </label>
         <div className="text-sm text-gray-600 mb-3">Most recent courses or labs:</div>
         
-        <RadioGroup 
-          value={formData.attachedContent} 
-          onValueChange={(value) => setFormData(prev => ({ ...prev, attachedContent: value }))}
-          className="space-y-3"
-        >
-          {courses.map((course, index) => (
-            <div key={index} className="flex items-center gap-3">
-            <RadioGroupItem id={`course-${index}`}  value={`course-${index}`} className="text-sm">
-              {course}
-            </RadioGroupItem>
-            <label className='font-semibold cursor-pointer' htmlFor={`course-${index}`}>{course}</label>
-            </div>
-          ))}
-          <div className="flex items-center gap-3">
-          <RadioGroupItem id='none' value="none" className="text-sm">
-           
-          </RadioGroupItem>
-           <label className='font-semibold cursor-pointer' htmlFor="none">None</label>
-           </div>
-          
-        </RadioGroup>
-
-        {/* <div className="mt-4 relative">
+        {/* Search input */}
+        <div className="mb-3 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input placeholder="Search" className="pl-10" />
-        </div> */}
+          <Input 
+            placeholder="Search courses..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10" 
+          />
+        </div>
+        
+        {loadingCourses ? (
+          <div className="text-sm text-gray-500">Loading courses...</div>
+        ) : (
+          <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md p-3">
+            <RadioGroup 
+              value={formData.attachedContent} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, attachedContent: value }))}
+              className="space-y-2"
+            >
+              {filteredCourses.length > 0 ? (
+                filteredCourses.map((course, index) => (
+                  <div key={course.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                    <RadioGroupItem id={`course-${course.id}`} value={`course-${course.id}`} className="text-sm">
+                      {course.title}
+                    </RadioGroupItem>
+                    <label className='font-semibold cursor-pointer flex-1 text-sm' htmlFor={`course-${course.id}`}>
+                      {course.title}
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-gray-500 p-2">No courses found matching "{searchTerm}"</div>
+              )}
+              <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded border-t pt-3 mt-2">
+                <RadioGroupItem id='none' value="none" className="text-sm">
+                  None
+                </RadioGroupItem>
+                <label className='font-semibold cursor-pointer flex-1 text-sm' htmlFor="none">None</label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -187,11 +289,12 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
   );
 
   const getStepTitle = () => {
+    const baseTitle = editingReminder ? 'Edit Learning Reminder' : 'Learning reminders';
     switch (step) {
-      case 1: return 'Learning reminders';
-      case 2: return 'Learning reminders';
+      case 1: return baseTitle;
+      case 2: return baseTitle;
       case 3: return 'Confirm reminder';
-      default: return 'Learning reminders';
+      default: return baseTitle;
     }
   };
 
@@ -208,7 +311,7 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
             </div>
           </DialogHeader>
 
-          <div className="min-h-[300px]">
+          <div className="min-h-[300px] max-h-[500px] overflow-y-auto">
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
@@ -224,7 +327,7 @@ const LearningReminderDialog = ({isOpen,setIsOpen}:any) => {
               Previous
             </Button>
             <Button onClick={handleNext}>
-              {step === 3 ? 'Create Reminder' : 'Next'}
+              {step === 3 ? (editingReminder ? 'Update Reminder' : 'Create Reminder') : 'Next'}
             </Button>
           </div>
         </DialogContent>

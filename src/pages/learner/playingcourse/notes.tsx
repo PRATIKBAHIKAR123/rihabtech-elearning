@@ -4,6 +4,7 @@ import { CreateNoteDialog } from "./createNoteModal";
 import { firebaseNotesService, CourseNote } from "../../../utils/firebaseNotes";
 import { useAuth } from "../../../context/AuthContext";
 import { Button } from "../../../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
 
 interface NotesProps {
   courseId: string;
@@ -17,6 +18,8 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState<CourseNote | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<CourseNote | null>(null);
 
   // Load notes when component mounts or courseId changes
   useEffect(() => {
@@ -120,12 +123,19 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
     }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    if (!window.confirm("Are you sure you want to delete this note?")) return;
+  const handleDeleteNote = (note: CourseNote) => {
+    setNoteToDelete(note);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteNote = async () => {
+    if (!noteToDelete) return;
 
     try {
       setError(null);
-      await firebaseNotesService.deleteNote(noteId);
+      await firebaseNotesService.deleteNote(noteToDelete.id);
+      setDeleteConfirmOpen(false);
+      setNoteToDelete(null);
     } catch (err) {
       console.error("Error deleting note:", err);
       setError("Failed to delete note");
@@ -270,7 +280,7 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteNote(note.id)}
+                    onClick={() => handleDeleteNote(note)}
                     className="text-gray-500 hover:text-red-500"
                   >
                     <Trash2 size={16} />
@@ -292,6 +302,43 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
         initialData={editingNote ? { heading: editingNote.heading, content: editingNote.content } : undefined}
         title={editingNote ? "Edit Note" : "Create New Note"}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Note</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this note? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {noteToDelete && (
+            <div className="py-4">
+              <div className="bg-gray-50 p-3 rounded-md">
+                <h4 className="font-medium text-sm text-gray-900 mb-1">{noteToDelete.heading}</h4>
+                <p className="text-sm text-gray-600 line-clamp-2">{noteToDelete.content}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setNoteToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteNote}
+            >
+              Delete Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
