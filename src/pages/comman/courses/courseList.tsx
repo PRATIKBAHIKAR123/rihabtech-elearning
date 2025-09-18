@@ -1,5 +1,5 @@
 import { BookOpen, ChevronDown, ChevronRight, Filter, User2, X } from "lucide-react";
-import { Course, getAllCourses, calculateCourseDuration } from "../../../utils/firebaseCourses";
+import { Course, getAllCourses, calculateCourseDuration, COURSE_STATUS } from "../../../utils/firebaseCourses";
 import { Button } from "../../../components/ui/button";
 import Divider from "../../../components/ui/divider";
 import { useState, useEffect } from "react";
@@ -44,7 +44,7 @@ export default function CourseList() {
         const firebaseCourses = await getAllCourses();
         // Filter only published and approved courses
         const publishedCourses = firebaseCourses.filter(course => 
-          course.isPublished && course.status === "approved"
+          course.isPublished && course.status === COURSE_STATUS.APPROVED
         );
         setCourses(publishedCourses);
         setFilteredCourses(publishedCourses);

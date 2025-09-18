@@ -80,7 +80,7 @@ export const CourseManagementPage: React.FC<CourseManagementPageProps> = ({
   };
 
   const filteredCourses = courses.filter(course => 
-    filter === 'all' || course.status === filter
+    filter === 'all' || course.status === parseInt(filter)
   );
 
   const getStatusActions = (course: Course) => {
@@ -102,7 +102,7 @@ export const CourseManagementPage: React.FC<CourseManagementPageProps> = ({
             </button>
           </div>
         );
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return (
           <div className="flex space-x-2">
             <button
@@ -133,7 +133,6 @@ export const CourseManagementPage: React.FC<CourseManagementPageProps> = ({
             </button>
           </div>
         );
-      case COURSE_STATUS.REJECTED:
       case COURSE_STATUS.NEEDS_REVISION:
         return (
           <div className="flex space-x-2">
@@ -185,10 +184,9 @@ export const CourseManagementPage: React.FC<CourseManagementPageProps> = ({
     const stats = {
       total: courses.length,
       draft: courses.filter(c => c.status === COURSE_STATUS.DRAFT).length,
-      pending: courses.filter(c => c.status === COURSE_STATUS.PENDING_APPROVAL).length,
+      pending: courses.filter(c => c.status === COURSE_STATUS.PENDING_REVIEW).length,
       approved: courses.filter(c => c.status === COURSE_STATUS.APPROVED).length,
       published: courses.filter(c => c.status === COURSE_STATUS.PUBLISHED).length,
-      rejected: courses.filter(c => c.status === COURSE_STATUS.REJECTED).length,
       needsRevision: courses.filter(c => c.status === COURSE_STATUS.NEEDS_REVISION).length
     };
     return stats;
@@ -290,10 +288,9 @@ export const CourseManagementPage: React.FC<CourseManagementPageProps> = ({
                 >
                   <option value="all">All Courses</option>
                   <option value={COURSE_STATUS.DRAFT}>Draft</option>
-                  <option value={COURSE_STATUS.PENDING_APPROVAL}>Pending Review</option>
+                  <option value={COURSE_STATUS.PENDING_REVIEW}>Pending Review</option>
                   <option value={COURSE_STATUS.APPROVED}>Approved</option>
                   <option value={COURSE_STATUS.PUBLISHED}>Published</option>
-                  <option value={COURSE_STATUS.REJECTED}>Rejected</option>
                   <option value={COURSE_STATUS.NEEDS_REVISION}>Needs Revision</option>
                 </select>
               </div>

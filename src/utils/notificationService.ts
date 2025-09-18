@@ -1,6 +1,6 @@
 import { db } from "../lib/firebase";
 import { collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp } from "firebase/firestore";
-import { CourseStatus, COURSE_STATUS } from "./firebaseCourses";
+import { CourseStatus, COURSE_STATUS, COURSE_STATUS_TEXT } from "./firebaseCourses";
 
 export interface Notification {
   id: string;
@@ -206,7 +206,7 @@ export class NotificationService {
     const courseName = `"${courseTitle}"`;
     
     switch (newStatus) {
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return {
           title: "Course Submitted for Review",
           message: `Your course ${courseName} has been submitted for admin review.`,
@@ -220,7 +220,7 @@ export class NotificationService {
           type: 'course_approved'
         };
         
-      case COURSE_STATUS.REJECTED:
+      case COURSE_STATUS.NEEDS_REVISION:
         return {
           title: "Course Rejected",
           message: `Unfortunately, your course ${courseName} was not approved.${notes ? `\n\nReason: ${notes}` : ''}`,
@@ -251,7 +251,7 @@ export class NotificationService {
       default:
         return {
           title: "Course Status Updated",
-          message: `Your course ${courseName} status has been updated to ${newStatus.replace('_', ' ')}.`,
+          message: `Your course ${courseName} status has been updated to ${COURSE_STATUS_TEXT[newStatus]}.`,
           type: 'course_status_change'
         };
     }
@@ -262,11 +262,11 @@ export class NotificationService {
    */
   private static getActionUrl(status: CourseStatus, courseId: string): string {
     switch (status) {
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return `/instructor/courses/${courseId}`;
       case COURSE_STATUS.APPROVED:
         return `/instructor/courses/${courseId}/publish`;
-      case COURSE_STATUS.REJECTED:
+      case COURSE_STATUS.NEEDS_REVISION:
       case COURSE_STATUS.NEEDS_REVISION:
         return `/instructor/courses/${courseId}/edit`;
       case COURSE_STATUS.PUBLISHED:

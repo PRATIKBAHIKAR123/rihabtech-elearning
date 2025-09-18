@@ -1,5 +1,5 @@
 import React from 'react';
-import { CourseStatus, COURSE_STATUS } from '../utils/firebaseCourses';
+import { CourseStatus, COURSE_STATUS, COURSE_STATUS_TEXT } from '../utils/firebaseCourses';
 
 interface CourseStatusIndicatorProps {
   status: CourseStatus;
@@ -21,47 +21,39 @@ export const CourseStatusIndicator: React.FC<CourseStatusIndicatorProps> = ({
       case COURSE_STATUS.DRAFT:
         return {
           icon: '📝',
-          text: 'Draft',
+          text: COURSE_STATUS_TEXT[status],
           bgColor: 'bg-gray-100',
           textColor: 'text-gray-800',
           borderColor: 'border-gray-300'
         };
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return {
           icon: '⏳',
-          text: 'Pending Review',
+          text: COURSE_STATUS_TEXT[status],
           bgColor: 'bg-yellow-100',
           textColor: 'text-yellow-800',
           borderColor: 'border-yellow-300'
         };
-      case COURSE_STATUS.APPROVED:
-        return {
-          icon: '✅',
-          text: 'Approved',
-          bgColor: 'bg-green-100',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-300'
-        };
-      case COURSE_STATUS.REJECTED:
-        return {
-          icon: '❌',
-          text: 'Rejected',
-          bgColor: 'bg-red-100',
-          textColor: 'text-red-800',
-          borderColor: 'border-red-300'
-        };
       case COURSE_STATUS.NEEDS_REVISION:
         return {
           icon: '🔄',
-          text: 'Needs Revision',
+          text: COURSE_STATUS_TEXT[status],
           bgColor: 'bg-orange-100',
           textColor: 'text-orange-800',
           borderColor: 'border-orange-300'
         };
+      case COURSE_STATUS.APPROVED:
+        return {
+          icon: '✅',
+          text: COURSE_STATUS_TEXT[status],
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-800',
+          borderColor: 'border-green-300'
+        };
       case COURSE_STATUS.PUBLISHED:
         return {
           icon: '🌐',
-          text: 'Published',
+          text: COURSE_STATUS_TEXT[status],
           bgColor: 'bg-blue-100',
           textColor: 'text-blue-800',
           borderColor: 'border-blue-300'
@@ -69,10 +61,18 @@ export const CourseStatusIndicator: React.FC<CourseStatusIndicatorProps> = ({
       case COURSE_STATUS.ARCHIVED:
         return {
           icon: '📦',
-          text: 'Archived',
+          text: COURSE_STATUS_TEXT[status],
           bgColor: 'bg-gray-100',
           textColor: 'text-gray-600',
           borderColor: 'border-gray-300'
+        };
+      case COURSE_STATUS.EDITED_PENDING:
+        return {
+          icon: '✏️',
+          text: COURSE_STATUS_TEXT[status],
+          bgColor: 'bg-purple-100',
+          textColor: 'text-purple-800',
+          borderColor: 'border-purple-300'
         };
       default:
         return {
@@ -156,7 +156,7 @@ export const CourseStatusBadge: React.FC<CourseStatusBadgeProps> = ({
     if (!showDetails || !course) return null;
 
     switch (status) {
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return course.submittedAt ? (
           <div className="text-xs text-gray-500 mt-1">
             Submitted: {new Date(course.submittedAt).toLocaleDateString()}
@@ -168,10 +168,10 @@ export const CourseStatusBadge: React.FC<CourseStatusBadgeProps> = ({
             Approved: {new Date(course.approvedAt).toLocaleDateString()}
           </div>
         ) : null;
-      case COURSE_STATUS.REJECTED:
+      case COURSE_STATUS.NEEDS_REVISION:
         return course.rejectedAt ? (
           <div className="text-xs text-gray-500 mt-1">
-            Rejected: {new Date(course.rejectedAt).toLocaleDateString()}
+            Needs Revision: {new Date(course.rejectedAt).toLocaleDateString()}
           </div>
         ) : null;
       default:
@@ -179,7 +179,7 @@ export const CourseStatusBadge: React.FC<CourseStatusBadgeProps> = ({
     }
   };
 
-  const isLocked = course?.isLocked && status === COURSE_STATUS.PENDING_APPROVAL;
+  const isLocked = course?.isLocked && status === COURSE_STATUS.PENDING_REVIEW;
 
   return (
     <div className="inline-block">

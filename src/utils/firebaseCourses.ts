@@ -1,18 +1,29 @@
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from "firebase/firestore";
 
-// Course status constants
+// Shared course status constants - using numeric IDs for consistency
 export const COURSE_STATUS = {
-  DRAFT: 'draft',
-  PENDING_APPROVAL: 'pending_approval',
-  APPROVED: 'approved',
-  REJECTED: 'rejected',
-  NEEDS_REVISION: 'needs_revision',
-  PUBLISHED: 'published',
-  ARCHIVED: 'archived'
+  DRAFT: 1,
+  PENDING_REVIEW: 2,
+  NEEDS_REVISION: 3,
+  APPROVED: 4,
+  PUBLISHED: 5,
+  ARCHIVED: 6,
+  EDITED_PENDING: 7
 } as const;
 
 export type CourseStatus = typeof COURSE_STATUS[keyof typeof COURSE_STATUS];
+
+// Course status text mapping
+export const COURSE_STATUS_TEXT = {
+  [COURSE_STATUS.DRAFT]: 'Draft',
+  [COURSE_STATUS.PENDING_REVIEW]: 'Pending Review',
+  [COURSE_STATUS.NEEDS_REVISION]: 'Needs Revision',
+  [COURSE_STATUS.APPROVED]: 'Approved',
+  [COURSE_STATUS.PUBLISHED]: 'Published',
+  [COURSE_STATUS.ARCHIVED]: 'Archived',
+  [COURSE_STATUS.EDITED_PENDING]: 'Edited Pending'
+} as const;
 
 // Course edit types for determining re-approval requirements
 export const COURSE_EDIT_TYPE = {

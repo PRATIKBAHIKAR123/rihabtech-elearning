@@ -55,7 +55,7 @@ export class CourseWorkflowService {
       
       // Lock the course during review
       const updateData = {
-        status: COURSE_STATUS.PENDING_APPROVAL,
+        status: COURSE_STATUS.PENDING_REVIEW,
         submittedAt: new Date().toISOString(),
         isLocked: true,
         lockedBy: 'system',
@@ -80,7 +80,7 @@ export class CourseWorkflowService {
         timestamp: new Date(),
         details: 'Course submitted for admin review',
         previousStatus: courseData.status,
-        newStatus: COURSE_STATUS.PENDING_APPROVAL
+        newStatus: COURSE_STATUS.PENDING_REVIEW
       });
       
       // Send notification to instructor
@@ -89,7 +89,7 @@ export class CourseWorkflowService {
         courseId,
         courseData.title,
         courseData.status,
-        COURSE_STATUS.PENDING_APPROVAL,
+        COURSE_STATUS.PENDING_REVIEW,
         instructorName
       );
       
@@ -125,8 +125,8 @@ export class CourseWorkflowService {
       case COURSE_STATUS.PUBLISHED:
         // Instructors can edit approved/published courses for minor changes
         return true;
-      case COURSE_STATUS.PENDING_APPROVAL:
-      case COURSE_STATUS.REJECTED:
+      case COURSE_STATUS.PENDING_REVIEW:
+      case COURSE_STATUS.NEEDS_REVISION:
         return false;
       default:
         return false;
@@ -153,7 +153,7 @@ export class CourseWorkflowService {
       const courseData = courseSnap.data() as Course;
       
       // Validate course is in pending approval
-      if (courseData.status !== COURSE_STATUS.PENDING_APPROVAL) {
+      if (courseData.status !== COURSE_STATUS.PENDING_REVIEW) {
         throw new Error("Course is not pending approval");
       }
       
@@ -191,7 +191,7 @@ export class CourseWorkflowService {
         },
         timestamp: new Date(),
         details: `Course approved by ${adminName}${approvalNotes ? `: ${approvalNotes}` : ''}`,
-        previousStatus: COURSE_STATUS.PENDING_APPROVAL,
+        previousStatus: COURSE_STATUS.PENDING_REVIEW,
         newStatus: COURSE_STATUS.APPROVED
       });
       
@@ -231,13 +231,13 @@ export class CourseWorkflowService {
       const courseData = courseSnap.data() as Course;
       
       // Validate course is in pending approval
-      if (courseData.status !== COURSE_STATUS.PENDING_APPROVAL) {
+      if (courseData.status !== COURSE_STATUS.PENDING_REVIEW) {
         throw new Error("Course is not pending approval");
       }
       
       // Update course status
       const updateData = {
-        status: COURSE_STATUS.REJECTED,
+        status: COURSE_STATUS.NEEDS_REVISION,
         isLocked: false,
         lockedBy: null,
         lockedAt: null,
@@ -268,8 +268,8 @@ export class CourseWorkflowService {
         },
         timestamp: new Date(),
         details: `Course rejected by ${adminName}: ${rejectionReason}`,
-        previousStatus: COURSE_STATUS.PENDING_APPROVAL,
-        newStatus: COURSE_STATUS.REJECTED
+        previousStatus: COURSE_STATUS.PENDING_REVIEW,
+        newStatus: COURSE_STATUS.NEEDS_REVISION
       });
       
       // Send notification to instructor
@@ -308,7 +308,7 @@ export class CourseWorkflowService {
       const courseData = courseSnap.data() as Course;
       
       // Validate course is in pending approval
-      if (courseData.status !== COURSE_STATUS.PENDING_APPROVAL) {
+      if (courseData.status !== COURSE_STATUS.PENDING_REVIEW) {
         throw new Error("Course is not pending approval");
       }
       
@@ -345,7 +345,7 @@ export class CourseWorkflowService {
         },
         timestamp: new Date(),
         details: `Revision requested by ${adminName}: ${revisionNotes}`,
-        previousStatus: COURSE_STATUS.PENDING_APPROVAL,
+        previousStatus: COURSE_STATUS.PENDING_REVIEW,
         newStatus: COURSE_STATUS.NEEDS_REVISION
       });
       
@@ -511,7 +511,7 @@ export class CourseWorkflowService {
         };
         
         updateData.versions = [...(courseData.versions || []), newVersion];
-        updateData.status = COURSE_STATUS.PENDING_APPROVAL;
+        updateData.status = COURSE_STATUS.EDITED_PENDING;
         updateData.isPublished = false;
         updateData.isLocked = true;
         updateData.lockedBy = 'system';

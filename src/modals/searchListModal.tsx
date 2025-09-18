@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import { Course, getAllCourses } from "../utils/firebaseCourses";
+import { Course, getAllCourses, COURSE_STATUS } from "../utils/firebaseCourses";
 
 export default function SearchWithPopup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +15,7 @@ export default function SearchWithPopup() {
       try {
         const firebaseCourses = await getAllCourses();
         const publishedCourses = firebaseCourses.filter(
-          (course) => course.isPublished && course.status === "approved"
+          (course) => course.isPublished && course.status === COURSE_STATUS.APPROVED
         );
         setCourses(publishedCourses);
         setFilteredCourses(publishedCourses);

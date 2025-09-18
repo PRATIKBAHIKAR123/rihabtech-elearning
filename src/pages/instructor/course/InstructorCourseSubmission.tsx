@@ -74,7 +74,7 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
             Submit for Review
           </button>
         );
-      case COURSE_STATUS.PENDING_APPROVAL:
+      case COURSE_STATUS.PENDING_REVIEW:
         return (
           <div className="flex items-center space-x-2">
             <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
@@ -99,16 +99,13 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
             </button>
           </div>
         );
-      case COURSE_STATUS.REJECTED:
       case COURSE_STATUS.NEEDS_REVISION:
         return (
           <div className="flex items-center space-x-2">
             <span className={`px-3 py-1 text-sm rounded-full ${
-              course.status === COURSE_STATUS.REJECTED 
-                ? 'bg-red-100 text-red-800'
-                : 'bg-orange-100 text-orange-800'
+              'bg-orange-100 text-orange-800'
             }`}>
-              {course.status === COURSE_STATUS.REJECTED ? 'Rejected' : 'Needs Revision'}
+              Needs Revision
             </span>
             <button
               onClick={() => window.location.href = `/instructor/courses/${course.id}/edit`}
