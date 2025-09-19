@@ -674,61 +674,7 @@ export const Groups = () => {
    
            } catch (err) {
                console.error("Error fetching courses:", err);
-               // Fallback to mock data if Firebase fails
-               const mockCourses: CourseDisplayData[] = [
-                   {
-                       id: "1",
-                       title: "Design Course",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 1000,
-                       enrollments: 78,
-                       ratings: 720,
-                       ratingScore: 5.0,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 85,
-                       lastModified: new Date(),
-                       createdAt: new Date(),
-                       instructorId: "mock-user",
-                       description: "Complete guide to design principles"
-                   },
-                   {
-                       id: "2",
-                       title: "Web Development Course",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 1500,
-                       enrollments: 92,
-                       ratings: 650,
-                       ratingScore: 4.8,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 75,
-                       lastModified: new Date(Date.now() - 86400000), // 1 day ago
-                       createdAt: new Date(Date.now() - 86400000),
-                       instructorId: "mock-user",
-                       description: "Learn web development from scratch"
-                   },
-                   {
-                       id: "3",
-                       title: "Mobile App Development",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 800,
-                       enrollments: 45,
-                       ratings: 420,
-                       ratingScore: 4.9,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 60,
-                       lastModified: new Date(Date.now() - 172800000), // 2 days ago
-                       createdAt: new Date(Date.now() - 172800000),
-                       instructorId: "mock-user",
-                       description: "Build mobile apps for iOS and Android"
-                   }
-               ];
-               setCourses(mockCourses);
+               
            } finally {
                //setLoading(false);
            }
@@ -1035,61 +981,7 @@ export const Groups = () => {
    
            } catch (err) {
                console.error("Error fetching courses:", err);
-               // Fallback to mock data if Firebase fails
-               const mockCourses: CourseDisplayData[] = [
-                   {
-                       id: "1",
-                       title: "Design Course",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 1000,
-                       enrollments: 78,
-                       ratings: 720,
-                       ratingScore: 5.0,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 85,
-                       lastModified: new Date(),
-                       createdAt: new Date(),
-                       instructorId: "mock-user",
-                       description: "Complete guide to design principles"
-                   },
-                   {
-                       id: "2",
-                       title: "Web Development Course",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 1500,
-                       enrollments: 92,
-                       ratings: 650,
-                       ratingScore: 4.8,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 75,
-                       lastModified: new Date(Date.now() - 86400000), // 1 day ago
-                       createdAt: new Date(Date.now() - 86400000),
-                       instructorId: "mock-user",
-                       description: "Learn web development from scratch"
-                   },
-                   {
-                       id: "3",
-                       title: "Mobile App Development",
-                       status: "Live",
-                       thumbnail: "Images/4860253.png",
-                       earnings: 800,
-                       enrollments: 45,
-                       ratings: 420,
-                       ratingScore: 4.9,
-                       // Required InstructorCourse properties
-                       visibility: "public",
-                       progress: 60,
-                       lastModified: new Date(Date.now() - 172800000), // 2 days ago
-                       createdAt: new Date(Date.now() - 172800000),
-                       instructorId: "mock-user",
-                       description: "Build mobile apps for iOS and Android"
-                   }
-               ];
-               setCourses(mockCourses);
+               
            } finally {
                //setLoading(false);
            }

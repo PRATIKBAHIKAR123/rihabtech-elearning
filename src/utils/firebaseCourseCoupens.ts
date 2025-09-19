@@ -93,12 +93,22 @@ export const saveCouponToFirebase = async (couponData: UnifiedCoupon) => {
 //   });
 // };
 
-export const getInstructorCoupons = async (instructorId: string) => {
-  const q = query(
+export const getInstructorCoupons = async (instructorId: string,CourseId?: string) => {
+  let q;
+  if(CourseId){
+   q = query(
+    collection(db, 'coupons'), 
+    where('creatorType', '==', 'instructor'),
+    where('instructorId', '==', instructorId),
+    where('courseId', '==', CourseId),
+  );
+  } else{
+    q = query(
     collection(db, 'coupons'), 
     where('creatorType', '==', 'instructor'),
     where('instructorId', '==', instructorId)
   );
+  }
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(d => {
     const data = d.data() as any;

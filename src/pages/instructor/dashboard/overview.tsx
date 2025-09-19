@@ -552,8 +552,8 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
           <TableHeader className="ins-table-header">
           <TableRow className="table-head-text">
             <TableHead>Time Period</TableHead>
-            <TableHead>Pre Tax Amount</TableHead>
-            <TableHead>Without Holding Tax</TableHead>
+            {/* <TableHead>Pre Tax Amount</TableHead>
+            <TableHead>Without Holding Tax</TableHead> */}
             <TableHead>Net Earning</TableHead>
             <TableHead>Watch Time (Min)</TableHead>
             <TableHead>Expected Payout Date</TableHead>
@@ -569,8 +569,8 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
               // }}
             >
               <TableCell className="table-body-text">{row.month}</TableCell>
-              <TableCell className="table-body-text">₹{row.preTax.toLocaleString()}</TableCell>
-              <TableCell className="table-body-text">₹{row.withoutHolding.toLocaleString()}</TableCell>
+              {/* <TableCell className="table-body-text">₹{row.preTax.toLocaleString()}</TableCell>
+              <TableCell className="table-body-text">₹{row.withoutHolding.toLocaleString()}</TableCell> */}
               <TableCell className="table-body-text">₹{row.netEarning.toLocaleString()}</TableCell>
               <TableCell className="table-body-text">{row.watchTime.toLocaleString()}</TableCell>
               <TableCell className="table-body-text">{row.payoutDate}</TableCell>
@@ -579,8 +579,8 @@ const StatsCard = ({ title, value, growth, period }: StatsCardProps) => {
           {/* Totals Row */}
           <TableRow className="ins-table-row font-semibold bg-gray-50">
             <TableCell className="table-body-text">Total</TableCell>
-            <TableCell className="table-body-text">₹{totals.preTax.toLocaleString()}</TableCell>
-            <TableCell className="table-body-text">₹{totals.withoutHolding.toLocaleString()}</TableCell>
+            {/* <TableCell className="table-body-text">₹{totals.preTax.toLocaleString()}</TableCell>
+            <TableCell className="table-body-text">₹{totals.withoutHolding.toLocaleString()}</TableCell> */}
             <TableCell className="table-body-text">₹{totals.netEarning.toLocaleString()}</TableCell>
             <TableCell className="table-body-text">{totals.watchTime.toLocaleString()}</TableCell>
             <TableCell className="table-body-text">-</TableCell>

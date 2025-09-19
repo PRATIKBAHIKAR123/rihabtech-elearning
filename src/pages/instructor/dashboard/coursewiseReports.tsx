@@ -153,8 +153,8 @@ export const CourseWiseReports = () =>{
                                     <TableRow className="table-head-text">
                                         <TableHead>Sr. No.</TableHead>
                                         <TableHead>Course Name</TableHead>
-                                        <TableHead>Tax Amount</TableHead>
-                                        <TableHead>Platform Charges</TableHead>
+                                        {/* <TableHead>Tax Amount</TableHead>
+                                        <TableHead>Platform Charges</TableHead> */}
                                         <TableHead>Net Earning</TableHead>
                                         <TableHead>Total Watch time</TableHead>
                                         <TableHead>Students</TableHead>
@@ -166,8 +166,8 @@ export const CourseWiseReports = () =>{
                                             <TableRow key={index} className="ins-table-row">
                                                 <TableCell className="table-body-text">{row.srNo}</TableCell>
                                                 <TableCell className="table-body-text">{row.courseName}</TableCell>
-                                                <TableCell className="table-body-text">₹{row.taxAmount.toLocaleString()}</TableCell>
-                                                <TableCell className="table-body-text">₹{row.platformCharges.toLocaleString()}</TableCell>
+                                                {/* <TableCell className="table-body-text">₹{row.taxAmount.toLocaleString()}</TableCell>
+                                                <TableCell className="table-body-text">₹{row.platformCharges.toLocaleString()}</TableCell> */}
                                                 <TableCell className="table-body-text">₹{row.netEarning.toLocaleString()}</TableCell>
                                                 <TableCell className="table-body-text">{row.totalWatchTime} Min</TableCell>
                                                 <TableCell className="table-body-text">{row.studentCount}</TableCell>

@@ -149,11 +149,11 @@ const CourseContent = () => {
             {selectedItem === "pricing"&&(
                 <Pricing 
                   draftId={localStorage.getItem('draftId') || 'test-draft-id'}
-                  onSubmit={()=>{setSelectedItem('course-messages')}}
+                  onSubmit={()=>{setSelectedItem('coupens')}}
                 />
             )}
             {selectedItem === "coupens"&&(
-                <CourseCouponsPage
+                <CourseCouponsPage  onSubmit={()=>{setSelectedItem('course-messages')}}
                 />
             )}
             {selectedItem === "promotions" && (

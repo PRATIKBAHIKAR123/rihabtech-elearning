@@ -623,14 +623,14 @@ export default function InstructorPayment() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Earnings Breakdown for {formatMonth(selectedMonth)}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="flex items-center justify-center gap-6">
                   <div className="text-center">
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                     <p className="text-2xl font-semibold text-gray-900">
                       {formatCurrency(currentMonthBreakdown.baseAmount)}
                     </p>
                   </div>
-                  <div className="text-center">
+                  {/* <div className="text-center">
                     <p className="text-sm font-medium text-gray-600">Platform Fee (40%)</p>
                     <p className="text-2xl font-semibold text-orange-600">
                       {formatCurrency(currentMonthBreakdown.platformFee)}
@@ -647,7 +647,7 @@ export default function InstructorPayment() {
                     <p className="text-2xl font-semibold text-green-600">
                       {formatCurrency(currentMonthBreakdown.instructorShare)}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             )}

@@ -8,6 +8,7 @@ import {
   InstructorCourse 
 } from "../../../utils/firebaseInstructorCourses";
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
+import { COURSE_STATUS_LABELS } from "../../../utils/firebaseCourses";
 
 // Extended interface for UI display with additional properties
 export interface CourseDisplayData extends InstructorCourse {
@@ -104,61 +105,8 @@ export default function CourseList() {
             await loadPayoutData();
         } catch (err) {
             console.error("Error fetching courses:", err);
-            // Fallback to mock data if Firebase fails
-            const mockCourses: CourseDisplayData[] = [
-                {
-                    id: "1",
-                    title: "Design Course",
-                    status: "Live",
-                    thumbnail: "Images/4860253.png",
-                    earnings: 1000,
-                    enrollments: 78,
-                    ratings: 720,
-                    ratingScore: 5.0,
-                    // Required InstructorCourse properties
-                    visibility: "public",
-                    progress: 85,
-                    lastModified: new Date(),
-                    createdAt: new Date(),
-                    instructorId: "mock-user",
-                    description: "Complete guide to design principles"
-                },
-                {
-                    id: "2",
-                    title: "Web Development Course",
-                    status: "Live",
-                    thumbnail: "Images/4860253.png",
-                    earnings: 1500,
-                    enrollments: 92,
-                    ratings: 650,
-                    ratingScore: 4.8,
-                    // Required InstructorCourse properties
-                    visibility: "public",
-                    progress: 75,
-                    lastModified: new Date(Date.now() - 86400000), // 1 day ago
-                    createdAt: new Date(Date.now() - 86400000),
-                    instructorId: "mock-user",
-                    description: "Learn web development from scratch"
-                },
-                {
-                    id: "3",
-                    title: "Mobile App Development",
-                    status: "Live",
-                    thumbnail: "Images/4860253.png",
-                    earnings: 800,
-                    enrollments: 45,
-                    ratings: 420,
-                    ratingScore: 4.9,
-                    // Required InstructorCourse properties
-                    visibility: "public",
-                    progress: 60,
-                    lastModified: new Date(Date.now() - 172800000), // 2 days ago
-                    createdAt: new Date(Date.now() - 172800000),
-                    instructorId: "mock-user",
-                    description: "Build mobile apps for iOS and Android"
-                }
-            ];
-            setCourses(mockCourses);
+            // Fallba
+            setLoading(false);
         } finally {
             setLoading(false);
         }
@@ -449,7 +397,7 @@ export default function CourseList() {
                       {course.title}
                     </h3>
                     <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-                      {course.status}
+                      {COURSE_STATUS_LABELS[course.status] || "Unknown"}
                     </span>
                     <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
                       {course.visibility}
@@ -511,14 +459,14 @@ export default function CourseList() {
 
               {/* Right Section: Stats + Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
-                <div>
+                {/* <div>
                   <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
                     INR {(course.earnings || 0).toFixed(2)}
                   </div>
                   <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
                     Earned This Month
                   </div>
-                </div>
+                </div> */}
                 <div>
                   <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
                     {course.enrollments || 0}

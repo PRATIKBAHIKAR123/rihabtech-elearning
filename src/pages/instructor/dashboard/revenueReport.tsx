@@ -401,9 +401,9 @@ const RevenueReport: React.FC = () => {
                     <TableHead>Month</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Total Amount</TableHead>
-                    <TableHead>Platform Fee</TableHead>
+                    {/* <TableHead>Platform Fee</TableHead>
                     <TableHead>Instructor Share</TableHead>
-                    <TableHead>Tax</TableHead>
+                    <TableHead>Tax</TableHead> */}
                     <TableHead>Watch Time</TableHead>
                     <TableHead>Courses</TableHead>
                     <TableHead>Request Date</TableHead>
@@ -423,9 +423,9 @@ const RevenueReport: React.FC = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-semibold">{formatCurrency(item.amount)}</TableCell>
-                      <TableCell>{formatCurrency(item.platformFee)}</TableCell>
+                      {/* <TableCell>{formatCurrency(item.platformFee)}</TableCell>
                       <TableCell className="text-green-600 font-semibold">{formatCurrency(item.instructorShare)}</TableCell>
-                      <TableCell>{formatCurrency(item.taxAmount)}</TableCell>
+                      <TableCell>{formatCurrency(item.taxAmount)}</TableCell> */}
                       <TableCell>{Math.round(item.watchTimeMinutes / 60)}h {item.watchTimeMinutes % 60}m</TableCell>
                       <TableCell>{item.courseCount}</TableCell>
                       <TableCell>{formatDate(item.requestDate)}</TableCell>

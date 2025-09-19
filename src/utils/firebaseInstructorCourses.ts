@@ -12,6 +12,7 @@ import {
   Timestamp,
   serverTimestamp
 } from "firebase/firestore";
+import { COURSE_STATUS } from "./firebaseCourses";
 
 // Coupon interface for instructor courses
 export interface InstructorCourseCoupon {
@@ -42,7 +43,7 @@ export interface InstructorCourse {
   id: string;
   title: string;
   description?: string;
-  status: string;
+  status: number;
   visibility: string;
   progress: number;
   thumbnail?: string;
@@ -101,7 +102,7 @@ const getCouponsForCourse = async (courseId: string, instructorId?: string): Pro
       query(
         couponsRef,
         where("courseId", "==", courseId),
-        where("isActive", "==", true)
+        where("isActive", "==", true),
       )
     ];
 
@@ -228,10 +229,18 @@ export const getInstructorCourses = async (
       const coursesWithCoupons = await Promise.all(
         allCourses.map(async (course) => {
           const coupons = await getCouponsForCourse(course.id, instructorId);
+          if(coupons.length>0){
           return {
             ...course,
             coupons
           };
+        }
+        else {
+          return {
+            ...course,
+            coupons:[]
+          };
+        }
         })
       );
       return coursesWithCoupons;
@@ -346,9 +355,9 @@ export const getInstructorCourseStats = async (instructorId: string) => {
       // Course stats
       total: courses.length,
       published: courses.filter(c => c.isPublished).length,
-      drafts: courses.filter(c => c.status === "draft").length,
-      pending: courses.filter(c => c.status === "pending").length,
-      approved: courses.filter(c => c.status === "approved").length,
+      drafts: courses.filter(c => c.status === COURSE_STATUS.DRAFT).length,
+      pending: courses.filter(c => c.status === COURSE_STATUS.PENDING_REVIEW).length,
+      approved: courses.filter(c => c.status === COURSE_STATUS.APPROVED).length,
       averageProgress: courses.length > 0
         ? Math.round(courses.reduce((sum, c) => sum + c.progress, 0) / courses.length)
         : 0,

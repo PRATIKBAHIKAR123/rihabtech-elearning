@@ -37,7 +37,7 @@ type FormState = {
   usedCount: string;
 };
 
-export default function CourseCouponsPage() {
+export default function CourseCouponsPage({onSubmit}:{onSubmit?: any }) {
   const [coupons, setCoupons] = useState<UnifiedCoupon[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -100,7 +100,7 @@ export default function CourseCouponsPage() {
     setLoading(true);
     try {
   if  (user?.UserName) {
-        const data = await getInstructorCoupons(user.UserName);
+        const data = await getInstructorCoupons(user.UserName,draftIdLS);
         setCoupons(data);
       }
     } catch (error) {
@@ -407,6 +407,15 @@ export default function CourseCouponsPage() {
           </CardContent>
         </Card>
       )}
+      <div className="flex justify-end mt-2">
+        <Button 
+          onClick={onSubmit}
+          className="px-8"
+        >
+          
+          Continue
+        </Button>
+      </div>
     </div>
   );
 }

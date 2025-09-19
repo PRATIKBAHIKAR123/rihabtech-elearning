@@ -25,6 +25,16 @@ export const COURSE_STATUS_TEXT = {
   [COURSE_STATUS.EDITED_PENDING]: 'Edited Pending'
 } as const;
 
+export const COURSE_STATUS_LABELS: Record<any, any> = {
+  1: "Draft",
+  2: "Pending Review",
+  3: "Needs Revision",
+  4: "Approved",
+  5: "Published",
+  6: "Archived",
+  7: "Edited Pending",
+};
+
 // Course edit types for determining re-approval requirements
 export const COURSE_EDIT_TYPE = {
   MINOR: 'minor',
@@ -405,7 +415,7 @@ export const getCoursesByCategory = async (categoryId: string, includeCoupons: b
       coursesRef,
       where("category", "==", categoryId),
       where("isPublished", "==", true),
-      where("status", "==", "approved")
+      where("status", "==", COURSE_STATUS.APPROVED)
     );
 
     const categorySnapshot = await getDocs(categoryQuery);
@@ -530,7 +540,7 @@ export const getCourseCountByCategory = async (categoryId: string): Promise<numb
       coursesRef,
       where("category", "==", categoryId),
       where("isPublished", "==", true),
-      where("status", "==", "approved")
+      where("status", "==", COURSE_STATUS.APPROVED)
     );
 
     const snapshot = await getCountFromServer(countQuery);

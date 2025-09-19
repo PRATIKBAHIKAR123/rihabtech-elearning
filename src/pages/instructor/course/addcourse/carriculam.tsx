@@ -448,10 +448,15 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
         if (!lecture.lectureName || lecture.lectureName.trim() === '') {
           errors.push(`Lecture ${itemIndex + 1} in section "${section.name}" must have a name`);
         }
-        
-        if (lecture.contentType === 'video' && (!lecture.contentFiles || lecture.contentFiles.length === 0)) {
-          errors.push(`Video lecture "${lecture.lectureName}" must have a video file`);
-        }
+
+        if (lecture.contentType === "video") {
+  const hasFile = lecture.contentFiles && lecture.contentFiles.length > 0;
+  const hasUrl = lecture.contentUrl && lecture.contentUrl.trim() !== "";
+
+  if (!hasFile && !hasUrl) {
+    errors.push(`Video lecture "${lecture.lectureName}" must have a video file or a valid URL`);
+  }
+}
         
         // Check for failed uploads
         if (lecture.contentFiles) {
@@ -739,7 +744,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         // Save to Firebase with error handling
         await saveCourseDraft(draftId.current, {
           curriculum: serializableCurriculum,
-          progress: 24,
+          progress: 70,
           isCurriculumFinal: true,
         });
 

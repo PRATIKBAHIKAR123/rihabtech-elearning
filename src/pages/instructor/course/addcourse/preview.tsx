@@ -14,6 +14,7 @@ import {
 import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
 import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
 import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
+import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -80,7 +81,7 @@ const PreviewCourse = () => {
     }
 
     const draftRef = doc(db, 'courseDrafts', draftId.current);
-    await updateDoc(draftRef, { submittedForReview: true, submittedAt: new Date().toISOString() });
+    await updateDoc(draftRef, { submittedForReview: true, submittedAt: new Date().toISOString(),status:COURSE_STATUS.PENDING_REVIEW, progress:100 });
     setSubmitted(true);
   };
 
@@ -107,14 +108,14 @@ const PreviewCourse = () => {
       });
     });
 
-    if (totalVideoSeconds < 30 * 1) {
-      missing['Curriculum'] = missing['Curriculum'] || [];
-      missing['Curriculum'].push('Have at least 30 minutes of video content');
-    }
-    if (lectureCount < 1) {
-      missing['Curriculum'] = missing['Curriculum'] || [];
-      missing['Curriculum'].push('Have at least 2 lectures');
-    }
+    // if (totalVideoSeconds < 30 * 1) {
+    //   missing['Curriculum'] = missing['Curriculum'] || [];
+    //   missing['Curriculum'].push('Have at least 30 minutes of video content');
+    // }
+    // if (lectureCount < 1) {
+    //   missing['Curriculum'] = missing['Curriculum'] || [];
+    //   missing['Curriculum'].push('Have at least 2 lectures');
+    // }
     if (lecturesWithoutContent.length > 0) {
       missing['Curriculum'] = missing['Curriculum'] || [];
       missing['Curriculum'].push('Have content for all lectures');
