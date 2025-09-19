@@ -26,7 +26,24 @@ const CourseTitle = () => {
     }),
     onSubmit: async(values) => {
       setLoading(true);
-      await saveCourseTitle(draftId.current, values.title,user?.UserName );
+      
+      // Create draft if it doesn't exist yet
+      if (!draftId.current) {
+        try {
+          const newDraftId = await createNewCourseDraft(values.title, user?.UserName);
+          draftId.current = newDraftId;
+          localStorage.setItem("draftId", newDraftId);
+          console.log("Created new draft with ID:", newDraftId);
+        } catch (error) {
+          console.error("Failed to create course draft:", error);
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Update existing draft
+        await saveCourseTitle(draftId.current, values.title, user?.UserName);
+      }
+      
       setLoading(false);
       window.location.hash = "#/instructor/course-category";
     },
@@ -58,19 +75,8 @@ const CourseTitle = () => {
           console.error("Failed to fetch course title:", error);
         }
       } else {
-        // Only create a new draft if no draftId exists
-        console.log("No existing draftId found, creating new course draft");
-        try {
-          const newDraftId = await createNewCourseDraft(formik.values.title, user?.UserName);
-          draftId.current = newDraftId;
-          localStorage.setItem("draftId", newDraftId);
-          console.log("Created new draft with ID:", newDraftId);
-        } catch (error) {
-          console.error("Failed to create course draft:", error);
-          setInitializing(false);
-          isInitializing = false;
-          return;
-        }
+        // Don't create a draft yet - wait for user to enter title and submit
+        console.log("No existing draftId found, waiting for user to enter title");
       }
       
       setInitializing(false);
