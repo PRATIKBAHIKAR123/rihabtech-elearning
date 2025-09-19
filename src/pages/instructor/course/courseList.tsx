@@ -358,8 +358,10 @@ export default function CourseList() {
             ) : (
                 <div className="flex flex-col gap-2 mt-4">
       {filteredCourses.map((course) => {
-        // Get active coupons for this course
-        const activeCoupons = course.coupons?.filter(coupon => coupon.isActive) || [];
+        // Get all coupons for this specific course (both active and inactive)
+        const activeCoupons = course.coupons?.filter(coupon => 
+          coupon.courseId === course.id
+        ) || [];
         const bestCoupon = activeCoupons[0]; // Assuming coupons are sorted by priority
         
         return (
@@ -408,12 +410,11 @@ export default function CourseList() {
                     
                     {/* Best Coupon Badge */}
                     {bestCoupon && (
-                      <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded flex items-center gap-1">
-                        {/* {bestCoupon.type === 'percentage' ? (
-                          <div>%</div>
-                        ) : (
-                          <div>₹</div>
-                        )} */}
+                      <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
+                        bestCoupon.isActive 
+                          ? 'text-green-700 bg-green-100' 
+                          : 'text-red-700 bg-red-100'
+                      }`}>
                         {bestCoupon.type === 'percentage' ? `${bestCoupon.value}% OFF` : `₹${bestCoupon.value} OFF`}
                       </span>
                     )}
@@ -427,8 +428,12 @@ export default function CourseList() {
                   
                   {/* Coupon Quick Info */}
                   {bestCoupon && (
-                    <div className="text-xs text-green-600 mb-2">
-                      Best offer: <code className="bg-green-50 px-1 py-0.5 rounded">{bestCoupon.code}</code>
+                    <div className={`text-xs mb-2 ${bestCoupon.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                      Best offer: <code className={`px-1 py-0.5 rounded ${
+                        bestCoupon.isActive 
+                          ? 'bg-green-50 text-green-700' 
+                          : 'bg-red-50 text-red-700'
+                      }`}>{bestCoupon.code}</code>
                       {activeCoupons.length > 1 && (
                         <span className="ml-2 text-gray-500">+{activeCoupons.length - 1} more</span>
                       )}
@@ -560,18 +565,38 @@ export default function CourseList() {
             {/* Expandable Coupon Details Section */}
             {activeCoupons.length > 1 && (
               <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
-                <div className="text-sm font-medium text-gray-700 mb-2">
-                  All Active Coupons ({activeCoupons.length})
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium text-gray-700">
+                    All Coupons ({activeCoupons.length})
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Active</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>Inactive</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {activeCoupons.map((coupon) => (
                     <div
                       key={coupon.id}
-                      className="bg-white border border-gray-200 rounded px-3 py-2 text-xs flex items-center gap-2"
+                      className={`bg-white border rounded px-3 py-2 text-xs flex items-center gap-2 ${
+                        coupon.isActive 
+                          ? 'border-green-200' 
+                          : 'border-red-200'
+                      }`}
                     >
-                      <code className="font-mono text-gray-800">{coupon.code}</code>
-                      <span className="text-green-600 font-medium">
-                        {coupon.type === 'percentage' ? `${coupon.value}%` : `$${coupon.value}`} OFF
+                      <code className={`font-mono ${
+                        coupon.isActive ? 'text-gray-800' : 'text-red-700'
+                      }`}>{coupon.code}</code>
+                      <span className={`font-medium ${
+                        coupon.isActive ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {coupon.type === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`} OFF
                       </span>
                       <span className="text-gray-500">
                         {coupon.usedCount}/{coupon.maxUses} used

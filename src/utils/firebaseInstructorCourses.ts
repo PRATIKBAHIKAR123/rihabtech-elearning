@@ -92,17 +92,10 @@ const getCouponsForCourse = async (courseId: string, instructorId?: string): Pro
     
     // Create queries for different coupon types
     const queries = [
-      // Global admin coupons
-      // query(
-      //   couponsRef,
-      //   where("isGlobal", "==", true),
-      //   where("isActive", "==", true)
-      // ),
-      // Course-specific coupons
+      // Course-specific coupons (both active and inactive)
       query(
         couponsRef,
         where("courseId", "==", courseId),
-        where("isActive", "==", true),
       )
     ];
 
@@ -112,7 +105,7 @@ const getCouponsForCourse = async (courseId: string, instructorId?: string): Pro
         query(
           couponsRef,
           where("instructorId", "==", instructorId),
-          where("isActive", "==", true)
+          where("courseId", "==", courseId)
         )
       );
     }
