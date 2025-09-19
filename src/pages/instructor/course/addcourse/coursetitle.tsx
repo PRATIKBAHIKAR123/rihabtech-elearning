@@ -7,6 +7,9 @@ import * as Yup from "yup";
 import { saveCourseTitle, getCourseTitle, createNewCourseDraft } from "../../../../utils/firebaseCourseTitle";
 import { useAuth } from "../../../../context/AuthContext";
 
+// Global flag to prevent double initialization
+let isInitializing = false;
+
 
 const CourseTitle = () => {
    const draftId = useRef<string>(localStorage.getItem("draftId") || "");
@@ -32,31 +35,47 @@ const CourseTitle = () => {
 
   useEffect(() => {
     const initializeDraft = async () => {
+      // Prevent double initialization
+      if (isInitializing) {
+        console.log("Initialization already in progress, skipping...");
+        return;
+      }
+      
+      isInitializing = true;
       setInitializing(true);
       
-      // If no draftId exists, create a new course draft
-      if (!draftId.current) {
+      // Check if we already have a draftId and it's not empty
+      const existingDraftId = localStorage.getItem("draftId");
+      if (existingDraftId && existingDraftId.trim() !== "") {
+        draftId.current = existingDraftId;
+        console.log("Using existing draftId:", existingDraftId);
+        
+        // Fetch existing title if draft exists
         try {
-          const newDraftId = await createNewCourseDraft(formik.values.title,user?.UserName);
+          const title = await getCourseTitle(draftId.current);
+          formik.setFieldValue('title', title);
+        } catch (error) {
+          console.error("Failed to fetch course title:", error);
+        }
+      } else {
+        // Only create a new draft if no draftId exists
+        console.log("No existing draftId found, creating new course draft");
+        try {
+          const newDraftId = await createNewCourseDraft(formik.values.title, user?.UserName);
           draftId.current = newDraftId;
           localStorage.setItem("draftId", newDraftId);
+          console.log("Created new draft with ID:", newDraftId);
         } catch (error) {
           console.error("Failed to create course draft:", error);
           setInitializing(false);
+          isInitializing = false;
           return;
         }
       }
       
-      // Fetch existing title if draft exists
-      try {
-        const title = await getCourseTitle(draftId.current);
-        formik.setFieldValue('title', title);
-      } catch (error) {
-        console.error("Failed to fetch course title:", error);
-      }
-      
       setInitializing(false);
       setLoading(false);
+      isInitializing = false;
     };
     
     initializeDraft();

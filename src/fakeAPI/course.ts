@@ -16,15 +16,21 @@ export const saveCourseDraft = async (
     ...rest
   } = data;
   const ref = doc(db, "courseDrafts", draftId);
-  await setDoc(ref, {
-    id: id ?? draftId,
+  const updateData: any = {
     ...(title !== undefined && { title }),
     ...(subtitle !== undefined && { subtitle }),
     ...(description !== undefined && { description }),
     ...(language !== undefined && { language }),
     ...(level !== undefined && { level }),
     ...rest,
-  }, { merge: true });
+  };
+  
+  // Only set id if it's explicitly provided and different from draftId
+  if (id !== undefined && id !== draftId) {
+    updateData.id = id;
+  }
+  
+  await setDoc(ref, updateData, { merge: true });
 };
 
 export const getCourseDraft = async (draftId: string): Promise<CourseDraft | null> => {
