@@ -51,6 +51,14 @@ export interface CourseDetails {
     email: string;
     role: string;
   }>;
+  
+  // New fields for tracking edited vs published content
+  hasUnpublishedChanges?: boolean; // Flag to indicate if there are changes not yet published
+  editSummary?: {
+    newContent: string[]; // List of new content added
+    editedContent: string[]; // List of content that was edited
+    removedContent: string[]; // List of content that was removed
+  };
 }
 
 export const getFullCourseData = async (courseId: string): Promise<CourseDetails | null> => {

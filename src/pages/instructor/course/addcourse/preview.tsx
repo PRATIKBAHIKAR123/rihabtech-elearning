@@ -15,6 +15,8 @@ import { getCategories, getSubCategories } from '../../../../utils/firebaseCateg
 import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
 import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
 import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
+import { CourseWorkflowService } from '../../../../utils/courseWorkflowService';
+import { useAuth } from '../../../../context/AuthContext';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -30,6 +32,7 @@ const PreviewCourse = () => {
   const [categoryName, setCategoryName] = useState<string>('');
   const [subcategoryName, setSubcategoryName] = useState<string>('');
   const draftId = useRef<string>(localStorage.getItem('draftId') || '');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,15 +77,45 @@ const PreviewCourse = () => {
     if (!draftId.current) return;
 
     // compute validations one more time before actually submitting
-    const { canSubmit } = computeMissingAndCanSubmit();
+    const { canSubmit, missing } = computeMissingAndCanSubmit();
     if (!canSubmit) {
+      setMissingRequirements(missing);
       setShowMissingDialog(true);
       return;
     }
 
-    const draftRef = doc(db, 'courseDrafts', draftId.current);
-    await updateDoc(draftRef, { submittedForReview: true, submittedAt: new Date().toISOString(),status:COURSE_STATUS.PENDING_REVIEW, progress:100 });
-    setSubmitted(true);
+    try {
+      console.log('Submitting course for review...', {
+        courseId: draftId.current,
+        instructorId: user?.UserName,
+        instructorName: user?.displayName || user?.UserName,
+        instructorEmail: user?.email
+      });
+
+      // Use the workflow service for proper status transition
+      await CourseWorkflowService.submitCourseForReview(
+        draftId.current,
+        user?.UserName || '',
+        user?.displayName || user?.UserName || '',
+        user?.email || ''
+      );
+      
+      // Update progress to 100%
+      const draftRef = doc(db, 'courseDrafts', draftId.current);
+      await updateDoc(draftRef, { progress: 100 });
+      
+      console.log('Course submitted successfully');
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting course for review:', error);
+      
+      // Show more specific error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to submit course for review. Please try again.';
+      
+      alert(`Error: ${errorMessage}`);
+    }
   };
 
   const computeMissingAndCanSubmit = () => {
@@ -156,17 +189,31 @@ const PreviewCourse = () => {
   }, [loading, course, landingPage, curriculum]);
 
   if (submitted) {
+    // Check if this is a re-approval (course was previously published/approved)
+    const isReApproval = course.status === COURSE_STATUS.DRAFT_UPDATE || 
+                        (course.isPublished && course.status === COURSE_STATUS.PENDING_REVIEW);
+    
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white">
         <div className="bg-gradient-to-br from-green-200 via-green-100 to-white border border-green-400 text-green-800 px-8 py-8 rounded-2xl shadow-lg mt-16 mb-8 w-full max-w-xl text-center animate-fade-in">
           <svg className="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2l4-4"/></svg>
-          <h2 className="text-2xl font-bold mb-2">Course Submitted for Review!</h2>
-          <p className="mb-4 text-lg">Thank you for submitting your course. Our admin team will review your course soon.</p>
+          <h2 className="text-2xl font-bold mb-2">
+            {isReApproval ? 'Course Resubmitted for Re-approval!' : 'Course Submitted for Review!'}
+          </h2>
+          <p className="mb-4 text-lg">
+            {isReApproval 
+              ? 'Thank you for resubmitting your course with modifications. Our admin team will review the changes and re-approve your course soon.'
+              : 'Thank you for submitting your course. Our admin team will review your course soon.'
+            }
+          </p>
           <div className="mb-4 text-green-700 bg-green-50 border border-green-200 rounded p-3">
             <span className="font-semibold">What happens next?</span>
             <ul className="list-disc ml-6 mt-2 text-left text-green-800">
               <li>You will receive a notification and email once your course is approved or if any changes are required.</li>
               <li>While under review, you can still edit your course but cannot publish it until approved.</li>
+              {isReApproval && (
+                <li className="text-orange-700 font-medium">Your previous published version remains live until the changes are approved and made live.</li>
+              )}
             </ul>
           </div>
           <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow" onClick={goToDashboard}>

@@ -1,11 +1,11 @@
 import { db } from "../lib/firebase";
-import { collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, orderBy, limit, serverTimestamp, doc, updateDoc, writeBatch, getCountFromServer } from "firebase/firestore";
 import { CourseStatus, COURSE_STATUS, COURSE_STATUS_TEXT } from "./firebaseCourses";
 
 export interface Notification {
   id: string;
   userId: string;
-  type: 'course_status_change' | 'course_approved' | 'course_rejected' | 'course_needs_revision' | 'course_published' | 'course_archived';
+  type: 'course_status_change' | 'course_approved' | 'course_rejected' | 'course_needs_revision' | 'course_published' | 'course_archived' | 'course_made_live';
   title: string;
   message: string;
   courseId?: string;
@@ -322,5 +322,3 @@ export class NotificationService {
   }
 }
 
-// Import required Firebase functions
-import { doc, updateDoc, writeBatch, getCountFromServer } from "firebase/firestore";

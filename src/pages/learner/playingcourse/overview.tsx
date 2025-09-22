@@ -1,5 +1,6 @@
 import React from 'react';
 import { CourseDetails } from '../../../utils/firebaseCoursePreview';
+import { AlertCircle, Clock, Edit3 } from 'lucide-react';
 
 interface OverviewProps {
   courseData?: CourseDetails | null;
@@ -40,6 +41,40 @@ export default function Overview({ courseData, loading = false }: OverviewProps)
   return (
     <div className="container mx-auto px-2 py-2">
       <div className="flex flex-col items-left justify-left gap-6">
+        {/* Preview Notice for Unpublished Changes */}
+        {courseData.hasUnpublishedChanges && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-800 mb-1">
+                  Course Updates Available
+                </h3>
+                <p className="text-sm text-blue-700">
+                  This course has new or updated content that is currently under review. 
+                  The latest changes will be available once approved by our team.
+                </p>
+                {courseData.editSummary && (
+                  <div className="mt-2 text-xs text-blue-600">
+                    {courseData.editSummary.newContent.length > 0 && (
+                      <div className="flex items-center gap-1 mb-1">
+                        <Edit3 className="w-3 h-3" />
+                        <span>New content: {courseData.editSummary.newContent.length} items</span>
+                      </div>
+                    )}
+                    {courseData.editSummary.editedContent.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Updated content: {courseData.editSummary.editedContent.length} items</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Course Description */}
         <div>
         <h1 className="details-title">Course Description</h1>

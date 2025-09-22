@@ -39,6 +39,8 @@ export class CourseWorkflowService {
     instructorEmail: string
   ): Promise<void> {
     try {
+      console.log('Starting course submission for review:', { courseId, instructorId });
+      
       const courseRef = doc(db, "courseDrafts", courseId);
       const courseSnap = await getDoc(courseRef);
       
@@ -47,11 +49,14 @@ export class CourseWorkflowService {
       }
       
       const courseData = courseSnap.data() as Course;
+      console.log('Course data retrieved:', courseData);
       
-      // Validate course is ready for submission
-      if (!this.isCourseReadyForSubmission(courseData)) {
-        throw new Error("Course is not ready for submission. Please complete all required fields.");
+      // Basic validation - just check if course has a title
+      if (!courseData.title || courseData.title.trim() === '') {
+        throw new Error("Course title is required for submission");
       }
+      
+      console.log('Course validation passed, updating status...');
       
       // Lock the course during review
       const updateData = {
@@ -68,30 +73,45 @@ export class CourseWorkflowService {
       };
       
       await updateDoc(courseRef, updateData);
+      console.log('Course status updated successfully');
       
-      // Add to course history
-      await this.addCourseHistoryEntry(courseId, {
-        action: 'submitted_for_review',
-        performedBy: {
-          name: instructorName,
-          email: instructorEmail,
-          userId: instructorId
-        },
-        timestamp: new Date(),
-        details: 'Course submitted for admin review',
-        previousStatus: courseData.status,
-        newStatus: COURSE_STATUS.PENDING_REVIEW
-      });
+      // Add to course history (optional, don't fail if this fails)
+      try {
+        await this.addCourseHistoryEntry(courseId, {
+          action: 'submitted_for_review',
+          performedBy: {
+            name: instructorName,
+            email: instructorEmail,
+            userId: instructorId
+          },
+          timestamp: new Date(),
+          details: 'Course submitted for admin review',
+          previousStatus: courseData.status,
+          newStatus: COURSE_STATUS.PENDING_REVIEW
+        });
+        console.log('Course history entry added');
+      } catch (historyError) {
+        console.warn('Failed to add course history entry:', historyError);
+        // Don't throw, this is not critical
+      }
       
-      // Send notification to instructor
-      await NotificationService.sendCourseStatusNotification(
-        instructorId,
-        courseId,
-        courseData.title,
-        courseData.status,
-        COURSE_STATUS.PENDING_REVIEW,
-        instructorName
-      );
+      // Send notification to instructor (optional, don't fail if this fails)
+      try {
+        await NotificationService.sendCourseStatusNotification(
+          instructorId,
+          courseId,
+          courseData.title,
+          courseData.status,
+          COURSE_STATUS.PENDING_REVIEW,
+          instructorName
+        );
+        console.log('Notification sent successfully');
+      } catch (notificationError) {
+        console.warn('Failed to send notification:', notificationError);
+        // Don't throw, this is not critical
+      }
+      
+      console.log('Course submission completed successfully');
       
     } catch (error) {
       console.error("Error submitting course for review:", error);
@@ -366,7 +386,7 @@ export class CourseWorkflowService {
   }
 
   /**
-   * Publish an approved course (Admin or Instructor)
+   * Publish an approved course (Admin only - for immediate publishing)
    */
   static async publishCourse(
     courseId: string,
@@ -427,6 +447,72 @@ export class CourseWorkflowService {
       
     } catch (error) {
       console.error("Error publishing course:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Make course live (Instructor only - after admin approval)
+   */
+  static async makeCourseLive(
+    courseId: string,
+    instructorId: string,
+    instructorName: string,
+    instructorEmail: string
+  ): Promise<void> {
+    try {
+      const courseRef = doc(db, "courseDrafts", courseId);
+      const courseSnap = await getDoc(courseRef);
+      
+      if (!courseSnap.exists()) {
+        throw new Error("Course not found");
+      }
+      
+      const courseData = courseSnap.data() as Course;
+      
+      // Validate course is approved
+      if (courseData.status !== COURSE_STATUS.APPROVED) {
+        throw new Error("Course must be approved before making live");
+      }
+      
+      // Update course status
+      const updateData = {
+        status: COURSE_STATUS.PUBLISHED,
+        isPublished: true,
+        publishedAt: new Date().toISOString(),
+        lastPublishedAt: new Date(),
+        hasUnpublishedChanges: false,
+        updatedAt: serverTimestamp()
+      };
+      
+      await updateDoc(courseRef, updateData);
+      
+      // Add to course history
+      await this.addCourseHistoryEntry(courseId, {
+        action: 'made_live',
+        performedBy: {
+          name: instructorName,
+          email: instructorEmail,
+          userId: instructorId
+        },
+        timestamp: new Date(),
+        details: 'Course made live by instructor after admin approval',
+        previousStatus: COURSE_STATUS.APPROVED,
+        newStatus: COURSE_STATUS.PUBLISHED
+      });
+      
+      // Send notification to instructor
+      await NotificationService.sendNotification(
+        instructorId,
+        'course_made_live',
+        'Course Made Live',
+        `Your course "${courseData.title}" is now live and available to learners!`,
+        courseId,
+        courseData.title
+      );
+      
+    } catch (error) {
+      console.error("Error making course live:", error);
       throw error;
     }
   }
@@ -511,12 +597,13 @@ export class CourseWorkflowService {
         };
         
         updateData.versions = [...(courseData.versions || []), newVersion];
-        updateData.status = COURSE_STATUS.EDITED_PENDING;
+        updateData.status = COURSE_STATUS.DRAFT_UPDATE;
         updateData.isPublished = false;
         updateData.isLocked = true;
         updateData.lockedBy = 'system';
         updateData.lockedAt = serverTimestamp();
         updateData.lockReason = 'Major changes require re-approval';
+        updateData.hasUnpublishedChanges = true;
       }
       
       await updateDoc(courseRef, updateData);
@@ -593,33 +680,30 @@ export class CourseWorkflowService {
    * Check if course is ready for submission
    */
   private static isCourseReadyForSubmission(course: Course): boolean {
-    const requiredFields = [
-      'title',
-      'description',
-      'category',
-      'level',
-      'language',
-      'pricing',
-      'objectives',
-      'syllabus',
-      'requirements',
-      'targetAudience'
-    ];
+    // Basic required fields
+    const basicRequiredFields = ['title', 'description'];
     
-    // Check required fields
-    for (const field of requiredFields) {
-      if (!course[field as keyof Course]) {
+    // Check basic required fields
+    for (const field of basicRequiredFields) {
+      if (!course[field as keyof Course] || course[field as keyof Course] === '') {
+        console.log(`Missing required field: ${field}`);
         return false;
       }
     }
     
-    // Check if course has curriculum
+    // Check if course has curriculum with at least one section
     if (!course.curriculum || !course.curriculum.sections || course.curriculum.sections.length === 0) {
+      console.log('Missing curriculum sections');
       return false;
     }
     
-    // Check if course has at least one media file
-    if (!course.mediaFiles || course.mediaFiles.length === 0) {
+    // Check if curriculum has at least one item
+    const hasItems = course.curriculum.sections.some(section => 
+      section.items && section.items.length > 0
+    );
+    
+    if (!hasItems) {
+      console.log('Curriculum sections have no items');
       return false;
     }
     

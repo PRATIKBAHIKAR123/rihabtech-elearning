@@ -1,6 +1,7 @@
 import { db } from "../lib/firebase";
 import { doc, getDoc, setDoc, addDoc, collection } from "firebase/firestore";
-import { COURSE_STATUS } from "./firebaseCourses";
+import { COURSE_STATUS, Course } from "./firebaseCourses";
+import { CourseWorkflowService } from "./courseWorkflowService";
 
 export const createNewCourseDraft = async (title: string, instructorId?: string): Promise<string> => {
   try {
@@ -24,8 +25,37 @@ export const saveCourseTitle = async (courseId: string, title: string, instructo
   if (!courseId) {
     throw new Error("Course ID is required");
   }
+
+  // Get current course data to check status
   const courseRef = doc(db, "courseDrafts", courseId);
-  await setDoc(courseRef, { title,instructorId }, { merge: true });
+  const courseSnap = await getDoc(courseRef);
+  
+  if (!courseSnap.exists()) {
+    throw new Error("Course not found");
+  }
+
+  const courseData = courseSnap.data() as Course;
+  
+  // If course is approved/published and title is being changed, use workflow service
+  if ((courseData.status === COURSE_STATUS.APPROVED || courseData.status === COURSE_STATUS.PUBLISHED) && 
+      courseData.title !== title) {
+    
+    if (!instructorId) {
+      throw new Error("Instructor ID is required for workflow updates");
+    }
+
+    // Use workflow service to handle the update properly
+    await CourseWorkflowService.updateCourse(
+      courseId,
+      { title },
+      instructorId,
+      courseData.instructorName || 'Unknown',
+      courseData.instructorEmail || ''
+    );
+  } else {
+    // Simple update for draft courses
+    await setDoc(courseRef, { title, instructorId }, { merge: true });
+  }
 };
 
 export const getCourseTitle = async (courseId: string) => {

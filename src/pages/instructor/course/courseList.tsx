@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Star, ChevronDown, DollarSign, Trash2, Edit3, MoreHorizontal, BookOpen, Tag } from "lucide-react";
+import { Search, Star, ChevronDown, DollarSign, Trash2, Edit3, MoreHorizontal, BookOpen, Tag, Send, Globe } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import { 
@@ -8,7 +8,8 @@ import {
   InstructorCourse 
 } from "../../../utils/firebaseInstructorCourses";
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
-import { COURSE_STATUS_LABELS } from "../../../utils/firebaseCourses";
+import { COURSE_STATUS_LABELS, COURSE_STATUS } from "../../../utils/firebaseCourses";
+import { CourseWorkflowService } from "../../../utils/courseWorkflowService";
 
 // Extended interface for UI display with additional properties
 export interface CourseDisplayData extends InstructorCourse {
@@ -159,36 +160,65 @@ export default function CourseList() {
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'live':
-            case 'approved':
+    const getStatusColor = (status: number | string) => {
+        const statusValue = typeof status === 'number' ? status : status.toLowerCase();
+        switch (statusValue) {
+            case COURSE_STATUS.PUBLISHED:
             case 'published':
+            case 'live':
                 return 'bg-[#3ab500]';
+            case COURSE_STATUS.APPROVED:
+            case 'approved':
+                return 'bg-blue-500';
+            case COURSE_STATUS.DRAFT:
             case 'draft':
                 return 'bg-gray-400';
+            case COURSE_STATUS.PENDING_REVIEW:
+            case 'pending_review':
             case 'pending':
                 return 'bg-yellow-400';
+            case COURSE_STATUS.NEEDS_REVISION:
+            case 'needs_revision':
             case 'rejected':
                 return 'bg-red-400';
+            case COURSE_STATUS.DRAFT_UPDATE:
+            case 'draft_update':
+                return 'bg-orange-400';
+            case COURSE_STATUS.ARCHIVED:
+            case 'archived':
+                return 'bg-gray-600';
             default:
-                return 'bg-[#3ab500]';
+                return 'bg-gray-400';
         }
     };
 
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'approved':
+    const getStatusText = (status: number | string) => {
+        const statusValue = typeof status === 'number' ? status : status.toLowerCase();
+        switch (statusValue) {
+            case COURSE_STATUS.PUBLISHED:
             case 'published':
-                return 'Live';
+                return 'Published';
+            case COURSE_STATUS.APPROVED:
+            case 'approved':
+                return 'Approved';
+            case COURSE_STATUS.DRAFT:
             case 'draft':
                 return 'Draft';
+            case COURSE_STATUS.PENDING_REVIEW:
+            case 'pending_review':
             case 'pending':
-                return 'Pending';
-            case 'rejected':
-                return 'Rejected';
+                return 'Pending Review';
+            case COURSE_STATUS.NEEDS_REVISION:
+            case 'needs_revision':
+                return 'Needs Revision';
+            case COURSE_STATUS.DRAFT_UPDATE:
+            case 'draft_update':
+                return 'Draft Update';
+            case COURSE_STATUS.ARCHIVED:
+            case 'archived':
+                return 'Archived';
             default:
-                return 'Live';
+                return COURSE_STATUS_LABELS[status] || 'Unknown';
         }
     };
 
@@ -211,6 +241,54 @@ export default function CourseList() {
             alert("Failed to delete course. Please try again.");
           }
         }
+      };
+
+      const handleSubmitForReview = async (course: any) => {
+        if (window.confirm(`Are you sure you want to submit "${course.title}" for review?`)) {
+          try {
+            await CourseWorkflowService.submitCourseForReview(
+              course.id,
+              user?.UserName || '',
+              user?.displayName || user?.UserName || '',
+              user?.email || ''
+            );
+            
+            // Refresh the course list
+            await fetchInstructorCourses();
+            alert("Course submitted for review successfully!");
+          } catch (err) {
+            console.error("Error submitting course for review:", err);
+            alert("Failed to submit course for review. Please try again.");
+          }
+        }
+      };
+
+      const handleMakeLive = async (course: any) => {
+        if (window.confirm(`Are you sure you want to make "${course.title}" live?`)) {
+          try {
+            await CourseWorkflowService.makeCourseLive(
+              course.id,
+              user?.UserName || '',
+              user?.displayName || user?.UserName || '',
+              user?.email || ''
+            );
+            
+            // Refresh the course list
+            await fetchInstructorCourses();
+            alert("Course is now live and available to learners!");
+          } catch (err) {
+            console.error("Error making course live:", err);
+            alert("Failed to make course live. Please try again.");
+          }
+        }
+      };
+
+      const canSubmitForReview = (course: any) => {
+        return course.status === COURSE_STATUS.DRAFT || course.status === COURSE_STATUS.DRAFT_UPDATE;
+      };
+
+      const canMakeLive = (course: any) => {
+        return course.status === COURSE_STATUS.APPROVED;
       };
 
     return (
@@ -398,8 +476,8 @@ export default function CourseList() {
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                       {course.title}
                     </h3>
-                    <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-                      {COURSE_STATUS_LABELS[course.status] || "Unknown"}
+                    <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                      {getStatusText(course.status)}
                     </span>
                     <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
                       {course.visibility}
@@ -490,6 +568,28 @@ export default function CourseList() {
                     >
                       Edit / manage course
                     </button>
+
+                    {/* Submit for Review Button */}
+                    {canSubmitForReview(course) && (
+                      <button
+                        onClick={() => handleSubmitForReview(course)}
+                        className="px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors w-full sm:w-auto flex items-center gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        Submit for Review
+                      </button>
+                    )}
+
+                    {/* Make Live Button */}
+                    {canMakeLive(course) && (
+                      <button
+                        onClick={() => handleMakeLive(course)}
+                        className="px-3 py-2 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600 transition-colors w-full sm:w-auto flex items-center gap-2"
+                      >
+                        <Globe className="w-4 h-4" />
+                        Make Live
+                      </button>
+                    )}
 
                     {/* More Actions Dropdown */}
                     <div className="relative">

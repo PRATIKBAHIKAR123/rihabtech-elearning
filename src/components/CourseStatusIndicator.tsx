@@ -66,7 +66,7 @@ export const CourseStatusIndicator: React.FC<CourseStatusIndicatorProps> = ({
           textColor: 'text-gray-600',
           borderColor: 'border-gray-300'
         };
-      case COURSE_STATUS.EDITED_PENDING:
+      case COURSE_STATUS.DRAFT_UPDATE:
         return {
           icon: '✏️',
           text: COURSE_STATUS_TEXT[status],

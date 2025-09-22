@@ -1,5 +1,7 @@
 import { db } from "../lib/firebase"; // your initialized firebase config
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { CourseWorkflowService } from "../utils/courseWorkflowService";
+import { COURSE_STATUS, Course } from "../utils/firebaseCourses";
 
 export const saveCourseDraft = async (
   draftId: string,
@@ -15,7 +17,17 @@ export const saveCourseDraft = async (
     level,
     ...rest
   } = data;
+  
   const ref = doc(db, "courseDrafts", draftId);
+  
+  // Get current course data to check status
+  const courseSnap = await getDoc(ref);
+  let courseData: Course | null = null;
+  
+  if (courseSnap.exists()) {
+    courseData = courseSnap.data() as Course;
+  }
+  
   const updateData: any = {
     ...(title !== undefined && { title }),
     ...(subtitle !== undefined && { subtitle }),
@@ -30,7 +42,24 @@ export const saveCourseDraft = async (
     updateData.id = id;
   }
   
-  await setDoc(ref, updateData, { merge: true });
+  // If course is approved/published, use workflow service
+  if (courseData && (courseData.status === COURSE_STATUS.APPROVED || courseData.status === COURSE_STATUS.PUBLISHED)) {
+    if (!courseData.instructorId) {
+      throw new Error("Instructor ID is required for workflow updates");
+    }
+
+    // Use workflow service to handle the update properly
+    await CourseWorkflowService.updateCourse(
+      draftId,
+      updateData,
+      courseData.instructorId,
+      courseData.instructorName || 'Unknown',
+      courseData.instructorEmail || ''
+    );
+  } else {
+    // Simple update for draft courses
+    await setDoc(ref, updateData, { merge: true });
+  }
 };
 
 export const getCourseDraft = async (draftId: string): Promise<CourseDraft | null> => {

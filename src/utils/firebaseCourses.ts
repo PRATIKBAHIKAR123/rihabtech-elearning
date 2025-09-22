@@ -9,7 +9,7 @@ export const COURSE_STATUS = {
   APPROVED: 4,
   PUBLISHED: 5,
   ARCHIVED: 6,
-  EDITED_PENDING: 7
+  DRAFT_UPDATE: 7
 } as const;
 
 export type CourseStatus = typeof COURSE_STATUS[keyof typeof COURSE_STATUS];
@@ -22,7 +22,7 @@ export const COURSE_STATUS_TEXT = {
   [COURSE_STATUS.APPROVED]: 'Approved',
   [COURSE_STATUS.PUBLISHED]: 'Published',
   [COURSE_STATUS.ARCHIVED]: 'Archived',
-  [COURSE_STATUS.EDITED_PENDING]: 'Edited Pending'
+  [COURSE_STATUS.DRAFT_UPDATE]: 'Draft Update'
 } as const;
 
 export const COURSE_STATUS_LABELS: Record<any, any> = {
@@ -32,7 +32,7 @@ export const COURSE_STATUS_LABELS: Record<any, any> = {
   4: "Approved",
   5: "Published",
   6: "Archived",
-  7: "Edited Pending",
+  7: "Draft Update",
 };
 
 // Course edit types for determining re-approval requirements
@@ -183,6 +183,18 @@ export interface Course {
     email: string;
     role: string;
   }>;
+  
+  // New fields for tracking edited vs published content
+  publishedVersion?: CourseVersion; // Last published version
+  draftVersion?: CourseVersion; // Current draft version
+  hasUnpublishedChanges?: boolean; // Flag to indicate if there are changes not yet published
+  lastPublishedAt?: Date; // When the course was last made live
+  lastEditedAt?: Date; // When the course was last edited
+  editSummary?: {
+    newContent: string[]; // List of new content added
+    editedContent: string[]; // List of content that was edited
+    removedContent: string[]; // List of content that was removed
+  };
 }
 
 // Define coupon interface for course context

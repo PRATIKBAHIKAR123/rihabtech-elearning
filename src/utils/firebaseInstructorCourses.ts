@@ -12,7 +12,8 @@ import {
   Timestamp,
   serverTimestamp
 } from "firebase/firestore";
-import { COURSE_STATUS } from "./firebaseCourses";
+import { COURSE_STATUS, Course } from "./firebaseCourses";
+import { CourseWorkflowService } from "./courseWorkflowService";
 
 // Coupon interface for instructor courses
 export interface InstructorCourseCoupon {
@@ -286,11 +287,37 @@ export const getCourseById = async (
 // Update course
 export const updateCourse = async (courseId: string, updates: Partial<InstructorCourse>): Promise<void> => {
   try {
+    // Get current course data to check status
     const courseRef = doc(db, "courseDrafts", courseId);
-    await updateDoc(courseRef, {
-      ...updates,
-      lastModified: serverTimestamp()
-    });
+    const courseSnap = await getDoc(courseRef);
+    
+    if (!courseSnap.exists()) {
+      throw new Error("Course not found");
+    }
+
+    const courseData = courseSnap.data() as Course;
+    
+    // If course is approved/published, use workflow service
+    if (courseData.status === COURSE_STATUS.APPROVED || courseData.status === COURSE_STATUS.PUBLISHED) {
+      if (!courseData.instructorId) {
+        throw new Error("Instructor ID is required for workflow updates");
+      }
+
+      // Use workflow service to handle the update properly
+      await CourseWorkflowService.updateCourse(
+        courseId,
+        updates,
+        courseData.instructorId,
+        courseData.instructorName || 'Unknown',
+        courseData.instructorEmail || ''
+      );
+    } else {
+      // Simple update for draft courses
+      await updateDoc(courseRef, {
+        ...updates,
+        lastModified: serverTimestamp()
+      });
+    }
   } catch (error) {
     console.error("Error updating course:", error);
     throw error;
