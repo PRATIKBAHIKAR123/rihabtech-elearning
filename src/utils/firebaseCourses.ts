@@ -325,7 +325,7 @@ export const getAllCourses = async (includeCoupons: boolean = false): Promise<Co
     const coursesRef = collection(db, "courseDrafts");
     const coursesQuery = query(
             coursesRef,
-            where("status", "==", "approved"),
+            where("status", "==", COURSE_STATUS.PUBLISHED),
             where("isPublished", "==", true)
           );
     
@@ -367,7 +367,7 @@ export const getFeaturedCourses = async (includeCoupons: boolean = false): Promi
     const featuredQuery = query(
       coursesRef,
       where("isPublished", "==", true),
-      where("status", "==", "approved"),
+      where("status", "==", COURSE_STATUS.PUBLISHED),
       where("featured", "==", true)
     );
 

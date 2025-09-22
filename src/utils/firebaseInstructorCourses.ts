@@ -58,6 +58,12 @@ export interface InstructorCourse {
   pricing?: string;
   isPublished?: boolean;
   featured?: boolean;
+  rejectionInfo?: {
+    rejectionReason?: string;
+    rejectedAt?: Date;
+    rejectedBy?: string;
+    rejectionNotes?: string;
+  };
   // Add coupons property
   coupons?: InstructorCourseCoupon[];
   members?: Array<{
@@ -211,6 +217,7 @@ export const getInstructorCourses = async (
         featured: data.featured || false,
         members: data.members || [],
         curriculum: data.curriculum || { sections: [] },
+        rejectionInfo: data.rejectionInfo || null
       };
 
       return course;

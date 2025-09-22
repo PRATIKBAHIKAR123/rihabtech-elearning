@@ -10,7 +10,7 @@ export interface CourseDetails {
   promoVideoUrl?: string;
   featured: boolean;
   isPublished: boolean;
-  status: string;
+  status: number;
   category: string;
   subcategory?: string;
   level: string;
@@ -26,6 +26,12 @@ export interface CourseDetails {
   target?: string[];
   welcomeMessage?: string;
   congratulationsMessage?: string;
+  rejectionInfo?: {
+    rejectionReason?: string;
+    rejectedAt?: Date;
+    rejectedBy?: string;
+    rejectionNotes?: string;
+  };
   curriculum?: {
     sections: Array<{
       id?: string;

@@ -284,7 +284,7 @@ export default function CourseList() {
       };
 
       const canSubmitForReview = (course: any) => {
-        return course.status === COURSE_STATUS.DRAFT || course.status === COURSE_STATUS.DRAFT_UPDATE;
+        return course.progress==100 && course.status === COURSE_STATUS.DRAFT || course.status === COURSE_STATUS.DRAFT_UPDATE;
       };
 
       const canMakeLive = (course: any) => {
@@ -515,6 +515,16 @@ export default function CourseList() {
                       {activeCoupons.length > 1 && (
                         <span className="ml-2 text-gray-500">+{activeCoupons.length - 1} more</span>
                       )}
+                    </div>
+                  )}
+
+                  {(course.rejectionInfo && course.status == COURSE_STATUS.NEEDS_REVISION) && (
+                    <div className={`text-xs mb-2  text-red-600`}>
+                      Reject Reason: <code className={`px-1 py-0.5 rounded 
+                       
+                           bg-red-50 text-red-700
+                      `}>{course.rejectionInfo?.rejectionReason}</code>
+                      
                     </div>
                   )}
                   
