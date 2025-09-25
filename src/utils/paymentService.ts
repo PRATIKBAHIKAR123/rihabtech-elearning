@@ -177,7 +177,7 @@ export const enrollUserInCourse = async (
 ): Promise<string> => {
   try {
     // Check if user is already enrolled
-    const enrollmentsRef = collection(db, 'enrollments');
+    const enrollmentsRef = collection(db, 'studentEnrollments');
     const existingEnrollmentQuery = query(
       enrollmentsRef,
       where('courseId', '==', courseId),
@@ -198,7 +198,7 @@ export const enrollUserInCourse = async (
       progress: 0,
       status: 'active',
       paymentStatus,
-      orderId,
+      //orderId,
     };
 
     const docRef = await addDoc(enrollmentsRef, enrollmentData);
@@ -281,7 +281,7 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
 // Get user's enrollments
 export const getUserEnrollments = async (userId: string): Promise<CourseEnrollment[]> => {
   try {
-    const enrollmentsRef = collection(db, 'enrollments');
+    const enrollmentsRef = collection(db, 'studentEnrollments');
     const userEnrollmentsQuery = query(enrollmentsRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(userEnrollmentsQuery);
     

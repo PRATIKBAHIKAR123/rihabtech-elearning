@@ -154,7 +154,7 @@ class ConfigService {
       // Fetch from Firebase
       const configQuery = query(
         collection(db, 'razorpayConfig'),
-        orderBy('updatedAt', 'desc'),
+        //orderBy('updatedAt', 'desc'),
         limit(1)
       );
 

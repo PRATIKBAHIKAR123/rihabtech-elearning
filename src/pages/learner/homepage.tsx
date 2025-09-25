@@ -8,8 +8,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import {
   getLearnerHomeData,
-  getMockEnrolledCourses,
-  getMockRecommendedCourses,
+  // getMockEnrolledCourses,
+  // getMockRecommendedCourses,
   HomepageCourse
 } from '../../utils/learnerHomeService';
 import { toast } from 'sonner';
@@ -41,8 +41,8 @@ export default function HomePage() {
     const loadHomeData = async () => {
       if (!user?.email) {
         // If no user, use mock data
-        setEnrolledCourses(getMockEnrolledCourses());
-        setRecommendedCourses(getMockRecommendedCourses());
+        // setEnrolledCourses(getMockEnrolledCourses());
+        // setRecommendedCourses(getMockRecommendedCourses());
         setLoading(false);
         return;
       }
@@ -53,12 +53,12 @@ export default function HomePage() {
 
         console.log('Loading home data for user:', user.email);
         const homeData = await getLearnerHomeData(user.email);
+        console.log('Home data loaded:', homeData);
 
         if (homeData.error) {
-          // If there's an error, fall back to mock data
-          console.warn('Using mock data due to error:', homeData.error);
-          setEnrolledCourses(getMockEnrolledCourses());
-          setRecommendedCourses(getMockRecommendedCourses());
+          
+          // setEnrolledCourses(getMockEnrolledCourses());
+          // setRecommendedCourses(getMockRecommendedCourses());
           setError(homeData.error);
           toast.warning('Using sample data. Some features may be limited.');
         } else {
@@ -69,10 +69,10 @@ export default function HomePage() {
       } catch (error) {
         console.error('Error loading home data:', error);
         // Fall back to mock data
-        setEnrolledCourses(getMockEnrolledCourses());
-        setRecommendedCourses(getMockRecommendedCourses());
-        setError('Failed to load data. Using sample data instead.');
-        toast.error('Failed to load data. Using sample data instead.');
+        // setEnrolledCourses(getMockEnrolledCourses());
+        // setRecommendedCourses(getMockRecommendedCourses());
+        setError('Failed to load data');
+        toast.error('Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -91,10 +91,10 @@ export default function HomePage() {
       const homeData = await getLearnerHomeData(user.email);
 
       if (homeData.error) {
-        setEnrolledCourses(getMockEnrolledCourses());
-        setRecommendedCourses(getMockRecommendedCourses());
+        // setEnrolledCourses(getMockEnrolledCourses());
+        // setRecommendedCourses(getMockRecommendedCourses());
         setError(homeData.error);
-        toast.warning('Using sample data. Some features may be limited.');
+        toast.warning('Failed to load data');
       } else {
         setEnrolledCourses(homeData.enrolledCourses);
         setRecommendedCourses(homeData.recommendedCourses);
@@ -103,9 +103,9 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Error refreshing data:', error);
-      setEnrolledCourses(getMockEnrolledCourses());
-      setRecommendedCourses(getMockRecommendedCourses());
-      setError('Failed to refresh data. Using sample data instead.');
+      // setEnrolledCourses(getMockEnrolledCourses());
+      // setRecommendedCourses(getMockRecommendedCourses());
+      setError('Failed to refresh data');
       toast.error('Failed to refresh data. Using sample data instead.');
     } finally {
       setLoading(false);
@@ -245,7 +245,7 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
       if (course.progress) {
         window.location.href = '/#/learner/current-course';
       } else {
-        window.location.href = '/#/courseDetails';
+        window.location.href = `/#/courseDetails/?courseId=${course.id}`;
       }
     }}>
       <div className="relative">

@@ -50,8 +50,14 @@ export default function CourseList() {
         const publishedCourses = firebaseCourses.filter(course => 
           categoryId ? course.category === categoryId : false
         );
+        if(categoryId){
         setCourses(publishedCourses);
         setFilteredCourses(publishedCourses);
+        }
+        else{
+          setCourses(firebaseCourses);
+        setFilteredCourses(firebaseCourses);
+        }
       } catch (error) {
         console.error("Error fetching courses:", error);
         setCourses([]);
@@ -428,15 +434,15 @@ function FilterContent({
   
   // Additional items that will show when "Show more" is clicked
   const additionalDurations = [
-    { id: "duration-17-plus", label: "17+ Hours (145)" },
-    { id: "duration-all", label: "All Durations (805)" }
+    { id: "duration-17-plus", label: "17+ Hours" },
+    { id: "duration-all", label: "All Durations" }
   ];
   
   const additionalTopics = [
-    { id: "topic-angular", label: "Angular (425)" },
-    { id: "topic-vue", label: "Vue.js (312)" },
-    { id: "topic-javascript", label: "JavaScript (921)" },
-    { id: "topic-typescript", label: "TypeScript (475)" }
+    { id: "topic-angular", label: "Angular" },
+    { id: "topic-vue", label: "Vue.js" },
+    { id: "topic-javascript", label: "JavaScript" },
+    { id: "topic-typescript", label: "TypeScript" }
   ];
 
   // Handle price filter changes
@@ -468,6 +474,138 @@ function FilterContent({
 
   return (
     <div className="space-y-2">
+      
+
+      <FilterAccordion title="Price">
+        <div className="space-y-3 font-bold">
+          <div className="flex items-center">
+            <Checkbox 
+              id="free" 
+              className="mr-3" 
+              checked={selectedPrice.includes('free')}
+              onCheckedChange={(checked) => handlePriceChange('free', checked as boolean)}
+            />
+            <label htmlFor="free">Free</label>
+          </div>
+          <div className="flex items-center">
+            <Checkbox 
+              id="paid" 
+              className="mr-3" 
+              checked={selectedPrice.includes('paid')}
+              onCheckedChange={(checked) => handlePriceChange('paid', checked as boolean)}
+            />
+            <label htmlFor="paid">Paid</label>
+          </div>
+        </div>
+      </FilterAccordion>
+
+      {/* Topic Filter */}
+      <FilterAccordion title="Topic">
+        <div className="space-y-3 font-bold">
+          <div className="flex items-center">
+            <Checkbox 
+              id="topic-react" 
+              className="mr-3" 
+              checked={selectedTopics.includes('topic-react')}
+              onCheckedChange={(checked) => handleTopicChange('topic-react', checked as boolean)}
+            />
+            <label htmlFor="topic-react">React JS</label>
+          </div>
+          
+          {/* Additional topics that appear when "Show more" is clicked */}
+          {showMoreTopics && (
+            <>
+              {additionalTopics.map(topic => (
+                <div key={topic.id} className="flex items-center">
+                  <Checkbox 
+                    id={topic.id} 
+                    className="mr-3" 
+                    checked={selectedTopics.includes(topic.id)}
+                    onCheckedChange={(checked) => handleTopicChange(topic.id, checked as boolean)}
+                  />
+                  <label htmlFor={topic.id}>{topic.label}</label>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+        {additionalTopics.length > 0 && (
+          <button 
+            className="text-purple-600 mt-3 font-medium focus:outline-none"
+            onClick={() => setShowMoreTopics(!showMoreTopics)}
+          >
+            {showMoreTopics ? "Show less" : "Show more"}
+          </button>
+        )}
+      </FilterAccordion>
+
+      {/* Video Duration Filter */}
+      <FilterAccordion title="Video Duration">
+        <div className="space-y-3 font-bold">
+          <div className="flex items-center">
+            <Checkbox 
+              id="duration-0-1" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-0-1')}
+              onCheckedChange={(checked) => handleDurationChange('duration-0-1', checked as boolean)}
+            />
+            <label htmlFor="duration-0-1">0-1 Hour</label>
+          </div>
+          <div className="flex items-center">
+            <Checkbox 
+              id="duration-1-3" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-1-3')}
+              onCheckedChange={(checked) => handleDurationChange('duration-1-3', checked as boolean)}
+            />
+            <label htmlFor="duration-1-3">1-3 Hours</label>
+          </div>
+          <div className="flex items-center">
+            <Checkbox 
+              id="duration-3-6" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-3-6')}
+              onCheckedChange={(checked) => handleDurationChange('duration-3-6', checked as boolean)}
+            />
+            <label htmlFor="duration-3-6">3-6 Hours</label>
+          </div>
+          <div className="flex items-center">
+            <Checkbox 
+              id="duration-6-17" 
+              className="mr-3" 
+              checked={selectedDuration.includes('duration-6-17')}
+              onCheckedChange={(checked) => handleDurationChange('duration-6-17', checked as boolean)}
+            />
+            <label htmlFor="duration-6-17">6-17 Hours</label>
+          </div>
+          
+          {/* Additional items that appear when "Show more" is clicked */}
+          {showMoreDuration && (
+            <>
+              {additionalDurations.map(duration => (
+                <div key={duration.id} className="flex items-center">
+                  <Checkbox 
+                    id={duration.id} 
+                    className="mr-3" 
+                    checked={selectedDuration.includes(duration.id)}
+                    onCheckedChange={(checked) => handleDurationChange(duration.id, checked as boolean)}
+                  />
+                  <label htmlFor={duration.id}>{duration.label}</label>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+        <button 
+          className="text-purple-600 mt-3 font-medium focus:outline-none"
+          onClick={() => setShowMoreDuration(!showMoreDuration)}
+        >
+          {showMoreDuration ? "Show less" : "Show more"}
+        </button>
+      </FilterAccordion>
+      
+      
+
       {/* Ratings Filter */}
       <FilterAccordion title="Ratings">
         <div className="space-y-3">
@@ -510,134 +648,6 @@ function FilterContent({
           </div>
           </RadioGroup>
         </div>
-      </FilterAccordion>
-
-      <FilterAccordion title="Price">
-        <div className="space-y-3 font-bold">
-          <div className="flex items-center">
-            <Checkbox 
-              id="free" 
-              className="mr-3" 
-              checked={selectedPrice.includes('free')}
-              onCheckedChange={(checked) => handlePriceChange('free', checked as boolean)}
-            />
-            <label htmlFor="free">Free</label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox 
-              id="paid" 
-              className="mr-3" 
-              checked={selectedPrice.includes('paid')}
-              onCheckedChange={(checked) => handlePriceChange('paid', checked as boolean)}
-            />
-            <label htmlFor="paid">Paid</label>
-          </div>
-        </div>
-      </FilterAccordion>
-
-      {/* Video Duration Filter */}
-      <FilterAccordion title="Video Duration">
-        <div className="space-y-3 font-bold">
-          <div className="flex items-center">
-            <Checkbox 
-              id="duration-0-1" 
-              className="mr-3" 
-              checked={selectedDuration.includes('duration-0-1')}
-              onCheckedChange={(checked) => handleDurationChange('duration-0-1', checked as boolean)}
-            />
-            <label htmlFor="duration-0-1">0-1 Hour (72)</label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox 
-              id="duration-1-3" 
-              className="mr-3" 
-              checked={selectedDuration.includes('duration-1-3')}
-              onCheckedChange={(checked) => handleDurationChange('duration-1-3', checked as boolean)}
-            />
-            <label htmlFor="duration-1-3">1-3 Hours (168)</label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox 
-              id="duration-3-6" 
-              className="mr-3" 
-              checked={selectedDuration.includes('duration-3-6')}
-              onCheckedChange={(checked) => handleDurationChange('duration-3-6', checked as boolean)}
-            />
-            <label htmlFor="duration-3-6">3-6 Hours (141)</label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox 
-              id="duration-6-17" 
-              className="mr-3" 
-              checked={selectedDuration.includes('duration-6-17')}
-              onCheckedChange={(checked) => handleDurationChange('duration-6-17', checked as boolean)}
-            />
-            <label htmlFor="duration-6-17">6-17 Hours (279)</label>
-          </div>
-          
-          {/* Additional items that appear when "Show more" is clicked */}
-          {showMoreDuration && (
-            <>
-              {additionalDurations.map(duration => (
-                <div key={duration.id} className="flex items-center">
-                  <Checkbox 
-                    id={duration.id} 
-                    className="mr-3" 
-                    checked={selectedDuration.includes(duration.id)}
-                    onCheckedChange={(checked) => handleDurationChange(duration.id, checked as boolean)}
-                  />
-                  <label htmlFor={duration.id}>{duration.label}</label>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-        <button 
-          className="text-purple-600 mt-3 font-medium focus:outline-none"
-          onClick={() => setShowMoreDuration(!showMoreDuration)}
-        >
-          {showMoreDuration ? "Show less" : "Show more"}
-        </button>
-      </FilterAccordion>
-      
-      {/* Topic Filter */}
-      <FilterAccordion title="Topic">
-        <div className="space-y-3 font-bold">
-          <div className="flex items-center">
-            <Checkbox 
-              id="topic-react" 
-              className="mr-3" 
-              checked={selectedTopics.includes('topic-react')}
-              onCheckedChange={(checked) => handleTopicChange('topic-react', checked as boolean)}
-            />
-            <label htmlFor="topic-react">React JS (838)</label>
-          </div>
-          
-          {/* Additional topics that appear when "Show more" is clicked */}
-          {showMoreTopics && (
-            <>
-              {additionalTopics.map(topic => (
-                <div key={topic.id} className="flex items-center">
-                  <Checkbox 
-                    id={topic.id} 
-                    className="mr-3" 
-                    checked={selectedTopics.includes(topic.id)}
-                    onCheckedChange={(checked) => handleTopicChange(topic.id, checked as boolean)}
-                  />
-                  <label htmlFor={topic.id}>{topic.label}</label>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-        {additionalTopics.length > 0 && (
-          <button 
-            className="text-purple-600 mt-3 font-medium focus:outline-none"
-            onClick={() => setShowMoreTopics(!showMoreTopics)}
-          >
-            {showMoreTopics ? "Show less" : "Show more"}
-          </button>
-        )}
       </FilterAccordion>
     </div>
   );

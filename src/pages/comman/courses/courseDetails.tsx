@@ -15,8 +15,9 @@ import { db } from "../../../lib/firebase";
 import { Course, calculateCourseDuration } from "../../../utils/firebaseCourses";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../../../context/AuthContext";
-import { isUserEnrolledInCourse } from "../../../utils/paymentService";
+import { enrollUserInCourse, isUserEnrolledInCourse } from "../../../utils/paymentService";
 import { toast } from "sonner";
+import { InstructorData } from "../../../utils/firebaseInstructorData";
 
 // Extended Course interface with additional properties from Firebase
 interface ExtendedCourse extends Omit<Course, 'requirements'> {
@@ -37,6 +38,7 @@ export default function CourseDetails() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const [instructor, setInstructor] = useState<InstructorData | null>(null);
 
   // Get course ID from multiple sources
   const { courseId } = useParams<{ courseId: string }>();
@@ -164,6 +166,28 @@ export default function CourseDetails() {
     return totalLessons;
   };
 
+  const getInstructorDetails = (): void => {
+    if (!course?.members) return;
+    const instructorId = course.instructorId;
+    if (instructorId) {
+      const fetchInstructor = async () => {
+        try {
+          const userRef = doc(db, "users", instructorId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            setInstructor(userSnap.data() as InstructorData);
+          }
+        } catch (error) {
+          console.error("Error fetching instructor details:", error);
+        }
+      };
+      fetchInstructor();
+    }
+  };
+  useEffect(() => {
+    getInstructorDetails();
+  }, [course]);
+
   // Function to get instructor name from members
   const getInstructorName = (members?: Course['members']): string => {
     if (!members) return "Unknown Instructor";
@@ -251,7 +275,7 @@ export default function CourseDetails() {
   };
 
   // Handle Buy Now click
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!user) {
       toast.error('Please log in to purchase this course');
       window.location.hash = '#/login';
@@ -263,16 +287,25 @@ export default function CourseDetails() {
       window.location.hash = '#/learner/my-learnings';
       return;
     }
-
-    // Check if this is a subscription-based course
-    if (course?.pricing === "paid") {
+if(!isEnrolled){
+      const courseEnrollmentResponse = await enrollUserInCourse(course!.id, user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
+      console.log('Course enrollment response:', courseEnrollmentResponse);
+      toast.success('Course added to cart');
+    }
+    else{
+if (course?.pricing === "paid") {
       // Redirect to pricing page for subscription selection
-      window.location.hash = '#/pricing';
+      // window.location.hash = '#/pricing';
+      setIsCheckoutModalOpen(true);
       return;
     }
+    }
+    // Check if this is a subscription-based course
+    
+    
 
     // For direct purchase courses (Free or specific price)
-    setIsCheckoutModalOpen(true);
+    
   };
 
   // Handle Go to Course (for enrolled users)
@@ -323,16 +356,16 @@ export default function CourseDetails() {
         text: "Go to Course",
         action: handleGoToCourse,
         disabled: false,
-        variant: "outline" as const
+        variant: "default" as const
       };
     }
 
     // Determine button text based on pricing type
-    let buttonText = "Buy Now";
+    let buttonText = "Enroll Now";
     if (course?.pricing == "free") {
       buttonText = "Enroll Now";
     } else if (course?.pricing === "paid") {
-      buttonText = "Buy Now"; // Will redirect to pricing page
+      buttonText = "Enroll Now"; // Will redirect to pricing page
     } else {
       buttonText = `Buy for ₹${course?.pricing}`;
     }
@@ -631,9 +664,9 @@ export default function CourseDetails() {
                       {/* Instructor Info */}
                       <div className="flex-1">
                         <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                          {getInstructorName(course.members)}
+                          {course.members && course.members.length>0? getInstructorName(course.members):course.instructorName}
                         </h3>
-                        <p className="text-lg text-gray-600 mb-4">Developer and Lead Instructor</p>
+                        <p className="text-lg text-gray-600 mb-4">{instructor?.role}</p>
 
                         {/* Stats Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -886,7 +919,7 @@ export default function CourseDetails() {
                       <img src="Images/icons/course-Icon-1.png" className="h-6" /> Instructor:
                     </span>
                     <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer" onClick={() => { window.location.href = '/#/instructorDetails' }}>
-                      {getInstructorName(course.members)}
+                      {course.members && course.members.length > 0 ? getInstructorName(course.members) : course.instructorName}
                     </span>
                   </li>
                   <hr className="w-full bg-[#E5E5E5]" />

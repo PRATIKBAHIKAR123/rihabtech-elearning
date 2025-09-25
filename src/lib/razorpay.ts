@@ -5,7 +5,7 @@ export interface RazorpayOptions {
   currency: string;
   name: string;
   description: string;
-  order_id: string;
+  order_id?: string;
   prefill: {
     name: string;
     email: string;

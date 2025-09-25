@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, use } from 'react';
 import { Play, Star, User, Globe, Bell, ShoppingCart, Search, Plus, Pause, SkipBack, SkipForward, Fullscreen, HelpCircle, FileText, CheckCircle, LockKeyhole, Clock, LockIcon, FastForwardIcon, Rewind } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import Overview from './overview';
@@ -10,51 +10,49 @@ import Announcements from './announcements';
 import ReactPlayer from 'react-player';
 import QNA from './qna';
 import { getFullCourseData, CourseDetails, extractQuizData } from '../../../utils/firebaseCoursePreview';
+import { useParams } from 'react-router-dom';
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState("Notes");
   const [courseData, setCourseData] = useState<CourseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [courseModules] = useState([
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: true
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: true
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: true
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: false
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: false
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: false
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: false
-    },
-    { 
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer sed euismod justo, sit amet efficitur dui.",
-      completed: false
+  const [ courseId, setCourseId ] = useState<string | null>(null);
+
+    const getCourseIdFromURL = (): string | null => {
+    // First try useParams
+    if (courseId) return courseId;
+
+    // Try to get from URL hash (e.g., #/courseDetails?courseId=123)
+    const hash = window.location.hash;
+    if (hash.includes('?')) {
+      const queryString = hash.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      return urlParams.get('courseId');
     }
-  ]);
+
+    // Try to get from URL search params
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('courseId');
+  };
+
+
+  useEffect(() => {
+    const id = getCourseIdFromURL();
+    if (id) {
+      // If courseId is found in URL, set it in state
+      setCourseId(id);
+    } else {
+      setError("Course ID not found in URL");
+      setLoading(false);
+    }
+  }, []);
+  
+
 
   // Get course ID from URL params or use a default for testing
   // In a real app, you'd get this from React Router or props
-  const courseId = "8NjLqdGGeNuJKtjLFzxo"; // Using the ID from your Firebase data
+  // const courseId = "8NjLqdGGeNuJKtjLFzxo"; // Using the ID from your Firebase data
 
   // Fetch course data from Firebase
   useEffect(() => {
@@ -62,6 +60,11 @@ export default function CourseDetailsPage() {
       try {
         setLoading(true);
         setError(null);
+        if (!courseId) {
+          setError("Course ID is missing");
+          setLoading(false);
+          return;
+        }
         const data = await getFullCourseData(courseId);
         if (data) {
           setCourseData(data);
@@ -881,7 +884,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         );
       case 'Notes':
         return (
-          <Notes courseId={courseId} loading={loading} />
+          <Notes courseId={courseId??""} loading={loading} />
         );
       case 'Instructor':
         return (
@@ -893,11 +896,11 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
         );
       case 'Learning Tools':
         return (
-          <LearningTools courseId={courseId} instructorId={courseData?.instructorId}/>
+          <LearningTools courseId={courseId ?? ""} instructorId={courseData?.instructorId}/>
         );
       case 'Announcements':
         return (
-          <Announcements courseId={courseId} loading={loading}/>
+          <Announcements courseId={courseId ?? ""} loading={loading}/>
         );
       case 'QNA':
         return (

@@ -9,7 +9,8 @@ import {
   where,
   getDocs,
   orderBy,
-  limit
+  limit,
+  Timestamp
 } from 'firebase/firestore';
 import {
   RazorpayOptions,
@@ -23,7 +24,9 @@ import {
 } from '../lib/razorpay';
 import { revenueSharingService } from './revenueSharingService';
 import { emailService } from './emailService';
-import { getRazorpayConfig } from './configService';
+import type { RazorpayConfig as ConfigRazorpayConfig } from './configService';
+import { configService } from './configService';
+import type { RazorpayConfig } from './razorpayConfig';
 
 export interface SubscriptionPaymentData {
   userId: string;
@@ -106,6 +109,24 @@ class RazorpayService {
   private readonly TRANSACTIONS_COLLECTION = 'paymentTransactions';
   private readonly SUBSCRIPTION_ORDERS_COLLECTION = 'subscriptionOrders';
   private readonly SUBSCRIPTIONS_COLLECTION = 'subscriptions';
+  private readonly RAZORPAY_CONFIG_COLLECTION = 'razorpayConfig';
+  private razorpayConfig: ConfigRazorpayConfig | null = null;
+
+  // Fetch Razorpay configuration from Firebase
+  private async getRazorpayConfig(): Promise<ConfigRazorpayConfig> {
+    if (this.razorpayConfig) {
+      return this.razorpayConfig;
+    }
+
+    try {
+      const config = await configService.getRazorpayConfig();
+      this.razorpayConfig = config;
+      return config;
+    } catch (error) {
+      console.error('Error fetching Razorpay config:', error);
+      throw new Error('Failed to fetch Razorpay configuration');
+    }
+  }
 
   // Create a new payment transaction
   async createPaymentTransaction(data: SubscriptionPaymentData): Promise<string> {
@@ -147,11 +168,39 @@ class RazorpayService {
     paymentData: SubscriptionPaymentData
   ): Promise<{ orderId: string; options: RazorpayOptions }> {
     try {
+      // Get Razorpay configuration
+      const config = await this.getRazorpayConfig();
+
+      // Create timestamps for the configuration
+      const now = {
+        seconds: Math.floor(Date.now() / 1000),
+        nanoseconds: 0,
+        toDate: () => new Date(),
+      } as Timestamp;
+
+      // Transform config to match RazorpayConfig interface
+      const transformedConfig: RazorpayConfig = {
+        ...config,
+        createdAt: now,
+        updatedAt: now,
+        platform: 'Rihab Technologies',
+        source: 'admin_panel',
+        updatedBy: 'system',
+        prefill: {
+          name: config.prefill?.name || '',
+          email: config.prefill?.email || '',
+          contact: config.prefill?.contact || ''
+        },
+        webhookSecret: config.webhookSecret || '',
+        webhookUrl: config.webhookUrl || ''
+      };
+
       // Create Razorpay order
       const razorpayOrder = await createRazorpayOrder(
         paymentData.totalAmount,
-        paymentData.currency,
-        `sub_${paymentData.planId}_${Date.now()}`
+        config.currency || paymentData.currency,
+        `sub_${paymentData.planId}_${Date.now()}`,
+        //transformedConfig
       );
 
       // Update transaction with Razorpay order ID
@@ -163,12 +212,12 @@ class RazorpayService {
 
       // Prepare Razorpay options
       const options: RazorpayOptions = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_1234567890',
+        key: config.isTestMode ? config.keyId : process.env.REACT_APP_RAZORPAY_KEY_ID || config.keyId,
         amount: formatAmountForRazorpay(paymentData.totalAmount),
-        currency: paymentData.currency,
+        currency: config.currency || paymentData.currency,
         name: 'Rihab Technologies',
-        description: `${paymentData.planName} - ${paymentData.planDuration}`,
-        order_id: razorpayOrder.id,
+        description: config.description || `${paymentData.planName} - ${paymentData.planDuration}`,
+        //order_id: razorpayOrder.id,
         prefill: {
           name: paymentData.userName,
           email: paymentData.userEmail,
@@ -184,7 +233,7 @@ class RazorpayService {
           categoryName: paymentData.categoryName || ''
         },
         theme: {
-          color: '#3B82F6'
+          color: config.theme?.color || '#3B82F6'
         },
         handler: async (response: RazorpayResponse) => {
           await this.handlePaymentSuccess(transactionId, response);
@@ -209,11 +258,39 @@ class RazorpayService {
     response: RazorpayResponse
   ): Promise<void> {
     try {
+      // Get Razorpay configuration
+      const config = await this.getRazorpayConfig();
+
+      // Create timestamps for the configuration
+      const now = {
+        seconds: Math.floor(Date.now() / 1000),
+        nanoseconds: 0,
+        toDate: () => new Date(),
+      } as Timestamp;
+
+      // Transform config for signature verification
+      const transformedConfig: RazorpayConfig = {
+        ...config,
+        createdAt: now,
+        updatedAt: now,
+        platform: 'Rihab Technologies',
+        source: 'admin_panel',
+        updatedBy: 'system',
+        prefill: {
+          name: config.prefill?.name || '',
+          email: config.prefill?.email || '',
+          contact: config.prefill?.contact || ''
+        },
+        webhookSecret: config.webhookSecret || '',
+        webhookUrl: config.webhookUrl || ''
+      };
+
       // Verify payment signature
       const isValid = await verifyPaymentSignature(
         response.razorpay_payment_id,
         response.razorpay_order_id,
-        response.razorpay_signature
+        response.razorpay_signature,
+        //transformedConfig
       );
 
       if (!isValid) {
@@ -222,12 +299,20 @@ class RazorpayService {
 
       // Update transaction status
       const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
-      await updateDoc(transactionRef, {
-        razorpayPaymentId: response.razorpay_payment_id,
-        razorpaySignature: response.razorpay_signature,
+      const updateData: any = {
         status: 'completed',
         updatedAt: serverTimestamp()
-      });
+      };
+
+      // Only add fields that are defined
+      if (response.razorpay_payment_id) {
+        updateData.razorpayPaymentId = response.razorpay_payment_id;
+      }
+      if (response.razorpay_signature) {
+        updateData.razorpaySignature = response.razorpay_signature;
+      }
+
+      await updateDoc(transactionRef, updateData);
 
       // Get transaction data
       const transactionDoc = await getDocs(
@@ -256,7 +341,7 @@ class RazorpayService {
       await this.recordRevenueSharing(transactionData, subscriptionId);
 
       // Send confirmation email (implement email service)
-      await this.sendPaymentConfirmationEmail(transactionData);
+      //await this.sendPaymentConfirmationEmail(transactionData);
 
     } catch (error) {
       console.error('Error handling payment success:', error);
@@ -289,11 +374,11 @@ class RazorpayService {
   // Create subscription order
   private async createSubscriptionOrder(transactionData: any): Promise<string> {
     try {
-      const orderData = {
+      const orderData: any = {
+        // Required fields
         userId: transactionData.userId,
         userEmail: transactionData.userEmail,
         userName: transactionData.userName,
-        userPhone: transactionData.userPhone,
         planId: transactionData.planId,
         planName: transactionData.planName,
         planDuration: transactionData.planDuration,
@@ -303,22 +388,29 @@ class RazorpayService {
         instructorShare: transactionData.instructorShare,
         totalAmount: transactionData.totalAmount,
         currency: transactionData.currency,
-        categoryId: transactionData.categoryId,
-        categoryName: transactionData.categoryName,
-        razorpayOrderId: transactionData.razorpayOrderId,
-        razorpayPaymentId: transactionData.razorpayPaymentId,
-        razorpaySignature: transactionData.razorpaySignature,
         status: 'completed',
         paymentMethod: 'razorpay',
-        paymentDetails: {
-          razorpay_payment_id: transactionData.razorpayPaymentId,
-          razorpay_order_id: transactionData.razorpayOrderId,
-          razorpay_signature: transactionData.razorpaySignature
-        },
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        receipt: transactionData.receipt
+        updatedAt: serverTimestamp()
       };
+
+      // Optional fields - only add if they exist
+      if (transactionData.userPhone) orderData.userPhone = transactionData.userPhone;
+      if (transactionData.categoryId) orderData.categoryId = transactionData.categoryId;
+      if (transactionData.categoryName) orderData.categoryName = transactionData.categoryName;
+      if (transactionData.razorpayOrderId) orderData.razorpayOrderId = transactionData.razorpayOrderId;
+      if (transactionData.razorpayPaymentId) orderData.razorpayPaymentId = transactionData.razorpayPaymentId;
+      if (transactionData.razorpaySignature) orderData.razorpaySignature = transactionData.razorpaySignature;
+      if (transactionData.receipt) orderData.receipt = transactionData.receipt;
+
+      // Add payment details only if we have at least one of the required fields
+      if (transactionData.razorpayPaymentId || transactionData.razorpayOrderId || transactionData.razorpaySignature) {
+        orderData.paymentDetails = {
+          ...(transactionData.razorpayPaymentId && { razorpay_payment_id: transactionData.razorpayPaymentId }),
+          ...(transactionData.razorpayOrderId && { razorpay_order_id: transactionData.razorpayOrderId }),
+          ...(transactionData.razorpaySignature && { razorpay_signature: transactionData.razorpaySignature })
+        };
+      }
 
       const docRef = await addDoc(collection(db, this.SUBSCRIPTION_ORDERS_COLLECTION), orderData);
       return docRef.id;

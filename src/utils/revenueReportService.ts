@@ -73,7 +73,7 @@ class RevenueReportService {
 
   async getRevenueTransactions(
     instructorId: string, 
-    period: number = 12, 
+    period: number = 1, 
     status?: string,
     courseId?: string
   ): Promise<RevenueTransaction[]> {
@@ -115,6 +115,20 @@ class RevenueReportService {
         } else if (requestDate && requestDate._seconds) {
           requestDate = new Date(requestDate._seconds * 1000);
         }
+
+        const txnDate = new Date(data.date); 
+const now = new Date();
+
+// Clone current date and subtract `period` months
+const pastDate = new Date();
+pastDate.setMonth(now.getMonth() - period);
+
+// Check if txnDate falls in last 1 month
+if (txnDate >= pastDate && txnDate <= now) {
+  // Include this transaction
+} else {
+  continue; // Skip
+}
         
         transactions.push({
           id: doc.id,

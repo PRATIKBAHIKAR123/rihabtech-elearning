@@ -502,14 +502,14 @@ export class CourseWorkflowService {
       });
       
       // Send notification to instructor
-      await NotificationService.sendNotification(
-        instructorId,
-        'course_made_live',
-        'Course Made Live',
-        `Your course "${courseData.title}" is now live and available to learners!`,
-        courseId,
-        courseData.title
-      );
+      // await NotificationService.sendNotification(
+      //   instructorId,
+      //   'course_made_live',
+      //   'Course Made Live',
+      //   `Your course "${courseData.title}" is now live and available to learners!`,
+      //   courseId,
+      //   courseData.title
+      // );
       
     } catch (error) {
       console.error("Error making course live:", error);

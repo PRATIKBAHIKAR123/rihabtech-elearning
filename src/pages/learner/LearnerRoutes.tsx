@@ -17,6 +17,7 @@ import QuizWrapper from './playingcourse/QuizWrapper';
 import NotificationList from './notifications/page';
 import PaymentSuccess from './payment-success/PaymentSuccess';
 import OrderHistory from './orders/OrderHistory';
+import CourseDetails from '../comman/courses/courseDetails';
 
 export default function LearnerRoutes() {
   return (
@@ -26,6 +27,12 @@ export default function LearnerRoutes() {
       <Route path="my-wishlist" element={<MyWishlist />} />
       <Route path="payment" element={<PaymentMethod />} />
       <Route path="current-course" element={<CourseDetailsPage />} />
+      <Route
+  path="/courseDetails/:courseId"
+  element={
+      <CourseDetails />
+  }
+/>
       <Route path="quiz" element={<QuizWrapper />} />
       <Route path="shopping-cart" element={<ShoppingCart />} />
       <Route path="chat" element={<ChatInterface />} />

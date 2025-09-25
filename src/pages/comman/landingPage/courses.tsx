@@ -5,37 +5,38 @@ import { useState, useEffect } from "react";
 import { getHomePageCategories, Category } from "../../../utils/firebaseCategory";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
+import { Course, getAllCourses } from "../../../utils/firebaseCourses";
 
 // Course interface based on your Firebase data structure
-interface Course {
-  id: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  thumbnailUrl: string;
-  pricing: string;
-  level: string;
-  language: string;
-  category: string;
-  subcategory: string;
-  status: string;
-  isPublished: boolean;
-  members?: Array<{
-    id: string;
-    email: string;
-    role: string;
-  }>;
-  curriculum?: {
-    sections: Array<{
-      name: string;
-      items: Array<{
-        lectureName: string;
-        contentType: string;
-        duration?: number;
-      }>;
-    }>;
-  };
-}
+// interface Course {
+//   id: string;
+//   title: string;
+//   subtitle: string;
+//   description: string;
+//   thumbnailUrl: string;
+//   pricing: string;
+//   level: string;
+//   language: string;
+//   category: string;
+//   subcategory: string;
+//   status: string;
+//   isPublished: boolean;
+//   members?: Array<{
+//     id: string;
+//     email: string;
+//     role: string;
+//   }>;
+//   curriculum?: {
+//     sections: Array<{
+//       name: string;
+//       items: Array<{
+//         lectureName: string;
+//         contentType: string;
+//         duration?: number;
+//       }>;
+//     }>;
+//   };
+// }
 
 export default function Courses() {
   const [activeTab, setActiveTab] = useState<string>("");
@@ -48,28 +49,11 @@ export default function Courses() {
   const fetchCourses = async () => {
     try {
       setCoursesLoading(true);
-      const coursesRef = collection(db, "courseDrafts");
+      const firebaseCourses = await getAllCourses();
+              setCourses(firebaseCourses);
 
-      // Query for approved and published courses
-      const coursesQuery = query(
-        coursesRef,
-        where("status", "==", "approved"),
-        where("isPublished", "==", true)
-      );
-
-      const querySnapshot = await getDocs(coursesQuery);
-      const fetchedCourses: Course[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const courseData = doc.data() as any;
-        fetchedCourses.push({
-          id: doc.id,
-          ...courseData
-        } as Course);
-      });
-
-      console.log('Fetched courses:', fetchedCourses);
-      setCourses(fetchedCourses);
+      console.log('Fetched courses:', firebaseCourses);
+      setCourses(firebaseCourses);
     } catch (error) {
       console.error("Error fetching courses:", error);
     } finally {
@@ -86,8 +70,12 @@ export default function Courses() {
     curriculum.sections.forEach(section => {
       if (section.items) {
         section.items.forEach(item => {
-          if (item.duration) {
-            totalDuration += item.duration;
+          if (item.contentFiles && Array.isArray(item.contentFiles)) {
+            item.contentFiles.forEach(file => {
+              if (file.duration) {
+                totalDuration += typeof file.duration === 'string' ? parseFloat(file.duration) : file.duration;
+              }
+            });
           }
         });
       }

@@ -193,6 +193,69 @@ const CourseSelection = () => {
   const DraftCourseCard = ({ course, onEdit, onDelete }:any) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
+
+      const getStatusColor = (status: number | string) => {
+          const statusValue = typeof status === 'number' ? status : status.toLowerCase();
+          switch (statusValue) {
+              case COURSE_STATUS.PUBLISHED:
+              case 'published':
+              case 'live':
+                  return 'bg-[#3ab500]';
+              case COURSE_STATUS.APPROVED:
+              case 'approved':
+                  return 'bg-blue-500';
+              case COURSE_STATUS.DRAFT:
+              case 'draft':
+                  return 'bg-gray-400';
+              case COURSE_STATUS.PENDING_REVIEW:
+              case 'pending_review':
+              case 'pending':
+                  return 'bg-yellow-400';
+              case COURSE_STATUS.NEEDS_REVISION:
+              case 'needs_revision':
+              case 'rejected':
+                  return 'bg-red-400';
+              case COURSE_STATUS.DRAFT_UPDATE:
+              case 'draft_update':
+                  return 'bg-orange-400';
+              case COURSE_STATUS.ARCHIVED:
+              case 'archived':
+                  return 'bg-gray-600';
+              default:
+                  return 'bg-gray-400';
+          }
+      };
+  
+      const getStatusText = (status: number | string) => {
+          const statusValue = typeof status === 'number' ? status : status.toLowerCase();
+          switch (statusValue) {
+              case COURSE_STATUS.PUBLISHED:
+              case 'published':
+                  return 'Published';
+              case COURSE_STATUS.APPROVED:
+              case 'approved':
+                  return 'Approved';
+              case COURSE_STATUS.DRAFT:
+              case 'draft':
+                  return 'Draft';
+              case COURSE_STATUS.PENDING_REVIEW:
+              case 'pending_review':
+              case 'pending':
+                  return 'Pending Review';
+              case COURSE_STATUS.NEEDS_REVISION:
+              case 'needs_revision':
+                  return 'Needs Revision';
+              case COURSE_STATUS.DRAFT_UPDATE:
+              case 'draft_update':
+                  return 'Draft Update';
+              case COURSE_STATUS.ARCHIVED:
+              case 'archived':
+                  return 'Archived';
+              default:
+                  return COURSE_STATUS_LABELS[status] || 'Unknown';
+          }
+      };
+
   return (
     <div key={course.id} className="flex flex-col bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
                 {/* Main Course Row */}
@@ -220,9 +283,9 @@ const CourseSelection = () => {
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                           {course.title}
                         </h3>
-                        <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-                          {COURSE_STATUS_LABELS[course.status] || "Unknown"}
-                        </span>
+                        <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                      {getStatusText(course.status)}
+                    </span>
                         <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
                           {course.visibility}
                         </span>

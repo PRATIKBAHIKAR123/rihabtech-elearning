@@ -36,7 +36,7 @@ const RevenueReport: React.FC = () => {
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
   const [analytics, setAnalytics] = useState<RevenueAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('12');
+  const [selectedPeriod, setSelectedPeriod] = useState('1');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'chart' | 'analytics'>('table');
@@ -270,6 +270,7 @@ const RevenueReport: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1">This Month</SelectItem>
                   <SelectItem value="3">Last 3 months</SelectItem>
                   <SelectItem value="6">Last 6 months</SelectItem>
                   <SelectItem value="12">Last 12 months</SelectItem>
