@@ -69,9 +69,6 @@ const CourseCategory = () => {
     <form className="flex flex-col justify-between h-full" onSubmit={formik.handleSubmit} noValidate>
       <div className="p-8">
         <h1 className="ins-heading mb-3">Select your course Category</h1>
-        <p className="justify-start text-[#1e1e1e] text-sm font-medium font-['Nunito']">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse laoreet, nulla vitae ultrices iaculis, tortor lorem maximus sem, eu luctus orci dui id sem.
-        </p>
         <div className="mt-8">
           <Select
             value={formik.values.category}

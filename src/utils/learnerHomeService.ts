@@ -16,7 +16,7 @@ export interface HomepageCourse {
   students: number;
   duration: number;
   progress?: number;
-  price?: number; // 0 for free, any positive number for paid
+  price?: string; // 0 for free, any positive number for paid
   image: string;
   category: string;
   instructor: string;
@@ -44,7 +44,7 @@ export const getLearnerEnrolledCourses = async (learnerId: string): Promise<Home
     const enrollmentsQuery = query(
       enrollmentsRef,
       where("studentId", "==", learnerId),
-      where("isActive", "==", true)
+      //where("isActive", "==", true)
     );
     
     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
@@ -77,7 +77,7 @@ export const getLearnerEnrolledCourses = async (learnerId: string): Promise<Home
             image: courseData.thumbnailUrl || "Images/courses/default-course.jpg",
             category: courseData.category,
             instructor: (courseData as any).instructorId || courseData.members?.find(m => m.role === 'instructor')?.email || 'Unknown',
-            price: courseData.pricing === 'free' ? 0 : parseFloat(courseData.pricing) || 0
+            price: courseData.pricing?courseData.pricing:'free'
           });
         }
       } catch (error) {
@@ -195,7 +195,7 @@ export const getRecommendedCourses = async (learnerId: string, limitCount: numbe
       image: course.thumbnailUrl || "Images/courses/default-course.jpg",
       category: course.category,
       instructor: (course as any).instructorId || course.members?.find(m => m.role === 'instructor')?.email || 'Unknown',
-      price: course.pricing === 'free' ? 0 : parseFloat(course.pricing) || 0
+      price: course.pricing
     }));
     
     return recommendedCourses;

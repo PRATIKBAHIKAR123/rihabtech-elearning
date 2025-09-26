@@ -568,7 +568,7 @@ export default function InstructorPayment() {
                 <ul className="space-y-2 text-sm text-green-800">
                   <li>• Earnings based on paid watch minutes</li>
                   <li>• Free courses and previews are excluded</li>
-                  <li>• Revenue sharing: 60% instructor, 40% platform</li>
+                  {/* <li>• Revenue sharing: 60% instructor, 40% platform</li> */}
                   <li>• Tax is calculated on the total amount</li>
                 </ul>
               </div>

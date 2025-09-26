@@ -95,7 +95,7 @@ class LearnerService {
             students: courseData?.studentsCount || 0,
             duration: courseData?.duration || 0,
             progress: enrollmentData?.progress || 0,
-            price: courseData?.pricing === 'free' ? 0 : parseFloat(courseData?.pricing) || 0,
+            price: courseData?.pricing,
             originalPrice: courseData?.originalPrice || undefined,
             image: courseData?.thumbnailUrl || 'Images/courses/course 4.jpg',
             category: courseData?.category || 'General',

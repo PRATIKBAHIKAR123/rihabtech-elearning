@@ -164,18 +164,18 @@ class CourseAnalyticsService {
       const totalAmount = totalPlatformFee + totalTaxAmount + totalNetEarning;
       
       const breakdown: CourseRevenueBreakdown[] = [
-        {
-          name: 'Platform Charges',
-          value: totalAmount > 0 ? (totalPlatformFee / totalAmount) * 100 : 0,
-          color: '#FFD700',
-          amount: totalPlatformFee
-        },
-        {
-          name: 'Tax',
-          value: totalAmount > 0 ? (totalTaxAmount / totalAmount) * 100 : 0,
-          color: '#DC2626',
-          amount: totalTaxAmount
-        },
+        // {
+        //   name: 'Platform Charges',
+        //   value: totalAmount > 0 ? (totalPlatformFee / totalAmount) * 100 : 0,
+        //   color: '#FFD700',
+        //   amount: totalPlatformFee
+        // },
+        // {
+        //   name: 'Tax',
+        //   value: totalAmount > 0 ? (totalTaxAmount / totalAmount) * 100 : 0,
+        //   color: '#DC2626',
+        //   amount: totalTaxAmount
+        // },
         {
           name: 'Net Earning',
           value: totalAmount > 0 ? (totalNetEarning / totalAmount) * 100 : 0,

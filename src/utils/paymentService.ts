@@ -170,7 +170,7 @@ export const updateOrderStatus = async (
 // Enroll user in course
 export const enrollUserInCourse = async (
   courseId: string,
-  userId: string,
+  studentId: string,
   userEmail: string,
   orderId?: string,
   paymentStatus: 'free' | 'paid' = 'paid'
@@ -181,7 +181,7 @@ export const enrollUserInCourse = async (
     const existingEnrollmentQuery = query(
       enrollmentsRef,
       where('courseId', '==', courseId),
-      where('userId', '==', userId)
+      where('studentId', '==', studentId)
     );
     
     const existingEnrollments = await getDocs(existingEnrollmentQuery);
@@ -192,7 +192,7 @@ export const enrollUserInCourse = async (
 
     const enrollmentData = {
       courseId,
-      userId,
+      studentId,
       userEmail,
       enrolledAt: serverTimestamp(),
       progress: 0,
@@ -204,7 +204,7 @@ export const enrollUserInCourse = async (
     const docRef = await addDoc(enrollmentsRef, enrollmentData);
     
     // Update course member count
-    await updateCourseMemberCount(courseId, userId, userEmail);
+    await updateCourseMemberCount(courseId, studentId, userEmail);
     
     return docRef.id;
   } catch (error) {
@@ -282,7 +282,7 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
 export const getUserEnrollments = async (userId: string): Promise<CourseEnrollment[]> => {
   try {
     const enrollmentsRef = collection(db, 'studentEnrollments');
-    const userEnrollmentsQuery = query(enrollmentsRef, where('userId', '==', userId));
+    const userEnrollmentsQuery = query(enrollmentsRef, where('studentId', '==', userId));
     const querySnapshot = await getDocs(userEnrollmentsQuery);
     
     const enrollments: CourseEnrollment[] = [];

@@ -95,7 +95,7 @@ export default function CourseDetails() {
 
     setCheckingEnrollment(true);
     try {
-      const enrolled = await isUserEnrolledInCourse(courseId, user.uid);
+      const enrolled = await isUserEnrolledInCourse(courseId, user.email??'');
       setIsEnrolled(enrolled);
     } catch (error) {
       console.error('Error checking enrollment:', error);
@@ -290,7 +290,8 @@ export default function CourseDetails() {
 if(!isEnrolled){
       const courseEnrollmentResponse = await enrollUserInCourse(course!.id, user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
       console.log('Course enrollment response:', courseEnrollmentResponse);
-      toast.success('Course added to cart');
+      toast.success('Course Successfully Enrolled');
+      window.location.hash = `#/learner/current-course/?courseId='${course?.id}`;
     }
     else{
 if (course?.pricing === "paid") {
@@ -315,68 +316,68 @@ if (course?.pricing === "paid") {
       return;
     }
 
-    window.location.hash = '#/learner/current-course?courseId=' + course?.id;
+    window.location.hash = `#/learner/current-course?courseId=${course?.id}`;
   };
 
   // Get button text and action
-  const getButtonConfig = () => {
+const getButtonConfig = () => {
+  const pricing = course?.pricing?.toLowerCase();
 
-    // Show loading state while auth is loading
-    if (authLoading) {
-      return {
-        text: "Loading...",
-        action: () => { },
-        disabled: true,
-        variant: "default" as const
-      };
-    }
-
-    if (!user) {
-      return {
-        text: course?.pricing === "Free" ? "Login to Enroll" : "Login to Buy",
-        action: () => {
-          window.location.hash = '#/login';
-        },
-        disabled: false,
-        variant: "default" as const
-      };
-    }
-
-    if (checkingEnrollment) {
-      return {
-        text: "Checking...",
-        action: () => { },
-        disabled: true,
-        variant: "default" as const
-      };
-    }
-
-    if (isEnrolled) {
-      return {
-        text: "Go to Course",
-        action: handleGoToCourse,
-        disabled: false,
-        variant: "default" as const
-      };
-    }
-
-    // Determine button text based on pricing type
-    let buttonText = "Enroll Now";
-    if (course?.pricing == "free") {
-      buttonText = "Enroll Now";
-    } else if (course?.pricing === "paid") {
-      buttonText = "Enroll Now"; // Will redirect to pricing page
-    } else {
-      buttonText = `Buy for ₹${course?.pricing}`;
-    }
-
+  if (authLoading) {
     return {
-      text: buttonText,
-      action: handleBuyNow,
+      text: "Loading...",
+      action: () => {},
+      disabled: true,
+      variant: "default" as const
+    };
+  }
+
+  if (!user) {
+    return {
+      text: pricing === "free" ? "Login to Enroll" : "Login to Buy",
+      action: () => {
+        window.location.hash = '#/login';
+      },
       disabled: false,
       variant: "default" as const
     };
+  }
+
+  if (checkingEnrollment) {
+    return {
+      text: "Checking...",
+      action: () => {},
+      disabled: true,
+      variant: "default" as const
+    };
+  }
+
+  if (isEnrolled) {
+    return {
+      text: "Go to Course",
+      action: handleGoToCourse,
+      disabled: false,
+      variant: "default" as const
+    };
+  }
+
+  // Pricing logic
+  let buttonText = "Enroll Now";
+  if (pricing === "free") {
+    buttonText = "Enroll Now";
+  } else if (pricing === "paid") {
+    buttonText = "Enroll Now"; // Will redirect to pricing page
+  } else if (pricing) {
+    buttonText = `Buy for ₹${course?.pricing}`;
+  }
+
+  return {
+    text: buttonText,
+    action: handleBuyNow,
+    disabled: false,
+    variant: "default" as const
   };
+};
 
   // Loading state
   if (loading) {

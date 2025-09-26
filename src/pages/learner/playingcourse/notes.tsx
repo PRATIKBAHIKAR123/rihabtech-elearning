@@ -237,15 +237,7 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
             Create Your First Note
           </Button>
           
-          {/* Debug information */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 max-w-md">
-            <p className="font-medium mb-2">Debug Information:</p>
-            <p><strong>User ID:</strong> {user?.email || user?.UserName || user?.uid || 'Not available'}</p>
-            <p><strong>Course ID:</strong> {courseId}</p>
-            <p><strong>Loading:</strong> {loadingNotes ? 'Yes' : 'No'}</p>
-            <p><strong>Error:</strong> {error || 'None'}</p>
-            <p><strong>User Object:</strong> {JSON.stringify(user, null, 2)}</p>
-          </div>
+          
         </div>
       ) : (
         <div className="space-y-6">

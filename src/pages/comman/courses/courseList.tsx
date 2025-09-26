@@ -696,13 +696,13 @@ export function CourseCard({ course, progress = false }: {
   
   return (
     <div className="course-card overflow-hidden" onClick={() => {
-      if(course.progress){
-        window.location.href = '/#/learner/current-course';
-      }else{
+      // if(course.progress?course.progress>0:false){
+      //   window.location.href = `#learner/current-course/?courseId=${course.id}`;
+      // }else{
         // Navigate to course details with the course ID
         window.location.hash = `#/courseDetails?courseId=${course.id}`;
         window.location.reload();
-      }
+      // }
     }}>
       <div className="relative">
         <img 

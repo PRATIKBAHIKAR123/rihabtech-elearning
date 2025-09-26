@@ -243,7 +243,7 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
   return (
     <div className="course-card overflow-hidden" onClick={() => {
       if (course.progress) {
-        window.location.href = '/#/learner/current-course';
+        window.location.href = `/#/learner/current-course/?courseId='${course.id}`;
       } else {
         window.location.href = `/#/courseDetails/?courseId=${course.id}`;
       }
@@ -283,10 +283,10 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
         </div>
 
         <div className="course-price-section">
-          {course.price === 0 ? (
-            <span className="badge-free">Free</span>
+          {course.price ? (
+            <span className="badge-free">{course.price}</span>
           ) : (
-            <span className="badge-paid">Paid</span>
+            <span className="badge-paid">{course.price}</span>
           )}
         </div>
       </div>
