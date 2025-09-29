@@ -192,8 +192,8 @@ export const enrollUserInCourse = async (
 
     const enrollmentData = {
       courseId,
-      studentId,
-      userEmail,
+      studentId:studentId,
+      userEmail:userEmail,
       enrolledAt: serverTimestamp(),
       progress: 0,
       status: 'active',

@@ -11,13 +11,21 @@ import ReactPlayer from 'react-player';
 import QNA from './qna';
 import { getFullCourseData, CourseDetails, extractQuizData } from '../../../utils/firebaseCoursePreview';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import { StudentProgressService } from '../../../utils/firebaseStudentProgressService';
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState("Notes");
   const [courseData, setCourseData] = useState<CourseDetails | null>(null);
+  const [enrichedCourseData, setEnrichedCourseData] = useState<any>(courseData);
+  const [activeModule, setActiveModule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ courseId, setCourseId ] = useState<string | null>(null);
+  const {  user } = useAuth();
+    const [progress, setProgress] = useState<any>(null);
+
+  
 
     const getCourseIdFromURL = (): string | null => {
     // First try useParams
@@ -47,7 +55,7 @@ export default function CourseDetailsPage() {
       setLoading(false);
     }
   }, []);
-  
+
 
 
   // Get course ID from URL params or use a default for testing
@@ -89,14 +97,20 @@ export default function CourseDetailsPage() {
       console.log('Setting active module:', firstModule);
       setActiveModule(firstModule);
     }
+//     if (enrichedCourseData) {
+//   const nextLecture = findNextLecture(enrichedCourseData, progress);
+//   if (nextLecture) {
+//     console.log("Setting active module:", nextLecture);
+//     setActiveModule(nextLecture);
+//   }
+// }
   }, [courseData]);
   
      const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isHovered, setIsHovered] = useState(false);
-    const [activeModule, setActiveModule] = useState<any>(null);
+  const [isHovered, setIsHovered] = useState(false);    
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   // Watch time tracking states
   const [totalWatched, setTotalWatched] = useState(0); // in seconds
@@ -122,7 +136,104 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
 
     // Course info (for demonstration)
   const instructorId = courseData?.instructorId || "instructor-456";
-  const studentId = "student-789";
+  const studentId = user?.email || user?.uid || "student-123"; // Replace with actual logged-in user ID
+
+useEffect(() => {
+  const loadProgress = async () => {
+    if (!studentId || !courseId || !courseData) return;
+
+    const totalLectures = courseData.curriculum?.sections.reduce(
+      (count, sec) => count + (sec.items?.length || 0),
+      0
+    ) ?? 0;
+
+    let prog = await StudentProgressService.getProgress(studentId, courseId);
+
+    // if no progress, initialize
+    if (!prog) {
+      await StudentProgressService.initProgress(studentId, courseId, totalLectures);
+      prog = await StudentProgressService.getProgress(studentId, courseId);
+    }
+
+    // merge progress into courseData
+    const enrichedCourse = mergeProgressWithCourse(courseData, prog);
+    setProgress(prog);
+    setEnrichedCourseData(enrichedCourse);
+
+    let selectedModule = null;
+
+    if (
+      prog?.sectionIndex !== undefined &&
+      prog?.lectureIndex !== undefined &&
+      courseData.curriculum?.sections?.[prog.sectionIndex]?.items?.[prog.lectureIndex]
+    ) {
+      // ✅ Resume last viewed lecture
+      selectedModule = {
+        ...courseData.curriculum.sections[prog.sectionIndex].items[prog.lectureIndex],
+        sectionIndex: prog.sectionIndex,
+        itemIndex: prog.lectureIndex,
+      };
+      setExpandedSections({ [prog.sectionIndex]: true });
+    } else if (courseData.curriculum?.sections?.[0]?.items?.[0]) {
+      // ✅ No progress → fallback to first lecture
+      selectedModule = {
+        ...courseData.curriculum.sections[0].items[0],
+        sectionIndex: 0,
+        itemIndex: 0,
+      };
+      setExpandedSections({ 0: true });
+    }
+
+    if (selectedModule) {
+      console.log("Setting active module:", selectedModule);
+      setActiveModule(selectedModule);
+    }
+  };
+
+  loadProgress();
+}, [courseData]);
+
+function findNextLecture(courseData: any, progress: any) {
+  if (!courseData?.curriculum?.sections) return null;
+
+  for (let s = 0; s < courseData.curriculum.sections.length; s++) {
+    const section = courseData.curriculum.sections[s];
+    for (let l = 0; l < (section.items?.length || 0); l++) {
+      const lecture = section.items[l];
+      if (!lecture.completed) {
+        return lecture; // first incomplete
+      }
+    }
+  }
+
+  // if all lectures completed → fallback
+  return courseData.curriculum.sections[0]?.items?.[0] || null;
+}
+
+  function mergeProgressWithCourse(courseData: any, progress: any) {
+  if (!progress) return courseData;
+
+  return {
+    ...courseData,
+    curriculum: {
+      sections: courseData.curriculum.sections.map(
+        (section: any, sectionIndex: number) => {
+          const completedLectures = progress.completedLectures?.[sectionIndex] || [];
+          const isSectionCompleted = progress.completedSections?.includes(sectionIndex);
+
+          return {
+            ...section,
+            completed: isSectionCompleted,
+            items: section.items.map((lecture: any, lectureIndex: number) => ({
+              ...lecture,
+              completed: completedLectures.includes(lectureIndex),
+            })),
+          };
+        }
+      ),
+    },
+  };
+}
   
   // Debug logging
   console.log("Course data:", courseData);
@@ -137,13 +248,28 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
     }));
   };
 
-  const selectModule = (module: any) => {
-    setActiveModule(module);
+  const selectModule = (sectionIndex:number,itemIndex: number, module: any) => {
+    setActiveModule({ ...module,sectionIndex, itemIndex,  });
     // Reset video state when switching modules
     if (module.contentType === 'video' || module.contentType === 'lecture') {
+      handleLectureClick(sectionIndex, itemIndex, module);
       setIsPlaying(false);
       setCurrentTime(0);
+
     }
+  };
+
+    const handleLectureClick = async (sectionIndex: number, itemIndex: number, module: any) => {
+    setActiveModule({ ...module,sectionIndex, itemIndex,  });
+
+    const updated = await StudentProgressService.markLectureComplete(
+      studentId,
+      courseId??'',
+      sectionIndex,
+      itemIndex
+    );
+
+    setProgress(updated);
   };
 
   // Format time to MM:SS
@@ -792,13 +918,15 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
 
     const renderCourseContent = () => (
     <div className="space-y-4">
-      {courseData?.curriculum?.sections?.map((section, sectionIndex) => {
+      {enrichedCourseData?.curriculum?.sections?.map((section:any, sectionIndex:number) => {
         const sectionId = section.id || sectionIndex.toString();
         return (
         <div key={sectionId} className="mb-4">
           <button
             onClick={() => toggleSection(sectionId)}
-            className="w-full flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className={`w-full flex items-center justify-between p-3 ${
+          section.completed ? "bg-green-100" : "bg-orange-50"
+        } rounded-lg hover:bg-gray-100 transition-colors`}
           >
             <span className="font-medium text-gray-800">{section.name}</span>
             <span className="text-gray-500">
@@ -808,13 +936,16 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
 
           {expandedSections[sectionId] && (
             <div className="mt-2 space-y-2">
-              {section.items?.map((module) => (
+              {section.items?.map((module:any,itemIndex:number) => (
                 <div
                   key={module.id}
-                  onClick={() => selectModule(module)}
-                  className={`relative pl-10 p-3 rounded-lg cursor-pointer transition-colors ${
-                    activeModule.id === module.id ? 'bg-orange-50 border-l-4 border-orange-500' : 'hover:bg-gray-50'
-                  }`}
+                  onClick={() => selectModule(sectionIndex,itemIndex, module)}
+                  className={`relative pl-10 p-3 rounded-lg cursor-pointer transition-colors border border-orange-500 ${
+                    module.completed ? 'bg-orange-50' : 'hover:bg-gray-50'
+                  } ${activeModule?.sectionIndex === sectionIndex && activeModule?.itemIndex === itemIndex 
+      ? 'border-l-4 border-orange-500 bg-orange-50' 
+      : 'border-l-4 border-transparent hover:bg-gray-50'
+    }`}
                 >
                   {/* Module icon */}
                   <div className="absolute left-2 top-4 w-6 h-6 rounded-full flex items-center justify-center border-2 border-orange-500">
@@ -827,7 +958,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
 
                   <div>
                     <h4 className="font-medium text-gray-800 text-sm mb-1">
-                      {(module as any).title || (module as any).quizTitle || 'Untitled Module'}
+                      {(module as any).lectureName || (module as any).quizTitle || 'Untitled Module'}
                     </h4>
                     <p className="text-gray-600 text-xs mb-2">{module.description}</p>
                     

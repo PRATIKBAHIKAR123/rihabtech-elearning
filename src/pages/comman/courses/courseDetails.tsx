@@ -291,7 +291,7 @@ if(!isEnrolled){
       const courseEnrollmentResponse = await enrollUserInCourse(course!.id, user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
       console.log('Course enrollment response:', courseEnrollmentResponse);
       toast.success('Course Successfully Enrolled');
-      window.location.hash = `#/learner/current-course/?courseId='${course?.id}`;
+      window.location.hash = `#/learner/current-course/?courseId=${course?.id}`;
     }
     else{
 if (course?.pricing === "paid") {

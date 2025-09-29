@@ -166,7 +166,7 @@ export default function SearchWithPopup() {
     } else {
       setSearchtext(result.course.title || '');
     }
-    window.location.href = '/#/courseDetails';
+    window.location.href = `#/courseDetails?courseId=${result.course?.id}`;
   };
 
   const handleClearSearch = () => {

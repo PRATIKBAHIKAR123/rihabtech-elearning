@@ -434,192 +434,156 @@ export default function CourseList() {
                     )}
                 </div>
             ) : (
-                <div className="flex flex-col gap-2 mt-4">
-      {filteredCourses.map((course) => {
-        // Get all coupons for this specific course (both active and inactive)
-        const activeCoupons = course.coupons?.filter(coupon => 
-          coupon.courseId === course.id
-        ) || [];
-        const bestCoupon = activeCoupons[0]; // Assuming coupons are sorted by priority
-        
-        return (
-          <div key={course.id} className="flex flex-col bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-            {/* Main Course Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-4">
-              
-              {/* Left Section: Thumbnail + Info */}
-              <div className="flex items-start sm:items-center space-x-4 flex-1 md:truncate">
-                {/* Course Thumbnail */}
-                <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 relative">
-                  {course.thumbnail ? (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  ) : (
-                    <BookOpen className="w-8 h-8 text-gray-400" />
-                  )}
+                <div className="flex flex-col gap-3 mt-2">
+          {filteredCourses.map((course) => {
+            const activeCoupons = course.coupons?.filter(coupon => 
+              coupon.courseId === course.id
+            ) || [];
+            const bestCoupon = activeCoupons[0];
+            
+            return (
+              <div key={course.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+                {/* Desktop Table Layout */}
+                <div className="hidden lg:grid lg:grid-cols-[100px_minmax(350px,1fr)_140px_140px_220px] lg:gap-6 lg:items-center p-4">
                   
-                  {/* Coupon Badge Overlay */}
-                  {activeCoupons.length > 0 && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                      <Tag className="w-3 h-3" />
-                      {activeCoupons.length}
-                    </div>
-                  )}
-                </div>
-
-                {/* Course Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-                      {course.title}
-                    </h3>
-                    <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getStatusColor(course.status)}`}>
-                      {getStatusText(course.status)}
-                    </span>
-                    <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                      {course.visibility}
-                    </span>
-                    <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                      {course.pricing}
-                    </span>
-                    
-                    {/* Best Coupon Badge */}
-                    {bestCoupon && (
-                      <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                        bestCoupon.isActive 
-                          ? 'text-green-700 bg-green-100' 
-                          : 'text-red-700 bg-red-100'
-                      }`}>
-                        {bestCoupon.type === 'percentage' ? `${bestCoupon.value}% OFF` : `₹${bestCoupon.value} OFF`}
-                      </span>
+                  {/* Thumbnail */}
+                  <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
+                    {course.thumbnail ? (
+                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                    {activeCoupons.length > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-full">
+                        {activeCoupons.length}
+                      </div>
                     )}
                   </div>
-                  
-                  {course.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2">
-                      {course.description}
-                    </p>
-                  )}
-                  
-                  {/* Coupon Quick Info */}
-                  {bestCoupon && (
-                    <div className={`text-xs mb-2 ${bestCoupon.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                      Best offer: <code className={`px-1 py-0.5 rounded ${
-                        bestCoupon.isActive 
-                          ? 'bg-green-50 text-green-700' 
-                          : 'bg-red-50 text-red-700'
-                      }`}>{bestCoupon.code}</code>
-                      {activeCoupons.length > 1 && (
-                        <span className="ml-2 text-gray-500">+{activeCoupons.length - 1} more</span>
-                      )}
-                    </div>
-                  )}
 
-                  {(course.rejectionInfo && course.status == COURSE_STATUS.NEEDS_REVISION) && (
-                    <div className={`text-xs mb-2  text-red-600`}>
-                      Reject Reason: <code className={`px-1 py-0.5 rounded 
-                       
-                           bg-red-50 text-red-700
-                      `}>{course.rejectionInfo?.rejectionReason}</code>
-                      
-                    </div>
-                  )}
-                  
-                  <div className="text-left sm:text-right min-w-[120px]">
-                    <div className="flex items-center space-x-2">
-                      <div className="text-sm font-medium text-gray-900 mb-1">
-                        Finish your course
-                      </div>
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${course.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium">
-                        {course.progress}%
+                  {/* Course Info */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-base font-semibold text-gray-900 truncate">{course.title}</h3>
+                      <span className={`px-2 py-0.5 text-[11px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                        {getStatusText(course.status)}
+                      </span>
+                      <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                        {course.visibility}
+                      </span>
+                      <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                        {course.pricing}
                       </span>
                     </div>
+                    
+                    {course.description && (
+                      <p className="text-sm text-gray-600 truncate mb-1">{course.description}</p>
+                    )}
+                    
+                    {bestCoupon && (
+                      <div className="text-xs text-green-600 mb-1">
+                        <code className="px-1 py-0.5 rounded bg-green-50 text-green-700 font-mono text-[11px]">
+                          {bestCoupon.code}
+                        </code>
+                        <span className="ml-1 text-green-700 font-medium">
+                          {bestCoupon.type === 'percentage' ? `${bestCoupon.value}%` : `₹${bestCoupon.value}`} OFF
+                        </span>
+                      </div>
+                    )}
+                    
+                    {course.rejectionInfo && course.status === COURSE_STATUS.NEEDS_REVISION && (
+                      <div className="text-xs text-red-600 mb-1">
+                        <code className="px-1 py-0.5 rounded bg-red-50 text-red-700 text-[11px]">
+                          {course.rejectionInfo.rejectionReason}
+                        </code>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 max-w-[200px] bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all"
+                          style={{ width: `${course.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500">
+                     Last updated by {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Last modified {course.lastModified.toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
 
-              {/* Right Section: Stats + Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
-                {/* <div>
-                  <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-                    INR {(course.earnings || 0).toFixed(2)}
+                  {/* Enrollments */}
+                  <div>
+                    <div className="text-lg font-medium text-[#1e1e1e] font-['Poppins']">
+                      {course.enrollments || 0}
+                    </div>
+                    <div className="text-xs text-gray-600 font-['Nunito']">Enrollments</div>
                   </div>
-                  <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-                    Earned This Month
+
+                  {/* Ratings */}
+                  <div>
+                    <div className="flex items-center gap-0.5 mb-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          size={14} 
+                          className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                        />
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-600 font-['Poppins']">
+                      {course.ratings || 0} ratings
+                    </div>
                   </div>
-                </div> */}
-                <div>
-                  <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-                    {course.enrollments || 0}
-                  </div>
-                  <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-                    Enrollments this month
-                  </div>
-                </div>
-                
-                <div className="flex flex-row md:flex-col items-center justify-between gap-2 md:gap-4">
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEditCourse(course)}
-                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors w-full sm:w-auto"
+                      className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors"
                     >
-                      Edit / manage course
+                      Edit
                     </button>
 
-                    {/* Submit for Review Button */}
                     {canSubmitForReview(course) && (
                       <button
                         onClick={() => handleSubmitForReview(course)}
-                        className="px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors w-full sm:w-auto flex items-center gap-2"
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors"
                       >
                         <Send className="w-4 h-4" />
-                        Submit for Review
                       </button>
                     )}
 
-                    {/* Make Live Button */}
                     {canMakeLive(course) && (
-                      <button
+                      <button title="Make Course Live"
                         onClick={() => handleMakeLive(course)}
-                        className="px-3 py-2 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600 transition-colors w-full sm:w-auto flex items-center gap-2"
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600 transition-colors"
                       >
                         <Globe className="w-4 h-4" />
-                        Make Live
                       </button>
                     )}
 
-                    {/* More Actions Dropdown */}
                     <div className="relative">
                       <button
                         onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                       >
-                        <MoreHorizontal className="w-5 h-5" />
+                        <MoreHorizontal className="w-4 h-4" />
                       </button>
 
                       {openDropdownCourseId === course.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
+                        <div className="absolute right-0 mt-1 w-44 bg-white rounded shadow-lg border border-gray-200 py-1 z-10">
                           <button
                             onClick={() => {
                               handleEditCourse(course);
                               setOpenDropdownCourseId(null);
                             }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                           >
-                            <Edit3 className="w-4 h-4 mr-2" />
+                            <Edit3 className="w-3.5 h-3.5 mr-2" />
                             Edit Course
                           </button>
                           <button
@@ -627,26 +591,20 @@ export default function CourseList() {
                               handleDeleteCourse(course);
                               setOpenDropdownCourseId(null);
                             }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                            className="flex items-center w-full px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Course
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Delete
                           </button>
-                          
-                          {/* Coupon Management Options */}
                           {activeCoupons.length > 0 && (
                             <>
                               <hr className="my-1" />
                               <button
-                                onClick={() => {
-                                  // Navigate to coupon management
-                                  // handleManageCoupons(course.id);
-                                  setOpenDropdownCourseId(null);
-                                }}
-                                className="flex items-center w-full px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+                                onClick={() => setOpenDropdownCourseId(null)}
+                                className="flex items-center w-full px-3 py-1.5 text-sm text-green-600 hover:bg-green-50"
                               >
-                                <Tag className="w-4 h-4 mr-2" />
-                                Manage Coupons
+                                <Tag className="w-3.5 h-3.5 mr-2" />
+                                Coupons
                               </button>
                             </>
                           )}
@@ -654,72 +612,152 @@ export default function CourseList() {
                       )}
                     </div>
                   </div>
-                  <div className="flex">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={18} 
-                          className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                        />
+                </div>
+
+                {/* Mobile Layout */}
+                <div className="lg:hidden p-4">
+                  <div className="flex gap-3 mb-3">
+                    <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
+                      {course.thumbnail ? (
+                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                      {activeCoupons.length > 0 && (
+                        <div className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-full">
+                          {activeCoupons.length}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">{course.title}</h3>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        <span className={`px-2 py-0.5 text-[11px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                          {getStatusText(course.status)}
+                        </span>
+                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                          {course.visibility}
+                        </span>
+                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                          {course.pricing}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {course.description && (
+                    <p className="text-sm text-gray-600 mb-2">{course.description}</p>
+                  )}
+
+                  {bestCoupon && (
+                    <div className="text-xs text-green-600 mb-2">
+                      <code className="px-1 py-0.5 rounded bg-green-50 text-green-700 font-mono">
+                        {bestCoupon.code}
+                      </code>
+                      <span className="ml-1 text-green-700 font-medium">
+                        {bestCoupon.type === 'percentage' ? `${bestCoupon.value}%` : `₹${bestCoupon.value}`} OFF
+                      </span>
+                    </div>
+                  )}
+
+                  {course.rejectionInfo && course.status === COURSE_STATUS.NEEDS_REVISION && (
+                    <div className="text-xs text-red-600 mb-2">
+                      <code className="px-1 py-0.5 rounded bg-red-50 text-red-700">
+                        {course.rejectionInfo.rejectionReason}
+                      </code>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-primary h-1.5 rounded-full transition-all"
+                        style={{ width: `${course.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
+                    <span>{course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-900">{course.enrollments} enrollments</span>
+                      <div className="flex items-center gap-0.5">
+                        <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                        <span>{course.ratings}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditCourse(course)}
+                      className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50"
+                    >
+                      Edit
+                    </button>
+                    {canSubmitForReview(course) && (
+                      <button
+                        onClick={() => handleSubmitForReview(course)}
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canMakeLive(course) && (
+                      <button
+                        onClick={() => handleMakeLive(course)}
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-green-500 rounded"
+                      >
+                        <Globe className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Coupon Details */}
+                {activeCoupons.length > 1 && (
+                  <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-700">
+                        All Coupons ({activeCoupons.length})
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {activeCoupons.map((coupon) => (
+                        <div
+                          key={coupon.id}
+                          className={`bg-white border rounded px-2 py-1 text-xs flex items-center gap-2 ${
+                            coupon.isActive ? 'border-green-200' : 'border-red-200'
+                          }`}
+                        >
+                          <code className={`font-mono ${coupon.isActive ? 'text-gray-800' : 'text-red-700'}`}>
+                            {coupon.code}
+                          </code>
+                          <span className={`font-medium ${coupon.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                            {coupon.type === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`}
+                          </span>
+                          <span className="text-gray-500 text-[11px]">
+                            {coupon.usedCount}/{coupon.maxUses}
+                          </span>
+                        </div>
                       ))}
                     </div>
-                    <span className="text-[#181818] text-[12px] md:text-sm font-medium font-['Poppins'] leading-[14px] ml-1">
-                      ({course.ratings || 0} Ratings)
-                    </span>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
-            
-            {/* Expandable Coupon Details Section */}
-            {activeCoupons.length > 1 && (
-              <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium text-gray-700">
-                    All Coupons ({activeCoupons.length})
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Active</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span>Inactive</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {activeCoupons.map((coupon) => (
-                    <div
-                      key={coupon.id}
-                      className={`bg-white border rounded px-3 py-2 text-xs flex items-center gap-2 ${
-                        coupon.isActive 
-                          ? 'border-green-200' 
-                          : 'border-red-200'
-                      }`}
-                    >
-                      <code className={`font-mono ${
-                        coupon.isActive ? 'text-gray-800' : 'text-red-700'
-                      }`}>{coupon.code}</code>
-                      <span className={`font-medium ${
-                        coupon.isActive ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {coupon.type === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`} OFF
-                      </span>
-                      <span className="text-gray-500">
-                        {coupon.usedCount}/{coupon.maxUses} used
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+            );
+          })}
+        </div>
             )}
         </div>
         </div>

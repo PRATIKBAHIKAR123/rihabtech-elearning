@@ -39,6 +39,7 @@ export const savePricingData = async (data: CoursePricingData): Promise<void> =>
        const courseRef = doc(db, "courseDrafts", data.draftId);
   await setDoc(courseRef, {
     pricing: data.pricing,
+    members: data.members
   }, { merge: true });
 
   } catch (error) {

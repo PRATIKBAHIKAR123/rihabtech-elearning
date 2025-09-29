@@ -26,6 +26,7 @@ import {
   CourseHistoryEntry
 } from "./firebaseCourses";
 import { NotificationService } from "./notificationService";
+import { enrollUserInCourse } from "./paymentService";
 
 export class CourseWorkflowService {
   
@@ -50,6 +51,25 @@ export class CourseWorkflowService {
       
       const courseData = courseSnap.data() as Course;
       console.log('Course data retrieved:', courseData);
+
+if (courseData.members && Array.isArray(courseData.members)) {
+  for (const member of courseData.members) {
+    console.log('Enrolling member:', member);
+
+    try {
+      await enrollUserInCourse(
+        courseId,
+        member.email || member.id,
+        member.email || '',
+        undefined,
+        courseData?.pricing === 'free' ? 'free' : 'paid'
+      );
+      console.log(`Member enrolled successfully: ${member.email || member.id}`);
+    } catch (err) {
+      console.error(`Failed to enroll member ${member.email || member.id}:`, err);
+    }
+  }
+}
       
       // Basic validation - just check if course has a title
       if (!courseData.title || courseData.title.trim() === '') {

@@ -16,6 +16,7 @@ let isInitializing = false;
 
 const CourseTitle = () => {
    const draftId = useRef<string>(localStorage.getItem("draftId") || "");
+   const [storedDraftId, setStoredDraftId] = useState(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const { user } = useAuth();
@@ -71,6 +72,17 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
   });
 
   useEffect(() => {
+  const id = localStorage.getItem("draftId");
+  if (id !== storedDraftId) {
+    setStoredDraftId(id || "");
+    setInitializing(false);
+  setLoading(false);
+  isInitializing = false;
+  }
+}, []);
+
+  useEffect(() => {
+    if (!storedDraftId) return;
     const initializeDraft = async () => {
       // Prevent double initialization
       if (isInitializing) {
@@ -84,7 +96,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       // Check if we already have a draftId and it's not empty
       const existingDraftId = localStorage.getItem("draftId");
       if (existingDraftId && existingDraftId.trim() !== "") {
-        draftId.current = existingDraftId;
+        // draftId.current = existingDraftId;
         console.log("Using existing draftId:", existingDraftId);
         
         // Fetch existing title if draft exists
@@ -133,7 +145,7 @@ finally {
     setInitializing(false);
       setLoading(false);
     // eslint-disable-next-line
-  }, []);
+  }, [storedDraftId]);
 
   // Don't render the form while initializing
   if (initializing) {

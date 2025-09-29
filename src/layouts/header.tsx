@@ -449,17 +449,17 @@ export const MyLearningsMenu: React.FC = () => {
         {courses.map((course, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white"
+            className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white cursor-pointer hover:opacity-50"
             onClick={()=>{window.location.hash = '#/learner/my-learnings'}}
           >
             <img
               src={course.image}
               alt={course.title}
-              className="w-22 h-16 object-cover rounded-md"
+              className="w-24 h-16 object-cover rounded-md"
             />
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-              <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1">
+              <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2">
                 {course.description}
               </p>
 
