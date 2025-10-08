@@ -25,6 +25,7 @@ export interface PricingPlan {
   exclusiveContent: boolean; // For 6+ month plans
   premiumFeatures: boolean; // For annual plans
   earlyAccess: boolean; // For annual plans
+  gstRate?: number | string; // GST percentage, can be string from Firebase
   
   createdAt?: Date;
   updatedAt?: Date;

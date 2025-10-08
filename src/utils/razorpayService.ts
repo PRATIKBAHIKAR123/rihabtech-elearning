@@ -423,17 +423,28 @@ class RazorpayService {
   // Create active subscription
   private async createActiveSubscription(transactionData: any, orderId: string): Promise<string> {
     try {
+      const rawDuration = transactionData.planDuration || "";
+      const duration = rawDuration.trim().toLowerCase();
       const startDate = new Date();
-      const endDate = new Date();
+      let endDate = new Date(startDate);
 
-      // Calculate end date based on plan duration
-      const duration = transactionData.planDuration.toLowerCase();
-      if (duration.includes('month')) {
-        const months = parseInt(duration.match(/\d+/)?.[0] || '1');
-        endDate.setMonth(endDate.getMonth() + months);
-      } else if (duration.includes('year')) {
-        const years = parseInt(duration.match(/\d+/)?.[0] || '1');
-        endDate.setFullYear(endDate.getFullYear() + years);
+      // Extract numeric value if present
+      const numberMatch = duration.match(/\d+/);
+      const num = numberMatch ? parseInt(numberMatch[0], 10) : 1;
+
+      if (duration.includes("month")) {
+        endDate.setMonth(endDate.getMonth() + num);
+      } else if (duration.includes("year")) {
+        endDate.setFullYear(endDate.getFullYear() + num);
+      } else if (duration.includes("day")) {
+        // handle "120 days"
+        endDate.setDate(endDate.getDate() + num);
+      } else if (/^\d+$/.test(duration)) {
+        // pure number = days
+        endDate.setDate(endDate.getDate() + num);
+      } else {
+        // fallback: default 1 month
+        endDate.setMonth(endDate.getMonth() + 1);
       }
 
       const subscriptionData = {
@@ -452,12 +463,12 @@ class RazorpayService {
         categoryId: transactionData.categoryId,
         categoryName: transactionData.categoryName,
         orderId: orderId,
-        status: 'active',
-        startDate: startDate,
-        endDate: endDate,
+        status: "active",
+        startDate,
+        endDate,
         isActive: true,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       };
 
       const docRef = await addDoc(collection(db, this.SUBSCRIPTIONS_COLLECTION), subscriptionData);

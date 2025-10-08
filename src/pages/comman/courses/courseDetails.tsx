@@ -7,17 +7,20 @@ import Curriculum from "./coursecurriculam";
 import CartModal from "../../../modals/cartModal";
 import CheckoutModal from "../../../components/ui/CheckoutModal";
 import CoursePreviewModal from "../../../modals/coursePreviewModal";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, act } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
-import { Course, calculateCourseDuration } from "../../../utils/firebaseCourses";
+import { COURSE_STATUS, Course, calculateCourseDuration } from "../../../utils/firebaseCourses";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../../../context/AuthContext";
 import { enrollUserInCourse, isUserEnrolledInCourse } from "../../../utils/paymentService";
 import { toast } from "sonner";
 import { InstructorData } from "../../../utils/firebaseInstructorData";
+import { useSubscription } from "../../../context/subscriptionContext";
+import { useLocation } from "react-router-dom";
+import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
 
 // Extended Course interface with additional properties from Firebase
 interface ExtendedCourse extends Omit<Course, 'requirements'> {
@@ -39,20 +42,28 @@ export default function CourseDetails() {
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const [instructor, setInstructor] = useState<InstructorData | null>(null);
+const [activePlan, setActivePlan] = useState<Subscription | null>(null);
+  const location = useLocation();
 
   // Get course ID from multiple sources
-  const { courseId } = useParams<{ courseId: string }>();
+   const { courseId } = useParams();
+   const [sectionIndex, setsectionIndex] = useState<number | null>(null);
 
   // Function to extract course ID from URL hash or query parameters
   const getCourseIdFromURL = (): string | null => {
     // First try useParams
     if (courseId) return courseId;
-
+  
     // Try to get from URL hash (e.g., #/courseDetails?courseId=123)
     const hash = window.location.hash;
     if (hash.includes('?')) {
       const queryString = hash.split('?')[1];
-      const urlParams = new URLSearchParams(queryString);
+      const courseIdQueryString = queryString.split('/')[0];
+      const lectureIndexQueryString = queryString.split('/')[1];
+      const urlParams = new URLSearchParams(courseIdQueryString);
+      const lectureParams = new URLSearchParams(lectureIndexQueryString);
+      const sectionIndexParam = lectureParams.get("sectionIndex");
+      setsectionIndex(sectionIndexParam ? parseInt(sectionIndexParam, 10) : null);
       return urlParams.get('courseId');
     }
 
@@ -67,7 +78,7 @@ export default function CourseDetails() {
       const coursesRef = collection(db, "courseDrafts");
       const coursesQuery = query(
         coursesRef,
-        where("status", "==", "approved"),
+        where("status", "==", COURSE_STATUS.PUBLISHED),
         where("isPublished", "==", true)
       );
 
@@ -104,49 +115,54 @@ export default function CourseDetails() {
     }
   };
 
-  // Fetch course data from Firebase
-  useEffect(() => {
-    const fetchCourse = async () => {
-      const extractedCourseId = getCourseIdFromURL();
+useEffect(() => {
+  const run = async () => {
+    try {
+      if (user) {
+        const sub = await getUserActiveSubscription(user.email || user.uid);
+        setActivePlan(sub);
+      }
 
+      // remove redirect key (optional: only if we’re on the right page)
+      localStorage.removeItem("redirectAfterSubscription");
+
+      const extractedCourseId = getCourseIdFromURL();
       if (!extractedCourseId) {
-        // No course ID provided, fetch available courses instead
         await fetchAvailableCourses();
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        const courseRef = doc(db, "courseDrafts", extractedCourseId);
-        const courseSnap = await getDoc(courseRef);
+      setLoading(true);
+      const courseRef = doc(db, "courseDrafts", extractedCourseId);
+      const courseSnap = await getDoc(courseRef);
 
-        if (courseSnap.exists()) {
-          const courseData = courseSnap.data() as ExtendedCourse;
-          const courseWithId = {
-            ...courseData,
-            id: courseSnap.id,
-            requirements: courseData.requirements || []
-          };
-          setCourse(courseWithId);
+      if (courseSnap.exists()) {
+        const courseData = courseSnap.data() as ExtendedCourse;
+        const courseWithId = {
+          ...courseData,
+          id: courseSnap.id,
+          requirements: courseData.requirements || [],
+        };
+        setCourse(courseWithId);
 
-          // Check enrollment status
-          if (user) {
-            await checkEnrollmentStatus(courseWithId.id);
-          }
-        } else {
-          setError("Course not found");
+        if (user) {
+          await checkEnrollmentStatus(courseWithId.id);
         }
-      } catch (err) {
-        console.error("Error fetching course:", err);
-        setError("Failed to load course");
-      } finally {
-        setLoading(false);
+      } else {
+        setError("Course not found");
       }
-    };
+    } catch (err) {
+      console.error("Error fetching course:", err);
+      setError("Failed to load course");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchCourse();
-  }, [courseId, user]);
+  run();
+}, [location, user]); // only depend on location + user
+
 
   // Function to count students (members with student role)
   const countStudents = (members?: Course['members']): number => {
@@ -318,9 +334,19 @@ if (course?.pricing === "paid") {
 
     window.location.hash = `#/learner/current-course?courseId=${course?.id}`;
   };
+    const handleSubscribeNow = async () => {
+    if (!user) {
+      toast.error('Please log in to subscribe');
+      window.location.hash = '#/login';
+      return;
+    }
+    localStorage.setItem('redirectAfterSubscription', window.location.hash?? `#/courseDetails?courseId=${course?.id}`);
+    window.location.hash = '#/pricing';
+  };
 
   // Get button text and action
 const getButtonConfig = () => {
+  console.log('activePlan:', activePlan);
   const pricing = course?.pricing?.toLowerCase();
 
   if (authLoading) {
@@ -356,6 +382,15 @@ const getButtonConfig = () => {
     return {
       text: "Go to Course",
       action: handleGoToCourse,
+      disabled: false,
+      variant: "default" as const
+    };
+  }
+
+  if (!activePlan) {
+    return {
+      text: "Enroll Now",
+      action: handleSubscribeNow,
       disabled: false,
       variant: "default" as const
     };
@@ -549,7 +584,7 @@ const getButtonConfig = () => {
 
           {/* Left: Tabs Section */}
           <div className="w-full lg:w-2/3">
-            <Tabs defaultValue="overview" className="w-full custom-tabs">
+            <Tabs defaultValue={sectionIndex?"curriculum":"overview"} className="w-full custom-tabs">
               <TabsList className="custom-tabs-list overflow-x-scroll overflow-y-hidden md:overflow-x-auto">
                 <TabsTrigger value="overview" className="custom-tab-trigger">Overview</TabsTrigger>
                 <TabsTrigger value="curriculum" className="custom-tab-trigger">Curriculum</TabsTrigger>
@@ -644,7 +679,7 @@ const getButtonConfig = () => {
               </TabsContent>
 
               <TabsContent value="curriculum" className="py-4">
-                <Curriculum course={course} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
+                <Curriculum course={course} lectureIndex={sectionIndex??undefined} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
               </TabsContent>
 
               <TabsContent value="instructor" className="py-4">

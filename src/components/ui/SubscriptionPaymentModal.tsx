@@ -162,7 +162,7 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
       const pricing = calculatePricingBreakdown();
       
       const paymentData: SubscriptionPaymentData = {
-        userId: user?.uid || '',
+        userId: user?.email || '',
         userEmail: userInfo.email,
         userName: userInfo.name,
         userPhone: userInfo.phone,
@@ -187,6 +187,26 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
 
       // Open Razorpay checkout
       const Razorpay = (window as any).Razorpay;
+
+      options.handler = async function (response: any) {
+  try {
+    await razorpayService.handlePaymentSuccess(transactionId, response);
+    toast.success('Payment successful! Your subscription is now active.');
+    onSuccess();
+    onClose();
+
+    const redirectUrl = localStorage.getItem('redirectAfterSubscription');
+    if (redirectUrl) {
+      window.location.hash = redirectUrl;
+      // localStorage.removeItem('redirectAfterSubscription'); // cleanup
+    } else {
+      window.location.hash = '#/learner/homepage'; // fallback (home)
+    }
+  } catch (error) {
+    console.error('Payment success handling error:', error);
+    toast.error('Payment processed but error activating your subscription. Please contact support.');
+  }
+};
       const razorpay = new Razorpay(options);
       
       razorpay.on('payment.success', async (response: any) => {
@@ -195,6 +215,14 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
           toast.success('Payment successful! Your subscription is now active.');
           onSuccess();
           onClose();
+            const redirectUrl = localStorage.getItem('redirectAfterSubscription');
+
+        if (redirectUrl) {
+            window.location.hash = redirectUrl;
+            localStorage.removeItem('redirectAfterSubscription'); // cleanup
+        } else {
+            window.location.hash = '#/learner/dashboard'; // fallback (home)
+        }
         } catch (error) {
           console.error('Payment success handling error:', error);
           toast.error('Payment processed but there was an error activating your subscription. Please contact support.');

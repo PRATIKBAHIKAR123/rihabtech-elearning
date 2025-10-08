@@ -1,5 +1,7 @@
-import { collection, doc, getDocs, query, setDoc, where, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, where, getDoc, deleteDoc  } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
 
 export interface UnifiedCoupon {
   // Common fields
@@ -67,31 +69,45 @@ export const saveCouponToFirebase = async (couponData: UnifiedCoupon) => {
 };
 
 // Query functions for different coupon types
-// export const getAdminCoupons = async () => {
-//   const q = query(
-//     collection(db, 'coupons'), 
-//     where('creatorType', '==', 'admin')
-//   );
-//   const querySnapshot = await getDocs(q);
-//   return querySnapshot.docs.map(d => {
-//     const data = d.data() as any;
-//     // Normalize to Date for UI convenience
-//     const parseDateField = (v: any) => {
-//       if (!v) return v;
-//       if (typeof v === 'number') return new Date(v);
-//       if (v.toDate && typeof v.toDate === 'function') return v.toDate();
-//       if (typeof v === 'string') return new Date(v);
-//       return v;
-//     };
-//     return {
-//       ...data,
-//       createdAt: parseDateField(data.createdAt),
-//       updatedAt: parseDateField(data.updatedAt),
-//       validFrom: parseDateField(data.validFrom),
-//       validUntil: parseDateField(data.validUntil),
-//     } as UnifiedCoupon;
-//   });
-// };
+export const getAdminCoupons = async () => {
+  const now = firebase.firestore.Timestamp.now(); // Firestore timestamp (server-style)
+
+  // Query coupons that are not expired
+  const q = query(
+    collection(db, "coupons"),
+    where("creatorType", "==", "admin"),
+    where("validUntil", ">=", now) // ensure coupon not expired
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  const coupons = querySnapshot.docs.map((d) => {
+    const data = d.data() as any;
+
+    const parseDateField = (v: any) => {
+      if (!v) return v;
+      if (typeof v === "number") return new Date(v);
+      if (v.toDate && typeof v.toDate === "function") return v.toDate();
+      if (typeof v === "string") return new Date(v);
+      return v;
+    };
+
+    return {
+      ...data,
+      id: d.id,
+      createdAt: parseDateField(data.createdAt),
+      updatedAt: parseDateField(data.updatedAt),
+      validFrom: parseDateField(data.validFrom),
+      validUntil: parseDateField(data.validUntil),
+    } as UnifiedCoupon;
+  });
+
+  // Additional check: only keep coupons that have already started
+  const nowDate = new Date();
+  return coupons.filter(
+    (c) => c.validFrom && c.validUntil && c.validFrom <= nowDate && c.validUntil >= nowDate
+  );
+};
 
 export const getInstructorCoupons = async (instructorId: string,CourseId?: string) => {
   let q;

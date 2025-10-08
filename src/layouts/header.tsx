@@ -11,6 +11,7 @@ import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
 import { getCategories, getSubCategories } from "../utils/firebaseCategory";
 import { LearnerCourse, learnerService } from "../utils/learnerService";
+import { getUserActiveSubscription, Subscription } from "../utils/subscriptionService";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -30,7 +31,23 @@ const countdown = useCountdown(subscriptionEndTimestamp);
 const { user } = useAuth();
 const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 const isAuthenticated = !!user || !!token;
+const [activePlan, setActivePlan] = useState<Subscription | null>(null);
 
+
+useEffect(() => {
+  
+
+  const getSubcription= async () => {
+  if (user) {
+    const data = getUserActiveSubscription(user.email||user.uid);
+    data.then((sub) => {
+      setActivePlan(sub);
+    });
+  }
+};
+  getSubcription();
+
+}, [user]);
 
   return (
     <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
@@ -92,6 +109,7 @@ const isAuthenticated = !!user || !!token;
             <a href="#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
           )}
         </nav>
+        
 
         <div className="hidden md:block relative flex-grow">
           {/* <Search className="absolute top-1/4 left-4" size={22} />
@@ -122,10 +140,20 @@ const isAuthenticated = !!user || !!token;
           )}
         </div>
         {isAuthenticated && (
+          <div className="flex items-center space-x-2">
+            {activePlan && (
+    <div className="hidden md:flex flex-col items-center px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm font-medium text-blue-700">
+      <span className="mr-2"> {activePlan.planName}</span>
+      <span className="text-gray-600">
+        valid till {activePlan.endDate.toDateString()}
+      </span>
+    </div>
+  )}
           <div className="flex items-center">
             <MyCartMenu />
             <NotificationsDialog/>
             <ProfileMenu />
+          </div>
           </div>
         )}
 

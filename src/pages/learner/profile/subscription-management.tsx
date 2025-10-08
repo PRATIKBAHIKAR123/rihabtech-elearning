@@ -11,6 +11,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { formatAmount } from "../../../lib/razorpay";
 import { db } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { selectSubscription } from "../../../utils/subscriptionService";
 
 interface SubscriptionData {
   id: string;
@@ -41,6 +42,25 @@ const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+
+    useEffect(() => {
+    if (subscriptions.length > 0) {
+      const activePlans = subscriptions.filter((sub) => sub.status === "active" && sub.isActive);
+      if (activePlans.length > 0 && !selectedPlanId) {
+        setSelectedPlanId(activePlans[0].id);
+      }
+    }
+  }, [subscriptions, selectedPlanId]);
+
+    const handleSelectPlan = async (planId: string) => {
+    setSelectedPlanId(planId);
+
+    const data = await selectSubscription(user?.email??"",planId);
+    
+
+    toast.success("Plan selected successfully!");
+  };
 
   const loadSubscriptions = useCallback(async () => {
     if (!user?.email) return;
@@ -230,10 +250,14 @@ const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {subscriptions.map((subscription) => (
+            {subscriptions.map((subscription) => {
+              const isSelected = selectedPlanId === subscription.id;
+              return(
               <div
                 key={subscription.id}
-                className="border border-gray-200 rounded-lg p-4"
+                className={`border rounded-lg p-4 transition ${
+                    isSelected ? "border-[#ff7700] shadow-md" : "border-gray-200"
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-lg">
@@ -300,8 +324,27 @@ const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     </span>
                   </div>
                 )}
+                {subscription.status === "active" && subscription.isActive && (
+                    <div className="mt-3 flex justify-end">
+                      {isSelected ? (
+                        <button
+                          disabled
+                          className="bg-gray-300 text-gray-700 py-1 px-4 rounded-full text-sm font-medium cursor-not-allowed"
+                        >
+                          Selected
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSelectPlan(subscription.id)}
+                          className="bg-[#ff7700] hover:bg-[#e55e00] text-white py-1 px-4 rounded-full text-sm font-medium"
+                        >
+                          Select Plan
+                        </button>
+                      )}
+                    </div>
+                  )}
               </div>
-            ))}
+            );})}
           </div>
         )}
       </div>

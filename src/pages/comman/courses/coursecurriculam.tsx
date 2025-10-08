@@ -21,10 +21,12 @@ interface Section {
 interface CurriculumProps {
   course: Course;
   onPreviewCourse?: () => void;
+  lectureIndex?: number;
+  sectionIndex?: number;
 }
 
-export default function Curriculum({ course, onPreviewCourse }: CurriculumProps) {
-  const [openSections, setOpenSections] = useState<number[]>([0]);
+export default function Curriculum({ course, onPreviewCourse,lectureIndex,sectionIndex }: CurriculumProps) {
+  const [openSections, setOpenSections] = useState<number[]>([lectureIndex ?? -1].filter(i => i >= 0));
 
   const toggleSection = (index: number) => {
     setOpenSections((prev) =>

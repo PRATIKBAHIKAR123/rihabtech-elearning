@@ -26,6 +26,7 @@ import ProtectedRoute from "./components/ui/ProtectedRoute";
 import InstructorSignupSuccess from "./pages/auth/instructorSignupSuccess";
 import VerifyResetOtpPage from "./pages/auth/verify-reset-otp";
 import ResetPasswordPage from "./pages/auth/reset-password";
+import { SubscriptionProvider } from "./context/subscriptionContext";
 
 function App() {
   useEffect(() => {
@@ -38,6 +39,7 @@ function App() {
     });
   }, []);
   return (
+    <SubscriptionProvider>
     <Router>
       <ScrollToTop />
       <Routes>
@@ -169,6 +171,7 @@ function App() {
         />
       </Routes>
     </Router>
+    </SubscriptionProvider>
   );
 }
 

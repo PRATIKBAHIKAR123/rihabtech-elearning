@@ -116,8 +116,16 @@ class CouponService {
       }
 
       // Check category restrictions
-      if (coupon.categories && coupon.categories.length > 0 && categories) {
-        const hasMatchingCategory = categories.some(cat => coupon.categories!.includes(cat));
+      if (coupon.categories && coupon.categories.length > 0 && categories && categories.length > 0) {
+        // Normalize both arrays to lowercase and trim spaces
+        const normalizedCouponCategories = coupon.categories.map((c: string) => c.toLowerCase().trim());
+        const normalizedCategories = categories.map((c: string) => c.toLowerCase().trim());
+
+        // If user has selected "All", skip category restriction check
+        const isAllSelected = normalizedCategories.includes('all');
+
+        const hasMatchingCategory = isAllSelected || normalizedCategories.some(cat => normalizedCouponCategories.includes(cat));
+
         if (!hasMatchingCategory) {
           return {
             isValid: false,
@@ -258,8 +266,12 @@ class CouponService {
             const alreadyUsed = await this.checkCouponUsage(coupon.id, userId);
             if (!alreadyUsed) {
               // Check category restrictions
-              if (!coupon.categories || coupon.categories.length === 0 ||
-                (categories && categories.some(cat => coupon.categories!.includes(cat)))) {
+              if (
+                !coupon.categories ||
+                coupon.categories.length === 0 ||
+                !categories || categories.includes('all') ||
+                categories.some(cat => coupon.categories!.includes(cat))
+              ) {
                 availableCoupons.push(coupon);
               }
             }

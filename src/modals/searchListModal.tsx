@@ -166,7 +166,14 @@ export default function SearchWithPopup() {
     } else {
       setSearchtext(result.course.title || '');
     }
+    console.log('Navigating to course details for course ID:', result);
+    if(result.matchedLecture?.sectionName){
+      const sectionIndex = result.course.curriculum?.sections.findIndex((sec: any) => sec.name === result.matchedLecture?.sectionName) || 0; 
+      window.location.href = `#/courseDetails?courseId=${result.course?.id}/sectionIndex=${sectionIndex}`;
+    }
+    else{
     window.location.href = `#/courseDetails?courseId=${result.course?.id}`;
+    }
   };
 
   const handleClearSearch = () => {

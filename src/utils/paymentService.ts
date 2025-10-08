@@ -242,6 +242,7 @@ const updateCourseMemberCount = async (
         
         await updateDoc(courseRef, {
           members: [...currentMembers, newMember],
+          students: (courseData?.students || 0) + 1,
           updatedAt: serverTimestamp(),
         });
       }

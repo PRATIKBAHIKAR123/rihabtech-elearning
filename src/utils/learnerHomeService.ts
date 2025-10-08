@@ -39,69 +39,82 @@ interface EnrollmentData {
 // Get enrolled courses for the current learner
 export const getLearnerEnrolledCourses = async (learnerId: string): Promise<HomepageCourse[]> => {
   try {
-    // Get enrollments for the learner
+    // Get enrollments
     const enrollmentsRef = collection(db, "studentEnrollments");
-    const enrollmentsQuery = query(
-      enrollmentsRef,
-      where("studentId", "==", learnerId),
-      //where("isActive", "==", true)
-    );
-    
+    const enrollmentsQuery = query(enrollmentsRef, where("studentId", "==", learnerId));
     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
     const enrollments = enrollmentsSnapshot.docs.map(doc => {
       const data = doc.data() as any;
-      return {
-        id: doc.id,
-        ...data
-      };
+      return { id: doc.id, ...data };
     }) as EnrollmentData[];
-    
-    // Get course data for each enrollment
+
     const enrolledCourses: HomepageCourse[] = [];
-    
+
     for (const enrollment of enrollments) {
       try {
+        // Fetch course details
         const courseRef = doc(db, "courseDrafts", enrollment.courseId);
         const courseDoc = await getDoc(courseRef);
-        
+
         if (courseDoc.exists()) {
           const courseData = courseDoc.data() as Course;
-          
+
+          // Fetch student progress for this course
+          const progressRef = collection(db, "studentProgress");
+          const progressQuery = query(
+            progressRef,
+            where("studentId", "==", learnerId),
+            where("courseId", "==", enrollment.courseId)
+          );
+          const progressSnap = await getDocs(progressQuery);
+
+          let progressPercent = 0;
+
+          if (!progressSnap.empty) {
+  const progressData = progressSnap.docs[0].data() as any;
+  progressPercent = calculateProgress(progressData);
+  console.log("calculated progress:", progressPercent, progressData);
+}
+
           enrolledCourses.push({
             id: courseData.id || courseDoc.id,
             title: courseData.title,
             description: courseData.description,
             students: courseData.members?.length || 0,
-            duration: Math.ceil((courseData.curriculum?.sections?.length || 0) * 1.5), // Estimate weeks
-            progress: enrollment.progress || 0, // Use enrollment progress
+            duration: Math.ceil((courseData.curriculum?.sections?.length || 0) * 1.5),
+            progress: progressPercent, // ✅ now correct
             image: courseData.thumbnailUrl || "Images/courses/default-course.jpg",
             category: courseData.category,
-            instructor: (courseData as any).instructorId || courseData.members?.find(m => m.role === 'instructor')?.email || 'Unknown',
-            price: courseData.pricing?courseData.pricing:'free'
+            instructor:
+              (courseData as any).instructorId ||
+              courseData.members?.find(m => m.role === "instructor")?.email ||
+              "Unknown",
+            price: courseData.pricing ? courseData.pricing : "free",
           });
         }
       } catch (error) {
         console.error(`Error fetching course ${enrollment.courseId}:`, error);
-        // Continue with other courses
       }
     }
-    
-    // Sort by last accessed (most recent first)
+
+    // Sort by last accessed
     return enrolledCourses.sort((a, b) => {
       const enrollmentA = enrollments.find(e => e.courseId === a.id);
       const enrollmentB = enrollments.find(e => e.courseId === b.id);
-      
+
       if (enrollmentA?.lastAccessedAt && enrollmentB?.lastAccessedAt) {
         return enrollmentB.lastAccessedAt.toMillis() - enrollmentA.lastAccessedAt.toMillis();
       }
       return 0;
     });
-    
   } catch (error) {
     console.error("Error getting enrolled courses:", error);
     return [];
   }
 };
+
+
 
 // Get recommended courses based on learner's interests and enrolled courses
 export const getRecommendedCourses = async (learnerId: string, limitCount: number = 12): Promise<HomepageCourse[]> => {
@@ -373,3 +386,20 @@ export const getLearnerHomeData = async (learnerId: string): Promise<LearnerHome
     };
   }
 };
+
+export function calculateProgress(progressData: any): number {
+  const totalLectures = progressData?.totalLectures || 0;
+
+  let completedLecturesCount = 0;
+  if (Array.isArray(progressData?.completedLectures)) {
+    // Case: array of completed lecture indices
+    completedLecturesCount = progressData.completedLectures.length;
+  } else if (progressData?.completedLectures && typeof progressData.completedLectures === "object") {
+    // Case: object of arrays (per section)
+    completedLecturesCount = Object.values(progressData.completedLectures).flat().length;
+  }
+
+  return totalLectures > 0
+    ? Math.round((completedLecturesCount / totalLectures) * 100)
+    : 0;
+}

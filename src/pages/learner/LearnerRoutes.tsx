@@ -33,6 +33,12 @@ export default function LearnerRoutes() {
       <CourseDetails />
   }
 />
+<Route
+  path="/courseDetails/:courseId/:sectionIndex"
+  element={
+      <CourseDetails />
+  }
+/>
       <Route path="quiz" element={<QuizWrapper />} />
       <Route path="shopping-cart" element={<ShoppingCart />} />
       <Route path="chat" element={<ChatInterface />} />

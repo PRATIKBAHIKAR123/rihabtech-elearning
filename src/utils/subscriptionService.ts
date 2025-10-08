@@ -8,7 +8,8 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 
 export interface Subscription {
@@ -27,6 +28,7 @@ export interface Subscription {
   updatedAt: Date;
   orderId?: string;
   stripeSubscriptionId?: string;
+  isSelected?: boolean;
 }
 
 export interface SubscriptionOrder {
@@ -179,7 +181,9 @@ export const getUserActiveSubscription = async (userId: string): Promise<Subscri
     const activeSubscriptionQuery = query(
       subscriptionsRef,
       where('userId', '==', userId),
-      where('status', '==', 'active')
+      // where('isSelected', '==', true),
+      where('status', '==', 'active'),
+      
     );
 
     const querySnapshot = await getDocs(activeSubscriptionQuery);
@@ -188,11 +192,36 @@ export const getUserActiveSubscription = async (userId: string): Promise<Subscri
       return null;
     }
 
-    const doc = querySnapshot.docs[0];
-    const data = doc.data() as any;
+    const doc = querySnapshot.docs;
+    if(doc.length > 1) {
+      for(const d of doc) {
+        const data = d.data() as any;
+        if(data.isSelected) {
+          return {
+            id: d.id,
+            ...data, 
+            startDate: data?.startDate?.toDate() || new Date(),
+            endDate: data?.endDate?.toDate() || new Date(),
+            createdAt: data?.createdAt?.toDate() || new Date(),
+            updatedAt: data?.updatedAt?.toDate() || new Date(),
+          } as Subscription;
+        }
+      }
+      // If none is selected, return the first one
+      const data = doc[0].data() as any;
+      return {
+        id: doc[0].id,
+        ...data,
+        startDate: data?.startDate?.toDate() || new Date(),
+        endDate: data?.endDate?.toDate() || new Date(),
+        createdAt: data?.createdAt?.toDate() || new Date(),
+        updatedAt: data?.updatedAt?.toDate() || new Date(),
+      } as Subscription;
+    }
 
+        const data = doc[0].data() as any;
     return {
-      id: doc.id,
+      id: doc[0].id,
       ...data,
       startDate: data?.startDate?.toDate() || new Date(),
       endDate: data?.endDate?.toDate() || new Date(),
@@ -293,5 +322,28 @@ export const hasActiveSubscription = async (userId: string): Promise<boolean> =>
   } catch (error) {
     console.error('Error checking subscription status:', error);
     return false;
+  }
+};
+
+export const selectSubscription = async (userId: string, subscriptionId: string): Promise<void> => {
+  try {
+    // Step 1: Get all active subscriptions of this user
+    const subscriptionsRef = collection(db, 'subscriptions');
+    const q = query(subscriptionsRef, where('userId', '==', userId), where('status', '==', 'active'));
+    const snapshot = await getDocs(q);
+
+    // Step 2: Unselect all
+    const batch = writeBatch(db);
+    snapshot.forEach((docSnap) => {
+      const subRef = doc(db, 'subscriptions', docSnap.id);
+      batch.update(subRef, { isSelected: docSnap.id === subscriptionId });
+    });
+
+    // Step 3: Commit
+    await batch.commit();
+    console.log('Subscription selection updated!');
+  } catch (error) {
+    console.error('Error selecting subscription:', error);
+    throw new Error('Failed to select subscription');
   }
 };

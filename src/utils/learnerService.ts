@@ -1,5 +1,6 @@
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
+import { calculateProgress } from './learnerHomeService';
 
 export interface LearnerCourse {
   id: string;
@@ -76,37 +77,54 @@ class LearnerService {
       });
 
       for (const enrollmentDoc of sortedEnrollments) {
-        const enrollmentData = enrollmentDoc.data() as any;
-        
-        // Get course details
-        const courseDoc = await getDoc(doc(db, 'courseDrafts', enrollmentData?.courseId));
-        if (courseDoc.exists()) {
-          const courseData = courseDoc.data() as any;
-          
-          // Debug logging for course data
-          console.log('LearnerService - Course data for ID:', enrollmentData?.courseId, courseData);
-          console.log('LearnerService - thumbnailUrl:', courseData?.thumbnailUrl);
-          console.log('LearnerService - thumbnail:', courseData?.thumbnail);
-          
-          courses.push({
-            id: courseDoc.id,
-            title: courseData?.title || 'Untitled Course',
-            description: courseData?.description || 'No description available',
-            students: courseData?.studentsCount || 0,
-            duration: courseData?.duration || 0,
-            progress: enrollmentData?.progress || 0,
-            price: courseData?.pricing,
-            originalPrice: courseData?.originalPrice || undefined,
-            image: courseData?.thumbnailUrl || 'Images/courses/course 4.jpg',
-            category: courseData?.category || 'General',
-            instructor: courseData?.instructorName || 'Unknown Instructor',
-            rating: courseData?.rating || 0,
-            enrollmentDate: enrollmentData?.enrolledAt,
-            lastAccessed: enrollmentData?.lastAccessedAt,
-            completionPercentage: enrollmentData?.progress || 0
-          });
-        }
-      }
+  const enrollmentData = enrollmentDoc.data() as any;
+
+  // Fetch progress document for this course+student
+  const progressQuery = query(
+    collection(db, "studentProgress"),
+    where("courseId", "==", enrollmentData?.courseId),
+    where("studentId", "==", enrollmentData?.studentId)
+  );
+  const progressSnap = await getDocs(progressQuery);
+
+  let progressPercent = 0;
+  if (!progressSnap.empty) {
+  const progressData = progressSnap.docs[0].data() as any;
+  progressPercent = calculateProgress(progressData);
+  console.log("calculated progress:", progressPercent, progressData);
+}
+
+  // Get course details
+  const courseDoc = await getDoc(doc(db, "courseDrafts", enrollmentData?.courseId));
+  if (courseDoc.exists()) {
+    const courseData = courseDoc.data() as any;
+
+    // Debug logging
+    console.log(
+      "LearnerService - Course data for ID:",
+      enrollmentData?.courseId,
+      courseData
+    );
+
+    courses.push({
+      id: courseDoc.id,
+      title: courseData?.title || "Untitled Course",
+      description: courseData?.description || "No description available",
+      students: courseData?.studentsCount || 0,
+      duration: courseData?.duration || 0,
+      progress: progressPercent, // ✅ use calculated progress here
+      price: courseData?.pricing,
+      originalPrice: courseData?.originalPrice || undefined,
+      image: courseData?.thumbnailUrl || "Images/courses/course 4.jpg",
+      category: courseData?.category || "General",
+      instructor: courseData?.instructorName || "Unknown Instructor",
+      rating: courseData?.rating || 0,
+      enrollmentDate: enrollmentData?.enrolledAt,
+      lastAccessed: enrollmentData?.lastAccessedAt,
+      completionPercentage: progressPercent, // ✅ also use here
+    });
+  }
+}
 
       return courses;
     } catch (error) {
