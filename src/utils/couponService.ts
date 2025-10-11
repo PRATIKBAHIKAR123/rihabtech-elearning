@@ -42,6 +42,7 @@ export interface CouponUsage {
   finalAmount: number;
   subscriptionId?: string;
   courseId?: string;
+  planId?: string;
 }
 
 class CouponService {
@@ -198,7 +199,8 @@ class CouponService {
     discountAmount: number,
     finalAmount: number,
     subscriptionId?: string,
-    courseId?: string
+    courseId?: string,
+    planId?: string
   ): Promise<boolean> {
     try {
       const usage: Omit<CouponUsage, 'id'> = {
@@ -210,7 +212,8 @@ class CouponService {
         discountAmount,
         finalAmount,
         subscriptionId,
-        courseId
+        courseId,
+        planId
       };
 
       // Record usage

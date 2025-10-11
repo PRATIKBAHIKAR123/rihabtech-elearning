@@ -8,12 +8,14 @@ import { initializeRazorpay, formatAmount } from '../../lib/razorpay';
 import { PricingPlan } from '../../utils/pricingService';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import { Coupon, couponService } from '../../utils/couponService';
 
 interface SubscriptionPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   plan: PricingPlan;
+  selectedCategory?: string;
   userDetails?: {
     name: string;
     email: string;
@@ -44,22 +46,34 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
   onClose,
   onSuccess,
   plan,
+  selectedCategory = "all",
   userDetails
 }) => {
   const { user } = useAuth();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
-  const [phoneCountry, setPhoneCountry] = useState('IN'); // Default to India
+  const [phoneCountry, setPhoneCountry] = useState('IN');
   const [userInfo, setUserInfo] = useState({
     name: userDetails?.name || user?.displayName || '',
     email: userDetails?.email || user?.email || '',
     phone: userDetails?.phone || ''
   });
 
+  // Coupon states
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
+  const [isCouponValidating, setIsCouponValidating] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
+  const [showCouponsModal, setShowCouponsModal] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [appliedCouponCode, setAppliedCouponCode] = useState("");
+  const [couponId, setCouponId] = useState("");
+
   useEffect(() => {
     if (isOpen) {
       loadRazorpay();
+      loadAvailableCoupons();
     }
   }, [isOpen]);
 
@@ -70,6 +84,64 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
     } catch (error) {
       console.error('Failed to load Razorpay:', error);
       toast.error('Failed to load payment gateway');
+    }
+  };
+
+  const loadAvailableCoupons = async () => {
+    try {
+      const coupons = await couponService.getAvailableCoupons(
+        user?.email || user?.uid || "", 
+        [selectedCategory]
+      );
+      setAvailableCoupons(coupons || []);
+    } catch (err) {
+      console.error('Error loading coupons:', err);
+    }
+  };
+
+  const validateCoupon = async (codeToApply?: string) => {
+    const code = (codeToApply || couponCode).trim();
+    if (!code) {
+      setCouponMessage("Please enter a coupon code.");
+      return;
+    }
+
+    if (!userInfo.email) {
+      toast.error("Please enter your email first");
+      return;
+    }
+
+    setIsCouponValidating(true);
+    setCouponMessage("");
+
+    try {
+      const response = await couponService.validateCoupon(
+        code,
+        plan.totalAmount ?? 0,
+        userInfo.email,
+        [plan.categoryId ?? ""]
+      );
+
+      if (!response?.isValid) {
+        setCouponMessage(response?.message || "Invalid coupon code.");
+        setCouponDiscount(0);
+        setAppliedCouponCode("");
+        return;
+      }
+
+      const discountAmt = response.discountAmount ?? 0;
+      
+      setCouponDiscount(discountAmt);
+      setAppliedCouponCode(code);
+      setCouponMessage(`Coupon applied! You saved ₹${discountAmt.toFixed(2)}`);
+      toast.success("Coupon applied successfully");
+    } catch (err) {
+      console.error('Coupon validation error:', err);
+      setCouponMessage("Failed to apply coupon. Try again.");
+      setCouponDiscount(0);
+      setAppliedCouponCode("");
+    } finally {
+      setIsCouponValidating(false);
     }
   };
 
@@ -97,7 +169,6 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
       toast.error('Please enter a valid email address');
       return false;
     }
-    // Validate international phone number (should have country code and be at least 10 digits)
     const phoneDigits = userInfo.phone.replace(/\D/g, '');
     if (phoneDigits.length < 10) {
       toast.error('Please enter a valid phone number');
@@ -107,45 +178,32 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
   };
 
   const calculatePricingBreakdown = () => {
-    // Use the same logic as the pricing service to handle totalAmount when basePrice is 0
     const totalAmount = (plan as any).totalAmount || 0;
-    const basePrice = plan.basePrice || 0;
-    
-    console.log('Payment Modal - Pricing calculation for plan:', plan.name);
-    console.log('Payment Modal - Original basePrice:', basePrice);
-    console.log('Payment Modal - Total amount:', totalAmount);
-    console.log('Payment Modal - Tax percentage:', plan.taxPercentage);
-    
-    // If basePrice is 0 but totalAmount exists, calculate basePrice from totalAmount
-    let calculatedBasePrice = basePrice;
-    if (basePrice === 0 && totalAmount > 0) {
-      // Reverse calculate basePrice from totalAmount
-      // totalAmount = basePrice + (basePrice * taxPercentage / 100)
-      // totalAmount = basePrice * (1 + taxPercentage / 100)
-      // basePrice = totalAmount / (1 + taxPercentage / 100)
-      calculatedBasePrice = totalAmount / (1 + plan.taxPercentage / 100);
-      console.log('Payment Modal - Calculated basePrice from totalAmount:', calculatedBasePrice);
-    }
-    
-    const taxAmount = (calculatedBasePrice * plan.taxPercentage) / 100;
-    const platformFee = (calculatedBasePrice * plan.platformFeePercentage) / 100;
-    const instructorShare = calculatedBasePrice - platformFee;
-    const finalTotalAmount = totalAmount > 0 ? totalAmount : calculatedBasePrice + taxAmount;
+    let basePrice = plan.basePrice || 0;
 
-    console.log('Payment Modal - Final pricing breakdown:', {
-      baseAmount: calculatedBasePrice,
-      taxAmount,
-      platformFee,
-      instructorShare,
-      totalAmount: finalTotalAmount
-    });
+    if (basePrice === 0 && totalAmount > 0) {
+      basePrice = totalAmount / (1 + plan.taxPercentage / 100);
+    }
+
+    // Apply coupon discount to base price
+    let finalBaseAmount = basePrice;
+    if (couponDiscount > 0) {
+      finalBaseAmount = Math.max(0, basePrice - couponDiscount);
+    }
+
+    const finalTaxAmount = (finalBaseAmount * plan.taxPercentage) / 100;
+    const platformFee = (finalBaseAmount * plan.platformFeePercentage) / 100;
+    const instructorShare = finalBaseAmount - platformFee;
+    const finalTotalAmount = finalBaseAmount + finalTaxAmount;
 
     return {
-      baseAmount: calculatedBasePrice,
-      taxAmount,
+      originalBaseAmount: basePrice,
+      baseAmount: finalBaseAmount,
+      taxAmount: finalTaxAmount,
       platformFee,
       instructorShare,
-      totalAmount: finalTotalAmount
+      totalAmount: finalTotalAmount,
+      discount: couponDiscount
     };
   };
 
@@ -176,59 +234,50 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
         totalAmount: pricing.totalAmount,
         currency: 'INR',
         categoryId: plan.categoryId,
-        categoryName: plan.categoryName
+        categoryName: plan.categoryName,
+        couponCode: appliedCouponCode || undefined,
+        couponDiscount: couponDiscount || undefined
       };
 
-      // Create payment transaction
       const transactionId = await razorpayService.createPaymentTransaction(paymentData);
-
-      // Initiate payment
       const { options } = await razorpayService.initiatePayment(transactionId, paymentData);
 
-      // Open Razorpay checkout
       const Razorpay = (window as any).Razorpay;
 
       options.handler = async function (response: any) {
-  try {
-    await razorpayService.handlePaymentSuccess(transactionId, response);
-    toast.success('Payment successful! Your subscription is now active.');
-    onSuccess();
-    onClose();
-
-    const redirectUrl = localStorage.getItem('redirectAfterSubscription');
-    if (redirectUrl) {
-      window.location.hash = redirectUrl;
-      // localStorage.removeItem('redirectAfterSubscription'); // cleanup
-    } else {
-      window.location.hash = '#/learner/homepage'; // fallback (home)
-    }
-  } catch (error) {
-    console.error('Payment success handling error:', error);
-    toast.error('Payment processed but error activating your subscription. Please contact support.');
-  }
-};
-      const razorpay = new Razorpay(options);
-      
-      razorpay.on('payment.success', async (response: any) => {
         try {
           await razorpayService.handlePaymentSuccess(transactionId, response);
           toast.success('Payment successful! Your subscription is now active.');
           onSuccess();
           onClose();
-            const redirectUrl = localStorage.getItem('redirectAfterSubscription');
 
-        if (redirectUrl) {
+          await couponService.applyCoupon(
+            couponId,
+            user?.email || userInfo.email,
+            userInfo.email,
+            pricing.totalAmount,
+            couponDiscount,
+            pricing.originalBaseAmount,
+            transactionId,
+            '',
+            plan.id
+          );
+
+          const redirectUrl = localStorage.getItem('redirectAfterSubscription');
+          if (redirectUrl) {
             window.location.hash = redirectUrl;
-            localStorage.removeItem('redirectAfterSubscription'); // cleanup
-        } else {
-            window.location.hash = '#/learner/dashboard'; // fallback (home)
-        }
+            localStorage.removeItem('redirectAfterSubscription');
+          } else {
+            window.location.hash = '#/learner/homepage';
+          }
         } catch (error) {
           console.error('Payment success handling error:', error);
-          toast.error('Payment processed but there was an error activating your subscription. Please contact support.');
+          toast.error('Payment processed but error activating your subscription. Please contact support.');
         }
-      });
+      };
 
+      const razorpay = new Razorpay(options);
+      
       razorpay.on('payment.failed', (response: any) => {
         console.error('Payment failed:', response);
         toast.error('Payment failed. Please try again.');
@@ -240,7 +289,6 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
     } catch (error) {
       console.error('Payment initiation error:', error);
       toast.error('Failed to initiate payment. Please try again.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -265,15 +313,65 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Plan Summary */}
+          {/* Plan Summary with Coupon */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-semibold text-lg mb-2">{plan.name}</h3>
-            <p className="text-gray-600 mb-3">{plan.description}</p>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-blue-600">
-                {formatAmount(pricing.totalAmount)}
-              </span>
-              <span className="text-sm text-gray-500">{plan.durationText}</span>
+            <p className="text-gray-600 mb-4">{plan.description}</p>
+
+            <div className="flex flex-col gap-4">
+              {/* Price Display */}
+              <div className="flex items-center gap-2">
+                {couponDiscount > 0 && (
+                  <span className="text-lg text-gray-400 line-through">
+                    {formatAmount(pricing.originalBaseAmount + (pricing.originalBaseAmount * plan.taxPercentage / 100))}
+                  </span>
+                )}
+                <span className="text-2xl font-bold text-blue-600">
+                  {formatAmount(pricing.totalAmount)}
+                </span>
+                <span className="text-sm text-gray-500">{plan.durationText}</span>
+              </div>
+
+              {/* Coupon Input */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">Coupon Code</label>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Enter coupon code"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isProcessing || isCouponValidating}
+                  />
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={() => validateCoupon()}
+                    disabled={isProcessing || isCouponValidating || !couponCode}
+                  >
+                    {isCouponValidating ? "Validating..." : "Apply"}
+                  </button>
+                </div>
+
+                {/* Validation Message */}
+                {couponMessage && (
+                  <p className={`text-sm ${couponDiscount > 0 ? "text-green-600" : "text-red-600"}`}>
+                    {couponMessage}
+                  </p>
+                )}
+
+                {/* Browse Coupons */}
+                {availableCoupons.length > 0 && (
+                  <button
+                    className="text-sm text-blue-600 underline hover:text-blue-800 self-start"
+                    onClick={() => setShowCouponsModal(true)}
+                    disabled={isProcessing}
+                  >
+                    Browse Available Coupons
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -382,13 +480,15 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
                 <span className="text-gray-600">Base Amount</span>
                 <span className="font-medium">{formatAmount(pricing.baseAmount)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount ({appliedCouponCode})</span>
+                  <span className="font-medium">-{formatAmount(couponDiscount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax ({plan.taxPercentage}%)</span>
                 <span className="font-medium">{formatAmount(pricing.taxAmount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Platform Fee ({plan.platformFeePercentage}%)</span>
-                <span className="font-medium">{formatAmount(pricing.platformFee)}</span>
               </div>
               <div className="border-t pt-2">
                 <div className="flex justify-between">
@@ -444,6 +544,59 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
           </div>
         </div>
       </div>
+
+      {/* Available Coupons Modal */}
+      {showCouponsModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md relative max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Available Coupons</h3>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setShowCouponsModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {availableCoupons.length === 0 ? (
+              <p className="text-sm text-gray-600">No coupons available for this plan.</p>
+            ) : (
+              <div className="space-y-3 overflow-y-auto">
+                {availableCoupons.map((c) => (
+                  <div
+                    key={c.code}
+                    className="flex items-center justify-between border rounded p-3 hover:bg-gray-50 transition"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">
+                        {c.code}
+                      </p>
+                      <p className="text-xs text-green-600 font-semibold">
+                        {c.type === "percentage"
+                          ? `${c.value}% OFF`
+                          : `₹${c.value} OFF`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{c.description}</p>
+                    </div>
+                    <button
+                      className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700 transition ml-3"
+                      onClick={() => {
+                        setCouponCode(c.code);
+                        validateCoupon(c.code);
+                        setShowCouponsModal(false);
+                        setCouponId(c.id);
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

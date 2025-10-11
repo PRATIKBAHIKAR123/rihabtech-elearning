@@ -44,6 +44,8 @@ export interface SubscriptionPaymentData {
   currency: string;
   categoryId?: string;
   categoryName?: string;
+  couponCode?: string;
+  couponDiscount?: number;
 }
 
 export interface PaymentTransaction {

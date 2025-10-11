@@ -348,6 +348,8 @@ if (course?.pricing === "paid") {
 const getButtonConfig = () => {
   console.log('activePlan:', activePlan);
   const pricing = course?.pricing?.toLowerCase();
+  const hasActivePlanForCourse =
+  activePlan && activePlan.categoryId && activePlan.categoryId === course?.category;
 
   if (authLoading) {
     return {
@@ -387,14 +389,22 @@ const getButtonConfig = () => {
     };
   }
 
-  if (!activePlan) {
-    return {
-      text: "Enroll Now",
-      action: handleSubscribeNow,
-      disabled: false,
-      variant: "default" as const
-    };
-  }
+  if (!activePlan || activePlan.categoryId !== course?.category) {
+  return {
+    text: "Enroll Now",
+    action: handleSubscribeNow,
+    disabled: false,
+    variant: "default" as const,
+  };
+}
+
+// If activePlan exists and matches course category
+return {
+  text: "Enroll Now",
+  action: handleBuyNow,
+  disabled: false,
+  variant: "default" as const,
+};
 
   // Pricing logic
   let buttonText = "Enroll Now";

@@ -29,6 +29,7 @@ export interface Subscription {
   orderId?: string;
   stripeSubscriptionId?: string;
   isSelected?: boolean;
+  categoryId?: string;
 }
 
 export interface SubscriptionOrder {
