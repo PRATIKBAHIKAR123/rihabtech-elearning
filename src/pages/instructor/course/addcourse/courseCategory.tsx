@@ -3,17 +3,16 @@ import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { getCategories } from "../../../../utils/firebaseCategory";
+import { courseApiService, Category } from "../../../../utils/courseApiService";
 import { saveCourseCategory, getCourseCategory } from "../../../../utils/firebaseCourseCategory";
 
 const CourseCategory = () => {
   
     const draftId = useRef<string>(localStorage.getItem('draftId') || '');
-  const [categories, setCategories] = useState<{id: string, title: string}[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   useEffect(() => {
-    getCategories().then((data) => {
-      // Map to ensure each category has id and name
-      setCategories(data.map((cat: any) => ({ id: cat.id, title: cat.title ?? "" }))); 
+    courseApiService.getAllCategories().then((data) => {
+      setCategories(data);
     });
   }, []);
 

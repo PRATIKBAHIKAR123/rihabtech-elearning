@@ -2,9 +2,7 @@ import { Clock, User2 } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import { Button } from "../../../components/ui/button";
 import { useState, useEffect } from "react";
-import { getHomePageCategories, Category } from "../../../utils/firebaseCategory";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
+import { courseApiService, Category } from "../../../utils/courseApiService";
 import { Course, getAllCourses } from "../../../utils/firebaseCourses";
 
 // Course interface based on your Firebase data structure
@@ -105,34 +103,24 @@ export default function Courses() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const fetchedCategories = await getHomePageCategories();
+        const fetchedCategories = await courseApiService.getAllCategories();
         console.log('Raw fetched categories:', fetchedCategories);
 
-        // Check if the categories have proper IDs
-        const categoriesWithId = fetchedCategories.map((category, index) => {
-          console.log('Individual category structure:', {
-            id: category.id,
-            name: category.title,
-            isActive: category.isActive,
-            showOnHomePage: category.showOnHomePage,
-            fullCategory: category
-          });
+        // Filter categories that should show on home page (isActive and showOnHomePage)
+        const homePageCategories = fetchedCategories.filter(category => 
+          category.isActive && category.showOnHomePage
+        );
 
-          // If id is null or undefined, use index as fallback
-          if (!category.id) {
-            console.warn('Category missing ID, using index:', index);
-            return { ...category, id: `category-${index}` };
-          }
+        // If no categories found with showOnHomePage filter, get all active categories as fallback
+        const categoriesToShow = homePageCategories.length > 0 ? homePageCategories : 
+          fetchedCategories.filter(category => category.isActive);
 
-          return category;
-        });
-
-        console.log('Processed categories:', categoriesWithId);
-        setCategories(categoriesWithId);
+        console.log('Processed categories:', categoriesToShow);
+        setCategories(categoriesToShow);
 
         // Set the first category as active if available
-        if (categoriesWithId.length > 0) {
-          const firstCategoryId = categoriesWithId[0].id;
+        if (categoriesToShow.length > 0) {
+          const firstCategoryId = categoriesToShow[0].id;
           console.log('Setting active tab to:', firstCategoryId);
           setActiveTab(firstCategoryId);
         }

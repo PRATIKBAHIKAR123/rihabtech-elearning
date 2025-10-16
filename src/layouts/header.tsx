@@ -9,7 +9,7 @@ import { ProfileMenu } from "../modals/profileHoverCard";
 import { useCountdown } from "../utils/countdown_subscribtion";
 import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
-import { getCategories, getSubCategories } from "../utils/firebaseCategory";
+import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
 import { LearnerCourse, learnerService } from "../utils/learnerService";
 import { getUserActiveSubscription, Subscription } from "../utils/subscriptionService";
 
@@ -360,23 +360,15 @@ IconListItem.displayName = "IconListItem";
 
 // Courses Navigation Menu Component
 export const CoursesMenu: React.FC = () => {
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [subCategories, setSubCategories] = useState<
-    { id: string; name: string; categoryId: string }[]
-  >([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   useEffect(() => {
-    getCategories().then((data) => {
-      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.title ?? "" })));
+    courseApiService.getAllCategories().then((data) => {
+      setCategories(data);
     });
-    getSubCategories().then((data) => {
-      setSubCategories(
-        data.map((sub: any) => ({
-          id: sub.id,
-          name: sub.name ?? "",
-          categoryId: sub.categoryId ?? "",
-        }))
-      );
+    courseApiService.getAllSubCategories().then((data) => {
+      setSubCategories(data);
     });
   }, []);
 
@@ -396,7 +388,7 @@ export const CoursesMenu: React.FC = () => {
             return (
               <div key={category.id} className="col-span-1 space-y-6">
                 <div className="text-[#677489] text-xs font-medium font-['Urbanist'] uppercase leading-[21px] mb-3">
-                  {category.name}
+                  {category.title}
                 </div>
                 <ul className="space-y-1">
                   {relatedSubs.map((sub) => (

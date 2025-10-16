@@ -9,6 +9,8 @@ import { useAuth } from "../../../../context/AuthContext";
 import { getFullCourseData } from "../../../../utils/firebaseCoursePreview";
 import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
 import { COURSE_STATUS } from "../../../../utils/firebaseCourses";
+import { courseApiService, CourseResponse, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { toast } from "sonner";
 
 // Global flag to prevent double initialization
 let isInitializing = false;
@@ -21,6 +23,8 @@ const CourseTitle = () => {
   const [initializing, setInitializing] = useState(false);
   const { user } = useAuth();
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
+  const [courseData, setCourseData] = useState<CourseResponse | null>(null);
+  const [isNewCourse, setIsNewCourse] = useState(true);
 type RejectionBy = {
   name?: string;
   timestamp?: string | number | Date;
@@ -48,25 +52,86 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
     onSubmit: async(values) => {
       setLoading(true);
       
-      // Create draft if it doesn't exist yet
-      if (!draftId.current) {
-        try {
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to create a course");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        if (isNewCourse || !courseData?.id) {
+          // Create new course using API
+          const newCourse = await courseApiService.createCourse({
+            title: values.title
+          });
+          
+          // Store the course ID for future updates
+          localStorage.setItem("courseId", newCourse.id.toString());
+          setCourseData(newCourse);
+          setIsNewCourse(false);
+          
+          // Also create Firebase draft for backward compatibility
           const newDraftId = await createNewCourseDraft(values.title, user?.UserName);
           draftId.current = newDraftId;
           localStorage.setItem("draftId", newDraftId);
-          console.log("Created new draft with ID:", newDraftId);
-        } catch (error) {
-          console.error("Failed to create course draft:", error);
-          setLoading(false);
-          return;
+          
+          toast.success("Course created successfully!");
+          console.log("Created new course with ID:", newCourse.id);
+        } else {
+          // Comparison logic: Only call update API if title has changed
+          if (courseData.title === values.title) {
+            toast.info("No changes detected in course title. Moving to next step.");
+            setLoading(false);
+            window.location.hash = "#/instructor/course-category";
+            return; // Exit early
+          }
+
+          // If title has changed, proceed with update
+          const updateResponse: UpdateCourseMessageResponse = await courseApiService.updateCourse({
+            id: courseData.id,
+            title: values.title,
+            subtitle: courseData.subtitle ?? null,
+            description: courseData.description ?? null,
+            category: courseData.category ?? null,
+            subCategory: courseData.subCategory ?? null,
+            level: courseData.level ?? null,
+            language: courseData.language ?? null,
+            pricing: courseData.pricing ?? null,
+            thumbnailUrl: courseData.thumbnailUrl ?? null,
+            promoVideoUrl: courseData.promoVideoUrl ?? null,
+            welcomeMessage: courseData.welcomeMessage ?? null,
+            congratulationsMessage: courseData.congratulationsMessage ?? null
+          });
+          
+          // After a successful update, update the local courseData state with the new title
+          setCourseData(prev => prev ? { ...prev, title: values.title } : null);
+          
+          // Also update Firebase draft for backward compatibility
+          await saveCourseTitle(draftId.current, values.title, user?.UserName);
+          
+          toast.success(updateResponse.message || "Course updated successfully!");
+          console.log("Updated course with ID:", courseData.id, "Message:", updateResponse.message);
         }
-      } else {
-        // Update existing draft
-        await saveCourseTitle(draftId.current, values.title, user?.UserName);
+        
+        setLoading(false);
+        window.location.hash = "#/instructor/course-category";
+      } catch (error: any) {
+        console.error("Failed to save course:", error);
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to perform this action.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to save course. Please try again.");
+        }
+        
+        setLoading(false);
       }
-      
-      setLoading(false);
-      window.location.hash = "#/instructor/course-category";
     },
     enableReinitialize: true,
   });
@@ -82,8 +147,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
 }, []);
 
   useEffect(() => {
-    if (!storedDraftId) return;
-    const initializeDraft = async () => {
+    const initializeCourse = async () => {
       // Prevent double initialization
       if (isInitializing) {
         console.log("Initialization already in progress, skipping...");
@@ -93,57 +157,82 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       isInitializing = true;
       setInitializing(true);
       
-      // Check if we already have a draftId and it's not empty
-      const existingDraftId = localStorage.getItem("draftId");
-      if (existingDraftId && existingDraftId.trim() !== "") {
-        // draftId.current = existingDraftId;
-        console.log("Using existing draftId:", existingDraftId);
+      try {
+        // Check if we have an existing course ID
+        const existingCourseId = localStorage.getItem("courseId");
+        const existingDraftId = localStorage.getItem("draftId");
         
-        // Fetch existing title if draft exists
-        try {
-  // Fetch both title and full course data for rejection info
-  const [title, courseData] = await Promise.all([
-    getCourseTitle(draftId.current),
-    getFullCourseData(draftId.current)
-  ]);
+        if (existingCourseId) {
+          // Fetch existing course from API
+          try {
+            const apiCourseData = await courseApiService.getCourseById(parseInt(existingCourseId));
+            setCourseData(apiCourseData);
+            setIsNewCourse(false);
+            formik.setFieldValue('title', apiCourseData.title);
+            console.log("Loaded existing course from API:", apiCourseData);
+          } catch (apiError) {
+            console.warn("Failed to fetch course from API, falling back to Firebase:", apiError);
+            // Fallback to Firebase if API fails
+            if (existingDraftId) {
+              const title = await getCourseTitle(existingDraftId);
+              formik.setFieldValue('title', title);
+            }
+          }
+        } else if (existingDraftId && existingDraftId.trim() !== "") {
+          // Fallback to Firebase draft system
+          console.log("Using existing Firebase draftId:", existingDraftId);
+          
+          // Fetch existing title if draft exists
+          const [title, firebaseCourseData] = await Promise.all([
+            getCourseTitle(existingDraftId),
+            getFullCourseData(existingDraftId)
+          ]);
 
-  formik.setFieldValue('title', title);
+          formik.setFieldValue('title', title);
 
-  // Check for rejection info and show dialog
-  if (courseData?.rejectionInfo && courseData.status === COURSE_STATUS.NEEDS_REVISION) {
-    setRejectionInfo({
-      ...courseData.rejectionInfo,
-      rejectedAt: courseData.rejectionInfo.rejectedAt ? new Date(courseData.rejectionInfo.rejectedAt) : undefined,
-      rejectedBy: {
-        ...(typeof courseData.rejectionInfo.rejectedBy === 'object' && courseData.rejectionInfo.rejectedBy !== null ? courseData.rejectionInfo.rejectedBy : {}),
-        timestamp:
-          typeof courseData.rejectionInfo.rejectedBy === 'object' &&
-          courseData.rejectionInfo.rejectedBy !== null &&
-          (courseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
-            ? new Date((courseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
-            : undefined
+          // Check for rejection info and show dialog
+          if (firebaseCourseData?.rejectionInfo && firebaseCourseData.status === COURSE_STATUS.NEEDS_REVISION) {
+            setRejectionInfo({
+              ...firebaseCourseData.rejectionInfo,
+              rejectedAt: firebaseCourseData.rejectionInfo.rejectedAt ? new Date(firebaseCourseData.rejectionInfo.rejectedAt) : undefined,
+              rejectedBy: {
+                ...(typeof firebaseCourseData.rejectionInfo.rejectedBy === 'object' && firebaseCourseData.rejectionInfo.rejectedBy !== null ? firebaseCourseData.rejectionInfo.rejectedBy : {}),
+                timestamp:
+                  typeof firebaseCourseData.rejectionInfo.rejectedBy === 'object' &&
+                  firebaseCourseData.rejectionInfo.rejectedBy !== null &&
+                  (firebaseCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
+                    ? new Date((firebaseCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
+                    : undefined
+              }
+            });
+            setShowRejectionDialog(true);
+          }
+        } else {
+          // New course - no existing data
+          setIsNewCourse(true);
+          console.log("Initializing new course");
+        }
+      } catch (error: any) {
+        console.error("Failed to initialize course:", error);
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to access course data.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to load course data");
+        }
+      } finally {
+        setInitializing(false);
+        setLoading(false);
+        isInitializing = false;
       }
-    });
-    setShowRejectionDialog(true);
-  }
-} catch (error) {
-  console.error("Failed to fetch course data:", error);
-}
-finally {
-  setInitializing(false);
-  setLoading(false);
-  isInitializing = false;
-}
-      
-      setInitializing(false);
-      setLoading(false);
-      isInitializing = false;
     };
-  }
     
-    initializeDraft();
-    setInitializing(false);
-      setLoading(false);
+    initializeCourse();
     // eslint-disable-next-line
   }, [storedDraftId]);
 
@@ -209,7 +298,7 @@ finally {
           Previous
         </Button>
         <Button className="rounded-none" type="submit" disabled={loading || !formik.dirty || !formik.isValid}>
-          {loading ? 'Saving...' : 'Continue'}
+          {loading ? 'Saving...' : (isNewCourse ? 'Create Course' : 'Update Course')}
         </Button>
       </div>
       

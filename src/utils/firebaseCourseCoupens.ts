@@ -1,7 +1,5 @@
-import { collection, doc, getDocs, query, setDoc, where, getDoc, deleteDoc  } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, where, getDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import firebase from "firebase/compat/app";
-import "firebase/compat/firestore";
 
 export interface UnifiedCoupon {
   // Common fields
@@ -70,7 +68,7 @@ export const saveCouponToFirebase = async (couponData: UnifiedCoupon) => {
 
 // Query functions for different coupon types
 export const getAdminCoupons = async () => {
-  const now = firebase.firestore.Timestamp.now(); // Firestore timestamp (server-style)
+  const now = Date.now(); // Use current timestamp in milliseconds
 
   // Query coupons that are not expired
   const q = query(

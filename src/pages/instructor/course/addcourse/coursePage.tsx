@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
+import { courseApiService, Category, SubCategory } from '../../../../utils/courseApiService';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -75,13 +75,13 @@ export function CourseLandingPage({ onSubmit }: any) {
     ),
   });
 
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
-  const [subCategories, setSubCategories] = useState<{id: string, name: string, categoryId: string}[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   // Helper functions to get display names for selected values
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : '';
+    return category ? category.title : '';
   };
 
   const getSubCategoryName = (subcategoryId: string) => {
@@ -90,11 +90,11 @@ export function CourseLandingPage({ onSubmit }: any) {
   };
 
   useEffect(() => {
-    getCategories().then((data) => {
-      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" })));
+    courseApiService.getAllCategories().then((data) => {
+      setCategories(data);
     });
-    getSubCategories().then((data) => {
-      setSubCategories(data.map((sub: any) => ({ id: sub.id, name: sub.name ?? "", categoryId: sub.categoryId ?? "" })));
+    courseApiService.getAllSubCategories().then((data) => {
+      setSubCategories(data);
     });
   }, []);
 
@@ -308,7 +308,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               </SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.id}>{cat.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

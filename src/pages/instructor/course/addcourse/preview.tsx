@@ -11,7 +11,7 @@ import {
   getCourseIntendedLearners,
   getCourseStructure
 } from '../../../../utils/firebaseCoursePreviewHelpers';
-import { getCategories, getSubCategories } from '../../../../utils/firebaseCategory';
+import { courseApiService, Category, SubCategory } from '../../../../utils/courseApiService';
 import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
 import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
 import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
@@ -47,13 +47,13 @@ const PreviewCourse = () => {
       // Fetch category and subcategory names
       if (data && (data.category || data.subcategory)) {
         const [categories, subcategories] = await Promise.all([
-          getCategories(),
-          getSubCategories()
+          courseApiService.getAllCategories(),
+          courseApiService.getAllSubCategories()
         ]);
         
         if (data.category) {
           const category = categories.find((cat: any) => cat.id === data.category);
-          setCategoryName((category as any)?.name || data.category);
+          setCategoryName((category as any)?.title || data.category);
         }
         
         if (data.subcategory) {

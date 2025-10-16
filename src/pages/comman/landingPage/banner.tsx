@@ -3,7 +3,7 @@ import { Search, List } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import { Button } from "../../../components/ui/button";
 import { Course, getAllCourses } from "../../../utils/firebaseCourses";
-import { getCategories } from "../../../utils/firebaseCategory";
+import { courseApiService, Category } from "../../../utils/courseApiService";
 
 export default function BannerSection() {
   const [searchTxt, setSearchTxt] = useState("");
@@ -27,7 +27,7 @@ export default function BannerSection() {
   // fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await getCategories();
+      const data = await courseApiService.getAllCategories();
       setCategories(data);
     };
     fetchCategories();

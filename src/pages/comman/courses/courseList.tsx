@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
 import { useParams } from "react-router-dom";
-import { Category, getCategories } from "../../../utils/firebaseCategory";
+import { courseApiService, Category } from "../../../utils/courseApiService";
 
 export default function CourseList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function CourseList() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const fetchedCategories = await getCategories();
+      const fetchedCategories = await courseApiService.getAllCategories();
       console.log('Raw fetched categories:', fetchedCategories);
 
       // ✅ find category by ID

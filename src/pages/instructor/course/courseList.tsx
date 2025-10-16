@@ -10,6 +10,7 @@ import {
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
 import { COURSE_STATUS_LABELS, COURSE_STATUS } from "../../../utils/firebaseCourses";
 import { CourseWorkflowService } from "../../../utils/courseWorkflowService";
+import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
 
 // Extended interface for UI display with additional properties
 export interface CourseDisplayData extends InstructorCourse {
@@ -19,14 +20,31 @@ export interface CourseDisplayData extends InstructorCourse {
   ratingScore: number;
 }
 
+// Interface for API course display
+export interface ApiCourseDisplayData extends CourseResponse {
+  earnings: number;
+  enrollments: number;
+  ratings: number;
+  ratingScore: number;
+  progress: number;
+  lastModified: Date;
+  visibility: string;
+  pricing: string;
+  thumbnail?: string | null;
+  description?: string | null;
+}
+
 type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a' | 'published-first' | 'unpublished-first';
 
 export default function CourseList() {
     const { user } = useAuth();
     const [courses, setCourses] = useState<CourseDisplayData[]>([]);
+    const [apiCourses, setApiCourses] = useState<ApiCourseDisplayData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [apiLoading, setApiLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filteredCourses, setFilteredCourses] = useState<CourseDisplayData[]>([]);
+    const [filteredApiCourses, setFilteredApiCourses] = useState<ApiCourseDisplayData[]>([]);
     const [sortBy, setSortBy] = useState<SortOption>('newest');
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [earningsSummary, setEarningsSummary] = useState<EarningsSummary | null>(null);
@@ -38,6 +56,7 @@ export default function CourseList() {
     useEffect(() => {
         if (user?.UserName) {
             fetchInstructorCourses();
+            fetchApiCourses();
         }
     }, [user?.UserName]);
 
@@ -76,6 +95,41 @@ export default function CourseList() {
         setFilteredCourses(sortedCourses);
     }, [searchTerm, courses, sortBy]);
 
+    // Filter and sort API courses when search term or sort option changes
+    useEffect(() => {
+        let filtered = apiCourses;
+        
+        // Apply search filter
+        if (searchTerm.trim() !== "") {
+            filtered = apiCourses.filter(course =>
+                course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                course.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+        
+        // Apply sorting
+        const sortedCourses = [...filtered].sort((a, b) => {
+            switch (sortBy) {
+                case 'newest':
+                    return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime();
+                case 'oldest':
+                    return new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime();
+                case 'a-z':
+                    return a.title.localeCompare(b.title);
+                case 'z-a':
+                    return b.title.localeCompare(a.title);
+                case 'published-first':
+                    return (b.status === 'published' ? 1 : 0) - (a.status === 'published' ? 1 : 0);
+                case 'unpublished-first':
+                    return (a.status === 'published' ? 1 : 0) - (b.status === 'published' ? 1 : 0);
+                default:
+                    return 0;
+            }
+        });
+        
+        setFilteredApiCourses(sortedCourses);
+    }, [searchTerm, apiCourses, sortBy]);
+
     const fetchInstructorCourses = async () => {
         try {
             setLoading(true);
@@ -110,6 +164,44 @@ export default function CourseList() {
             setLoading(false);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchApiCourses = async () => {
+        try {
+            setApiLoading(true);
+            
+            if (!user?.UserName) {
+                console.log("No user email found for API courses");
+                return;
+            }
+
+            console.log("Fetching API courses for user:", user.UserName);
+            const apiCoursesData = await courseApiService.getAllCourses();
+            console.log("API courses:", apiCoursesData);
+            
+            // Transform API data to match the UI structure
+            const transformedApiCourses: ApiCourseDisplayData[] = apiCoursesData.map(course => ({
+                ...course,
+                // Add mock data for display purposes
+                earnings: Math.floor(Math.random() * 10000), // Random earnings
+                enrollments: Math.floor(Math.random() * 100), // Random enrollments
+                ratings: Math.floor(Math.random() * 50), // Random ratings
+                ratingScore: 4.5, // Default rating
+                progress: Math.floor(Math.random() * 100), // Random progress
+                lastModified: course.updatedAt ? new Date(course.updatedAt) : new Date(),
+                visibility: 'Public', // Default visibility
+                pricing: course.pricing || 'Free', // Use API pricing or default
+                thumbnail: course.thumbnailUrl,
+                description: course.description
+            }));
+            
+            console.log("Transformed API courses:", transformedApiCourses);
+            setApiCourses(transformedApiCourses);
+        } catch (err) {
+            console.error("Error fetching API courses:", err);
+        } finally {
+            setApiLoading(false);
         }
     };
 
@@ -759,6 +851,214 @@ export default function CourseList() {
           })}
         </div>
             )}
+
+            {/* API Courses Section */}
+            <div className="mt-8">
+                <div className="ins-heading mb-4">
+                    API Courses
+                </div>
+                
+                {apiLoading ? (
+                    <div className="flex flex-col gap-2 mt-4">
+                        {[...Array(3)].map((_, index) => (
+                            <div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between animate-pulse">
+                                <div className="flex gap-2 items-center">
+                                    <div className="w-20 h-[82.29px] bg-gray-200 rounded-lg"></div>
+                                    <div className="space-y-2">
+                                        <div className="h-4 bg-gray-200 rounded w-32"></div>
+                                        <div className="h-3 bg-gray-200 rounded w-20"></div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-28"></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-32"></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredApiCourses.length === 0 ? (
+                    <div className="text-center py-12 mt-4">
+                        <div className="text-gray-500 text-lg font-medium">
+                            {searchTerm ? 'No API courses found matching your search.' : 'No API courses available yet.'}
+                        </div>
+                        {searchTerm && (
+                            <Button 
+                                onClick={() => setSearchTerm("")}
+                                className="mt-4 rounded-none"
+                            >
+                                Clear Search
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3 mt-2">
+                        {filteredApiCourses.map((course) => (
+                            <div key={course.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+                                {/* Desktop Table Layout */}
+                                <div className="hidden lg:grid lg:grid-cols-[100px_minmax(350px,1fr)_140px_140px_220px] lg:gap-6 lg:items-center p-4">
+                                  
+                                  {/* Thumbnail */}
+                                  <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
+                                    {course.thumbnail ? (
+                                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <BookOpen className="w-6 h-6 text-gray-400" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Course Info */}
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h3 className="text-base font-semibold text-gray-900 truncate">{course.title}</h3>
+                                      <span className="px-2 py-0.5 text-[11px] font-medium text-white rounded bg-blue-500">
+                                        {course.status || 'Draft'}
+                                      </span>
+                                      <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                                        {course.visibility}
+                                      </span>
+                                      <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                                        {course.pricing}
+                                      </span>
+                                    </div>
+                                    
+                                    {course.description && (
+                                      <p className="text-sm text-gray-600 truncate mb-1">{course.description}</p>
+                                    )}
+                                    
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className="flex-1 max-w-[200px] bg-gray-200 rounded-full h-1.5">
+                                        <div
+                                          className="bg-primary h-1.5 rounded-full transition-all"
+                                          style={{ width: `${course.progress}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
+                                    </div>
+                                    
+                                    <p className="text-xs text-gray-500">
+                                     Last updated {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                  </div>
+
+                                  {/* Enrollments */}
+                                  <div>
+                                    <div className="text-lg font-medium text-[#1e1e1e] font-['Poppins']">
+                                      {course.enrollments || 0}
+                                    </div>
+                                    <div className="text-xs text-gray-600 font-['Nunito']">Enrollments</div>
+                                  </div>
+
+                                  {/* Ratings */}
+                                  <div>
+                                    <div className="flex items-center gap-0.5 mb-1">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star 
+                                          key={i} 
+                                          size={14} 
+                                          className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                        />
+                                      ))}
+                                    </div>
+                                    <div className="text-xs text-gray-600 font-['Poppins']">
+                                      {course.ratings || 0} ratings
+                                    </div>
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        localStorage.setItem('courseId', course.id.toString());
+                                        window.location.hash = '#/instructor/course-title';
+                                      }}
+                                      className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors"
+                                    >
+                                      Edit
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Mobile Layout */}
+                                <div className="lg:hidden p-4">
+                                  <div className="flex gap-3 mb-3">
+                                    <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
+                                      {course.thumbnail ? (
+                                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <BookOpen className="w-6 h-6 text-gray-400" />
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="text-base font-semibold text-gray-900 mb-1">{course.title}</h3>
+                                      <div className="flex flex-wrap gap-1 mb-2">
+                                        <span className="px-2 py-0.5 text-[11px] font-medium text-white rounded bg-blue-500">
+                                          {course.status || 'Draft'}
+                                        </span>
+                                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                                          {course.visibility}
+                                        </span>
+                                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                                          {course.pricing}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {course.description && (
+                                    <p className="text-sm text-gray-600 mb-2">{course.description}</p>
+                                  )}
+
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                                      <div
+                                        className="bg-primary h-1.5 rounded-full transition-all"
+                                        style={{ width: `${course.progress}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
+                                    <span>{course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-medium text-gray-900">{course.enrollments} enrollments</span>
+                                      <div className="flex items-center gap-0.5">
+                                        <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                                        <span>{course.ratings}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        localStorage.setItem('courseId', course.id.toString());
+                                        window.location.hash = '#/instructor/course-title';
+                                      }}
+                                      className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50"
+                                    >
+                                      Edit
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
         </div>
     );

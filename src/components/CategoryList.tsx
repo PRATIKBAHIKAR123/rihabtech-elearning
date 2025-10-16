@@ -1,24 +1,13 @@
 import React, { useEffect, useState } from "react";
-
-type Category = {
-  id: string;
-  title: string;
-};
-
-type SubCategory = {
-  id: string;
-  name: string;
-  categoryId: string;
-};
-import { getCategories, getSubCategories } from "../utils/firebaseCategory";
+import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
 
 const CategoryList = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   useEffect(() => {
-    getCategories().then((data) => setCategories(data as Category[]));
-    getSubCategories().then((data) => setSubCategories(data as SubCategory[]));
+    courseApiService.getAllCategories().then((data) => setCategories(data));
+    courseApiService.getAllSubCategories().then((data) => setSubCategories(data));
   }, []);
 
   // Helper to get category name by id
