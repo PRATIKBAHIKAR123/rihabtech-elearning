@@ -9,11 +9,11 @@ import { saveCourseCategory, getCourseCategory } from "../../../../utils/firebas
 const CourseCategory = () => {
   
     const draftId = useRef<string>(localStorage.getItem('draftId') || '');
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [categories, setCategories] = useState<{id: string, title: string}[]>([]);
   useEffect(() => {
     getCategories().then((data) => {
       // Map to ensure each category has id and name
-      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" }))); 
+      setCategories(data.map((cat: any) => ({ id: cat.id, title: cat.title ?? "" }))); 
     });
   }, []);
 
@@ -82,7 +82,7 @@ const CourseCategory = () => {
             </SelectTrigger>
             <SelectContent>
               {categories.map(cat => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                <SelectItem key={cat.id} value={cat.id}>{cat.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>

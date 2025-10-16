@@ -112,7 +112,7 @@ export default function Courses() {
         const categoriesWithId = fetchedCategories.map((category, index) => {
           console.log('Individual category structure:', {
             id: category.id,
-            name: category.name,
+            name: category.title,
             isActive: category.isActive,
             showOnHomePage: category.showOnHomePage,
             fullCategory: category
@@ -169,7 +169,7 @@ export default function Courses() {
                 <div key={index} className={`rounded-[35px] px-2 md:px-4 flex items-center justify-center cursor-pointer ${activeTab === category.id ? 'bg-primary text-white' : 'bg-white text-primary'}`} onClick={() => {
                   setActiveTab(category.id);
                 }}>
-                  <h2 className="flex flex-row justify-center text-center text-sm md:text-md font-medium font-['Archivo'] capitalize">{category.name}</h2>
+                  <h2 className="flex flex-row justify-center text-center text-sm md:text-md font-medium font-['Archivo'] capitalize">{category.title}</h2>
                 </div>
               ))}
             </div>

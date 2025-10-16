@@ -1,19 +1,21 @@
+import axios from "axios";
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { API_BASE_URL } from "../lib/api";
+import axiosClient from "./axiosClient";
 
 export interface Category {
   id: string;
-  name: string;
+  title: string;
   isActive: boolean;
   showOnHomePage: boolean;
 }
 
 export const getCategories = async (): Promise<Category[]> => {
-  const querySnapshot = await getDocs(collection(db, "categories"));
-  return querySnapshot.docs.map(doc => {
-    const data = doc.data() as any;
-    return { id: doc.id, ...data } as Category;
-  });
+  const { data } = await axiosClient.post(`${API_BASE_URL}CourseCategory/get/all`, {},
+    
+  );
+  return data as Category[];
 };
 
 export const getSubCategories = async () => {

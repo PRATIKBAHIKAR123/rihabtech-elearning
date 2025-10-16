@@ -12,7 +12,7 @@ export default function BannerSection() {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; title: string }[]>([]);
 
   // fetch courses
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function BannerSection() {
                       setIsCategoryOpen(false);
                     }}
                   >
-                    {cat.name}
+                    {cat.title}
                   </div>
                 ))}
               </PopoverContent>

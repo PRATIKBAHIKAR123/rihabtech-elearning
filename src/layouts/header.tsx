@@ -367,7 +367,7 @@ export const CoursesMenu: React.FC = () => {
 
   useEffect(() => {
     getCategories().then((data) => {
-      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.name ?? "" })));
+      setCategories(data.map((cat: any) => ({ id: cat.id, name: cat.title ?? "" })));
     });
     getSubCategories().then((data) => {
       setSubCategories(

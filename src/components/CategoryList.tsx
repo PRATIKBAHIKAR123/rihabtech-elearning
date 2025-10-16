@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 type Category = {
   id: string;
-  name: string;
+  title: string;
 };
 
 type SubCategory = {
@@ -24,7 +24,7 @@ const CategoryList = () => {
   // Helper to get category name by id
   const getCategoryName = (id: string) => {
     const cat = categories.find(c => c.id === id);
-    return cat ? cat.name : id;
+    return cat ? cat.title : id;
   };
 
   return (
@@ -32,7 +32,7 @@ const CategoryList = () => {
       <h2>Categories</h2>
       <ul>
         {categories.map(cat => (
-          <li key={cat.id}>{cat.name}</li>
+          <li key={cat.id}>{cat.title}</li>
         ))}
       </ul>
       <h2>Subcategories</h2>

@@ -82,7 +82,7 @@ export default function CourseList() {
 
       console.log('Processed category:', category);
       if (category) {
-        setcategoryName(category.name);
+        setcategoryName(category.title);
       }
 
     } catch (error) {
