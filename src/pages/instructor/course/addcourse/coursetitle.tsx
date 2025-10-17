@@ -1,19 +1,15 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { saveCourseTitle, getCourseTitle, createNewCourseDraft } from "../../../../utils/firebaseCourseTitle";
 import { useAuth } from "../../../../context/AuthContext";
-import { getFullCourseData } from "../../../../utils/firebaseCoursePreview";
-import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
-import { COURSE_STATUS } from "../../../../utils/firebaseCourses";
 import { courseApiService, CourseResponse, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
 import { toast } from "sonner";
 
 const CourseTitle = () => {
-  const draftId = useRef<string>(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -21,6 +17,7 @@ const CourseTitle = () => {
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [courseData, setCourseData] = useState<CourseResponse | null>(null);
   const [isNewCourse, setIsNewCourse] = useState(true);
+
 type RejectionBy = {
   name?: string;
   timestamp?: string | number | Date;
@@ -62,26 +59,38 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             title: values.title
           });
           
+          // Handle the response - API returns just the ID, so we need to create a course object
+          const courseId = typeof newCourse === 'number' ? newCourse : newCourse.id;
+          
           // Store the course ID for future updates
-          localStorage.setItem("courseId", newCourse.id.toString());
-          setCourseData(newCourse);
+          localStorage.setItem("courseId", courseId.toString());
+          
+          // Create a basic course object for state management
+          const courseObject: CourseResponse = {
+            id: courseId,
+            title: values.title,
+            // Set other fields as null/undefined for now
+            subtitle: null,
+            description: null,
+            category: null,
+            subCategory: null,
+            level: null,
+            language: null,
+            pricing: null,
+            thumbnailUrl: null,
+            promoVideoUrl: null,
+            welcomeMessage: null,
+            congratulationsMessage: null
+          };
+          
+          setCourseData(courseObject);
           setIsNewCourse(false);
           
-                 // Also create Firebase draft for backward compatibility
-                 try {
-                   const newDraftId = await createNewCourseDraft(values.title, user?.UserName);
-                   draftId.current = newDraftId;
-                   localStorage.setItem("draftId", newDraftId);
-                 } catch (firebaseError) {
-                   console.warn("Firebase draft creation failed (non-critical):", firebaseError);
-                   // Don't throw error - this is just for backward compatibility
-                 }
-
-                 toast.success("Course created successfully!");
+          toast.success("Course created successfully!");
         } else {
           // Comparison logic: Only call update API if title has changed
           if (courseData.title === values.title) {
-            toast.info("No changes detected in course title. Moving to next step.");
+            //toast.info("No changes detected in course title. Moving to next step.");
             setLoading(false);
             window.location.hash = "#/instructor/course-category";
             return; // Exit early
@@ -107,15 +116,6 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
           // After a successful update, update the local courseData state with the new title
           setCourseData(prev => prev ? { ...prev, title: values.title } : null);
           
-          // Also update Firebase draft for backward compatibility (only if draftId exists)
-          if (draftId.current && draftId.current.trim() !== "") {
-            try {
-              await saveCourseTitle(draftId.current, values.title, user?.UserName);
-            } catch (firebaseError) {
-              console.warn("Firebase draft update failed (non-critical):", firebaseError);
-              // Don't throw error - this is just for backward compatibility
-            }
-          }
           
           toast.success(updateResponse.message || "Course updated successfully!");
         }
@@ -156,7 +156,6 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       try {
         // Check if we have an existing course ID
         const existingCourseId = localStorage.getItem("courseId");
-        const existingDraftId = localStorage.getItem("draftId");
         
         if (existingCourseId) {
           // Fetch existing course from API
@@ -165,43 +164,29 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             setCourseData(apiCourseData);
             setIsNewCourse(false);
             formik.setFieldValue('title', apiCourseData.title);
+            
+            // Check for rejection info from API
+            if (apiCourseData.status === 'NEEDS_REVISION' && apiCourseData.rejectionInfo) {
+              setRejectionInfo({
+                ...apiCourseData.rejectionInfo,
+                rejectedAt: apiCourseData.rejectionInfo.rejectedAt ? new Date(apiCourseData.rejectionInfo.rejectedAt) : undefined,
+                rejectedBy: {
+                  ...(typeof apiCourseData.rejectionInfo.rejectedBy === 'object' && apiCourseData.rejectionInfo.rejectedBy !== null ? apiCourseData.rejectionInfo.rejectedBy : {}),
+                  timestamp:
+                    typeof apiCourseData.rejectionInfo.rejectedBy === 'object' &&
+                    apiCourseData.rejectionInfo.rejectedBy !== null &&
+                    (apiCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
+                      ? new Date((apiCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
+                      : undefined
+                }
+              });
+              setShowRejectionDialog(true);
+            }
+            
             console.log("Loaded existing course from API:", apiCourseData);
           } catch (apiError) {
-            console.warn("Failed to fetch course from API, falling back to Firebase:", apiError);
-            // Fallback to Firebase if API fails
-            if (existingDraftId) {
-              const title = await getCourseTitle(existingDraftId);
-              formik.setFieldValue('title', title);
-            }
-          }
-        } else if (existingDraftId && existingDraftId.trim() !== "") {
-          // Fallback to Firebase draft system
-          console.log("Using existing Firebase draftId:", existingDraftId);
-          
-          // Fetch existing title if draft exists
-          const [title, firebaseCourseData] = await Promise.all([
-            getCourseTitle(existingDraftId),
-            getFullCourseData(existingDraftId)
-          ]);
-
-          formik.setFieldValue('title', title);
-
-          // Check for rejection info and show dialog
-          if (firebaseCourseData?.rejectionInfo && firebaseCourseData.status === COURSE_STATUS.NEEDS_REVISION) {
-            setRejectionInfo({
-              ...firebaseCourseData.rejectionInfo,
-              rejectedAt: firebaseCourseData.rejectionInfo.rejectedAt ? new Date(firebaseCourseData.rejectionInfo.rejectedAt) : undefined,
-              rejectedBy: {
-                ...(typeof firebaseCourseData.rejectionInfo.rejectedBy === 'object' && firebaseCourseData.rejectionInfo.rejectedBy !== null ? firebaseCourseData.rejectionInfo.rejectedBy : {}),
-                timestamp:
-                  typeof firebaseCourseData.rejectionInfo.rejectedBy === 'object' &&
-                  firebaseCourseData.rejectionInfo.rejectedBy !== null &&
-                  (firebaseCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
-                    ? new Date((firebaseCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
-                    : undefined
-              }
-            });
-            setShowRejectionDialog(true);
+            console.warn("Failed to fetch course from API:", apiError);
+            toast.error("Failed to load course data. Please try again.");
           }
         } else {
           // New course - no existing data
@@ -291,6 +276,8 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
           className="rounded-none"
           type="button"
           onClick={() => {
+            // Clear courseId from localStorage when going back to course test selection
+            localStorage.removeItem("courseId");
             window.location.hash = "#/instructor/course-test-selection";
           }}
         >

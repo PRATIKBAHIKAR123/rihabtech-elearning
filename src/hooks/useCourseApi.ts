@@ -48,9 +48,31 @@ export const useCourseApi = () => {
     setError(null);
     try {
       const newCourse = await courseApiService.createCourse({ title });
-      setCourses(prev => [newCourse, ...prev]);
+      
+      // Handle the response - API returns just the ID, so we need to create a course object
+      const courseId = typeof newCourse === 'number' ? newCourse : newCourse.id;
+      
+      // Create a basic course object for state management
+      const courseObject: CourseResponse = {
+        id: courseId,
+        title: title,
+        // Set other fields as null/undefined for now
+        subtitle: null,
+        description: null,
+        category: null,
+        subCategory: null,
+        level: null,
+        language: null,
+        pricing: null,
+        thumbnailUrl: null,
+        promoVideoUrl: null,
+        welcomeMessage: null,
+        congratulationsMessage: null
+      };
+      
+      setCourses(prev => [courseObject, ...prev]);
       toast.success('Course created successfully!');
-      return newCourse;
+      return courseObject;
     } catch (err) {
       const errorMessage = 'Failed to create course';
       setError(errorMessage);

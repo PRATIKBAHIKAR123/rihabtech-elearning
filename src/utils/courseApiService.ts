@@ -67,6 +67,18 @@ export interface CourseResponse {
   isIntendedLearnersFinal?: boolean;
   isCurriculumFinal?: boolean;
   createdDate?: string;
+  rejectionInfo?: {
+    rejectionReason?: string;
+    rejectionNotes?: string;
+    reason?: string;
+    rejectedAt?: string | number | Date;
+    rejectedBy?: {
+      name?: string;
+      timestamp?: string | number | Date;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  } | null;
 }
 
 export interface UpdateCourseMessageResponse {
@@ -75,8 +87,8 @@ export interface UpdateCourseMessageResponse {
 
 class CourseApiService {
   // Create a new course
-  async createCourse(courseData: CourseCreateRequest): Promise<CourseResponse> {
-    return apiService.post<CourseResponse>('/instructor/course/create-new', courseData);
+  async createCourse(courseData: CourseCreateRequest): Promise<number | CourseResponse> {
+    return apiService.post<number | CourseResponse>('/instructor/course/create-new', courseData);
   }
 
   // Update an existing course
