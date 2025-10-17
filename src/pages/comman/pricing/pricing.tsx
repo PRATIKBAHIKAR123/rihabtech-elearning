@@ -11,6 +11,7 @@ import { SubscriptionPaymentModal } from "../../../components/ui/SubscriptionPay
 import { pricingService, PricingPlan, PricingBreakdown } from "../../../utils/pricingService";
 import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
 import { couponService, Coupon } from "../../../utils/couponService";
+import { courseApiService, Category } from "../../../utils/courseApiService";
 
 type AppliedCoupon = {
   couponId: string;
@@ -67,10 +68,11 @@ export default function Pricing() {
       const plans = await pricingService.refreshPricingPlans();
       setPricingPlans(plans);
 
-      const categoriesData = await pricingService.getCategoriesWithPricing();
+      // Use courseApiService to get categories
+      const categoriesData = await courseApiService.getAllCategories();
       const categoryOptions = [
         { id: "all", name: "All Categories" },
-        ...categoriesData.map((c: any) => ({ id: c.id, name: c.name })),
+        ...categoriesData.map((c: Category) => ({ id: c.id, name: c.title })),
       ];
       setCategories(categoryOptions);
     } catch (error) {
