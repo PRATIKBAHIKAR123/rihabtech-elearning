@@ -7,16 +7,14 @@ import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
 import { courseApiService, CourseResponse, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
 import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
+import { useCourseData, clearCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 
 const CourseTitle = () => {
-  const [loading, setLoading] = useState(true);
-  const [initializing, setInitializing] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
-  const [courseData, setCourseData] = useState<CourseResponse | null>(null);
-  const [isNewCourse, setIsNewCourse] = useState(true);
+  const { courseData, isLoading, isNewCourse, updateCourseData } = useCourseData();
 
 type RejectionBy = {
   name?: string;
@@ -83,8 +81,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             congratulationsMessage: null
           };
           
-          setCourseData(courseObject);
-          setIsNewCourse(false);
+          updateCourseData(courseObject);
           
           toast.success("Course created successfully!");
         } else {
@@ -113,8 +110,8 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             congratulationsMessage: courseData.congratulationsMessage ?? null
           });
           
-          // After a successful update, update the local courseData state with the new title
-          setCourseData(prev => prev ? { ...prev, title: values.title } : null);
+          // After a successful update, update the shared courseData state with the new title
+          updateCourseData({ title: values.title });
           
           
           toast.success(updateResponse.message || "Course updated successfully!");
@@ -143,90 +140,38 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
   });
 
 
+  // Set form values when course data is loaded
   useEffect(() => {
-    const initializeCourse = async () => {
-      // Prevent double initialization
-      if (initialized || initializing) {
-        console.log("Already initialized or initializing, skipping...");
-        return;
-      }
+    if (courseData && courseData.title) {
+      formik.setFieldValue('title', courseData.title);
       
-      setInitializing(true);
-      
-      try {
-        // Check if we have an existing course ID
-        const existingCourseId = localStorage.getItem("courseId");
-        
-        if (existingCourseId) {
-          // Fetch existing course from API
-          try {
-            const apiCourseData = await courseApiService.getCourseById(parseInt(existingCourseId));
-            setCourseData(apiCourseData);
-            setIsNewCourse(false);
-            formik.setFieldValue('title', apiCourseData.title);
-            
-            // Check for rejection info from API
-            if (apiCourseData.status === 'NEEDS_REVISION' && apiCourseData.rejectionInfo) {
-              setRejectionInfo({
-                ...apiCourseData.rejectionInfo,
-                rejectedAt: apiCourseData.rejectionInfo.rejectedAt ? new Date(apiCourseData.rejectionInfo.rejectedAt) : undefined,
-                rejectedBy: {
-                  ...(typeof apiCourseData.rejectionInfo.rejectedBy === 'object' && apiCourseData.rejectionInfo.rejectedBy !== null ? apiCourseData.rejectionInfo.rejectedBy : {}),
-                  timestamp:
-                    typeof apiCourseData.rejectionInfo.rejectedBy === 'object' &&
-                    apiCourseData.rejectionInfo.rejectedBy !== null &&
-                    (apiCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
-                      ? new Date((apiCourseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
-                      : undefined
-                }
-              });
-              setShowRejectionDialog(true);
-            }
-            
-            console.log("Loaded existing course from API:", apiCourseData);
-          } catch (apiError) {
-            console.warn("Failed to fetch course from API:", apiError);
-            toast.error("Failed to load course data. Please try again.");
+      // Check for rejection info from API
+      if (courseData.status === 'NEEDS_REVISION' && courseData.rejectionInfo) {
+        setRejectionInfo({
+          ...courseData.rejectionInfo,
+          rejectedAt: courseData.rejectionInfo.rejectedAt ? new Date(courseData.rejectionInfo.rejectedAt) : undefined,
+          rejectedBy: {
+            ...(typeof courseData.rejectionInfo.rejectedBy === 'object' && courseData.rejectionInfo.rejectedBy !== null ? courseData.rejectionInfo.rejectedBy : {}),
+            timestamp:
+              typeof courseData.rejectionInfo.rejectedBy === 'object' &&
+              courseData.rejectionInfo.rejectedBy !== null &&
+              (courseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp
+                ? new Date((courseData.rejectionInfo.rejectedBy as { timestamp?: string | number | Date }).timestamp!)
+                : undefined
           }
-        } else {
-          // New course - no existing data
-          setIsNewCourse(true);
-          console.log("Initializing new course");
-        }
-      } catch (error: any) {
-        console.error("Failed to initialize course:", error);
-        
-        // Handle specific error messages
-        if (error.message?.includes('Authentication failed')) {
-          toast.error("Authentication failed. Please login again.");
-        } else if (error.message?.includes('Access forbidden')) {
-          toast.error("You don't have permission to access course data.");
-        } else if (error.message?.includes('Server error')) {
-          toast.error("Server error. Please try again later.");
-        } else {
-          toast.error("Failed to load course data");
-        }
-      } finally {
-        setInitializing(false);
-        setLoading(false);
-        setInitialized(true);
+        });
+        setShowRejectionDialog(true);
       }
-    };
-    
-    // Only initialize if we haven't already done so
-    if (!initialized && !initializing) {
-      initializeCourse();
     }
-    // eslint-disable-next-line
-  }, []);
+  }, [courseData]); // Remove formik from dependencies
 
-  // Don't render the form while initializing
-  if (initializing) {
+  // Don't render the form while loading course data
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing course draft...</p>
+          <p className="text-gray-600">Loading course data...</p>
         </div>
       </div>
     );
@@ -276,8 +221,8 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
           className="rounded-none"
           type="button"
           onClick={() => {
-            // Clear courseId from localStorage when going back to course test selection
-            localStorage.removeItem("courseId");
+            // Clear course data when going back to course test selection
+            clearCourseData();
             window.location.hash = "#/instructor/course-test-selection";
           }}
         >
