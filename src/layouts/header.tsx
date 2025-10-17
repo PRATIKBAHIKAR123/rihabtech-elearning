@@ -12,14 +12,9 @@ import { useAuth } from '../context/AuthContext';
 import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
 import { LearnerCourse, learnerService } from "../utils/learnerService";
 import { getUserActiveSubscription, Subscription } from "../utils/subscriptionService";
-import { apiService } from "../utils/apiService";
 import { toast } from "sonner";
 import { EN_INSTRUCTOR_STATUS } from "../constants/instructorStatus";
-
-// Interface for instructor status response
-interface InstructorStatusResponse {
-  currStatus: number | null;
-}
+import { instructorApiService } from "../utils/instructorApiService";
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -51,7 +46,7 @@ const handleTeachWithUsClick = async () => {
 
   try {
     // Check current instructor status
-    const response = await apiService.get<InstructorStatusResponse>('/instructor/current-status');
+    const response = await instructorApiService.getCurrentStatus();
     
     if (response && response.currStatus !== undefined) {
       const status = response.currStatus;

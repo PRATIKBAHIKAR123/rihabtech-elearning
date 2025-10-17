@@ -1,6 +1,5 @@
 import { Button } from '../../components/ui/button';
 import { useState, useEffect } from 'react';
-import { apiService } from '../../utils/apiService';
 import { 
   getStatusById, 
   getStatusMessage, 
@@ -9,11 +8,7 @@ import {
   getStatusButtonColor, 
   getStatusDescription 
 } from '../../constants/instructorStatus';
-
-// Interface for instructor status response
-interface InstructorStatusResponse {
-  currStatus: number | null;
-}
+import { instructorApiService } from '../../utils/instructorApiService';
 
 export default function InstructorSignupSuccess() {
   const [applicationStatus, setApplicationStatus] = useState<any>(null);
@@ -25,7 +20,7 @@ export default function InstructorSignupSuccess() {
         setLoading(true);
         
         // First try to get status from API
-        const response = await apiService.get<InstructorStatusResponse>('/instructor/current-status');
+        const response = await instructorApiService.getCurrentStatus();
         
         if (response && response.currStatus !== undefined && response.currStatus !== null) {
           // Get status info from constants
