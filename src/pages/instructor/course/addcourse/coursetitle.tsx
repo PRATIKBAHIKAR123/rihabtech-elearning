@@ -146,7 +146,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       formik.setFieldValue('title', courseData.title);
       
       // Check for rejection info from API
-      if (courseData.status === 'NEEDS_REVISION' && courseData.rejectionInfo) {
+      if (courseData.status === 3 && courseData.rejectionInfo) { // 3 = NEEDS_REVISION
         setRejectionInfo({
           ...courseData.rejectionInfo,
           rejectedAt: courseData.rejectionInfo.rejectedAt ? new Date(courseData.rejectionInfo.rejectedAt) : undefined,

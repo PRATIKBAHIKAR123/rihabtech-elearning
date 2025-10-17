@@ -50,7 +50,7 @@ export interface CourseResponse {
   congratulationsMessage?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  status?: string | null;
+  status?: number | null;
   instructorId?: string | null;
   progress?: number;
   isPublished?: boolean;
@@ -85,6 +85,25 @@ export interface UpdateCourseMessageResponse {
   message: string;
 }
 
+export interface CoursePublishRequest {
+  id: number;
+}
+
+export interface CoursePublishResponse {
+  message: string;
+  publishedAt?: string;
+  isPublished?: boolean;
+}
+
+export interface CourseGetAllResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  pricing: string | null;
+  enrolments: number;
+  weeks: number;
+}
+
 class CourseApiService {
   // Create a new course
   async createCourse(courseData: CourseCreateRequest): Promise<number | CourseResponse> {
@@ -114,6 +133,16 @@ class CourseApiService {
   // Get all subcategories
   async getAllSubCategories(): Promise<SubCategory[]> {
     return apiService.get<SubCategory[]>('/instructor/course/sub-categories');
+  }
+
+  // Get all courses (public endpoint)
+  async getAllPublicCourses(): Promise<CourseGetAllResponse[]> {
+    return apiService.post<CourseGetAllResponse[]>('/course/get-all', {});
+  }
+
+  // Publish a course
+  async publishCourse(courseId: number): Promise<CoursePublishResponse> {
+    return apiService.post<CoursePublishResponse>('/instructor/course/publish', courseId);
   }
 }
 
