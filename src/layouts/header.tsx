@@ -12,6 +12,14 @@ import { useAuth } from '../context/AuthContext';
 import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
 import { LearnerCourse, learnerService } from "../utils/learnerService";
 import { getUserActiveSubscription, Subscription } from "../utils/subscriptionService";
+import { apiService } from "../utils/apiService";
+import { toast } from "sonner";
+import { EN_INSTRUCTOR_STATUS } from "../constants/instructorStatus";
+
+// Interface for instructor status response
+interface InstructorStatusResponse {
+  currStatus: number | null;
+}
 
 type HeaderProps = {
     onMenuClick: () => void;
@@ -32,6 +40,77 @@ const { user } = useAuth();
 const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 const isAuthenticated = !!user || !!token;
 const [activePlan, setActivePlan] = useState<Subscription | null>(null);
+
+// Function to handle Teach With Us click
+const handleTeachWithUsClick = async () => {
+  if (!isAuthenticated) {
+    toast.error("Please login first to apply as instructor");
+    window.location.href = '/#/login';
+    return;
+  }
+
+  try {
+    // Check current instructor status
+    const response = await apiService.get<InstructorStatusResponse>('/instructor/current-status');
+    
+    if (response && response.currStatus !== undefined) {
+      const status = response.currStatus;
+      
+      if (status === null || status === undefined) {
+        // No application found, redirect to instructor signup
+        window.location.href = '/#/instructor-signup';
+      } else {
+        // Get status information from constants
+        const statusInfo = EN_INSTRUCTOR_STATUS.find(s => s.id === status);
+        
+        if (status === 1) {
+          // Pending - already applied
+          toast.info("You have already applied to become an instructor. Your application is pending review.");
+          window.location.href = '/#/instructor-signup-success';
+        } else if (status === 2) {
+          // Approved - update user role and redirect to instructor dashboard
+          const tokenData = localStorage.getItem('token');
+          if (tokenData) {
+            const userData = JSON.parse(tokenData);
+            if(userData.Role !== 5) {
+            userData.Role = 5; // Update role to instructor
+            localStorage.setItem('token', JSON.stringify(userData));
+            }
+            //toast.success("Congratulations! Your instructor application has been approved.");
+            window.location.href = '/#/instructor/course-test-selection';
+          }
+        } else if (status === 3) {
+          // Rejected
+          toast.error("Your instructor application was rejected. Please contact support for more information.");
+          window.location.href = '/#/instructor-signup-success';
+        } else if (status === 4) {
+          // On Hold
+          toast.info("Your instructor application is on hold for further review. Please wait for updates.");
+          window.location.href = '/#/instructor-signup-success';
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('Error checking instructor status:', error);
+    
+    // If user is already an instructor (Role = 5), redirect directly
+    const tokenData = localStorage.getItem('token');
+    if (tokenData) {
+      const userData = JSON.parse(tokenData);
+      if (userData.Role === 5) {
+        window.location.href = '/#/instructor/course-test-selection';
+        return;
+      }
+    }
+    
+    // Fallback: check if user has already applied (Firebase check)
+    if (user?.UserName || user?.email) {
+      window.location.href = '/#/instructor-signup';
+    } else {
+      toast.error("Unable to check instructor status. Please try again.");
+    }
+  }
+};
 
 
 useEffect(() => {
@@ -106,7 +185,7 @@ useEffect(() => {
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
           {isAuthenticated && (
-            <a href="#/instructor/course-test-selection" className="font-medium text-[#000927] hover:text-blue-600">Teach With Us</a>
+            <button onClick={handleTeachWithUsClick} className="font-medium text-[#000927] hover:text-blue-600 bg-transparent border-none cursor-pointer">Teach With Us</button>
           )}
         </nav>
         

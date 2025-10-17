@@ -12,15 +12,11 @@ import { COURSE_STATUS } from "../../../../utils/firebaseCourses";
 import { courseApiService, CourseResponse, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
 import { toast } from "sonner";
 
-// Global flag to prevent double initialization
-let isInitializing = false;
-
-
 const CourseTitle = () => {
-   const draftId = useRef<string>(localStorage.getItem("draftId") || "");
-   const [storedDraftId, setStoredDraftId] = useState(localStorage.getItem("draftId") || "");
+  const draftId = useRef<string>(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const { user } = useAuth();
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [courseData, setCourseData] = useState<CourseResponse | null>(null);
@@ -71,13 +67,17 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
           setCourseData(newCourse);
           setIsNewCourse(false);
           
-          // Also create Firebase draft for backward compatibility
-          const newDraftId = await createNewCourseDraft(values.title, user?.UserName);
-          draftId.current = newDraftId;
-          localStorage.setItem("draftId", newDraftId);
-          
-          toast.success("Course created successfully!");
-          console.log("Created new course with ID:", newCourse.id);
+                 // Also create Firebase draft for backward compatibility
+                 try {
+                   const newDraftId = await createNewCourseDraft(values.title, user?.UserName);
+                   draftId.current = newDraftId;
+                   localStorage.setItem("draftId", newDraftId);
+                 } catch (firebaseError) {
+                   console.warn("Firebase draft creation failed (non-critical):", firebaseError);
+                   // Don't throw error - this is just for backward compatibility
+                 }
+
+                 toast.success("Course created successfully!");
         } else {
           // Comparison logic: Only call update API if title has changed
           if (courseData.title === values.title) {
@@ -107,11 +107,17 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
           // After a successful update, update the local courseData state with the new title
           setCourseData(prev => prev ? { ...prev, title: values.title } : null);
           
-          // Also update Firebase draft for backward compatibility
-          await saveCourseTitle(draftId.current, values.title, user?.UserName);
+          // Also update Firebase draft for backward compatibility (only if draftId exists)
+          if (draftId.current && draftId.current.trim() !== "") {
+            try {
+              await saveCourseTitle(draftId.current, values.title, user?.UserName);
+            } catch (firebaseError) {
+              console.warn("Firebase draft update failed (non-critical):", firebaseError);
+              // Don't throw error - this is just for backward compatibility
+            }
+          }
           
           toast.success(updateResponse.message || "Course updated successfully!");
-          console.log("Updated course with ID:", courseData.id, "Message:", updateResponse.message);
         }
         
         setLoading(false);
@@ -136,25 +142,15 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
     enableReinitialize: true,
   });
 
-  useEffect(() => {
-  const id = localStorage.getItem("draftId");
-  if (id !== storedDraftId) {
-    setStoredDraftId(id || "");
-    setInitializing(false);
-  setLoading(false);
-  isInitializing = false;
-  }
-}, []);
 
   useEffect(() => {
     const initializeCourse = async () => {
       // Prevent double initialization
-      if (isInitializing) {
-        console.log("Initialization already in progress, skipping...");
+      if (initialized || initializing) {
+        console.log("Already initialized or initializing, skipping...");
         return;
       }
       
-      isInitializing = true;
       setInitializing(true);
       
       try {
@@ -228,13 +224,16 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       } finally {
         setInitializing(false);
         setLoading(false);
-        isInitializing = false;
+        setInitialized(true);
       }
     };
     
-    initializeCourse();
+    // Only initialize if we haven't already done so
+    if (!initialized && !initializing) {
+      initializeCourse();
+    }
     // eslint-disable-next-line
-  }, [storedDraftId]);
+  }, []);
 
   // Don't render the form while initializing
   if (initializing) {
