@@ -12,6 +12,10 @@ import {
 } from "../../../../components/ui/select";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { X, UserPlus, Globe, Smartphone, Lock, Users } from "lucide-react";
+import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { useAuth } from "../../../../context/AuthContext";
+import { useCourseData } from "../../../../hooks/useCourseData";
+import { toast } from "sonner";
 
 export interface Member {
   id: string;
@@ -41,6 +45,8 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
   const [emailError, setEmailError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -110,24 +116,111 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
     fetchData();
   }, [draftId]);
 
+  // Set pricing value from courseData when it's loaded
+  useEffect(() => {
+    if (courseData && courseData.pricing !== undefined) {
+      // Convert API pricing format to component format
+      const pricingValue = courseData.pricing === "free" ? 'free' : 'paid';
+      setPricing(pricingValue);
+    }
+  }, [courseData]);
+
   const handleSubmit = async () => {
     if (!access.website && !access.app && !access.private) {
       alert("Please select at least one access option");
       return;
     }
+    
     setIsSubmitting(true);
-    try {
-      await savePricingData({
-        draftId: draftId,
-        pricing,
-        access,
-        members: access.private ? members : [],
-      });
-      if (onSubmit) onSubmit();
-    } catch (e) {
-      alert("Failed to save settings. Please try again.");
+    
+    // Check if user is logged in
+    if (!user) {
+      toast.error("Please login to update course");
+      setIsSubmitting(false);
+      return;
     }
-    setIsSubmitting(false);
+    
+    try {
+      if (isNewCourse || !courseData?.id) {
+        // For new courses, we need to create the course first
+        toast.error("Please create a course first by setting the title");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Comparison logic: Only call update API if pricing has changed
+      const currentPricing = courseData.pricing || "";
+      const newPricing = pricing === 'free' ? "free" : "paid"; // Convert to API format
+      
+      if (currentPricing === newPricing) {
+        //toast.info("No changes detected in pricing. Moving to next step.");
+        setIsSubmitting(false);
+        if (onSubmit) onSubmit();
+        return; // Exit early
+      }
+
+      // If pricing has changed, proceed with update
+      const updateResponse: UpdateCourseMessageResponse = await courseApiService.updateCourse({
+        id: courseData.id,
+        title: courseData.title,
+        subtitle: courseData.subtitle ?? null,
+        description: courseData.description ?? null,
+        category: courseData.category ?? null,
+        subCategory: courseData.subCategory ?? null,
+        level: courseData.level ?? null,
+        language: courseData.language ?? null,
+        pricing: newPricing,
+        thumbnailUrl: courseData.thumbnailUrl ?? null,
+        promoVideoUrl: courseData.promoVideoUrl ?? null,
+        welcomeMessage: courseData.welcomeMessage ?? null,
+        congratulationsMessage: courseData.congratulationsMessage ?? null,
+        learn: courseData.learn ?? [],
+        requirements: courseData.requirements ?? [],
+        target: courseData.target ?? []
+      });
+      
+      // After a successful update, update the shared courseData state with the new pricing
+      updateCourseData({ 
+        title: courseData.title,
+        subtitle: courseData.subtitle ?? null,
+        description: courseData.description ?? null,
+        category: courseData.category ?? null,
+        subCategory: courseData.subCategory ?? null,
+        level: courseData.level ?? null,
+        language: courseData.language ?? null,
+        pricing: newPricing,
+        thumbnailUrl: courseData.thumbnailUrl ?? null,
+        promoVideoUrl: courseData.promoVideoUrl ?? null,
+        welcomeMessage: courseData.welcomeMessage ?? null,
+        congratulationsMessage: courseData.congratulationsMessage ?? null,
+        learn: courseData.learn ?? [],
+        requirements: courseData.requirements ?? [],
+        target: courseData.target ?? []
+      });
+      
+      toast.success(updateResponse.message || "Course pricing updated successfully!");
+      
+      // Refresh course data from API to ensure all pages have the latest data
+      await refreshCourseData();
+      
+      setIsSubmitting(false);
+      if (onSubmit) onSubmit();
+    } catch (error: any) {
+      console.error("Failed to save course pricing:", error);
+      
+      // Handle specific error messages
+      if (error.message?.includes('Authentication failed')) {
+        toast.error("Authentication failed. Please login again.");
+      } else if (error.message?.includes('Access forbidden')) {
+        toast.error("You don't have permission to perform this action.");
+      } else if (error.message?.includes('Server error')) {
+        toast.error("Server error. Please try again later.");
+      } else {
+        toast.error("Failed to save course pricing. Please try again.");
+      }
+      
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -135,6 +228,18 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       addMember();
     }
   };
+
+  // Don't render the form while loading course data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-sm border">
