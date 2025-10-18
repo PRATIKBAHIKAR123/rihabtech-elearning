@@ -1,23 +1,21 @@
 import { BookOpen, ChevronDown, ChevronRight, Filter, User2, X } from "lucide-react";
-import { Course, getAllCourses, calculateCourseDuration, COURSE_STATUS } from "../../../utils/firebaseCourses";
 import { Button } from "../../../components/ui/button";
-import Divider from "../../../components/ui/divider";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
 import { useParams } from "react-router-dom";
-import { courseApiService, Category } from "../../../utils/courseApiService";
+import { courseApiService, CourseGetAllResponse } from "../../../utils/courseApiService";
 
 export default function CourseList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CourseGetAllResponse[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<CourseGetAllResponse[]>([]);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [coursesPerPage] = useState(8); // Show 8 courses per page
-  const [displayedCourses, setDisplayedCourses] = useState<Course[]>([]);
+  const [displayedCourses, setDisplayedCourses] = useState<CourseGetAllResponse[]>([]);
   
   // Filter states
   const [selectedRating, setSelectedRating] = useState<string>("");
@@ -40,24 +38,21 @@ export default function CourseList() {
   // Check if any filters are active
   const hasActiveFilters = selectedRating || selectedPrice.length > 0 || selectedDuration.length > 0 || selectedTopics.length > 0;
 
-  // Fetch courses from Firebase
+  // Fetch courses from API
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const firebaseCourses = await getAllCourses();
-        // Filter only published and approved courses
-        const publishedCourses = firebaseCourses.filter(course => 
-          categoryId ? course.category === categoryId : false
-        );
-        if(categoryId){
-        setCourses(publishedCourses);
-        setFilteredCourses(publishedCourses);
-        }
-        else{
-          setCourses(firebaseCourses);
-        setFilteredCourses(firebaseCourses);
-        }
+        const apiCourses = await courseApiService.getAllPublicCourses();
+        console.log('Fetched API courses:', apiCourses);
+        
+        // Filter courses by category if categoryId is provided
+        const filteredCourses = categoryId 
+          ? apiCourses.filter(course => course.category === parseInt(categoryId))
+          : apiCourses;
+        
+        setCourses(filteredCourses);
+        setFilteredCourses(filteredCourses);
       } catch (error) {
         console.error("Error fetching courses:", error);
         setCourses([]);
@@ -68,7 +63,7 @@ export default function CourseList() {
     };
 
     fetchCourses();
-  }, []);
+  }, [categoryId]);
 
      useEffect(() => {
   const fetchCategories = async () => {
@@ -96,23 +91,23 @@ export default function CourseList() {
 }, [categoryId]);
 
   // Apply filters to courses
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...courses];
 
     // Price filter
     if (selectedPrice.length > 0) {
       filtered = filtered.filter(course => {
-        const isFree = course.pricing === "Free" || course.pricing === "0";
+        const isFree = course.pricing === "free" || course.pricing === null || course.pricing === "";
         if (selectedPrice.includes('free') && isFree) return true;
         if (selectedPrice.includes('paid') && !isFree) return true;
         return false;
       });
     }
 
-    // Duration filter
+    // Duration filter (using weeks from API)
     if (selectedDuration.length > 0) {
       filtered = filtered.filter(course => {
-        const duration = calculateCourseDuration(course);
+        const duration = course.weeks || 0;
         if (selectedDuration.includes('duration-0-1') && duration >= 0 && duration <= 1) return true;
         if (selectedDuration.includes('duration-1-3') && duration > 1 && duration <= 3) return true;
         if (selectedDuration.includes('duration-3-6') && duration > 3 && duration <= 6) return true;
@@ -122,27 +117,25 @@ export default function CourseList() {
       });
     }
 
-    // Topic filter (using course title and category)
+    // Topic filter (using course title)
     if (selectedTopics.length > 0) {
       filtered = filtered.filter(course => {
         return selectedTopics.some(topic => 
-          course.title.toLowerCase().includes(topic.toLowerCase()) ||
-          course.category?.toLowerCase().includes(topic.toLowerCase()) ||
-          course.subcategory?.toLowerCase().includes(topic.toLowerCase())
+          course.title.toLowerCase().includes(topic.toLowerCase())
         );
       });
     }
 
     setFilteredCourses(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  };
+  }, [courses, selectedPrice, selectedDuration, selectedTopics]);
 
   // Pagination logic
-  const updateDisplayedCourses = () => {
+  const updateDisplayedCourses = useCallback(() => {
     const startIndex = (currentPage - 1) * coursesPerPage;
     const endIndex = startIndex + coursesPerPage;
     setDisplayedCourses(filteredCourses.slice(startIndex, endIndex));
-  };
+  }, [filteredCourses, currentPage, coursesPerPage]);
 
   // Calculate pagination info
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
@@ -158,12 +151,12 @@ export default function CourseList() {
   // Apply filters whenever filter states change
   useEffect(() => {
     applyFilters();
-  }, [selectedRating, selectedPrice, selectedDuration, selectedTopics, courses]);
+  }, [applyFilters]);
 
   // Update displayed courses when filteredCourses or currentPage changes
   useEffect(() => {
     updateDisplayedCourses();
-  }, [filteredCourses, currentPage, coursesPerPage]);
+  }, [updateDisplayedCourses]);
 
   // Initialize filtered courses on component mount
   useEffect(() => {
@@ -174,13 +167,12 @@ export default function CourseList() {
 
   // Calculate total students across all courses
   const totalStudents = courses.reduce((total, course) => {
-    const studentCount = course.members ? course.members.filter(m => m.role === 'student').length : 0;
-    return total + studentCount;
+    return total + (course.enrolments || 0);
   }, 0);
 
   // Count free courses
   const freeCoursesCount = courses.filter(course => 
-    course.pricing === "Free" || course.pricing === "0"
+    course.pricing === "free" || course.pricing === null || course.pricing === ""
   ).length;
 
   return (
@@ -204,9 +196,9 @@ export default function CourseList() {
         <div>
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center text-sm">
-              <a href="#" className="text-[#000927] text-base font-normal font-['Barlow'] leading-relaxed hover:text-primary">Home</a>
+              <button className="text-[#000927] text-base font-normal font-['Barlow'] leading-relaxed hover:text-primary">Home</button>
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
-              <a href="#" className="text-[#000927] text-base font-normal font-['Barlow'] leading-relaxed hover:text-primary">Courses</a>
+              <button className="text-[#000927] text-base font-normal font-['Barlow'] leading-relaxed hover:text-primary">Courses</button>
               <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
               <span className="text-gray-500 text-base font-normal font-['Barlow'] leading-relaxed">{categoryName??'All Courses'}</span>
             </div>
@@ -655,7 +647,7 @@ function FilterContent({
 
 
 export function CourseCard({ course, progress = false }: { 
-  course: Course | {
+  course: CourseGetAllResponse | {
     id: string | number;
     title: string;
     description: string;
@@ -667,19 +659,16 @@ export function CourseCard({ course, progress = false }: {
     image?: string;
     thumbnailUrl?: string;
     pricing?: string;
-    members?: Array<{ role: string }>;
+    enrolments?: number;
+    weeks?: number;
   }; 
   progress?: boolean 
 }) {
   // Calculate student count - handle both interfaces
-  const studentCount = course.members 
-    ? course.members.filter(m => m.role === 'student').length 
-    : (course as any).students || 0;
+  const studentCount = (course as any).enrolments || (course as any).students || 0;
   
   // Calculate course duration - handle both interfaces
-  const courseDuration = course.members 
-    ? calculateCourseDuration(course as Course)
-    : (course as any).duration || 0;
+  const courseDuration = (course as any).weeks || (course as any).duration || 0;
   
   // Get image source - handle both interfaces
   const imageSrc = (course as any).thumbnailUrl || (course as any).image || "Images/courses/course 4.jpg";
@@ -692,7 +681,7 @@ export function CourseCard({ course, progress = false }: {
   
   // Get pricing - handle both interfaces
   const pricing = (course as any).pricing || (course as any).price;
-  const isFree = pricing === "Free" || pricing === "0" || pricing === 0;
+  const isFree = pricing === "free" || pricing === null || pricing === "" || pricing === 0;
   
   return (
     <div className="course-card overflow-hidden" onClick={() => {
@@ -725,21 +714,21 @@ export function CourseCard({ course, progress = false }: {
               <span>{studentCount} Students</span>
             </div>
             <div className="py-0.5 flex items-center gap-2">
-              <span>{courseDuration} {course.members ? 'Hours' : 'Weeks'}</span>
+              <span>{courseDuration} Weeks</span>
             </div>
           </div>
           <h3 className="course-title">{course.title}</h3>
           <p className="course-desciption">{course.description}</p>
 
-          {progress && (
+          {progress && (course as any).progress && (
             <div className="course-progress">
               <div className="course-progress-bar">
                 <div
                   className="progress-completed"
-                  style={{ width: `${course.progress}%` }}
+                  style={{ width: `${(course as any).progress}%` }}
                 ></div><div className="progress-dot" />
               </div>
-              <div className="progress-text-completed">{course.progress}% Completed</div>
+              <div className="progress-text-completed">{(course as any).progress}% Completed</div>
             </div>
           )}
         </div>
