@@ -1,16 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "../../../../components/ui/button";
 import { BookOpen, Edit3, MoreHorizontal, Trash2 } from "lucide-react";
 import { useAuth } from "../../../../context/AuthContext";
 import { 
   getInstructorCourses, 
-  deleteCourse, 
-  InstructorCourse,
-  calculateCourseProgress 
+  deleteCourse
 } from "../../../../utils/firebaseInstructorCourses";
 import { COURSE_STATUS, COURSE_STATUS_LABELS } from "../../../../utils/firebaseCourses";
 import { courseApiService, CourseResponse } from "../../../../utils/courseApiService";
+import { getStatusById, getStatusColor, COURSE_STATUS as STATUS_CONSTANTS } from "../../../../constants/courseStatus";
 
 // Interface for API course display
 interface ApiCourseDisplayData extends CourseResponse {
@@ -29,15 +28,7 @@ const CourseSelection = () => {
   const [loading, setLoading] = useState(true);
   const [apiLoading, setApiLoading] = useState(true);
 
-  // Fetch instructor courses on component mount
-  useEffect(() => {
-    if (user?.UserName) {
-      fetchInstructorCourses();
-      fetchApiCourses();
-    }
-  }, [user?.UserName]);
-
-  const fetchInstructorCourses = async () => {
+  const fetchInstructorCourses = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -101,9 +92,9 @@ const CourseSelection = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.UserName]);
 
-  const fetchApiCourses = async () => {
+  const fetchApiCourses = useCallback(async () => {
     try {
       setApiLoading(true);
       
@@ -116,17 +107,19 @@ const CourseSelection = () => {
       const apiCoursesData = await courseApiService.getAllCourses();
       console.log("API courses:", apiCoursesData);
       
-      // Transform API data to match the UI structure
-      const transformedApiCourses: ApiCourseDisplayData[] = apiCoursesData.map(course => ({
-        ...course,
-        // Add mock data for display purposes
-        progress: Math.floor(Math.random() * 100), // Random progress
-        lastModified: course.updatedAt ? new Date(course.updatedAt) : new Date(),
-        visibility: 'Public', // Default visibility
-        pricing: course.pricing || 'Free', // Use API pricing or default
-        thumbnail: course.thumbnailUrl,
-        description: course.description
-      }));
+      // Transform API data to match the UI structure and filter for Draft courses (status: 1)
+      const transformedApiCourses: ApiCourseDisplayData[] = apiCoursesData
+        .filter(course => course.status === STATUS_CONSTANTS.DRAFT) // Filter for Draft courses only
+        .map(course => ({
+          ...course,
+          // Add mock data for display purposes
+          progress: Math.floor(Math.random() * 100), // Random progress
+          lastModified: course.updatedAt ? new Date(course.updatedAt) : new Date(),
+          visibility: 'Public', // Default visibility
+          pricing: course.pricing || 'Free', // Use API pricing or default
+          thumbnail: course.thumbnailUrl,
+          description: course.description
+        }));
       
       console.log("Transformed API courses:", transformedApiCourses);
       setApiCourses(transformedApiCourses);
@@ -135,22 +128,15 @@ const CourseSelection = () => {
     } finally {
       setApiLoading(false);
     }
-  };
+  }, [user?.UserName]);
 
-  // Helper function to format relative time
-  const formatRelativeTime = (date: Date) => {
-    if (!date) return 'Recently';
-    
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '1 day ago';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
-  };
+  // Fetch instructor courses on component mount
+  useEffect(() => {
+    if (user?.UserName) {
+      fetchInstructorCourses();
+      fetchApiCourses();
+    }
+  }, [user?.UserName, fetchInstructorCourses, fetchApiCourses]);
 
   // Helper function to truncate description
   const truncateDescription = (text: string, maxLength: number) => {
@@ -477,66 +463,12 @@ const CourseSelection = () => {
   const ApiDraftCourseCard = ({ course, onEdit, onDelete }:any) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const getStatusColor = (status: number | string) => {
-    const statusValue = typeof status === 'number' ? status : status.toLowerCase();
-    switch (statusValue) {
-      case COURSE_STATUS.PUBLISHED:
-      case 'published':
-      case 'live':
-        return 'bg-[#3ab500]';
-      case COURSE_STATUS.APPROVED:
-      case 'approved':
-        return 'bg-blue-500';
-      case COURSE_STATUS.DRAFT:
-      case 'draft':
-        return 'bg-gray-400';
-      case COURSE_STATUS.PENDING_REVIEW:
-      case 'pending_review':
-      case 'pending':
-        return 'bg-yellow-400';
-      case COURSE_STATUS.NEEDS_REVISION:
-      case 'needs_revision':
-      case 'rejected':
-        return 'bg-red-400';
-      case COURSE_STATUS.DRAFT_UPDATE:
-      case 'draft_update':
-        return 'bg-orange-400';
-      case COURSE_STATUS.ARCHIVED:
-      case 'archived':
-        return 'bg-gray-600';
-      default:
-        return 'bg-gray-400';
-    }
+  const getCourseStatusColor = (status: number) => {
+    return getStatusColor(status);
   };
 
-  const getStatusText = (status: number | string) => {
-    const statusValue = typeof status === 'number' ? status : status.toLowerCase();
-    switch (statusValue) {
-      case COURSE_STATUS.PUBLISHED:
-      case 'published':
-        return 'Published';
-      case COURSE_STATUS.APPROVED:
-      case 'approved':
-        return 'Approved';
-      case COURSE_STATUS.DRAFT:
-      case 'draft':
-        return 'Draft';
-      case COURSE_STATUS.PENDING_REVIEW:
-      case 'pending_review':
-      case 'pending':
-        return 'Pending Review';
-      case COURSE_STATUS.NEEDS_REVISION:
-      case 'needs_revision':
-        return 'Needs Revision';
-      case COURSE_STATUS.DRAFT_UPDATE:
-      case 'draft_update':
-        return 'Draft Update';
-      case COURSE_STATUS.ARCHIVED:
-      case 'archived':
-        return 'Archived';
-      default:
-        return COURSE_STATUS_LABELS[status] || 'Unknown';
-    }
+  const getCourseStatusText = (status: number) => {
+    return getStatusById(status);
   };
 
   return (
@@ -565,8 +497,8 @@ const CourseSelection = () => {
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                 {course.title}
               </h3>
-              <span className="px-2 py-1 text-xs font-medium text-white rounded bg-blue-500">
-                {course.status || 'Draft'}
+              <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getCourseStatusColor(course.status)}`}>
+                {getCourseStatusText(course.status)}
               </span>
               <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
                 {course.visibility}
@@ -680,7 +612,7 @@ const CourseSelection = () => {
   const CourseCard = ({ title, icon, buttonText }: CourseCardProps) => {
 
     const handleCoursetestSelection =(type:string)=> {
-        if(type=='Practice Test'){
+        if(type==='Practice Test'){
             localStorage.setItem('addcourseType','practiceTest')
         }else{
             localStorage.removeItem('addcourseType')
@@ -691,7 +623,7 @@ const CourseSelection = () => {
     }
     return (
       <div className="bg-white p-4 md:p-6 border border-gray-200 flex flex-col items-center text-center justify-center">
-        <img src={icon} className="h-6"/>
+        <img src={icon} className="h-6" alt={title} />
         <h2 className="text-[#393939] text-[14px] md:text-[22px] font-semibold font-['Raleway'] leading-snug mt-4 mb-2">{title}</h2>
         {/* <p className="text-[#1e1e1e] text-[10px] md:text-sm font-medium font-['Nunito'] mb-6">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse laoreet, nulla vitae ultrices iaculis, tortor lorem maximus sem, eu luctus orci dui id sem.

@@ -15,7 +15,7 @@ export function IntendentLearners({ onSubmit }: any) {
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
   const initialValues = {
-    learn: ["", ""],
+    learn: [""],
     requirements: [""],
     target: [""],
   };
@@ -24,11 +24,11 @@ export function IntendentLearners({ onSubmit }: any) {
 
   useEffect(() => {
     // Set form values when course data is loaded
-    if (courseData && (courseData.learn || courseData.requirements || courseData.target)) {
+    if (courseData) {
       setFormInitialValues({
-        learn: courseData.learn || ["", ""],
-        requirements: courseData.requirements || [""],
-        target: courseData.target || [""],
+        learn: courseData.learn && courseData.learn.length > 0 ? courseData.learn : [""],
+        requirements: courseData.requirements && courseData.requirements.length > 0 ? courseData.requirements : [""],
+        target: courseData.target && courseData.target.length > 0 ? courseData.target : [""],
       });
     }
   }, [courseData]);
@@ -72,9 +72,18 @@ export function IntendentLearners({ onSubmit }: any) {
         const currentRequirements = courseData.requirements || [];
         const currentTarget = courseData.target || [];
         
-        const learnChanged = JSON.stringify(currentLearn) !== JSON.stringify(values.learn);
-        const requirementsChanged = JSON.stringify(currentRequirements) !== JSON.stringify(values.requirements);
-        const targetChanged = JSON.stringify(currentTarget) !== JSON.stringify(values.target);
+        // Filter out empty strings for comparison
+        const filteredCurrentLearn = currentLearn.filter(item => item.trim() !== "");
+        const filteredCurrentRequirements = currentRequirements.filter(item => item.trim() !== "");
+        const filteredCurrentTarget = currentTarget.filter(item => item.trim() !== "");
+        
+        const filteredValuesLearn = values.learn.filter(item => item.trim() !== "");
+        const filteredValuesRequirements = values.requirements.filter(item => item.trim() !== "");
+        const filteredValuesTarget = values.target.filter(item => item.trim() !== "");
+        
+        const learnChanged = JSON.stringify(filteredCurrentLearn) !== JSON.stringify(filteredValuesLearn);
+        const requirementsChanged = JSON.stringify(filteredCurrentRequirements) !== JSON.stringify(filteredValuesRequirements);
+        const targetChanged = JSON.stringify(filteredCurrentTarget) !== JSON.stringify(filteredValuesTarget);
         
         if (!learnChanged && !requirementsChanged && !targetChanged) {
           //toast.info("No changes detected in intended learners. Moving to next step.");
@@ -98,9 +107,9 @@ export function IntendentLearners({ onSubmit }: any) {
           promoVideoUrl: courseData.promoVideoUrl ?? null,
           welcomeMessage: courseData.welcomeMessage ?? null,
           congratulationsMessage: courseData.congratulationsMessage ?? null,
-          learn: values.learn,
-          requirements: values.requirements,
-          target: values.target
+          learn: filteredValuesLearn,
+          requirements: filteredValuesRequirements,
+          target: filteredValuesTarget
         });
         
         // After a successful update, update the shared courseData state with the new data
@@ -117,9 +126,9 @@ export function IntendentLearners({ onSubmit }: any) {
           promoVideoUrl: courseData.promoVideoUrl ?? null,
           welcomeMessage: courseData.welcomeMessage ?? null,
           congratulationsMessage: courseData.congratulationsMessage ?? null,
-          learn: values.learn,
-          requirements: values.requirements,
-          target: values.target
+          learn: filteredValuesLearn,
+          requirements: filteredValuesRequirements,
+          target: filteredValuesTarget
         });
         
         toast.success(updateResponse.message || "Course intended learners updated successfully!");
