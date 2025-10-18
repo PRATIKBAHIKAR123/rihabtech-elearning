@@ -1,15 +1,18 @@
-import { Delete, PlusIcon, Trash2 } from "lucide-react";
+import { PlusIcon, Trash2 } from "lucide-react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
-import { useEffect, useState, useRef } from "react";
-import LoadingIcon from "../../../../components/ui/LoadingIcon";
-import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
+import { useEffect, useState } from "react";
+import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { useAuth } from "../../../../context/AuthContext";
+import { useCourseData } from "../../../../hooks/useCourseData";
+import { toast } from "sonner";
 
 export function IntendentLearners({ onSubmit }: any) {
-  const draftId = useRef<string>(localStorage.getItem("draftId") || "");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { courseData, isLoading, isNewCourse, updateCourseData } = useCourseData();
 
   const initialValues = {
     learn: ["", ""],
@@ -20,22 +23,15 @@ export function IntendentLearners({ onSubmit }: any) {
   const [formInitialValues, setFormInitialValues] = useState(initialValues);
 
   useEffect(() => {
-    async function fetchDraft() {
-      setLoading(true);
-      if (draftId.current) {
-        const draft = await getCourseDraft(draftId.current);
-        if (draft && (draft.learn || draft.requirements || draft.target)) {
-          setFormInitialValues({
-            learn: draft.learn || ["", ""],
-            requirements: draft.requirements || [""],
-            target: draft.target || [""],
-          });
-        }
-      }
-      setLoading(false);
+    // Set form values when course data is loaded
+    if (courseData && (courseData.learn || courseData.requirements || courseData.target)) {
+      setFormInitialValues({
+        learn: courseData.learn || ["", ""],
+        requirements: courseData.requirements || [""],
+        target: courseData.target || [""],
+      });
     }
-    fetchDraft();
-  }, []);
+  }, [courseData]);
 
   const validationSchema = Yup.object({
     learn: Yup.array()
@@ -54,31 +50,99 @@ export function IntendentLearners({ onSubmit }: any) {
     initialValues: formInitialValues,
     validationSchema,
     onSubmit: async (values) => {
-      await saveCourseDraft(draftId.current, {
-        ...values,
-        progress: 12, // You decide the step weight
-        isIntendedLearnersFinal: true, // Mark as final
-      });
-      onSubmit(values);
+      setLoading(true);
+      
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to update course");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        if (isNewCourse || !courseData?.id) {
+          // For new courses, we need to create the course first
+          toast.error("Please create a course first by setting the title");
+          setLoading(false);
+          return;
+        }
+
+        // Comparison logic: Only call update API if intended learners data has changed
+        const currentLearn = courseData.learn || [];
+        const currentRequirements = courseData.requirements || [];
+        const currentTarget = courseData.target || [];
+        
+        const learnChanged = JSON.stringify(currentLearn) !== JSON.stringify(values.learn);
+        const requirementsChanged = JSON.stringify(currentRequirements) !== JSON.stringify(values.requirements);
+        const targetChanged = JSON.stringify(currentTarget) !== JSON.stringify(values.target);
+        
+        if (!learnChanged && !requirementsChanged && !targetChanged) {
+          //toast.info("No changes detected in intended learners. Moving to next step.");
+          setLoading(false);
+          onSubmit && onSubmit();
+          return; // Exit early
+        }
+
+        // If data has changed, proceed with update
+        const updateResponse: UpdateCourseMessageResponse = await courseApiService.updateCourse({
+          id: courseData.id,
+          title: courseData.title,
+          subtitle: courseData.subtitle ?? null,
+          description: courseData.description ?? null,
+          category: courseData.category ?? null,
+          subCategory: courseData.subCategory ?? null,
+          level: courseData.level ?? null,
+          language: courseData.language ?? null,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: courseData.thumbnailUrl ?? null,
+          promoVideoUrl: courseData.promoVideoUrl ?? null,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: values.learn,
+          requirements: values.requirements,
+          target: values.target
+        });
+        
+        // After a successful update, update the shared courseData state with the new data
+        updateCourseData({ 
+          learn: values.learn,
+          requirements: values.requirements,
+          target: values.target
+        });
+        
+        toast.success(updateResponse.message || "Course intended learners updated successfully!");
+        
+        setLoading(false);
+        onSubmit && onSubmit();
+      } catch (error: any) {
+        console.error("Failed to save course intended learners:", error);
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to perform this action.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to save course intended learners. Please try again.");
+        }
+        
+        setLoading(false);
+      }
     },
   });
 
-  // Autosave on change (debounced)
-  useEffect(() => {
-    if (!loading) {
-      const timeout = setTimeout(() => {
-        saveCourseDraft(draftId.current, {
-          ...formik.values,
-          progress: 12,
-          isIntendedLearnersFinal: false,
-        });
-      }, 800);
-      return () => clearTimeout(timeout);
-    }
-  }, [formik.values, loading]);
-
-  if (loading) {
-    return <LoadingIcon />;
+  // Don't render the form while loading course data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -244,8 +308,12 @@ export function IntendentLearners({ onSubmit }: any) {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" className="rounded-none">
-            Save & Continue
+          <Button 
+            type="submit" 
+            className="rounded-none" 
+            disabled={loading || !formik.dirty || !formik.isValid}
+          >
+            {loading ? 'Saving...' : 'Save & Continue'}
           </Button>
         </div>
       </form>

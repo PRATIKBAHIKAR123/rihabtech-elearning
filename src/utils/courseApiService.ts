@@ -32,6 +32,9 @@ export interface CourseUpdateRequest {
   promoVideoUrl: string | null;
   welcomeMessage: string | null;
   congratulationsMessage: string | null;
+  learn?: string[];
+  requirements?: string[];
+  target?: string[];
 }
 
 export interface CourseResponse {
@@ -48,6 +51,9 @@ export interface CourseResponse {
   promoVideoUrl?: string | null;
   welcomeMessage?: string | null;
   congratulationsMessage?: string | null;
+  learn?: string[];
+  requirements?: string[];
+  target?: string[];
   createdAt?: string;
   updatedAt?: string;
   status?: number | null;
