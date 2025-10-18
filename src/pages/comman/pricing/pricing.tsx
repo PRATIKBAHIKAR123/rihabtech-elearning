@@ -72,7 +72,7 @@ export default function Pricing() {
       const categoriesData = await courseApiService.getAllCategories();
       const categoryOptions = [
         { id: "all", name: "All Categories" },
-        ...categoriesData.map((c: Category) => ({ id: c.id, name: c.title })),
+        ...categoriesData.map((c: Category) => ({ id: c.id.toString(), name: c.title })),
       ];
       setCategories(categoryOptions);
     } catch (error) {

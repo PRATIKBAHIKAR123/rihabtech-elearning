@@ -14,7 +14,7 @@ const CourseTitle = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
-  const { courseData, isLoading, isNewCourse, updateCourseData } = useCourseData();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
 type RejectionBy = {
   name?: string;
@@ -107,14 +107,36 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             thumbnailUrl: courseData.thumbnailUrl ?? null,
             promoVideoUrl: courseData.promoVideoUrl ?? null,
             welcomeMessage: courseData.welcomeMessage ?? null,
-            congratulationsMessage: courseData.congratulationsMessage ?? null
+            congratulationsMessage: courseData.congratulationsMessage ?? null,
+            learn: courseData.learn ?? [],
+            requirements: courseData.requirements ?? [],
+            target: courseData.target ?? []
           });
           
           // After a successful update, update the shared courseData state with the new title
-          updateCourseData({ title: values.title });
+          updateCourseData({ 
+            title: values.title,
+            subtitle: courseData.subtitle ?? null,
+            description: courseData.description ?? null,
+            category: courseData.category ?? null,
+            subCategory: courseData.subCategory ?? null,
+            level: courseData.level ?? null,
+            language: courseData.language ?? null,
+            pricing: courseData.pricing ?? null,
+            thumbnailUrl: courseData.thumbnailUrl ?? null,
+            promoVideoUrl: courseData.promoVideoUrl ?? null,
+            welcomeMessage: courseData.welcomeMessage ?? null,
+            congratulationsMessage: courseData.congratulationsMessage ?? null,
+            learn: courseData.learn ?? [],
+            requirements: courseData.requirements ?? [],
+            target: courseData.target ?? []
+          });
           
           
           toast.success(updateResponse.message || "Course updated successfully!");
+          
+          // Refresh course data from API to ensure all pages have the latest data
+          await refreshCourseData();
         }
         
         setLoading(false);

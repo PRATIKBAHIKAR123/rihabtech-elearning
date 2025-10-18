@@ -12,7 +12,7 @@ import { toast } from "sonner";
 export function IntendentLearners({ onSubmit }: any) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { courseData, isLoading, isNewCourse, updateCourseData } = useCourseData();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
   const initialValues = {
     learn: ["", ""],
@@ -105,12 +105,27 @@ export function IntendentLearners({ onSubmit }: any) {
         
         // After a successful update, update the shared courseData state with the new data
         updateCourseData({ 
+          title: courseData.title,
+          subtitle: courseData.subtitle ?? null,
+          description: courseData.description ?? null,
+          category: courseData.category ?? null,
+          subCategory: courseData.subCategory ?? null,
+          level: courseData.level ?? null,
+          language: courseData.language ?? null,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: courseData.thumbnailUrl ?? null,
+          promoVideoUrl: courseData.promoVideoUrl ?? null,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
           learn: values.learn,
           requirements: values.requirements,
           target: values.target
         });
         
         toast.success(updateResponse.message || "Course intended learners updated successfully!");
+        
+        // Refresh course data from API to ensure all pages have the latest data
+        await refreshCourseData();
         
         setLoading(false);
         onSubmit && onSubmit();
@@ -311,7 +326,7 @@ export function IntendentLearners({ onSubmit }: any) {
           <Button 
             type="submit" 
             className="rounded-none" 
-            disabled={loading || !formik.dirty || !formik.isValid}
+            disabled={loading || !formik.isValid}
           >
             {loading ? 'Saving...' : 'Save & Continue'}
           </Button>

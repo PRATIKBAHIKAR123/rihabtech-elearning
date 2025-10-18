@@ -12,7 +12,7 @@ const CategoryList = () => {
 
   // Helper to get category name by id
   const getCategoryName = (id: string) => {
-    const cat = categories.find(c => c.id === id);
+    const cat = categories.find(c => c.id.toString() === id);
     return cat ? cat.title : id;
   };
 
@@ -28,7 +28,7 @@ const CategoryList = () => {
       <ul>
         {subCategories.map(sub => (
           <li key={sub.id}>
-            {sub.name} (Category: {getCategoryName(sub.categoryId)})
+            {sub.name || sub.title || sub.subCategoryName || 'Unknown'} (Category: {getCategoryName(sub.categoryId.toString())})
           </li>
         ))}
       </ul>

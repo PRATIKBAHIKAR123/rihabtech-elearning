@@ -12,7 +12,7 @@ export default function BannerSection() {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<{ id: string; title: string }[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // fetch courses
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function BannerSection() {
                     key={cat.id}
                     className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded"
                     onClick={() => {
-                      window.location.href = `/courselist/${cat.id}`;
+                      window.location.href = `/courselist/${cat.id.toString()}`;
                       setIsCategoryOpen(false);
                     }}
                   >

@@ -1,14 +1,14 @@
 import { useRef, useState, useEffect } from 'react';
-import { courseApiService, Category, SubCategory } from '../../../../utils/courseApiService';
+import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse } from '../../../../utils/courseApiService';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Textarea } from "../../../../components/ui/textarea";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { saveCourseDraft } from '../../../../fakeAPI/course';
-import { storage } from '../../../../lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { useAuth } from "../../../../context/AuthContext";
+import { useCourseData } from "../../../../hooks/useCourseData";
+import { toast } from "sonner";
 
 // NOTE: Set your Cloudinary credentials here:
 const CLOUDINARY_CLOUD_NAME = 'dg9yh82rf'; // <-- Replace with your Cloudinary cloud name
@@ -44,7 +44,9 @@ export function CourseLandingPage({ onSubmit }: any) {
   const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const draftId = useRef<string>(localStorage.getItem('draftId') || '');
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -80,111 +82,215 @@ export function CourseLandingPage({ onSubmit }: any) {
 
   // Helper functions to get display names for selected values
   const getCategoryName = (categoryId: string) => {
-    const category = categories.find(cat => cat.id === categoryId);
+    const category = categories.find(cat => cat.id.toString() === categoryId);
     return category ? category.title : '';
   };
 
   const getSubCategoryName = (subcategoryId: string) => {
-    const subcategory = subCategories.find(sub => sub.id === subcategoryId);
-    return subcategory ? subcategory.name : '';
+    const subcategory = subCategories.find(sub => sub.id.toString() === subcategoryId);
+    if (subcategory) {
+      // Try different property names in case the API uses a different structure
+      return subcategory.name || subcategory.title || subcategory.subCategoryName || 'Unknown';
+    }
+    return '';
   };
 
   useEffect(() => {
     courseApiService.getAllCategories().then((data) => {
+      console.log("Categories loaded:", data);
       setCategories(data);
     });
     courseApiService.getAllSubCategories().then((data) => {
+      console.log("SubCategories loaded:", data);
       setSubCategories(data);
+    }).catch((error) => {
+      console.error("Error loading subcategories:", error);
     });
   }, []);
 
   const formik = useFormik({
     initialValues: {
-      title: "",
-      subtitle: "",
-      description: "",
-      language: "",
-      level: "",
-      category: localStorage.getItem('selectedCategory') || "",
-      subcategory: "",
+      title: courseData?.title || "",
+      subtitle: courseData?.subtitle || "",
+      description: courseData?.description || "",
+      language: courseData?.language || "",
+      level: courseData?.level || "",
+      category: courseData?.category?.toString() || "",
+      subcategory: courseData?.subCategory?.toString() || "",
       primaryTopic: "",
       thumbnail: undefined,
       promoVideo: undefined,
     },
     validationSchema,
     onSubmit: async (values) => {
-      setUploading(true);
+      setLoading(true);
       setUploadError(null);
+      
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to update course");
+        setLoading(false);
+        return;
+      }
+      
       try {
+        if (isNewCourse || !courseData?.id) {
+          // For new courses, we need to create the course first
+          toast.error("Please create a course first by setting the title");
+          setLoading(false);
+          return;
+        }
+
         // Upload thumbnail to Cloudinary
         let thumbnailUrl = thumbnailImage;
         if (thumbnailFile) {
+          setUploading(true);
           thumbnailUrl = await uploadToCloudinaryImage(thumbnailFile);
+          setUploading(false);
         }
+        
         // Upload promo video to Cloudinary
         let promoVideoUrl = promoVideo;
         if (promoVideoFile) {
+          setUploading(true);
           promoVideoUrl = await uploadToCloudinaryVideo(promoVideoFile);
+          setUploading(false);
         }
-        // Save to Firestore
-        await saveCourseDraft(draftId.current, {
+
+        // Comparison logic: Only call update API if data has changed
+        const currentTitle = courseData.title || "";
+        const currentSubtitle = courseData.subtitle || "";
+        const currentDescription = courseData.description || "";
+        const currentLanguage = courseData.language || "";
+        const currentLevel = courseData.level || "";
+        const currentCategory = courseData.category ? courseData.category.toString() : "";
+        const currentSubCategory = courseData.subCategory ? courseData.subCategory.toString() : "";
+        const currentThumbnailUrl = courseData.thumbnailUrl || "";
+        const currentPromoVideoUrl = courseData.promoVideoUrl || "";
+
+        const titleChanged = currentTitle !== values.title;
+        const subtitleChanged = currentSubtitle !== values.subtitle;
+        const descriptionChanged = currentDescription !== values.description;
+        const languageChanged = currentLanguage !== values.language;
+        const levelChanged = currentLevel !== values.level;
+        const categoryChanged = currentCategory !== values.category;
+        const subCategoryChanged = currentSubCategory !== values.subcategory;
+        const thumbnailChanged = currentThumbnailUrl !== thumbnailUrl;
+        const promoVideoChanged = currentPromoVideoUrl !== promoVideoUrl;
+
+        if (!titleChanged && !subtitleChanged && !descriptionChanged && 
+            !languageChanged && !levelChanged && !categoryChanged && 
+            !subCategoryChanged && !thumbnailChanged && !promoVideoChanged) {
+          //toast.info("No changes detected in course landing page. Moving to next step.");
+          setLoading(false);
+          onSubmit && onSubmit();
+          return; // Exit early
+        }
+
+        // If data has changed, proceed with update
+        const updateResponse: UpdateCourseMessageResponse = await courseApiService.updateCourse({
+          id: courseData.id,
           title: values.title,
           subtitle: values.subtitle,
           description: values.description,
-          language: values.language,
+          category: values.category ? parseInt(values.category) : null,
+          subCategory: values.subcategory ? parseInt(values.subcategory) : null,
           level: values.level,
-          category: values.category,
-          subcategory: values.subcategory,
-          progress: 40, // or whatever step this is
-          thumbnailUrl: thumbnailUrl === null ? undefined : thumbnailUrl,
-          promoVideoUrl: promoVideoUrl === null ? undefined : promoVideoUrl,
+          language: values.language,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: thumbnailUrl,
+          promoVideoUrl: promoVideoUrl,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? []
         });
-        setUploading(false);
-        onSubmit({ ...values, thumbnail: thumbnailUrl, promoVideo: promoVideoUrl });
-      } catch (err: any) {
-        setUploadError(err.message || 'Upload failed');
+        
+        // After a successful update, update the shared courseData state with the new data
+        updateCourseData({ 
+          title: values.title,
+          subtitle: values.subtitle,
+          description: values.description,
+          category: values.category ? parseInt(values.category) : null,
+          subCategory: values.subcategory ? parseInt(values.subcategory) : null,
+          level: values.level,
+          language: values.language,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: thumbnailUrl,
+          promoVideoUrl: promoVideoUrl,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? []
+        });
+        
+        toast.success(updateResponse.message || "Course landing page updated successfully!");
+        
+        // Refresh course data from API to ensure all pages have the latest data
+        await refreshCourseData();
+        
+        setLoading(false);
+        onSubmit && onSubmit();
+      } catch (error: any) {
+        console.error("Failed to save course landing page:", error);
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to perform this action.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to save course landing page. Please try again.");
+        }
+        
+        setLoading(false);
         setUploading(false);
       }
     },
+    enableReinitialize: true,
   });
 
+  // Set form values when course data is loaded
   useEffect(() => {
-    // Prefill from Firestore if available
-    const draftIdLS = localStorage.getItem('draftId') || '';
-    if (draftIdLS) {
-      import('../../../../fakeAPI/course').then(api => {
-        api.getCourseDraft(draftIdLS).then(draft => {
-          if (draft) {
-            if (draft.title) formik.setFieldValue('title', draft.title);
-            if (draft.subtitle) formik.setFieldValue('subtitle', draft.subtitle);
-            if (draft.description) formik.setFieldValue('description', draft.description);
-            if (draft.language) formik.setFieldValue('language', draft.language);
-            if (draft.level) formik.setFieldValue('level', draft.level);
-            // Set category first, then subcategory after a short delay to ensure options are loaded
-            if (draft.category) {
-              formik.setFieldValue('category', draft.category);
-              setTimeout(() => {
-                if (draft.subcategory) formik.setFieldValue('subcategory', draft.subcategory);
-              }, 0);
-            } else if (draft.subcategory) {
-              formik.setFieldValue('subcategory', draft.subcategory);
-            }
-            if (draft.thumbnailUrl) {
-              setThumbnailImage(draft.thumbnailUrl);
-              formik.setFieldValue('thumbnail', draft.thumbnailUrl);
-            }
-            else{
-              setThumbnailImage('/Images/icons/image_3748512.png');
-            }
-            if (draft.promoVideoUrl) {
-              setPromoVideo(draft.promoVideoUrl);
-              formik.setFieldValue('promoVideo', draft.promoVideoUrl);
-            }
-          }
-        });
-      });
+    if (courseData) {
+      if (courseData.title) formik.setFieldValue('title', courseData.title);
+      if (courseData.subtitle) formik.setFieldValue('subtitle', courseData.subtitle);
+      if (courseData.description) formik.setFieldValue('description', courseData.description);
+      if (courseData.language) formik.setFieldValue('language', courseData.language);
+      if (courseData.level) formik.setFieldValue('level', courseData.level);
+      
+      // Set images and videos
+      if (courseData.thumbnailUrl) {
+        setThumbnailImage(courseData.thumbnailUrl);
+        formik.setFieldValue('thumbnail', courseData.thumbnailUrl);
+      } else {
+        setThumbnailImage('/Images/icons/image_3748512.png');
+      }
+      
+      if (courseData.promoVideoUrl) {
+        setPromoVideo(courseData.promoVideoUrl);
+        formik.setFieldValue('promoVideo', courseData.promoVideoUrl);
+      }
     }
-  }, []);
+  }, [courseData]);
+
+  // Set category and subcategory when both courseData and categories are loaded
+  useEffect(() => {
+    if (courseData && categories.length > 0) {
+      // Set category if not already set
+      if (courseData.category && !formik.values.category) {
+        formik.setFieldValue('category', courseData.category.toString());
+      }
+      // Set subcategory if not already set
+      if (courseData.subCategory && !formik.values.subcategory) {
+        formik.setFieldValue('subcategory', courseData.subCategory.toString());
+      }
+    }
+  }, [courseData, categories]);
 
   // Handlers for file/image/video
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,6 +309,18 @@ export function CourseLandingPage({ onSubmit }: any) {
     }
   };
 
+  // Don't render the form while loading course data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={formik.handleSubmit}>
       <div className="mb-3">
@@ -210,7 +328,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Course Title */}
         <div className="mt-8 gap-2 flex flex-col">
-          <label className="ins-label">Course title<span className="text-[#ff0000]"> *</span></label>
+          <label className="ins-label">Course Title<span className="text-[#ff0000]"> *</span></label>
           <Input
             className="ins-control-border"
             placeholder="Photoshop"
@@ -226,7 +344,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Course Subtitle */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Course subtitle<span className="text-[#ff0000]"> *</span></label>
+          <label className="ins-label">Course Subtitle<span className="text-[#ff0000]"> *</span></label>
           <Input
             className="ins-control-border"
             placeholder="Insert your course subtitle"
@@ -308,7 +426,7 @@ export function CourseLandingPage({ onSubmit }: any) {
               </SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.title}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -325,11 +443,27 @@ export function CourseLandingPage({ onSubmit }: any) {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {subCategories
-                  .filter(sub => sub.categoryId === formik.values.category)
-                  .map(sub => (
-                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                  ))}
+                {(() => {
+                  const filteredSubs = subCategories.filter(sub => {
+                    return sub.categoryId.toString() === formik.values.category;
+                  });
+                  
+                  if (filteredSubs.length === 0) {
+                    return (
+                      <div className="px-3 py-2 text-gray-500 text-sm">
+                        No SubCategory found
+                      </div>
+                    );
+                  }
+                  
+                  return filteredSubs.map(sub => {
+                    // Try different property names in case the API uses a different structure
+                    const displayName = sub.name || sub.title || sub.subCategoryName || 'Unknown';
+                    return (
+                      <SelectItem key={sub.id} value={sub.id.toString()}>{displayName}</SelectItem>
+                    );
+                  });
+                })()}
               </SelectContent>
             </Select>
           </div>
@@ -445,8 +579,8 @@ export function CourseLandingPage({ onSubmit }: any) {
         </div>
 
         <div className="flex justify-end mt-8">
-          <Button className="rounded-none" type="submit" disabled={uploading}>
-            {uploading ? 'Saving...' : 'Save & Continue'}
+          <Button className="rounded-none" type="submit" disabled={loading || uploading}>
+            {loading ? 'Saving...' : uploading ? 'Uploading...' : 'Save & Continue'}
           </Button>
         </div>
         {uploadError && <div className="text-red-500 text-xs mt-2">{uploadError}</div>}

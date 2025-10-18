@@ -6,16 +6,18 @@ export interface CourseCreateRequest {
 }
 
 export interface Category {
-  id: string;
+  id: number;
   title: string;
-  isActive: boolean;
+  isActive?: boolean;
   showOnHomePage: boolean;
 }
 
 export interface SubCategory {
-  id: string;
-  name: string;
-  categoryId: string;
+  id: number;
+  name?: string;
+  title?: string;
+  subCategoryName?: string;
+  categoryId: number;
 }
 
 export interface CourseUpdateRequest {

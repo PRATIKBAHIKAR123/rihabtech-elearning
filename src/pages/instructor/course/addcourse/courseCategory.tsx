@@ -12,7 +12,7 @@ const CourseCategory = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { courseData, isLoading, isNewCourse, updateCourseData } = useCourseData();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -75,14 +75,36 @@ const CourseCategory = () => {
           thumbnailUrl: courseData.thumbnailUrl ?? null,
           promoVideoUrl: courseData.promoVideoUrl ?? null,
           welcomeMessage: courseData.welcomeMessage ?? null,
-          congratulationsMessage: courseData.congratulationsMessage ?? null
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? []
         });
         
         // After a successful update, update the shared courseData state with the new category
-        updateCourseData({ category: parseInt(values.category) });
+        updateCourseData({ 
+          title: courseData.title,
+          subtitle: courseData.subtitle ?? null,
+          description: courseData.description ?? null,
+          category: parseInt(values.category),
+          subCategory: courseData.subCategory ?? null,
+          level: courseData.level ?? null,
+          language: courseData.language ?? null,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: courseData.thumbnailUrl ?? null,
+          promoVideoUrl: courseData.promoVideoUrl ?? null,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? []
+        });
         
         
         toast.success(updateResponse.message || "Course category updated successfully!");
+        
+        // Refresh course data from API to ensure all pages have the latest data
+        await refreshCourseData();
         
         setLoading(false);
         window.location.hash = "#/instructor/course-sections";
