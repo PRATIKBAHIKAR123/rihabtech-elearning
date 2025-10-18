@@ -116,6 +116,7 @@ export interface CourseGetAllResponse {
   pricing: string | null;
   enrolments: number;
   weeks: number;
+  category?: number | null;
 }
 
 class CourseApiService {
