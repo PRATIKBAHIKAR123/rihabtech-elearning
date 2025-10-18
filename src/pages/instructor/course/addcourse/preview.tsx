@@ -18,6 +18,7 @@ import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
 import { CourseWorkflowService } from '../../../../utils/courseWorkflowService';
 import { useAuth } from '../../../../context/AuthContext';
 import { useCourseData } from '../../../../hooks/useCourseData';
+import { toast } from 'sonner';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -149,15 +150,31 @@ const PreviewCourse = () => {
         console.log('Course submitted successfully via Firebase');
         setSubmitted(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting course for review:', error);
+      console.error('Error response:', error?.response);
+      console.error('Error response data:', error?.response?.data);
       
-      // Show more specific error message
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to submit course for review. Please try again.';
+      // Extract the actual error message from the API response
+      let errorMessage = 'Failed to submit course for review. Please try again.';
       
-      alert(`Error: ${errorMessage}`);
+      if (error?.response?.data?.message) {
+        // API returned a specific error message
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        // Alternative error field
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data) {
+        // If data is a string, use it directly
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        }
+      } else if (error?.message) {
+        // Generic error message
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
