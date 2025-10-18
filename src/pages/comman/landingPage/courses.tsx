@@ -174,9 +174,12 @@ export default function Courses() {
 
                     <div className="course-pricing">
                       {course.pricing === null || course.pricing === "" ? (
-                        <span className="course-free">
-                          Free <Divider /> <button className="course-cta">Start learning</button>
-                        </span>
+                        <div className="course-free">
+                          <div className="flex items-center gap-2">
+                            <span className="badge-free">Free</span>
+                          </div>
+                          <Divider /> <button className="course-cta">Start learning</button>
+                        </div>
                       ) : (
                         <div className="course-paid">
                           <div className="flex items-center gap-2">
