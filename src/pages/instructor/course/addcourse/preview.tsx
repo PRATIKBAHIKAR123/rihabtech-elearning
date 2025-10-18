@@ -11,12 +11,13 @@ import {
   getCourseIntendedLearners,
   getCourseStructure
 } from '../../../../utils/firebaseCoursePreviewHelpers';
-import { courseApiService, Category, SubCategory } from '../../../../utils/courseApiService';
+import { courseApiService, Category, SubCategory, CourseSubmitForReviewResponse } from '../../../../utils/courseApiService';
 import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
 import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
 import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
 import { CourseWorkflowService } from '../../../../utils/courseWorkflowService';
 import { useAuth } from '../../../../context/AuthContext';
+import { useCourseData } from '../../../../hooks/useCourseData';
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -33,39 +34,68 @@ const PreviewCourse = () => {
   const [subcategoryName, setSubcategoryName] = useState<string>('');
   const draftId = useRef<string>(localStorage.getItem('draftId') || '');
   const { user } = useAuth();
+  const { courseData, isLoading: courseDataLoading } = useCourseData();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const data = await getFullCourseData(draftId.current);
-      setCourse(data);
-      setCurriculum(await getCourseCurriculum(draftId.current));
-      setLandingPage(await getCourseLandingPage(draftId.current));
-      setIntendedLearners(await getCourseIntendedLearners(draftId.current));
-      setStructure(await getCourseStructure(draftId.current));
       
-      // Fetch category and subcategory names
-      if (data && (data.category || data.subcategory)) {
-        const [categories, subcategories] = await Promise.all([
-          courseApiService.getAllCategories(),
-          courseApiService.getAllSubCategories()
-        ]);
+      // Use courseData from useCourseData hook if available, otherwise fallback to Firebase
+      if (courseData) {
+        setCourse(courseData);
         
-        if (data.category) {
-          const category = categories.find((cat: any) => cat.id === data.category);
-          setCategoryName((category as any)?.title || data.category);
+        // Fetch category and subcategory names for API data
+        if (courseData.category || courseData.subCategory) {
+          const [categories, subcategories] = await Promise.all([
+            courseApiService.getAllCategories(),
+            courseApiService.getAllSubCategories()
+          ]);
+          
+          if (courseData.category) {
+            const category = categories.find((cat: any) => cat.id === courseData.category);
+            setCategoryName((category as any)?.title || courseData.category);
+          }
+          
+          if (courseData.subCategory) {
+            const subcategory = subcategories.find((sub: any) => sub.id === courseData.subCategory);
+            setSubcategoryName((subcategory as any)?.name || (subcategory as any)?.title || (subcategory as any)?.subCategoryName || courseData.subCategory);
+          }
         }
+      } else {
+        // Fallback to Firebase data
+        const data = await getFullCourseData(draftId.current);
+        setCourse(data);
+        setCurriculum(await getCourseCurriculum(draftId.current));
+        setLandingPage(await getCourseLandingPage(draftId.current));
+        setIntendedLearners(await getCourseIntendedLearners(draftId.current));
+        setStructure(await getCourseStructure(draftId.current));
         
-        if (data.subcategory) {
-          const subcategory = subcategories.find((sub: any) => sub.id === data.subcategory);
-          setSubcategoryName((subcategory as any)?.name || data.subcategory);
+        // Fetch category and subcategory names for Firebase data
+        if (data && (data.category || data.subcategory)) {
+          const [categories, subcategories] = await Promise.all([
+            courseApiService.getAllCategories(),
+            courseApiService.getAllSubCategories()
+          ]);
+          
+          if (data.category) {
+            const category = categories.find((cat: any) => cat.id === data.category);
+            setCategoryName((category as any)?.title || data.category);
+          }
+          
+          if (data.subcategory) {
+            const subcategory = subcategories.find((sub: any) => sub.id === data.subcategory);
+            setSubcategoryName((subcategory as any)?.name || data.subcategory);
+          }
         }
       }
       
       setLoading(false);
     };
-    fetchData();
-  }, []);
+    
+    if (!courseDataLoading) {
+      fetchData();
+    }
+  }, [courseData, courseDataLoading]);
 
 
   const goToDashboard = () => {
@@ -74,38 +104,51 @@ const PreviewCourse = () => {
 
   // Submit for Review handler
   const handleSubmitForReview = async () => {
-    if (!draftId.current) return;
-
-    // compute validations one more time before actually submitting
-    const { canSubmit, missing } = computeMissingAndCanSubmit();
-    if (!canSubmit) {
-      setMissingRequirements(missing);
-      setShowMissingDialog(true);
+    // Use courseData from API if available, otherwise fallback to Firebase
+    const courseId = courseData?.id || draftId.current;
+    
+    if (!courseId) {
+      alert('Course ID not found. Please try again.');
       return;
     }
 
+    // compute validations one more time before actually submitting
+    // const { canSubmit, missing } = computeMissingAndCanSubmit();
+    // if (!canSubmit) {
+    //   setMissingRequirements(missing);
+    //   setShowMissingDialog(true);
+    //   return;
+    // }
+
     try {
       console.log('Submitting course for review...', {
-        courseId: draftId.current,
+        courseId: courseId,
         instructorId: user?.UserName,
         instructorName: user?.displayName || user?.UserName,
         instructorEmail: user?.email
       });
 
-      // Use the workflow service for proper status transition
-      await CourseWorkflowService.submitCourseForReview(
-        draftId.current,
-        user?.UserName || '',
-        user?.displayName || user?.UserName || '',
-        user?.email || ''
-      );
-      
-      // Update progress to 100%
-      const draftRef = doc(db, 'courseDrafts', draftId.current);
-      await updateDoc(draftRef, { progress: 100 });
-      
-      console.log('Course submitted successfully');
-      setSubmitted(true);
+      if (courseData?.id) {
+        // Use API endpoint for course submission
+        const response: CourseSubmitForReviewResponse = await courseApiService.submitCourseForReview(courseData.id);
+        console.log('Course submitted successfully via API:', response);
+        setSubmitted(true);
+      } else {
+        // Fallback to Firebase workflow service
+        await CourseWorkflowService.submitCourseForReview(
+          draftId.current,
+          user?.UserName || '',
+          user?.displayName || user?.UserName || '',
+          user?.email || ''
+        );
+        
+        // Update progress to 100%
+        const draftRef = doc(db, 'courseDrafts', draftId.current);
+        await updateDoc(draftRef, { progress: 100 });
+        
+        console.log('Course submitted successfully via Firebase');
+        setSubmitted(true);
+      }
     } catch (error) {
       console.error('Error submitting course for review:', error);
       
@@ -158,7 +201,8 @@ const PreviewCourse = () => {
     // Landing page checks
     const landing = course.landingPage || course || {};
     const landingMissing: string[] = [];
-    const desc = (course.description || landing.description).replace(/<[^>]*>/g, '').trim();
+    const description = course.description || landing.description || '';
+    const desc = description.replace(/<[^>]*>/g, '').trim();
     const wordCount = desc ? desc.split(/\s+/).filter(Boolean).length : 0;
     console.log('wordCount',wordCount)
     if (wordCount < 50) landingMissing.push('Have a course description with at least 50 words');
@@ -224,7 +268,7 @@ const PreviewCourse = () => {
     );
   }
 
-  if (loading) {
+  if (loading || courseDataLoading) {
     return <div className="flex justify-center items-center min-h-screen"><LoadingIcon /></div>;
   }
 
@@ -413,7 +457,7 @@ const PreviewCourse = () => {
             ))}
           </div>
         ) : (
-          // Fallback: Show top-level fields if landingPage is empty
+          // Show course data (works for both API and Firebase data)
           (course.title || course.subtitle || course.description || course.language || course.level || categoryName || subcategoryName || course.thumbnailUrl || course.promoVideoUrl) ? (
             <div className="bg-gray-50 border rounded p-4">
               {course.title && <div className="mb-2"><span className="font-semibold">Title:</span> <span className="text-gray-700">{course.title}</span></div>}
@@ -490,19 +534,16 @@ const PreviewCourse = () => {
       </div>
 
       <div className="mt-8 flex flex-col items-end gap-3">
-        {Object.keys(missingRequirements).length > 0 && (
+        {/* Validation warning commented out for now */}
+        {/* {Object.keys(missingRequirements).length > 0 && (
           <div className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-100 rounded px-3 py-2">
             You cannot submit yet. {Object.keys(missingRequirements).length} sections have missing items. Click "Submit for Review" to see details.
           </div>
-        )}
+        )} */}
         <div className="flex items-center gap-3">
           <Button
             className="bg-primary text-white px-6 py-2 rounded shadow-lg"
-            onClick={() => {
-              const { canSubmit } = computeMissingAndCanSubmit();
-              if (!canSubmit) setShowMissingDialog(true);
-              else handleSubmitForReview();
-            }}
+            onClick={handleSubmitForReview}
           >
             Submit for Review
           </Button>

@@ -103,6 +103,12 @@ export interface CoursePublishResponse {
   isPublished?: boolean;
 }
 
+export interface CourseSubmitForReviewResponse {
+  message: string;
+  submittedAt?: string;
+  isSubmitted?: boolean;
+}
+
 export interface CourseGetAllResponse {
   id: number;
   title: string;
@@ -151,6 +157,11 @@ class CourseApiService {
   // Publish a course
   async publishCourse(courseId: number): Promise<CoursePublishResponse> {
     return apiService.post<CoursePublishResponse>('/instructor/course/publish', courseId);
+  }
+
+  // Submit course for review
+  async submitCourseForReview(courseId: number): Promise<CourseSubmitForReviewResponse> {
+    return apiService.post<CourseSubmitForReviewResponse>('/instructor/course/submit-for-review', courseId);
   }
 }
 
