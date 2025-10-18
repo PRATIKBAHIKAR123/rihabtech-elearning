@@ -1,13 +1,12 @@
-import { Select, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
-import { Input } from "../../../../components/ui/input";
 import { Textarea } from "../../../../components/ui/textarea";
-import { SelectContent, SelectItem } from "../../../../components/ui/select";
-
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { useEffect, useRef, useState } from "react";
-import { saveCourseMessages, getCourseMessages } from "../../../../utils/firebaseCourseMessages";
+import { useEffect, useState } from "react";
+import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { useAuth } from "../../../../context/AuthContext";
+import { useCourseData } from "../../../../hooks/useCourseData";
+import { toast } from "sonner";
 
 // Define the form values interface
 interface CourseMessagesForm {
@@ -15,14 +14,15 @@ interface CourseMessagesForm {
   congratulationsMessage: string;
 }
 
+export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
-export function CourseMessages() {
-  const draftId = useRef<string>(localStorage.getItem('draftId') || '');
-  const [loading, setLoading] = useState(true);
   const formik = useFormik<CourseMessagesForm>({
     initialValues: {
-      welcomeMessage: "",
-      congratulationsMessage: "",
+      welcomeMessage: courseData?.welcomeMessage || "",
+      congratulationsMessage: courseData?.congratulationsMessage || "",
     },
     validationSchema: Yup.object({
       welcomeMessage: Yup.string()
@@ -34,38 +34,111 @@ export function CourseMessages() {
     }),
     onSubmit: async (values) => {
       setLoading(true);
+      
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to update course");
+        setLoading(false);
+        return;
+      }
+      
       try {
-        await saveCourseMessages({
-          draftId: draftId.current,
+        if (isNewCourse || !courseData?.id) {
+          toast.error("Please create a course first by setting the title");
+          setLoading(false);
+          return;
+        }
+
+        // Comparison logic: Only call update API if messages have changed
+        const currentWelcomeMessage = courseData.welcomeMessage || "";
+        const currentCongratulationsMessage = courseData.congratulationsMessage || "";
+        
+        const welcomeMessageChanged = currentWelcomeMessage !== values.welcomeMessage;
+        const congratulationsMessageChanged = currentCongratulationsMessage !== values.congratulationsMessage;
+        
+        if (!welcomeMessageChanged && !congratulationsMessageChanged) {
+          setLoading(false);
+          // No changes detected, go directly to course preview page
+          window.location.href = "/#/instructor/course-preview";
+          return; // Exit early
+        }
+
+        // If data has changed, proceed with update
+        const updateResponse: UpdateCourseMessageResponse = await courseApiService.updateCourse({
+          id: courseData.id,
+          title: courseData.title,
+          subtitle: courseData.subtitle ?? null,
+          description: courseData.description ?? null,
+          category: courseData.category ?? null,
+          subCategory: courseData.subCategory ?? null,
+          level: courseData.level ?? null,
+          language: courseData.language ?? null,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: courseData.thumbnailUrl ?? null,
+          promoVideoUrl: courseData.promoVideoUrl ?? null,
+          welcomeMessage: values.welcomeMessage,
+          congratulationsMessage: values.congratulationsMessage,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? []
+        });
+        
+        // After a successful update, update the shared courseData state
+        updateCourseData({ 
+          ...courseData,
           welcomeMessage: values.welcomeMessage,
           congratulationsMessage: values.congratulationsMessage,
         });
-        // Optionally show a toast or feedback
-      } catch (e) {
-        alert("Failed to save messages. Please try again.");
+        
+        toast.success(updateResponse.message || "Course messages updated successfully!");
+        
+        // Refresh course data from API to ensure all pages have the latest data
+        await refreshCourseData();
+        
+        setLoading(false);
+        // Navigate to course preview page
+        window.location.href = "/#/instructor/course-preview";
+      } catch (error: any) {
+        console.error("Failed to save course messages:", error);
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to perform this action.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to save course messages. Please try again.");
+        }
+        
+        setLoading(false);
       }
-      setLoading(false);
     },
     enableReinitialize: true,
   });
 
+  // Update form values when courseData changes
   useEffect(() => {
-    const fetchMessages = async () => {
-      setLoading(true);
-      try {
-        const data = await getCourseMessages(draftId.current);
-        formik.setValues({
-          welcomeMessage: data.welcomeMessage,
-          congratulationsMessage: data.congratulationsMessage,
-        });
-      } catch (e) {
-        // Optionally handle error
-      }
-      setLoading(false);
-    };
-    fetchMessages();
-    // eslint-disable-next-line
-  }, [draftId.current]);
+    if (courseData) {
+      formik.setValues({
+        welcomeMessage: courseData.welcomeMessage || "",
+        congratulationsMessage: courseData.congratulationsMessage || "",
+      });
+    }
+  }, [courseData]);
+
+  // Don't render the form while loading course data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading course data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={formik.handleSubmit}>
@@ -87,7 +160,10 @@ export function CourseMessages() {
                   : ""
                 }`}
               placeholder="Write a welcome message for your students..."
-              {...formik.getFieldProps("welcomeMessage")}
+              value={formik.values.welcomeMessage}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              name="welcomeMessage"
             />
             {formik.touched.welcomeMessage && formik.errors.welcomeMessage && (
               <div className="text-red-500 text-sm">
@@ -105,7 +181,10 @@ export function CourseMessages() {
                   : ""
                 }`}
               placeholder="Write a congratulations message for course completion..."
-              {...formik.getFieldProps("congratulationsMessage")}
+              value={formik.values.congratulationsMessage}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              name="congratulationsMessage"
             />
             {formik.touched.congratulationsMessage &&
               formik.errors.congratulationsMessage && (
@@ -116,8 +195,8 @@ export function CourseMessages() {
           </div>
 
           <div className="flex justify-end mt-8">
-            <Button type="submit" className="rounded-none" disabled={loading || !formik.dirty || !formik.isValid}>
-              {loading ? 'Saving...' : 'Save Messages'}
+            <Button type="submit" className="rounded-none" disabled={loading}>
+              {loading ? 'Saving...' : 'Save & Preview Course'}
             </Button>
           </div>
         </div>
