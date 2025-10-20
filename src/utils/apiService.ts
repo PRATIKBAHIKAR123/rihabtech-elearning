@@ -30,11 +30,8 @@ class ApiService {
         message: error.message
       });
       
-      // Handle specific error cases
-      if (error.response?.status === 401) {
-        console.error('Authentication failed - token may be expired');
-        throw new Error('Authentication failed. Please login again.');
-      } else if (error.response?.status === 403) {
+      // Handle specific error cases (401 is handled by axios interceptor)
+      if (error.response?.status === 403) {
         console.error('Access forbidden');
         throw new Error('Access forbidden. You do not have permission to perform this action.');
       } else if (error.response?.status >= 500) {
