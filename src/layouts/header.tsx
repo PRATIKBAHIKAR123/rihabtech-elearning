@@ -172,7 +172,7 @@ function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
       </div>
-      <div className="hidden md:flex mx-auto py-4 gap-2 items-center justify-between max-w-7xl">
+      <div className="hidden md:flex mx-auto py-4 gap-2 items-center justify-between" style={{ maxWidth: '83rem' }}>
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
           <img src="Logos/brand-name-img.png" alt="Logo" className="h-[18px] w-[181px] mt-1" />
@@ -218,7 +218,7 @@ function Header({ onMenuClick }: HeaderProps) {
               <div className="hidden md:flex items-center relative" ref={planDetailsRef}>
                 {/* Attractive minimal display */}
                 <div
-                  className="group flex items-center px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-800 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-200/50 transition-all duration-300 cursor-pointer transform hover:scale-105 relative overflow-hidden"
+                  className="group flex items-center px-3 py-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl text-xs font-semibold text-orange-800 hover:from-orange-100 hover:to-amber-100 hover:border-orange-300 hover:shadow-lg hover:shadow-orange-200/50 transition-all duration-300 cursor-pointer transform hover:scale-105 relative overflow-hidden"
                   onClick={() => setShowPlanDetails(!showPlanDetails)}
                 >
                   {/* Subtle shine effect */}
@@ -232,7 +232,7 @@ function Header({ onMenuClick }: HeaderProps) {
                       }
                     </span>
                     <div className="flex items-center">
-                      <span className={`text-blue-600 transition-transform duration-300 ${showPlanDetails ? 'rotate-180' : ''}`}>
+                      <span className={`text-orange-600 transition-transform duration-300 ${showPlanDetails ? 'rotate-180' : ''}`}>
                         ▼
                       </span>
                     </div>
@@ -243,7 +243,7 @@ function Header({ onMenuClick }: HeaderProps) {
                 {showPlanDetails && (
                   <div className="absolute top-full left-0 mt-2 px-0 py-3 bg-white border border-gray-200 rounded-2xl shadow-2xl text-xs z-50 min-w-[280px] max-h-[350px] overflow-y-auto animate-in slide-in-from-top-2 duration-300 backdrop-blur-sm">
                     {/* Header */}
-                    <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
+                    <div className="px-4 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-t-2xl">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <div className="w-3 h-3 bg-white bg-opacity-30 rounded-full flex items-center justify-center">
@@ -260,7 +260,7 @@ function Header({ onMenuClick }: HeaderProps) {
                     {/* Plans List */}
                     <div className="px-4 py-2">
                       {activePlans.map((plan, index) => (
-                        <div key={plan.id} className="group relative p-3 mb-2 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100 hover:from-blue-50 hover:to-indigo-50 hover:border-blue-200 hover:shadow-md hover:shadow-blue-100/50 transition-all duration-300 transform hover:scale-[1.02] animate-in fade-in-0 slide-in-from-left-2" style={{ animationDelay: `${index * 100}ms` }}>
+                        <div key={plan.id} className="group relative p-3 mb-2 bg-gradient-to-r from-gray-50 to-orange-50 rounded-xl border border-gray-100 hover:from-orange-50 hover:to-amber-50 hover:border-orange-200 hover:shadow-md hover:shadow-orange-100/50 transition-all duration-300 transform hover:scale-[1.02] animate-in fade-in-0 slide-in-from-left-2" style={{ animationDelay: `${index * 100}ms` }}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-1">
@@ -269,7 +269,7 @@ function Header({ onMenuClick }: HeaderProps) {
                               </div>
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-gray-500 text-xs font-medium">Valid till</span>
-                                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-sm hover:shadow-md hover:shadow-blue-500/25 transition-all duration-200 transform hover:scale-105 animate-pulse">
+                                <span className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-sm hover:shadow-md hover:shadow-orange-500/25 transition-all duration-200 transform hover:scale-105 animate-pulse">
                                   {plan.endDate.toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
