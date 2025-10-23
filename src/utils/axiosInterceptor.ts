@@ -44,20 +44,19 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error('Authentication failed - token may be expired');
       
-      // Clear user data from localStorage
-      localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('courseId');
-      localStorage.removeItem('draftId');
+      // Clear all localStorage data
+      localStorage.clear();
       
       // Show user-friendly error message
       toast.error('Session Expired', {
         description: 'Your session has expired. Please login again.',
-        duration: 5000,
+        duration: 3000,
       });
       
       // Redirect to login page
-      window.location.href = '/#/login';
+      setTimeout(() => {
+        window.location.href = '/#/login';
+      }, 1000);
     } else if (error.response?.status === 403) {
       console.error('Access forbidden');
     } else if (error.response?.status >= 500) {
