@@ -4,7 +4,6 @@ import {
   addDoc,
   updateDoc,
   doc,
-  getDoc,
   query,
   where,
   getDocs,
@@ -172,6 +171,42 @@ export const createSubscription = async (
   } catch (error) {
     console.error('Error creating subscription:', error);
     throw error;
+  }
+};
+
+// Get all user's active subscriptions
+export const getAllUserActiveSubscriptions = async (userId: string): Promise<Subscription[]> => {
+  try {
+    const subscriptionsRef = collection(db, 'subscriptions');
+    const activeSubscriptionQuery = query(
+      subscriptionsRef,
+      where('userId', '==', userId),
+      where('status', '==', 'active')
+    );
+
+    const querySnapshot = await getDocs(activeSubscriptionQuery);
+
+    if (querySnapshot.empty) {
+      return [];
+    }
+
+    const subscriptions: Subscription[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as any;
+      subscriptions.push({
+        id: doc.id,
+        ...data,
+        startDate: data?.startDate?.toDate() || new Date(),
+        endDate: data?.endDate?.toDate() || new Date(),
+        createdAt: data?.createdAt?.toDate() || new Date(),
+        updatedAt: data?.updatedAt?.toDate() || new Date(),
+      } as Subscription);
+    });
+
+    return subscriptions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  } catch (error) {
+    console.error('Error getting all active subscriptions:', error);
+    return [];
   }
 };
 
