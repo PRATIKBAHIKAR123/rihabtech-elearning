@@ -1,19 +1,17 @@
-import { BarChart3, BellIcon, Calendar, CheckCircle2Icon, FileText, GraduationCap, LayoutGrid, Menu, PlayCircle, Search, Settings, ShoppingCart, User } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "../components/ui/navigation-menu";
 import { cn } from "../lib/utils";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { MyCartMenu } from "../modals/cartListPopover";
 import SearchWithPopup from "../modals/searchListModal";
 import { ProfileMenu } from "../modals/profileHoverCard";
-import { useCountdown } from "../utils/countdown_subscribtion";
 import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
 import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
 import { LearnerCourse, learnerService } from "../utils/learnerService";
 import { getUserActiveSubscription, Subscription } from "../utils/subscriptionService";
 import { toast } from "sonner";
-import { EN_INSTRUCTOR_STATUS } from "../constants/instructorStatus";
 import { instructorApiService } from "../utils/instructorApiService";
 
 type HeaderProps = {
@@ -21,20 +19,15 @@ type HeaderProps = {
   };
 
 function Header({ onMenuClick }: HeaderProps) {
-  const [isSearchPopupOpen, setSearchPopupIsOpen] = useState(false);
   const advertiseBanner = document.querySelectorAll('#advertisebanner')[0] as HTMLElement | null;
   const headerStyle = advertiseBanner ? { top: advertiseBanner.offsetHeight } : { top: 0 };
-  const isLearnerPath = window.location.hash.includes("learner");
-  const isHomePath = window.location.pathname === '/';
-const subscriptionEndTimestamp = useMemo(() => {
-  return new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).getTime();
-}, []);
 
-const countdown = useCountdown(subscriptionEndTimestamp);
 const { user } = useAuth();
 const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 const isAuthenticated = !!user || !!token;
 const [activePlan, setActivePlan] = useState<Subscription | null>(null);
+const [showPlanDetails, setShowPlanDetails] = useState(false);
+const planDetailsRef = useRef<HTMLDivElement>(null);
 
 // Function to handle Teach With Us click
 const handleTeachWithUsClick = async () => {
@@ -56,7 +49,7 @@ const handleTeachWithUsClick = async () => {
         window.location.href = '/#/instructor-signup';
       } else {
         // Get status information from constants
-        const statusInfo = EN_INSTRUCTOR_STATUS.find(s => s.id === status);
+        // const statusInfo = EN_INSTRUCTOR_STATUS.find(s => s.id === status);
         
         if (status === 1) {
           // Pending - already applied
@@ -109,19 +102,33 @@ const handleTeachWithUsClick = async () => {
 
 
 useEffect(() => {
-  
-
   const getSubcription= async () => {
-  if (user) {
-    const data = getUserActiveSubscription(user.email||user.uid);
-    data.then((sub) => {
-      setActivePlan(sub);
-    });
-  }
-};
+    if (user) {
+      const data = getUserActiveSubscription(user.email||user.uid);
+      data.then((sub) => {
+        setActivePlan(sub);
+      });
+    }
+  };
   getSubcription();
-
 }, [user]);
+
+// Close plan details when clicking outside
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (planDetailsRef.current && !planDetailsRef.current.contains(event.target as Node)) {
+      setShowPlanDetails(false);
+    }
+  };
+
+  if (showPlanDetails) {
+    document.addEventListener('mousedown', handleClickOutside);
+  }
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [showPlanDetails]);
 
   return (
     <header className={`${headerStyle} "sticky z-52 bg-white shadow-sm"`}>
@@ -135,60 +142,49 @@ useEffect(() => {
         </div>
         
         <div className="flex items-center gap-2">
-        <Search size={22} />
-<MyCartMenu />
-{/* <div className="relative">
-  <button className="relative">
-    <BellIcon size={22}/>
-  </button>
-</div>
-<ProfileMenu /> */}
-{!isAuthenticated && (
-  <>
-    <Button
-      variant="outline"
-      className="border-primary text-primary rounded-none px-2 py-1 text-xs font-medium hover:bg-blue-50"
-      onClick={() => window.location.href = '/#/login'}
-    >
-      Sign In
-    </Button>
-    <Button
-      className="px-2 py-1 text-xs rounded-none font-medium text-white hover:bg-blue-700"
-      onClick={() => window.location.href = '/#/sign-up'}
-    >
-      Sign Up
-    </Button>
-  </>
-)}
-{isAuthenticated && (
-  <>
-    <NotificationsDialog />
-    <ProfileMenu />
-  </>
-)}
+          <Search size={22} />
+          <MyCartMenu />
+          {!isAuthenticated && (
+            <>
+              <Button
+                variant="outline"
+                className="border-primary text-primary rounded-none px-2 py-1 text-xs font-medium hover:bg-blue-50"
+                onClick={() => window.location.href = '/#/login'}
+              >
+                Sign In
+              </Button>
+              <Button
+                className="px-2 py-1 text-xs rounded-none font-medium text-white hover:bg-blue-700"
+                onClick={() => window.location.href = '/#/sign-up'}
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+          {isAuthenticated && (
+            <>
+              <NotificationsDialog />
+              <ProfileMenu />
+            </>
+          )}
 </div>
     </div>
-      <div className="hidden md:flex mx-auto px-5 py-4 gap-12 items-center justify-between">
+      <div className="hidden md:flex mx-auto py-4 gap-4 items-center justify-between max-w-7xl">
         <div className="flex items-center space-x-1 cursor-pointer" onClick={() => window.location.href = '/#'}>
           <img src="Logos/brand-icon.png" alt="Logo" className="h-[36px] w-[48px]" />
           <img src="Logos/brand-name-img.png" alt="Logo" className="h-[18px] w-[181px] mt-1" />
         </div>
 
-        <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
-          <a href="#" className={`font-medium ${window.location.pathname === '/' ? 'text-primary' : 'text-[#000927]'} hover:text-blue-600`}>Home</a>
-
-          <MainNavigationMenu />
-          <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-          {isAuthenticated && (
-            <button onClick={handleTeachWithUsClick} className="font-medium text-[#000927] hover:text-blue-600 bg-transparent border-none cursor-pointer">Teach With Us</button>
-          )}
-        </nav>
+         <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
+           <MainNavigationMenu />
+           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
+           {isAuthenticated && (
+             <button onClick={handleTeachWithUsClick} className="font-medium text-[#000927] hover:text-blue-600 bg-transparent border-none cursor-pointer">Teach With Us</button>
+           )}
+         </nav>
         
 
-        <div className="hidden md:block relative flex-grow">
-          {/* <Search className="absolute top-1/4 left-4" size={22} />
-                    <input type="text" placeholder="Search Something Here" className="bg-neutral-100 border-none rounded-[27px] w-full pl-12 py-2"
-                     onClick={()=> setSearchPopupIsOpen(true)} /> */}
+        <div className="hidden md:block relative flex-grow max-w-md mx-4">
           <SearchWithPopup />
         </div>
 
@@ -214,20 +210,43 @@ useEffect(() => {
           )}
         </div>
         {isAuthenticated && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {activePlan && (
-    <div className="hidden md:flex flex-col items-center px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm font-medium text-blue-700">
-      <span className="mr-2"> {activePlan.planName}</span>
-      <span className="text-gray-600">
-        valid till {activePlan.endDate.toDateString()}
-      </span>
-    </div>
-  )}
-          <div className="flex items-center">
-            <MyCartMenu />
-            <NotificationsDialog/>
-            <ProfileMenu />
-          </div>
+              <div className="hidden md:flex items-center relative" ref={planDetailsRef}>
+                {/* Minimal display - just plan name */}
+                <div 
+                  className="flex items-center px-2 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                  onClick={() => setShowPlanDetails(!showPlanDetails)}
+                >
+                  <span className="truncate max-w-[100px]">
+                    {activePlan.planName}
+                  </span>
+                  <span className={`ml-1 text-[10px] transition-transform ${showPlanDetails ? 'rotate-180' : ''}`}>▼</span>
+                </div>
+                
+                {/* Expanded details on click */}
+                {showPlanDetails && (
+                  <div className="absolute top-full left-0 mt-1 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-lg text-xs z-50 min-w-[200px]">
+                    <div className="font-semibold text-gray-900">{activePlan.planName}</div>
+                    <div className="text-gray-600 mt-1">
+                      Valid till {activePlan.endDate.toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </div>
+                    <div className="text-gray-500 text-[10px] mt-1">
+                      Click to minimize
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
+              <MyCartMenu />
+              <NotificationsDialog/>
+              <ProfileMenu />
+            </div>
           </div>
         )}
 
@@ -255,29 +274,29 @@ export default Header;
 
 
 // Base interface for all menu items
-interface BaseMenuItem {
-  title: string;
-  href: string;
-}
+// interface BaseMenuItem {
+//   title: string;
+//   href: string;
+// }
 
 // Interface for menu items with icons
-interface IconMenuItem extends BaseMenuItem {
-  icon: React.ReactNode;
-  description?: string;
-  image?: string;
-}
+// interface IconMenuItem extends BaseMenuItem {
+//   icon: React.ReactNode;
+//   description?: string;
+//   image?: string;
+// }
 
 // Interface for menu items with children
-interface MenuItemWithChildren extends BaseMenuItem {
-  description?: string;
-  children?: IconMenuItem[];
-}
+// interface MenuItemWithChildren extends BaseMenuItem {
+//   description?: string;
+//   children?: IconMenuItem[];
+// }
 
 // Interface for section headings
-interface SectionHeading {
-  title: string;
-  items: IconMenuItem[];
-}
+// interface SectionHeading {
+//   title: string;
+//   items: IconMenuItem[];
+// }
 
 // Course menu items
 // const courseMenuItems: SectionHeading[] = [
@@ -414,7 +433,7 @@ const IconListItem = React.forwardRef<
         >
           <div className="flex-shrink-0 mt-1">{icon}</div>
           <div className="w-auto h-38 relative rounded-xl overflow-hidden">
-            {image && <img src={image} />}
+            {image && <img src={image} alt={title || "Course image"} />}
           </div>
           <div>
             {!title?<p className="text-[#677489] text-sm font-medium leading-snug text-muted-foreground mt-1">
