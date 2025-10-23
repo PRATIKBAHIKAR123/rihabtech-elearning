@@ -37,6 +37,58 @@ export interface CourseUpdateRequest {
   learn?: string[];
   requirements?: string[];
   target?: string[];
+  curriculum?: {
+    sections: Array<{
+      name: string;
+      published: boolean;
+      items: Array<{
+        type: 'lecture' | 'quiz' | 'assignment';
+        lectureName?: string;
+        description?: string;
+        contentType?: 'video' | 'article';
+        videoSource?: 'upload' | 'link';
+        contentUrl?: string;
+        contentText?: string;
+        articleSource?: 'upload' | 'link' | 'write';
+        contentFiles?: Array<{
+          name: string;
+          url: string;
+          cloudinaryUrl?: string;
+          cloudinaryPublicId?: string;
+          duration?: number;
+          status: 'uploaded' | 'uploading' | 'failed';
+          uploadedAt: string;
+        }>;
+        resources?: Array<{
+          name: string;
+          url?: string;
+          cloudinaryUrl?: string;
+          cloudinaryPublicId?: string;
+          type: string;
+        }>;
+        published: boolean;
+        isPromotional?: boolean;
+        duration?: number;
+        // Quiz specific fields
+        quizTitle?: string;
+        quizDescription?: string;
+        quizQuestions?: Array<{
+          question: string;
+          options: string[];
+          correctOption: number[];
+        }>;
+        // Assignment specific fields
+        title?: string;
+        totalMarks?: number;
+        assignmentQuestions?: Array<{
+          question: string;
+          marks: number;
+          answer: string;
+          maxWordLimit?: number;
+        }>;
+      }>;
+    }>;
+  };
 }
 
 export interface CourseResponse {
@@ -75,6 +127,58 @@ export interface CourseResponse {
   isIntendedLearnersFinal?: boolean;
   isCurriculumFinal?: boolean;
   createdDate?: string;
+  curriculum?: {
+    sections: Array<{
+      name: string;
+      published: boolean;
+      items: Array<{
+        type: 'lecture' | 'quiz' | 'assignment';
+        lectureName?: string;
+        description?: string;
+        contentType?: 'video' | 'article';
+        videoSource?: 'upload' | 'link';
+        contentUrl?: string;
+        contentText?: string;
+        articleSource?: 'upload' | 'link' | 'write';
+        contentFiles?: Array<{
+          name: string;
+          url: string;
+          cloudinaryUrl?: string;
+          cloudinaryPublicId?: string;
+          duration?: number;
+          status: 'uploaded' | 'uploading' | 'failed';
+          uploadedAt: string;
+        }>;
+        resources?: Array<{
+          name: string;
+          url?: string;
+          cloudinaryUrl?: string;
+          cloudinaryPublicId?: string;
+          type: string;
+        }>;
+        published: boolean;
+        isPromotional?: boolean;
+        duration?: number;
+        // Quiz specific fields
+        quizTitle?: string;
+        quizDescription?: string;
+        quizQuestions?: Array<{
+          question: string;
+          options: string[];
+          correctOption: number[];
+        }>;
+        // Assignment specific fields
+        title?: string;
+        totalMarks?: number;
+        assignmentQuestions?: Array<{
+          question: string;
+          marks: number;
+          answer: string;
+          maxWordLimit?: number;
+        }>;
+      }>;
+    }>;
+  };
   rejectionInfo?: {
     rejectionReason?: string;
     rejectionNotes?: string;

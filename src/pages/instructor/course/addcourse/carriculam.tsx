@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import LoadingIcon from "../../../../components/ui/LoadingIcon";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Pencil, Trash2, UploadCloud, ChevronDown, ChevronUp, File, ExternalLink, GripVertical, Video, FileText, Link, PenLine, Download, CheckCircle, XCircle, Clock, RefreshCw, Eye, FileImage, FileVideo, FileText as FileTextIcon, FileSpreadsheet, FileIcon } from "lucide-react";
@@ -15,8 +14,12 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../compo
 // @ts-ignore
 import * as XLSX from 'xlsx';
 
-import { getCourseDraft, saveCourseDraft } from "../../../../fakeAPI/course";
+import { getCourseDraft } from "../../../../fakeAPI/course";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../../../lib/cloudinary";
+import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { useAuth } from "../../../../context/AuthContext";
+import { useCourseData } from "../../../../hooks/useCourseData";
+import { toast } from "sonner";
 
 // File type detection and icon mapping
 const getFileIcon = (fileName: string) => {
@@ -560,6 +563,11 @@ const debugCurriculumData = (curriculum: CurriculumFormValues, label: string) =>
 export function CourseCarriculam({ onSubmit }: any) {
   const draftId = useRef<string>(localStorage.getItem("draftId") || "");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
+  const isUpdatingRef = useRef(false);
+
   const [showContentType, setShowContentType] = useState<ViewItemState | null>(null);
   const [editLecture, setEditLecture] = useState<ViewItemState | null>(null);
   const [addType, setAddType] = useState<AddTypeState | null>(null);
@@ -591,20 +599,100 @@ export function CourseCarriculam({ onSubmit }: any) {
   };
 
   const [formInitialValues, setFormInitialValues] = useState(initialValues);
+  const [curriculumKey, setCurriculumKey] = useState(0);
+  const lastSavedCurriculumRef = useRef<string | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  // Function to store curriculum data in global state when navigating
+  const storeCurriculumData = useCallback((formValues?: any) => {
+    if (courseData?.id && formValues && !isUpdatingRef.current) {
+      isUpdatingRef.current = true;
+      
+      const serializableCurriculum = stripFilesFromCurriculum(formValues);
+      
+      // Store curriculum data in localStorage as backup
+      localStorage.setItem(`curriculum_${courseData.id}`, JSON.stringify(serializableCurriculum));
+      
+      // Update course data with current curriculum (without saving to API)
+      updateCourseData({
+        ...courseData,
+        curriculum: serializableCurriculum,
+        isCurriculumFinal: false // Mark as not final since user didn't explicitly save
+      });
+      
+      console.log('Curriculum data stored in global state and localStorage:', serializableCurriculum);
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 100);
+    }
+  }, [courseData, updateCourseData]);
 
   useEffect(() => {
     async function fetchDraft() {
       setLoading(true);
-      if (draftId.current) {
-        const draft = await getCourseDraft(draftId.current);
-        if (draft && draft.curriculum) {
-          setFormInitialValues(draft.curriculum);
-        }
+      
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to access curriculum");
+        setLoading(false);
+        return;
       }
+      
+      // Check if we have course data
+      if (!courseData?.id) {
+        toast.error("Please create a course first");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        // Check localStorage first for unsaved curriculum data
+        const savedCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+        
+        if (savedCurriculum) {
+          console.log("Loading curriculum from localStorage (unsaved changes):", JSON.parse(savedCurriculum));
+          const curriculumData = JSON.parse(savedCurriculum);
+          setFormInitialValues(curriculumData as unknown as CurriculumFormValues);
+          lastSavedCurriculumRef.current = savedCurriculum;
+        } else if (courseData.curriculum) {
+          console.log("Loading curriculum from API:", courseData.curriculum);
+          setFormInitialValues(courseData.curriculum as unknown as CurriculumFormValues);
+          // Initialize the last saved ref with current curriculum
+          lastSavedCurriculumRef.current = JSON.stringify(courseData.curriculum);
+        } else {
+          console.log("No curriculum data from API or localStorage, checking Firebase fallback");
+          // Fallback to Firebase if no API data
+          if (draftId.current) {
+            const draft = await getCourseDraft(draftId.current);
+            if (draft && draft.curriculum) {
+              console.log("Loading curriculum from Firebase:", draft.curriculum);
+              setFormInitialValues(draft.curriculum);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load curriculum:", error);
+        toast.error("Failed to load curriculum data");
+      }
+      
       setLoading(false);
     }
-    fetchDraft();
-  }, []);
+    
+    if (!isLoading) {
+      fetchDraft();
+    }
+  }, [user, courseData, isLoading]);
+
+  // Watch for changes in courseData.curriculum and update form
+  useEffect(() => {
+    if (courseData?.curriculum && !loading) {
+      console.log("Course curriculum data changed, updating form:", courseData.curriculum);
+      setFormInitialValues(courseData.curriculum as unknown as CurriculumFormValues);
+      setCurriculumKey(prev => prev + 1); // Force formik reinitialization
+    }
+  }, [courseData?.curriculum, loading]);
 
   const validationSchema = Yup.object({
     sections: Yup.array().of(
@@ -716,14 +804,25 @@ export function CourseCarriculam({ onSubmit }: any) {
     initialValues: formInitialValues,
     validationSchema,
     onSubmit: async (values) => {
+      setSaving(true);
+      
+      // Check if user is logged in
+      if (!user) {
+        toast.error("Please login to save curriculum");
+        setSaving(false);
+        return;
+      }
+      
+      // Check if we have course data
+      if (!courseData?.id) {
+        toast.error("Please create a course first");
+        setSaving(false);
+        return;
+      }
+      
       try {
-        console.log('Curriculum submission started:', { draftId: draftId.current, values });
+        console.log('Curriculum submission started:', { courseId: courseData.id, values });
         
-        // Validate that we have a valid draftId
-        if (!draftId.current) {
-          throw new Error('No draft ID found. Please refresh the page and try again.');
-        }
-
         // Debug: Log original curriculum data
         debugCurriculumData(values, 'Original Curriculum Data');
 
@@ -731,7 +830,9 @@ export function CourseCarriculam({ onSubmit }: any) {
         const validation = validateCurriculumForSubmission(values);
         if (!validation.isValid) {
           console.error('Curriculum validation failed:', validation.errors);
-          throw new Error(`Please fix the following issues:\n${validation.errors.join('\n')}`);
+          toast.error(`Please fix the following issues:\n${validation.errors.join('\n')}`);
+          setSaving(false);
+          return;
         }
 
         // Serialize curriculum data properly
@@ -741,46 +842,187 @@ export function CourseCarriculam({ onSubmit }: any) {
         // Debug: Log serialized curriculum data
         debugCurriculumData(serializableCurriculum, 'Serialized Curriculum Data');
 
-        // Save to Firebase with error handling
-        await saveCourseDraft(draftId.current, {
+        // Prepare course update data with curriculum
+        const courseUpdateData = {
+          id: courseData.id,
+          title: courseData.title,
+          subtitle: courseData.subtitle ?? null,
+          description: courseData.description ?? null,
+          category: courseData.category ?? null,
+          subCategory: courseData.subCategory ?? null,
+          level: courseData.level ?? null,
+          language: courseData.language ?? null,
+          pricing: courseData.pricing ?? null,
+          thumbnailUrl: courseData.thumbnailUrl ?? null,
+          promoVideoUrl: courseData.promoVideoUrl ?? null,
+          welcomeMessage: courseData.welcomeMessage ?? null,
+          congratulationsMessage: courseData.congratulationsMessage ?? null,
+          learn: courseData.learn ?? [],
+          requirements: courseData.requirements ?? [],
+          target: courseData.target ?? [],
+          curriculum: serializableCurriculum
+        };
+        
+        // Save curriculum to API using updateCourse
+        const response: UpdateCourseMessageResponse = await courseApiService.updateCourse(courseUpdateData);
+        
+        console.log('Curriculum saved successfully to API:', response);
+        
+        // Update course data with new curriculum
+        updateCourseData({
+          ...courseData,
           curriculum: serializableCurriculum,
-          progress: 70,
-          isCurriculumFinal: true,
+          isCurriculumFinal: true
         });
-
-        console.log('Curriculum saved successfully to Firebase');
+        
+        // Clear localStorage since data is now saved to API
+        localStorage.removeItem(`curriculum_${courseData.id}`);
+        
+        // Refresh course data from API to ensure all pages have the latest data
+        await refreshCourseData();
+        
+        toast.success(response.message || "Curriculum saved successfully!");
+        
+        setSaving(false);
+        
+        // Ensure curriculum data is stored in global state before navigation
+        storeCurriculumData(values);
+        
         onSubmit(values);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error saving curriculum:', error);
-        // You might want to show an error message to the user here
+        
+        // Handle specific error messages
+        if (error.message?.includes('Authentication failed')) {
+          toast.error("Authentication failed. Please login again.");
+        } else if (error.message?.includes('Access forbidden')) {
+          toast.error("You don't have permission to perform this action.");
+        } else if (error.message?.includes('Server error')) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error("Failed to save curriculum. Please try again.");
+        }
+        
+        setSaving(false);
         throw error;
       }
     },
   });
 
-  // Autosave on change (debounced)
+  // Debug form initialization
   useEffect(() => {
-    if (!loading && draftId.current) {
+    console.log("Form initial values updated:", formInitialValues);
+    console.log("Formik values:", formik.values);
+  }, [formInitialValues, formik.values]);
+
+  // Autosave on change (debounced) - Only save meaningful changes
+  useEffect(() => {
+    if (!loading && courseData?.id && user) {
       const timeout = setTimeout(async () => {
         try {
           const serializableCurriculum = stripFilesFromCurriculum(formik.values);
-          console.log('Autosaving curriculum:', { draftId: draftId.current, curriculum: serializableCurriculum });
+          const currentCurriculum = courseData.curriculum;
           
-          await saveCourseDraft(draftId.current, {
-            curriculum: serializableCurriculum,
-            progress: 24,
-            isCurriculumFinal: false,
-          });
+          // Only autosave if there are meaningful changes (not just text content)
+          const currentCurriculumString = JSON.stringify(serializableCurriculum);
+          const hasStructuralChanges = currentCurriculumString !== lastSavedCurriculumRef.current;
           
-          console.log('Curriculum autosaved successfully');
+          if (hasStructuralChanges) {
+            lastSavedCurriculumRef.current = currentCurriculumString;
+            setIsAutoSaving(true);
+            console.log('Autosaving curriculum (structural changes detected):', { courseId: courseData.id, curriculum: serializableCurriculum });
+            
+            // Prepare course update data with curriculum
+            const courseUpdateData = {
+              id: courseData.id,
+              title: courseData.title,
+              subtitle: courseData.subtitle ?? null,
+              description: courseData.description ?? null,
+              category: courseData.category ?? null,
+              subCategory: courseData.subCategory ?? null,
+              level: courseData.level ?? null,
+              language: courseData.language ?? null,
+              pricing: courseData.pricing ?? null,
+              thumbnailUrl: courseData.thumbnailUrl ?? null,
+              promoVideoUrl: courseData.promoVideoUrl ?? null,
+              welcomeMessage: courseData.welcomeMessage ?? null,
+              congratulationsMessage: courseData.congratulationsMessage ?? null,
+              learn: courseData.learn ?? [],
+              requirements: courseData.requirements ?? [],
+              target: courseData.target ?? [],
+              curriculum: serializableCurriculum
+            };
+            
+            // Save curriculum to API using updateCourse
+            await courseApiService.updateCourse(courseUpdateData);
+            
+            // Clear localStorage since data is now saved to API
+            localStorage.removeItem(`curriculum_${courseData.id}`);
+            
+            console.log('Curriculum autosaved successfully to API');
+            setIsAutoSaving(false);
+          } else {
+            console.log('No structural changes detected, skipping autosave');
+          }
         } catch (error) {
           console.error('Error during autosave:', error);
+          setIsAutoSaving(false);
           // Don't throw error for autosave failures, just log them
         }
-      }, 800);
+      }, 3000); // Increased debounce to 3 seconds
       return () => clearTimeout(timeout);
     }
-  }, [formik.values, loading]);
+  }, [formik.values, loading, courseData, user]);
+
+  // Store curriculum data in global state whenever form values change (less aggressive)
+  useEffect(() => {
+    if (!loading && courseData?.id && formik.values) {
+      const timeout = setTimeout(() => {
+        // Only store if the data has actually changed
+        const serializableCurriculum = stripFilesFromCurriculum(formik.values);
+        const currentCurriculum = courseData.curriculum;
+        
+        // Compare the serialized data to avoid unnecessary updates
+        if (JSON.stringify(serializableCurriculum) !== JSON.stringify(currentCurriculum)) {
+          storeCurriculumData(formik.values);
+        }
+      }, 2000); // Increased debounce to 2 seconds for global state updates
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [formik.values, loading, courseData]);
+
+  // Store curriculum data when component unmounts (user navigates away)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      storeCurriculumData(formik.values);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also store data when component unmounts
+      storeCurriculumData(formik.values);
+    };
+  }, []);
+
+  // Cleanup localStorage when course changes
+  useEffect(() => {
+    const currentCourseId = courseData?.id;
+    
+    return () => {
+      // Clear localStorage for other courses when switching courses
+      if (currentCourseId) {
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+          if (key.startsWith('curriculum_') && !key.includes(`curriculum_${currentCourseId}`)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    };
+  }, [courseData?.id]);
 
   const handleQuizExcelUpload = async (file: File, sectionIdx: number, itemIdx: number) => {
     const reader = new FileReader();
@@ -1264,13 +1506,20 @@ export function CourseCarriculam({ onSubmit }: any) {
     );
   }
 
-  if (loading) {
-    return <LoadingIcon />;
+  if (loading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading curriculum data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     
-    <FormikProvider value={formik}>
+    <FormikProvider key={curriculumKey} value={formik}>
       <form onSubmit={formik.handleSubmit}>
         {/* Error summary */}
         {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && (
@@ -1302,6 +1551,12 @@ export function CourseCarriculam({ onSubmit }: any) {
               <Clock className="text-primary" size={22} />
               <span className="font-bold text-xl">Total Course Duration:</span>
               <span className="font-bold text-primary text-xl">{formatDuration(totalCourseDuration)}</span>
+              {isAutoSaving && (
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span>Auto-saving...</span>
+                </div>
+              )}
               <HoverCard>
                 <HoverCardTrigger asChild>
                   <button
@@ -3647,8 +3902,8 @@ export function CourseCarriculam({ onSubmit }: any) {
           </div>
         </div>
         <div className="flex justify-end mt-8">
-          <Button className="rounded-none" type="submit">
-            Save & Continue
+          <Button className="rounded-none" type="submit" disabled={saving}>
+            {saving ? 'Saving...' : 'Save & Continue'}
           </Button>
         </div>
       </form>
