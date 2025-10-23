@@ -152,6 +152,7 @@ export interface QuizItem {
   quizDescription: string;
   questions: Question[];
   duration: number; // in minutes
+  seqNo: number;
   resources?: {
     name: string;
     file: File;
@@ -190,6 +191,7 @@ export interface Assignment {
   duration: number; // in minutes
   totalMarks: number;
   questions: AssignmentQuestion[];
+  seqNo: number;
   resources?: {
     name: string;
     file: File;
@@ -221,12 +223,14 @@ interface LectureItem {
   description?: string; // Add description field
   isPromotional?: boolean; // Add promotional property for free videos
   duration?: number; // Duration in seconds for external videos
+  seqNo: number;
 }
 
 export interface Section {
   name: string;
   items: (LectureItem | QuizItem | Assignment)[];
   published: boolean; // Add published property
+  seqNo: number;
 }
 
 export interface CurriculumFormValues {
@@ -252,7 +256,7 @@ interface AddTypeState {
   sectionIdx: number;
 }
 
-const getInitialAssignment = (): Assignment => ({
+const getInitialAssignment = (seqNo: number = 1): Assignment => ({
   type: "assignment",
   title: "",
   description: "",
@@ -265,10 +269,11 @@ const getInitialAssignment = (): Assignment => ({
       answer: "",
       maxWordLimit: 500 // Default word limit
     }
-  ]
+  ],
+  seqNo: seqNo,
 });
 
-const getInitialQuiz = (): QuizItem => ({
+const getInitialQuiz = (seqNo: number = 1): QuizItem => ({
   type: "quiz",
   quizTitle: "",
   quizDescription: "",
@@ -280,6 +285,7 @@ const getInitialQuiz = (): QuizItem => ({
     },
   ],
   duration: 15, // Default duration of 15 minutes
+  seqNo: seqNo,
 });
 const getInitialLecture = (index: number): LectureItem => ({
   type: "lecture",
@@ -295,6 +301,7 @@ const getInitialLecture = (index: number): LectureItem => ({
   description: "", // Add description field
   isPromotional: true, // Default to non-promotional
   duration: 0, // Default duration for external videos
+  seqNo: index,
 });
 
 
@@ -324,6 +331,22 @@ const move = <T,>(
   result[droppableDestination.droppableId] = destClone;
 
   return result;
+};
+
+// Helper function to update seqNo for sections
+const updateSectionSeqNo = (sections: any[]) => {
+  return sections.map((section, index) => ({
+    ...section,
+    seqNo: index + 1
+  }));
+};
+
+// Helper function to update seqNo for items within a section
+const updateItemSeqNo = (items: any[]) => {
+  return items.map((item, index) => ({
+    ...item,
+    seqNo: index + 1
+  }));
 };
 
 // Add this function near the top of the file
@@ -593,7 +616,8 @@ export function CourseCarriculam({ onSubmit }: any) {
       {
         name: "Introduction",
         items: [getInitialLecture(1)],
-        published: false // Default to unpublished
+        published: false, // Default to unpublished
+        seqNo: 1
       },
     ],
   };
@@ -1067,7 +1091,8 @@ export function CourseCarriculam({ onSubmit }: any) {
         quizTitle,
         quizDescription,
         questions,
-        duration: 15 // Default duration of 15 minutes
+        duration: 15, // Default duration of 15 minutes
+        seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
       });
     };
     reader.readAsArrayBuffer(file);
@@ -1096,17 +1121,17 @@ export function CourseCarriculam({ onSubmit }: any) {
     
     if (currentQuiz.type === "quiz") {
       const hasValidQuestions = currentQuiz.questions.every(q => {
-        const isValid = q.question &&
+        const isValid = q.question && q.question.trim() !== '' &&
           q.options.length >= 2 &&
-          q.options.every(opt => opt.trim()) &&
+          q.options.every(opt => opt && opt.trim() !== '') &&
           Array.isArray(q.correctOption) && q.correctOption.length > 0;
         
         console.log('Question validation:', { question: q.question, options: q.options, correctOption: q.correctOption, isValid });
         return isValid;
       });
 
-      const hasTitle = currentQuiz.quizTitle;
-      const hasDescription = currentQuiz.quizDescription;
+      const hasTitle = currentQuiz.quizTitle && currentQuiz.quizTitle.trim() !== '';
+      const hasDescription = currentQuiz.quizDescription && currentQuiz.quizDescription.trim() !== '';
       
       console.log('Quiz validation:', { 
         hasTitle, 
@@ -1151,7 +1176,9 @@ export function CourseCarriculam({ onSubmit }: any) {
         source.index,
         destination.index
       );
-      formik.setFieldValue('sections', newSections);
+      // Update seqNo for all sections after reordering
+      const updatedSections = updateSectionSeqNo(newSections);
+      formik.setFieldValue('sections', updatedSections);
       return;
     }
 
@@ -1164,8 +1191,9 @@ export function CourseCarriculam({ onSubmit }: any) {
         // Reordering within the same section
         const section = formik.values.sections[sourceSectionIndex];
         const newItems = reorder(section.items, source.index, destination.index);
-
-        formik.setFieldValue(`sections[${sourceSectionIndex}].items`, newItems);
+        // Update seqNo for items in this section
+        const updatedItems = updateItemSeqNo(newItems);
+        formik.setFieldValue(`sections[${sourceSectionIndex}].items`, updatedItems);
       } else {
         // Moving between different sections
         const sourceSection = formik.values.sections[sourceSectionIndex];
@@ -1178,8 +1206,12 @@ export function CourseCarriculam({ onSubmit }: any) {
           { index: destination.index, droppableId: destination.droppableId }
         );
 
-        formik.setFieldValue(`sections[${sourceSectionIndex}].items`, result[source.droppableId]);
-        formik.setFieldValue(`sections[${destSectionIndex}].items`, result[destination.droppableId]);
+        // Update seqNo for items in both sections
+        const updatedSourceItems = updateItemSeqNo(result[source.droppableId]);
+        const updatedDestItems = updateItemSeqNo(result[destination.droppableId]);
+
+        formik.setFieldValue(`sections[${sourceSectionIndex}].items`, updatedSourceItems);
+        formik.setFieldValue(`sections[${destSectionIndex}].items`, updatedDestItems);
       }
     }
   };
@@ -1197,6 +1229,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         },
       ],
       duration: 15, // Default duration of 15 minutes
+      seqNo: formik.values.sections[sectionIdx].items.length + 1,
     };
 
     const newItemIdx = formik.values.sections[sectionIdx].items.length;
@@ -1226,7 +1259,8 @@ export function CourseCarriculam({ onSubmit }: any) {
           answer: modelAnswerText || '',
           maxWordLimit: parseInt(wordLimitExcel) || 0
         }],
-        totalMarks: parseFloat(totalMarksExcel) || 0
+        totalMarks: parseFloat(totalMarksExcel) || 0,
+        seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
       });
     }
   };
@@ -1582,7 +1616,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               {({ push: pushSection, remove: removeSection }) => (
                 <div className="mt-4 gap-4 flex flex-col">
                   <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="sections" type="SECTION">
+                    <Droppable droppableId="sections" type="SECTION" isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
                       {(provided, snapshot) => (
                         <div
                           {...provided.droppableProps}
@@ -1700,7 +1734,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                       <FieldArray name={`sections[${sectionIdx}].items`}>
                                       {({ push, remove, replace }) => (
                                         <div className="flex flex-col gap-4">
-                                          <Droppable droppableId={`items-${sectionIdx}`} type="ITEM">
+                                          <Droppable droppableId={`items-${sectionIdx}`} type="ITEM" isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
                                             {(provided, snapshot) => (
                                               <div
                                                 {...provided.droppableProps}
@@ -2876,7 +2910,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               quizTitle,
                                                                               quizDescription,
                                                                               questions,
-                                                                              duration: quizDuration
+                                                                              duration: quizDuration,
+                                                                              seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
                                                                             });
                                                                           };
                                                                           reader.readAsArrayBuffer(file);
@@ -3799,6 +3834,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                     published: false, // Default to unpublished
                                                     description: "", // Add description field
                                                     isPromotional: false, // Default to non-promotional
+                                                    seqNo: section.items.length + 1, // Set seqNo based on current items count
                                                   });
                                                   setAddType(null);
                                                 }}
@@ -3810,7 +3846,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                 className="rounded-none"
                                                 onClick={() => {
                                                   const newItemIdx = section.items.length;
-                                                  push(getInitialQuiz());
+                                                  push(getInitialQuiz(newItemIdx + 1));
                                                   setAddType(null);
                                                   // Set the new quiz to edit mode
                                                   setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
@@ -3824,7 +3860,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                 type="button"
                                                 className="rounded-none"
                                                 onClick={() => {
-                                                  push(getInitialAssignment());
+                                                  const newItemIdx = section.items.length;
+                                                  push(getInitialAssignment(newItemIdx + 1));
                                                   setAddType(null);
                                                 }}
                                               >
@@ -3869,6 +3906,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                         const newSectionIdx = formik.values.sections.length;
                         pushSection({
                           name: `Section ${newSectionIdx + 1}`,
+                          seqNo: newSectionIdx + 1,
                           items: [
                             {
                               type: "lecture",
@@ -3878,7 +3916,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                               contentUrl: "",
                               contentText: "",
                               published: false, // Default to unpublished
-                              description: "" // Add description field
+                              description: "", // Add description field
+                              seqNo: 1 // First item in the section
                             },
                           ],
                           published: false // Default to unpublished
@@ -3976,7 +4015,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                     resources: [],
                     published: false,
                     description: '',
-                    isPromotional: false
+                    isPromotional: false,
+                    seqNo: formik.values.sections[sectionIdx].items.length + 1
                   };
 
                   // Add the lecture immediately with uploading status
@@ -4086,6 +4126,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                   resources: [],
                   published: false,
                   isPromotional: false,
+                  seqNo: currentSectionItems.length + 1,
                 };
                 console.log('Created fallback lecture object:', lecture);
                 return lecture;
@@ -4130,7 +4171,7 @@ export function CourseCarriculam({ onSubmit }: any) {
             console.log('Processing document files');
             // Create document lectures for each file
             const newLectures = await Promise.all(
-              Array.from(filesOrExcel).map(async (file) => {
+              Array.from(filesOrExcel).map(async (file, index) => {
                 // Upload to Cloudinary
                 let cloudinaryUrl = '';
                 let cloudinaryPublicId = '';
@@ -4164,6 +4205,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                     resources: [],
                     published: false,
                     isPromotional: false,
+                    seqNo: currentSectionItems.length + index + 1,
                   };
                 }
 
@@ -4187,6 +4229,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                   resources: [],
                   published: false,
                   isPromotional: false,
+                  seqNo: currentSectionItems.length + index + 1,
                 };
               })
             );
@@ -4243,6 +4286,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               resources: [],
               published: false, // Default to unpublished
               isPromotional: false, // Default to non-promotional
+              seqNo: currentSectionItems.length + idx + 1,
             }));
 
             // If there's an empty lecture, update it with the first URL
@@ -4306,6 +4350,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               resources: [],
               published: false, // Default to unpublished
               isPromotional: false, // Default to non-promotional
+              seqNo: currentSectionItems.length + 1,
             };
 
             if (emptyLectureIndex !== -1) {

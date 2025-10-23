@@ -231,7 +231,7 @@ class CourseApiService {
 
   // Update an existing course
   async updateCourse(courseData: CourseUpdateRequest): Promise<UpdateCourseMessageResponse> {
-    return apiService.post<UpdateCourseMessageResponse>('/instructor/course/update', courseData);
+    return apiService.post<UpdateCourseMessageResponse>('/instructor/course/update/draft', courseData);
   }
 
   // Get course by ID
