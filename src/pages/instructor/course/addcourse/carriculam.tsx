@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 import { Textarea } from "../../../../components/ui/textarea";
 import { Checkbox } from "../../../../components/ui/checkbox";
+import RichTextEditor from "../../../../components/ui/rich-text-editor";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../../components/ui/dialog";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../components/ui/hover-card";
@@ -4426,12 +4427,15 @@ function ArticleEditor({
   onChange: (html: string) => void;
 }) {
   return (
-    <Textarea
-      className="min-h-[120px] p-4 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-      value={content}
-      onChange={e => onChange(e.target.value)}
-      placeholder="Enter description..."
-    />
+    <div className="border border-gray-300 rounded-md overflow-hidden bg-white">
+      <RichTextEditor
+        value={content}
+        onChange={onChange}
+        placeholder="Enter article content... You can paste HTML content from other websites and it will be displayed in the same format."
+        height="300px"
+        className="focus-within:ring-2 focus-within:ring-primary"
+      />
+    </div>
   );
 }
 
