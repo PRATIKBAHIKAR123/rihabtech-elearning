@@ -1,6 +1,24 @@
-# Getting Started with Create React App
+# RihabTech E-Learning Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is an e-learning platform built with React and TypeScript.
+
+## Environment Setup
+
+Before running the application, you need to set up environment variables:
+
+1. Copy the example environment file:
+   ```bash
+   cp frontend.env.example .env.local
+   ```
+
+2. Update the `.env.local` file with your actual credentials:
+   ```env
+   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
+   REACT_APP_GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+   REACT_APP_API_BASE_URL=your_api_base_url_here
+   ```
+
+**Important Security Note:** Never commit your `.env.local` file or any file containing actual credentials to version control. The `.gitignore` file is configured to exclude these files.
 
 ## Available Scripts
 

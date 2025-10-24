@@ -1,4 +1,4 @@
-import { Star, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import Divider from "../../../components/ui/divider";
 import { Tabs, TabsContent, TabsList, TabsTrigger, } from "../../../components/ui/tabs";
 import { Button } from "../../../components/ui/button";
@@ -7,27 +7,26 @@ import Curriculum from "./coursecurriculam";
 import CartModal from "../../../modals/cartModal";
 import CheckoutModal from "../../../components/ui/CheckoutModal";
 import CoursePreviewModal from "../../../modals/coursePreviewModal";
-import React, { useState, useEffect, act } from "react";
+import React, { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
-import { COURSE_STATUS, Course, calculateCourseDuration } from "../../../utils/firebaseCourses";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../../../context/AuthContext";
 import { enrollUserInCourse, isUserEnrolledInCourse } from "../../../utils/paymentService";
 import { toast } from "sonner";
-import { InstructorData } from "../../../utils/firebaseInstructorData";
-import { useSubscription } from "../../../context/subscriptionContext";
 import { useLocation } from "react-router-dom";
 import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
+import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
 
-// Extended Course interface with additional properties from Firebase
-interface ExtendedCourse extends Omit<Course, 'requirements'> {
-  learn?: string[];
-  requirements: string[];
-  target?: string[];
-  welcomeMessage?: string;
+// Use CourseResponse interface from API service
+type ExtendedCourse = CourseResponse;
+
+// Instructor data interface
+interface InstructorData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  bio: string;
 }
 
 export default function CourseDetails() {
@@ -75,26 +74,46 @@ const [activePlan, setActivePlan] = useState<Subscription | null>(null);
   // Function to fetch available courses for selection
   const fetchAvailableCourses = async () => {
     try {
-      const coursesRef = collection(db, "courseDrafts");
-      const coursesQuery = query(
-        coursesRef,
-        where("status", "==", COURSE_STATUS.PUBLISHED),
-        where("isPublished", "==", true)
-      );
-
-      const querySnapshot = await getDocs(coursesQuery);
-      const courses: ExtendedCourse[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const courseData = doc.data() as ExtendedCourse;
-        courses.push({
-          ...courseData,
-          id: doc.id,
-          requirements: courseData.requirements || []
-        });
-      });
-
-      setAvailableCourses(courses);
+      const courses = await courseApiService.getAllPublicCourses();
+      // Transform the response to match our interface
+      const transformedCourses: ExtendedCourse[] = courses.map(course => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        pricing: course.pricing,
+        category: course.category,
+        // Add default values for missing fields
+        subtitle: null,
+        level: null,
+        language: null,
+        thumbnailUrl: null,
+        promoVideoUrl: null,
+        welcomeMessage: null,
+        congratulationsMessage: null,
+        instructorId: null,
+        status: null,
+        progress: 0,
+        isPublished: false,
+        publishedAt: null,
+        lastPublishedAt: null,
+        submittedForReview: false,
+        submittedAt: null,
+        isLocked: false,
+        lockedBy: null,
+        lockedAt: null,
+        lockReason: null,
+        version: 0,
+        hasUnpublishedChanges: false,
+        isIntendedLearnersFinal: false,
+        isCurriculumFinal: false,
+        createdDate: new Date().toISOString(),
+        learn: [],
+        requirements: [],
+        target: [],
+        curriculum: undefined,
+        rejectionInfo: null
+      }));
+      setAvailableCourses(transformedCourses);
     } catch (error) {
       console.error("Error fetching available courses:", error);
     }
@@ -123,7 +142,7 @@ useEffect(() => {
         setActivePlan(sub);
       }
 
-      // remove redirect key (optional: only if we’re on the right page)
+      // remove redirect key (optional: only if we're on the right page)
       localStorage.removeItem("redirectAfterSubscription");
 
       const extractedCourseId = getCourseIdFromURL();
@@ -134,23 +153,12 @@ useEffect(() => {
       }
 
       setLoading(true);
-      const courseRef = doc(db, "courseDrafts", extractedCourseId);
-      const courseSnap = await getDoc(courseRef);
+      // Use API service to fetch course by ID
+      const courseData = await courseApiService.getCourseById(parseInt(extractedCourseId));
+      setCourse(courseData);
 
-      if (courseSnap.exists()) {
-        const courseData = courseSnap.data() as ExtendedCourse;
-        const courseWithId = {
-          ...courseData,
-          id: courseSnap.id,
-          requirements: courseData.requirements || [],
-        };
-        setCourse(courseWithId);
-
-        if (user) {
-          await checkEnrollmentStatus(courseWithId.id);
-        }
-      } else {
-        setError("Course not found");
+      if (user) {
+        await checkEnrollmentStatus(courseData.id.toString());
       }
     } catch (err) {
       console.error("Error fetching course:", err);
@@ -164,14 +172,15 @@ useEffect(() => {
 }, [location, user]); // only depend on location + user
 
 
-  // Function to count students (members with student role)
-  const countStudents = (members?: Course['members']): number => {
-    if (!members) return 0;
-    return members.filter(member => member.role === 'student').length;
+  // Function to count students - using enrollment count from API
+  const countStudents = (): number => {
+    // For now, return a default value since enrollment count is not in the API response
+    // This should be updated when enrollment data is available
+    return 0;
   };
 
   // Function to count total lessons from curriculum
-  const countTotalLessons = (curriculum?: Course['curriculum']): number => {
+  const countTotalLessons = (curriculum?: ExtendedCourse['curriculum']): number => {
     if (!curriculum?.sections) return 0;
     let totalLessons = 0;
     curriculum.sections.forEach(section => {
@@ -183,38 +192,31 @@ useEffect(() => {
   };
 
   const getInstructorDetails = (): void => {
-    if (!course?.members) return;
+    if (!course?.instructorId) return;
     const instructorId = course.instructorId;
     if (instructorId) {
-      const fetchInstructor = async () => {
-        try {
-          const userRef = doc(db, "users", instructorId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            setInstructor(userSnap.data() as InstructorData);
-          }
-        } catch (error) {
-          console.error("Error fetching instructor details:", error);
-        }
-      };
-      fetchInstructor();
+      // For now, we'll set a default instructor since we don't have instructor API
+      // This should be updated when instructor API is available
+      setInstructor({
+        id: instructorId,
+        name: "Instructor",
+        email: "instructor@example.com",
+        role: "Instructor",
+        bio: "Experienced instructor with expertise in the subject matter."
+      });
     }
   };
   useEffect(() => {
     getInstructorDetails();
   }, [course]);
 
-  // Function to get instructor name from members
-  const getInstructorName = (members?: Course['members']): string => {
-    if (!members) return "Unknown Instructor";
-    const instructor = members.find(member => member.role === 'teacher');
-    return instructor?.email?.split('@')[0] || "Unknown Instructor";
+  // Function to get instructor name
+  const getInstructorName = (): string => {
+    return instructor?.name || "Unknown Instructor";
   };
 
-  // Function to get instructor email from members
-  const getInstructorEmail = (members?: Course['members']): string => {
-    if (!members) return "";
-    const instructor = members.find(member => member.role === 'teacher');
+  // Function to get instructor email
+  const getInstructorEmail = (): string => {
     return instructor?.email || "";
   };
 
@@ -247,8 +249,9 @@ useEffect(() => {
                   // Handle both integer and decimal duration values
                   if (typeof file.duration === 'string') {
                     // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
-                    if (file.duration.includes(':')) {
-                      const parts = file.duration.split(':');
+                    const durationStr = file.duration as string;
+                    if (durationStr.includes(':')) {
+                      const parts = durationStr.split(':');
                       if (parts.length === 2) {
                         // Format: "MM:SS"
                         durationValue = parseInt(parts[0]) * 60 + parseFloat(parts[1]);
@@ -256,14 +259,14 @@ useEffect(() => {
                         // Format: "HH:MM:SS"
                         durationValue = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
                       } else {
-                        durationValue = parseFloat(file.duration);
+                        durationValue = parseFloat(durationStr);
                       }
                     } else {
                       // Try to parse as number
-                      durationValue = parseFloat(file.duration);
+                      durationValue = parseFloat(durationStr);
                     }
                   } else {
-                    durationValue = file.duration;
+                    durationValue = file.duration as number;
                   }
                   
                   if (!isNaN(durationValue) && durationValue > 0) {
@@ -304,7 +307,7 @@ useEffect(() => {
       return;
     }
 if(!isEnrolled){
-      const courseEnrollmentResponse = await enrollUserInCourse(course!.id, user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
+      const courseEnrollmentResponse = await enrollUserInCourse(course!.id.toString(), user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
       console.log('Course enrollment response:', courseEnrollmentResponse);
       toast.success('Course Successfully Enrolled');
       window.location.hash = `#/learner/current-course/?courseId=${course?.id}`;
@@ -349,7 +352,7 @@ const getButtonConfig = () => {
   console.log('activePlan:', activePlan);
   const pricing = course?.pricing?.toLowerCase();
   const hasActivePlanForCourse =
-  activePlan && activePlan.categoryId && activePlan.categoryId === course?.category;
+  activePlan && activePlan.categoryId && activePlan.categoryId === course?.category?.toString();
 
   if (authLoading) {
     return {
@@ -390,13 +393,13 @@ const getButtonConfig = () => {
   }
 
   if (!activePlan || activePlan.categoryId !== course?.category) {
-  return {
-    text: "Enroll Now",
-    action: handleSubscribeNow,
-    disabled: false,
-    variant: "default" as const,
-  };
-}
+    return {
+      text: "Enroll Now",
+      action: handleSubscribeNow,
+      disabled: false,
+      variant: "default" as const,
+    };
+  }
 
 // If activePlan exists and matches course category
 return {
@@ -405,23 +408,6 @@ return {
   disabled: false,
   variant: "default" as const,
 };
-
-  // Pricing logic
-  let buttonText = "Enroll Now";
-  if (pricing === "free") {
-    buttonText = "Enroll Now";
-  } else if (pricing === "paid") {
-    buttonText = "Enroll Now"; // Will redirect to pricing page
-  } else if (pricing) {
-    buttonText = `Buy for ₹${course?.pricing}`;
-  }
-
-  return {
-    text: buttonText,
-    action: handleBuyNow,
-    disabled: false,
-    variant: "default" as const
-  };
 };
 
   // Loading state
@@ -542,12 +528,12 @@ return {
   }
 
   const sampleCartItem = {
-    id: parseInt(course.id) || 1, // Convert string ID to number or use fallback
+    id: course.id || 1,
     title: course.title,
-    description: course.description,
-    price: course.pricing === "Free" ? 0 : parseFloat(course.pricing) || 0,
-    image: course.thumbnailUrl,
-    students: countStudents(course.members),
+    description: course.description || "",
+    price: course.pricing === "free" ? 0 : parseFloat(course.pricing || "0") || 0,
+    image: course.thumbnailUrl || "",
+    students: countStudents(),
     duration: getCourseDuration()
   };
   return (
@@ -565,7 +551,7 @@ return {
                 className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer hover:underline hover:text-gray-300 transition-all duration-200"
                 onClick={() => { window.location.href = '/#/instructorDetails' }}
               >
-                By {getInstructorName(course.members)}
+                By {getInstructorName()}
               </div>
             </div>
             <Divider className="h-0 md:h-4 bg-white" />
@@ -689,7 +675,7 @@ return {
               </TabsContent>
 
               <TabsContent value="curriculum" className="py-4">
-                <Curriculum course={course} lectureIndex={sectionIndex??undefined} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
+                <Curriculum course={course as any} lectureIndex={sectionIndex??undefined} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
               </TabsContent>
 
               <TabsContent value="instructor" className="py-4">
@@ -702,7 +688,7 @@ return {
                       <div className="flex-shrink-0">
                         <img
                           src="Images/users/team-18.jpg.jpg"
-                          alt={getInstructorName(course.members)}
+                          alt={getInstructorName()}
                           className="w-32 h-32 rounded-full object-cover border-4 border-gray-100"
                         />
                       </div>
@@ -710,14 +696,14 @@ return {
                       {/* Instructor Info */}
                       <div className="flex-1">
                         <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                          {course.members && course.members.length>0? getInstructorName(course.members):course.instructorName}
+                          {getInstructorName()}
                         </h3>
                         <p className="text-lg text-gray-600 mb-4">{instructor?.role}</p>
 
                         {/* Stats Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">{countStudents(course.members)}</div>
+                            <div className="text-2xl font-bold text-primary">{countStudents()}</div>
                             <div className="text-sm text-gray-600">Students</div>
                           </div>
                           <div className="text-center">
@@ -741,7 +727,7 @@ return {
                               <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                             </svg>
-                            {getInstructorEmail(course.members) || "Email not available"}
+                            {getInstructorEmail() || "Email not available"}
                           </span>
                         </div>
                       </div>
@@ -754,7 +740,7 @@ return {
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-800 mb-3">Short Bio</h3>
                       <p className="text-gray-700 leading-relaxed">
-                        I'm {getInstructorName(course.members)}, a developer with a passion for teaching.
+                        I'm {getInstructorName()}, a developer with a passion for teaching.
                         I'm the lead instructor for this course and have helped hundreds of students learn
                         to code and change their lives by becoming developers.
                       </p>
@@ -765,7 +751,7 @@ return {
                       <h3 className="text-lg font-semibold text-gray-800 mb-3">Full Biography</h3>
                       <div className="text-gray-700 leading-relaxed space-y-4">
                         <p>
-                          I'm {getInstructorName(course.members)}, a developer with a passion for teaching.
+                          I'm {getInstructorName()}, a developer with a passion for teaching.
                           I'm the lead instructor for this course. I've helped hundreds of thousands of
                           students learn to code and change their lives by becoming a developer.
                         </p>
@@ -953,7 +939,7 @@ return {
                       <img src="Images/icons/course-Icon.png" className="h-6" /> Price:
                     </span>
                     <span className="text-primary text-lg font-semibold font-['Poppins'] leading-[34.60px] font-semibold">
-                      {course.pricing == "free" ?
+                      {course.pricing === "free" ?
                         (<span className="badge-free">Free</span>) :
                         (<span className="badge-paid">Paid</span>)
                       }
@@ -965,7 +951,7 @@ return {
                       <img src="Images/icons/course-Icon-1.png" className="h-6" /> Instructor:
                     </span>
                     <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed cursor-pointer" onClick={() => { window.location.href = '/#/instructorDetails' }}>
-                      {course.members && course.members.length > 0 ? getInstructorName(course.members) : course.instructorName}
+                      {getInstructorName()}
                     </span>
                   </li>
                   <hr className="w-full bg-[#E5E5E5]" />
@@ -992,7 +978,7 @@ return {
                       <img src="Images/icons/course-Icon-3.png" className="h-6" /> Students:
                     </span>
                     <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed">
-                      {countStudents(course.members)}
+                      {countStudents()}
                     </span>
                   </li>
                   <hr className="w-full bg-[#E5E5E5]" />
@@ -1054,7 +1040,7 @@ return {
 
         </div>
       </section>
-      <SuggestedCourses courses={availableCourses} currentCourseId={course.id} />
+      <SuggestedCourses courses={availableCourses as any} currentCourseId={course.id.toString()} />
       <CartModal
         isOpen={isCartModalOpen}
         setIsOpen={setIsCartModalOpen}
@@ -1067,11 +1053,11 @@ return {
           isOpen={isCheckoutModalOpen}
           onClose={() => setIsCheckoutModalOpen(false)}
           course={{
-            id: course.id,
+            id: course.id.toString(),
             title: course.title,
-            pricing: course.pricing,
-            thumbnailUrl: course.thumbnailUrl,
-            description: course.description
+            pricing: course.pricing || "",
+            thumbnailUrl: course.thumbnailUrl || "",
+            description: course.description || ""
           }}
         />
       )}
@@ -1081,7 +1067,7 @@ return {
         <CoursePreviewModal
           isOpen={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
-          course={course}
+          course={course as any}
         />
       )}
     </div>

@@ -148,6 +148,7 @@ export interface Question {
 }
 
 export interface QuizItem {
+  id?: number; // Add ID field from API response
   type: 'quiz';
   quizTitle: string;
   quizDescription: string;
@@ -155,6 +156,7 @@ export interface QuizItem {
   duration: number; // in minutes
   seqNo: number;
   resources?: {
+    id?: number; // Add ID field from API response
     name: string;
     file: File;
     url?: string;
@@ -167,6 +169,7 @@ export interface QuizItem {
 type VideoStatus = 'uploaded' | 'uploading' | 'failed';
 
 interface VideoContent {
+  id?: number; // Add ID field from API response
   file: File;
   url: string; // This will now store Cloudinary URL instead of blob URL
   cloudinaryUrl?: string; // Permanent Cloudinary URL
@@ -186,6 +189,7 @@ export interface AssignmentQuestion {
 }
 
 export interface Assignment {
+  id?: number; // Add ID field from API response
   type: 'assignment';
   title: string;
   description: string;
@@ -194,6 +198,7 @@ export interface Assignment {
   questions: AssignmentQuestion[];
   seqNo: number;
   resources?: {
+    id?: number; // Add ID field from API response
     name: string;
     file: File;
     url?: string;
@@ -204,6 +209,7 @@ export interface Assignment {
 }
 
 interface LectureItem {
+  id?: number; // Add ID field from API response
   type: 'lecture';
   lectureName: string;
   contentType: '' | 'video' | 'article';
@@ -213,6 +219,7 @@ interface LectureItem {
   contentText: string;
   articleSource: 'upload' | 'link' | 'write';
   resources: {
+    id?: number; // Add ID field from API response
     name: string;
     file: File;
     url?: string;
@@ -228,6 +235,7 @@ interface LectureItem {
 }
 
 export interface Section {
+  id?: number; // Add ID field from API response
   name: string;
   items: (LectureItem | QuizItem | Assignment)[];
   published: boolean; // Add published property
@@ -387,12 +395,75 @@ function stripFilesFromCurriculum(curriculum: any): any {
       const newObj: any = {};
       for (const key in obj) {
         if (obj[key] !== undefined) {
+          // Special handling for sections
+          if (key === 'sections' && Array.isArray(obj[key])) {
+            newObj[key] = obj[key].map((section: any) => {
+              if (!section) return null;
+              
+              const { id, name, published, seqNo, items } = section;
+              
+              const result: any = {};
+              if (id !== undefined) result.id = id; // Preserve the section ID from API response
+              if (name !== undefined) result.name = name;
+              if (published !== undefined) result.published = published;
+              if (seqNo !== undefined) result.seqNo = seqNo;
+              if (items !== undefined) result.items = clean(items); // Recursively clean items
+              
+              return result;
+            }).filter(Boolean);
+          }
+          // Special handling for items (lectures, quizzes, assignments)
+          else if (key === 'items' && Array.isArray(obj[key])) {
+            newObj[key] = obj[key].map((item: any) => {
+              if (!item) return null;
+              
+              const { id, type, lectureName, description, contentType, contentUrl, articleSource, videoSource, isPromotional, duration, published, seqNo, contentFiles, resources } = item;
+              
+              const result: any = {};
+              if (id !== undefined) result.id = id; // Preserve the item ID from API response
+              if (type !== undefined) result.type = type;
+              if (lectureName !== undefined) result.lectureName = lectureName;
+              if (description !== undefined) result.description = description;
+              if (contentType !== undefined) result.contentType = contentType;
+              if (contentUrl !== undefined) result.contentUrl = contentUrl;
+              if (articleSource !== undefined) result.articleSource = articleSource;
+              if (videoSource !== undefined) result.videoSource = videoSource;
+              if (isPromotional !== undefined) result.isPromotional = isPromotional;
+              if (duration !== undefined) result.duration = duration;
+              if (published !== undefined) result.published = published;
+              if (seqNo !== undefined) result.seqNo = seqNo;
+              if (contentFiles !== undefined) result.contentFiles = clean(contentFiles); // Recursively clean contentFiles
+              if (resources !== undefined) result.resources = clean(resources); // Recursively clean resources
+              
+              // Handle quiz-specific fields
+              if (type === 'quiz') {
+                const { quizTitle, quizDescription, questions, duration: quizDuration } = item;
+                if (quizTitle !== undefined) result.quizTitle = quizTitle;
+                if (quizDescription !== undefined) result.quizDescription = quizDescription;
+                if (questions !== undefined) result.questions = questions;
+                if (quizDuration !== undefined) result.duration = quizDuration;
+              }
+              
+              // Handle assignment-specific fields
+              if (type === 'assignment') {
+                const { title, description: assignmentDescription, duration: assignmentDuration, totalMarks, questions: assignmentQuestions } = item;
+                if (title !== undefined) result.title = title;
+                if (assignmentDescription !== undefined) result.description = assignmentDescription;
+                if (assignmentDuration !== undefined) result.duration = assignmentDuration;
+                if (totalMarks !== undefined) result.totalMarks = totalMarks;
+                if (assignmentQuestions !== undefined) result.questions = assignmentQuestions;
+              }
+              
+              return result;
+            }).filter(Boolean);
+          }
           // Special handling for contentFiles
-          if (key === 'contentFiles' && Array.isArray(obj[key])) {
+          else if (key === 'contentFiles' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((cf: any) => {
               if (!cf) return null;
               
               const { 
+                id,
                 name, 
                 url, 
                 cloudinaryUrl, 
@@ -405,6 +476,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
               
               // Only add defined fields, prioritizing Cloudinary URLs
               const result: any = {};
+              if (id !== undefined) result.id = id; // Preserve the ID from API response
               if (name !== undefined) result.name = name;
               if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl; // Use Cloudinary URL as primary URL
               else if (url !== undefined) result.url = url;
@@ -421,6 +493,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
               if (!res) return null;
               
               const { 
+                id,
                 name, 
                 url, 
                 cloudinaryUrl, 
@@ -429,6 +502,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
               } = res;
               
               const result: any = {};
+              if (id !== undefined) result.id = id; // Preserve the ID from API response
               if (name !== undefined) result.name = name;
               if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl;
               else if (url !== undefined) result.url = url;
@@ -462,7 +536,7 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
   
   curriculum.sections.forEach((section, sectionIndex) => {
     if (!section.name || section.name.trim() === '') {
-      errors.push(`Section ${sectionIndex + 1} must have a name`);
+      errors.push(`Section ${section.seqNo || sectionIndex + 1} must have a name`);
     }
     
     if (!section.items || section.items.length === 0) {
@@ -522,6 +596,22 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
   return {
     isValid: errors.length === 0,
     errors
+  };
+};
+
+// Helper function to sort curriculum by seqNo
+const sortCurriculumBySeqNo = (curriculum: any) => {
+  if (!curriculum || !curriculum.sections) return curriculum;
+  
+  return {
+    ...curriculum,
+    sections: curriculum.sections
+      ?.sort((a: any, b: any) => (a.seqNo || 0) - (b.seqNo || 0))
+      ?.map((section: any) => ({
+        ...section,
+        items: section.items
+          ?.sort((a: any, b: any) => (a.seqNo || 0) - (b.seqNo || 0))
+      }))
   };
 };
 
@@ -679,13 +769,25 @@ export function CourseCarriculam({ onSubmit }: any) {
         if (savedCurriculum) {
           console.log("Loading curriculum from localStorage (unsaved changes):", JSON.parse(savedCurriculum));
           const curriculumData = JSON.parse(savedCurriculum);
-          setFormInitialValues(curriculumData as unknown as CurriculumFormValues);
-          lastSavedCurriculumRef.current = savedCurriculum;
+          
+          // Sort sections by seqNo and items within sections by seqNo
+          const sortedCurriculum = sortCurriculumBySeqNo(curriculumData);
+          
+          console.log("Sorted curriculum from localStorage:", sortedCurriculum);
+          setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
+          setCurriculumKey(prev => prev + 1); // Force formik reinitialization
+          lastSavedCurriculumRef.current = JSON.stringify(sortedCurriculum);
         } else if (courseData.curriculum) {
           console.log("Loading curriculum from API:", courseData.curriculum);
-          setFormInitialValues(courseData.curriculum as unknown as CurriculumFormValues);
+          
+          // Sort sections by seqNo and items within sections by seqNo
+          const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
+          
+          console.log("Sorted curriculum from API:", sortedCurriculum);
+          setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
+          setCurriculumKey(prev => prev + 1); // Force formik reinitialization
           // Initialize the last saved ref with current curriculum
-          lastSavedCurriculumRef.current = JSON.stringify(courseData.curriculum);
+          lastSavedCurriculumRef.current = JSON.stringify(sortedCurriculum);
         } else {
           console.log("No curriculum data from API or localStorage, checking Firebase fallback");
           // Fallback to Firebase if no API data
@@ -693,7 +795,13 @@ export function CourseCarriculam({ onSubmit }: any) {
             const draft = await getCourseDraft(draftId.current);
             if (draft && draft.curriculum) {
               console.log("Loading curriculum from Firebase:", draft.curriculum);
-              setFormInitialValues(draft.curriculum);
+              
+              // Sort sections by seqNo and items within sections by seqNo
+              const sortedCurriculum = sortCurriculumBySeqNo(draft.curriculum);
+              
+              console.log("Sorted curriculum from Firebase:", sortedCurriculum);
+              setFormInitialValues(sortedCurriculum);
+              setCurriculumKey(prev => prev + 1); // Force formik reinitialization
             }
           }
         }
@@ -714,7 +822,11 @@ export function CourseCarriculam({ onSubmit }: any) {
   useEffect(() => {
     if (courseData?.curriculum && !loading) {
       console.log("Course curriculum data changed, updating form:", courseData.curriculum);
-      setFormInitialValues(courseData.curriculum as unknown as CurriculumFormValues);
+      
+      // Sort sections by seqNo and items within sections by seqNo
+      const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
+      
+      setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
       setCurriculumKey(prev => prev + 1); // Force formik reinitialization
     }
   }, [courseData?.curriculum, loading]);
@@ -1527,7 +1639,8 @@ export function CourseCarriculam({ onSubmit }: any) {
           if (itemErr && typeof itemErr === 'object') {
             Object.entries(itemErr).forEach(([field, msg]) => {
               if (typeof msg === 'string') {
-                messages.push(`Section ${sectionIdx + 1}, Item ${itemIdx + 1}: ${msg}`);
+                const section = formik.values.sections[sectionIdx];
+                messages.push(`Section ${section?.seqNo || sectionIdx + 1}, Item ${itemIdx + 1}: ${msg}`);
               }
             });
           }
@@ -1665,7 +1778,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           )}
                                         </Button>
                                         <label className="text-primary text-md font-bold whitespace-nowrap" style={{ width: 'auto' }}>
-                                          Section {sectionIdx + 1}:
+                                          Section {section.seqNo}:
                                         </label>
                                         <Input
                                           className="ins-control-border"
@@ -4468,17 +4581,31 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
 }) {
   
   const [selectedFiles, setSelectedFiles] = useState<FileList | File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset file input when modal opens or uploadType changes
+  useEffect(() => {
+    if (open && fileInputRef.current) {
+      fileInputRef.current.value = '';
+      setSelectedFiles(null);
+    }
+  }, [open, uploadType]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    console.log('File change event:', files);
+    
+    if (!files || files.length === 0) {
+      setSelectedFiles(null);
+      return;
+    }
 
     if (uploadType === 'url' || uploadType === 'write') {
       // For URL/Excel and Write/Excel, we only need the first file
-      setSelectedFiles(files[0]);
+      setSelectedFiles(files[0] as File);
     } else {
       // For video and document, we can handle multiple files
-      setSelectedFiles(files);
+      setSelectedFiles(files as FileList);
     }
   };
 
@@ -4495,6 +4622,10 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
       // Close modal and reset state after successful upload
       setSelectedFiles(null);
       setUploadType(null);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       onClose();
     } catch (error) {
       console.error('Upload failed:', error);
@@ -4505,6 +4636,10 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
   const handleClose = () => {
     setSelectedFiles(null);
     setUploadType(null);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     onClose();
   };
 
@@ -4595,6 +4730,8 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
                   Upload Video Files
                 </label>
                 <input
+                  ref={fileInputRef}
+                  key={`video-input-${uploadType}`}
                   type="file"
                   accept="video/*"
                   multiple
@@ -4607,8 +4744,17 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
                 {selectedFiles && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-2">
-                      Selected files: {(selectedFiles as FileList).length} video(s)
+                      Selected files: {selectedFiles instanceof FileList ? selectedFiles.length : 1} video(s)
                     </p>
+                    <div className="mb-2">
+                      {selectedFiles instanceof FileList ? (
+                        Array.from(selectedFiles).map((file, index) => (
+                          <p key={index} className="text-xs text-gray-400">{file.name}</p>
+                        ))
+                      ) : selectedFiles instanceof File ? (
+                        <p className="text-xs text-gray-400">{selectedFiles.name}</p>
+                      ) : null}
+                    </div>
                     <Button onClick={handleUpload} className="w-full">
                       Upload Videos
                     </Button>
@@ -4623,6 +4769,8 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
                   Upload Document Files
                 </label>
                 <input
+                  ref={fileInputRef}
+                  key={`document-input-${uploadType}`}
                   type="file"
                   accept=".pdf,.doc,.docx,.txt,.md"
                   multiple
@@ -4635,8 +4783,17 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
                 {selectedFiles && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-2">
-                      Selected files: {(selectedFiles as FileList).length} document(s)
+                      Selected files: {selectedFiles instanceof FileList ? selectedFiles.length : 1} document(s)
                     </p>
+                    <div className="mb-2">
+                      {selectedFiles instanceof FileList ? (
+                        Array.from(selectedFiles).map((file, index) => (
+                          <p key={index} className="text-xs text-gray-400">{file.name}</p>
+                        ))
+                      ) : selectedFiles instanceof File ? (
+                        <p className="text-xs text-gray-400">{selectedFiles.name}</p>
+                      ) : null}
+                    </div>
                     <Button onClick={handleUpload} className="w-full">
                       Upload Documents
                     </Button>

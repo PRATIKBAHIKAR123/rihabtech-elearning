@@ -176,7 +176,8 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
         congratulationsMessage: courseData.congratulationsMessage ?? null,
         learn: courseData.learn ?? [],
         requirements: courseData.requirements ?? [],
-        target: courseData.target ?? []
+        target: courseData.target ?? [],
+        curriculum: courseData.curriculum ?? undefined // Include curriculum data
       });
       
       // After a successful update, update the shared courseData state with the new pricing
@@ -195,7 +196,8 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
         congratulationsMessage: courseData.congratulationsMessage ?? null,
         learn: courseData.learn ?? [],
         requirements: courseData.requirements ?? [],
-        target: courseData.target ?? []
+        target: courseData.target ?? [],
+        curriculum: courseData.curriculum ?? undefined // Include curriculum data
       });
       
       toast.success(updateResponse.message || "Course pricing updated successfully!");

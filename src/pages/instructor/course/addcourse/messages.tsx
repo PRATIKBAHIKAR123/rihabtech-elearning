@@ -80,7 +80,8 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           congratulationsMessage: values.congratulationsMessage,
           learn: courseData.learn ?? [],
           requirements: courseData.requirements ?? [],
-          target: courseData.target ?? []
+          target: courseData.target ?? [],
+          curriculum: courseData.curriculum ?? undefined // Include curriculum data
         });
         
         // After a successful update, update the shared courseData state
@@ -88,6 +89,7 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           ...courseData,
           welcomeMessage: values.welcomeMessage,
           congratulationsMessage: values.congratulationsMessage,
+          curriculum: courseData.curriculum ?? undefined // Include curriculum data
         });
         
         toast.success(updateResponse.message || "Course messages updated successfully!");
