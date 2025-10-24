@@ -176,11 +176,11 @@ export const GoogleAuth = {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            client_id: GOOGLE_CONFIG.clientId,
-            client_secret: process.env.REACT_APP_GOOGLE_CLIENT_SECRET,
+            client_id: GOOGLE_CONFIG.clientId || '',
+            client_secret: process.env.REACT_APP_GOOGLE_CLIENT_SECRET || '',
             code: code,
             grant_type: 'authorization_code',
-            redirect_uri: GOOGLE_CONFIG.redirectUri,
+            redirect_uri: GOOGLE_CONFIG.redirectUri || '',
           }),
         });
 
