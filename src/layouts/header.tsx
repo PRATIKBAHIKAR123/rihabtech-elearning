@@ -226,7 +226,7 @@ function Header({ onMenuClick }: HeaderProps) {
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="truncate max-w-[140px] font-medium">
-                      {activePlans.length > 1 
+                      {activePlans.length > 1
                         ? `${activePlans[0].planName} (+${activePlans.length - 1})`
                         : activePlans[0].planName
                       }
@@ -277,11 +277,6 @@ function Header({ onMenuClick }: HeaderProps) {
                                   })}
                                 </span>
                               </div>
-                              {plan.amount > 0 && (
-                                <div className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
-                                  ₹{plan.amount}
-                                </div>
-                              )}
                             </div>
                             <div className="text-gray-400 text-xs">
                               #{index + 1}

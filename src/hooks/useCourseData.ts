@@ -109,11 +109,26 @@ export const useCourseData = (): UseCourseDataReturn => {
       }
     };
 
+    // Listen for course data clearing events
+    const handleClearCourseData = () => {
+      console.log("Clearing course data via custom event");
+      globalCourseData = null;
+      globalIsNewCourse = true;
+      globalIsLoading = false;
+      globalInitialized = false;
+      lastCourseId = null;
+      setCourseData(null);
+      setIsNewCourse(true);
+      setIsLoading(false);
+    };
+
     window.addEventListener('courseIdChanged', handleCourseIdChange);
+    window.addEventListener('clearCourseData', handleClearCourseData);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('courseIdChanged', handleCourseIdChange);
+      window.removeEventListener('clearCourseData', handleClearCourseData);
     };
   }, [refreshCourseData]); // Include refreshCourseData dependency
 
@@ -133,7 +148,19 @@ export const clearCourseData = () => {
   globalIsLoading = false;
   globalInitialized = false;
   lastCourseId = null;
+  // Get courseId before clearing it
+  const courseId = localStorage.getItem('courseId');
   localStorage.removeItem("courseId");
+  localStorage.removeItem("draftId");
+  localStorage.removeItem("addcourseType");
+  // Clear any curriculum data from localStorage
+  if (courseId) {
+    localStorage.removeItem(`curriculum_${courseId}`);
+  }
+  // Dispatch custom event to notify all useCourseData hooks
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('clearCourseData'));
+  }
 };
 
 // Helper function to trigger course data refresh when course ID changes

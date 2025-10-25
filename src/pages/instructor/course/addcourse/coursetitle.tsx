@@ -164,7 +164,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
 
   // Set form values when course data is loaded
   useEffect(() => {
-    if (courseData && courseData.title) {
+    if (courseData && courseData.title && !isNewCourse) {
       formik.setFieldValue('title', courseData.title);
       
       // Check for rejection info from API
@@ -186,6 +186,14 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
       }
     }
   }, [courseData]); // Remove formik from dependencies
+
+  // Clear form when it's a new course
+  useEffect(() => {
+    if (isNewCourse) {
+      formik.setFieldValue('title', '');
+      setRejectionInfo(null);
+    }
+  }, [isNewCourse]);
 
   // Don't render the form while loading course data
   if (isLoading) {

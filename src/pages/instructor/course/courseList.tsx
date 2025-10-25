@@ -120,10 +120,10 @@ export default function CourseList() {
           return a.title.localeCompare(b.title);
         case 'z-a':
           return b.title.localeCompare(a.title);
-                case 'published-first':
-                    return (b.status === COURSE_STATUS.PUBLISHED ? 1 : 0) - (a.status === COURSE_STATUS.PUBLISHED ? 1 : 0);
-                case 'unpublished-first':
-                    return (a.status === COURSE_STATUS.PUBLISHED ? 1 : 0) - (b.status === COURSE_STATUS.PUBLISHED ? 1 : 0);
+        case 'published-first':
+          return (b.status === COURSE_STATUS.PUBLISHED ? 1 : 0) - (a.status === COURSE_STATUS.PUBLISHED ? 1 : 0);
+        case 'unpublished-first':
+          return (a.status === COURSE_STATUS.PUBLISHED ? 1 : 0) - (b.status === COURSE_STATUS.PUBLISHED ? 1 : 0);
         default:
           return 0;
       }
@@ -530,7 +530,23 @@ export default function CourseList() {
           </div>
           <Button
             className="rounded-none w-full md:w-auto"
-            onClick={() => (window.location.href = "/#/instructor/course-test-selection")}
+            onClick={() => {
+              // Get courseId before clearing it
+              const courseId = localStorage.getItem('courseId');
+              // Clear any existing course data from localStorage
+              localStorage.removeItem('courseId');
+              localStorage.removeItem('draftId');
+              localStorage.removeItem('addcourseType');
+              // Clear any curriculum data from localStorage
+              if (courseId) {
+                localStorage.removeItem(`curriculum_${courseId}`);
+              }
+              // Clear global course data state
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('clearCourseData'));
+              }
+              window.location.href = "/#/instructor/course-test-selection";
+            }}
           >
             Add New Course
           </Button>
