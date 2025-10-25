@@ -965,94 +965,147 @@ export default function CourseList() {
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-3 mt-2">
-              {filteredApiCourses.map((course) => (
-                <div key={course.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
-                  {/* Desktop Table Layout */}
-                  <div className="hidden lg:grid lg:grid-cols-[100px_minmax(350px,1fr)_140px_140px_220px] lg:gap-6 lg:items-center p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden">
+              {/* Table Header */}
+              <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px] bg-gray-50 border-b border-gray-400">
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Thumbnail
+                </div>
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Course Details
+                </div>
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                  Enrollments
+                </div>
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                  Rating
+                </div>
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                  Progress
+                </div>
+                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                  Actions
+                </div>
+              </div>
 
+              {/* Table Body */}
+              <div className="divide-y divide-gray-400">
+                {filteredApiCourses.map((course) => (
+                  <div key={course.id} className="hover:bg-gray-50 transition-colors">
+                    {/* Desktop Layout */}
+                    <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px]">
+                    
                     {/* Thumbnail */}
-                    <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
-                      {course.thumbnail ? (
-                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
+                    <div className="p-4 flex items-center justify-center">
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        {course.thumbnail ? (
+                          <img 
+                            src={course.thumbnail} 
+                            alt={course.title} 
+                            className="w-full h-full object-cover rounded-lg" 
+                          />
+                        ) : (
+                          <BookOpen className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Course Info */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-semibold text-gray-900 truncate">{course.title}</h3>
-                        <span className={`px-2 py-0.5 text-[11px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
-                          {getStatusById(course.status)}
-                        </span>
-                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
-                          {course.visibility}
-                        </span>
-                        <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
-                          {course.pricing}
-                        </span>
-                      </div>
-
-                      {course.description && (
-                        <p className="text-sm text-gray-600 truncate mb-1">{course.description}</p>
-                      )}
-
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="flex-1 max-w-[200px] bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-primary h-1.5 rounded-full transition-all"
-                            style={{ width: `${course.progress}%` }}
-                          />
+                    {/* Course Details */}
+                    <div className="p-4 min-w-0">
+                      <div className="flex flex-col gap-2">
+                        {/* Title with consistent height */}
+                        <div className="h-6 flex items-center">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate pr-2" title={course.title}>
+                            {course.title}
+                          </h3>
                         </div>
-                        <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
-                      </div>
+                        
+                        {/* Description with consistent height */}
+                        <div className="h-4 flex items-center">
+                          {course.description ? (
+                            <p className="text-xs text-gray-600 truncate" title={course.description}>
+                              {course.description}
+                            </p>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">No description</span>
+                          )}
+                        </div>
 
-                      <p className="text-xs text-gray-500">
-                        Last updated {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
+                        {/* Status Tags */}
+                        <div className="flex flex-wrap gap-1">
+                          <span className={`px-2 py-0.5 text-[10px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                            {getStatusById(course.status)}
+                          </span>
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                            {course.visibility}
+                          </span>
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
+                            {course.pricing}
+                          </span>
+                        </div>
+
+                        {/* Last Updated */}
+                        <div className="h-3 flex items-center">
+                          <span className="text-[10px] text-gray-500">
+                            Updated {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Enrollments */}
-                    <div>
-                      <div className="text-lg font-medium text-[#1e1e1e] font-['Poppins']">
+                    <div className="p-4 flex flex-col items-center justify-center">
+                      <div className="text-lg font-semibold text-gray-900">
                         {course.enrollments || 0}
                       </div>
-                      <div className="text-xs text-gray-600 font-['Nunito']">Enrollments</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+                        Enrollments
+                      </div>
                     </div>
 
-                    {/* Ratings */}
-                    <div>
+                    {/* Rating */}
+                    <div className="p-4 flex flex-col items-center justify-center">
                       <div className="flex items-center gap-0.5 mb-1">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            size={14}
+                            size={12}
                             className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                           />
                         ))}
                       </div>
-                      <div className="text-xs text-gray-600 font-['Poppins']">
+                      <div className="text-[10px] text-gray-500">
                         {course.ratings || 0} ratings
                       </div>
                     </div>
 
+                    {/* Progress */}
+                    <div className="p-4 flex flex-col items-center justify-center">
+                      <div className="w-full max-w-[60px] bg-gray-200 rounded-full h-1.5 mb-1">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all"
+                          style={{ width: `${course.progress}%` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-gray-500 font-medium">
+                        {course.progress}%
+                      </div>
+                    </div>
+
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="p-4 flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleEditApiCourse(course)}
-                        className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors"
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Edit Course"
                       >
-                        Edit
+                        <Edit3 className="w-4 h-4" />
                       </button>
 
                       {canSubmitApiCourseForReview(course) && (
                         <button
                           onClick={() => handleSubmitForReview(course)}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors"
+                          className="p-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
                           title="Submit for Review"
                         >
                           <Send className="w-4 h-4" />
@@ -1062,7 +1115,7 @@ export default function CourseList() {
                       {canPublishApiCourse(course) && (
                         <button
                           onClick={() => handlePublishApiCourse(course)}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600 transition-colors"
+                          className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                           title="Publish Course"
                         >
                           <Globe className="w-4 h-4" />
@@ -1072,19 +1125,20 @@ export default function CourseList() {
                       <div className="relative">
                         <button
                           onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="More Options"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
 
                         {openDropdownCourseId === course.id && (
-                          <div className="absolute right-0 mt-1 w-44 bg-white rounded shadow-lg border border-gray-200 py-1 z-10">
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
                             <button
                               onClick={() => {
                                 handleEditApiCourse(course);
                                 setOpenDropdownCourseId(null);
                               }}
-                              className="flex items-center w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
                               <Edit3 className="w-3.5 h-3.5 mr-2" />
                               Edit Course
@@ -1094,10 +1148,10 @@ export default function CourseList() {
                                 handleDeleteApiCourse(course);
                                 setOpenDropdownCourseId(null);
                               }}
-                              className="flex items-center w-full px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              Delete
+                              Delete Course
                             </button>
                             {canPublishApiCourse(course) && (
                               <button
@@ -1105,41 +1159,43 @@ export default function CourseList() {
                                   handlePublishApiCourse(course);
                                   setOpenDropdownCourseId(null);
                                 }}
-                                className="flex items-center w-full px-3 py-1.5 text-sm text-green-600 hover:bg-green-50"
+                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
                               >
                                 <Globe className="w-3.5 h-3.5 mr-2" />
-                                Publish
+                                Publish Course
                               </button>
                             )}
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                    </div>
 
-                  {/* Mobile Layout */}
-                  <div className="lg:hidden p-4">
+                    {/* Mobile Layout */}
+                    <div className="lg:hidden p-4">
                     <div className="flex gap-3 mb-3">
-                      <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0 relative">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative overflow-hidden">
                         {course.thumbnail ? (
-                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded" />
+                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded-lg" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="w-6 h-6 text-gray-400" />
+                            <BookOpen className="w-5 h-5 text-gray-400" />
                           </div>
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 mb-1">{course.title}</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-1 truncate" title={course.title}>
+                          {course.title}
+                        </h3>
                         <div className="flex flex-wrap gap-1 mb-2">
-                          <span className={`px-2 py-0.5 text-[11px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
+                          <span className={`px-2 py-0.5 text-[10px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
                             {getStatusById(course.status)}
                           </span>
-                          <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
                           </span>
-                          <span className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 rounded">
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
                             {course.pricing}
                           </span>
                         </div>
@@ -1147,10 +1203,12 @@ export default function CourseList() {
                     </div>
 
                     {course.description && (
-                      <p className="text-sm text-gray-600 mb-2">{course.description}</p>
+                      <p className="text-xs text-gray-600 mb-2 line-clamp-2" title={course.description}>
+                        {course.description}
+                      </p>
                     )}
 
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-3">
                       <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                         <div
                           className="bg-primary h-1.5 rounded-full transition-all"
@@ -1160,201 +1218,115 @@ export default function CourseList() {
                       <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
                     </div>
 
-                    <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
-                      <span>{course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-gray-900">{course.enrollments} enrollments</span>
-                        <div className="flex items-center gap-0.5">
-                          <Star size={12} className="fill-yellow-400 text-yellow-400" />
-                          <span>{course.ratings}</span>
+                    <div className="grid grid-cols-3 gap-4 mb-3 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900">{course.enrollments || 0}</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wide">Enrollments</div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center gap-0.5 mb-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={10}
+                              className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
                         </div>
+                        <div className="text-[10px] text-gray-500">{course.ratings || 0} ratings</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wide">Updated</div>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEditApiCourse(course)}
-                        className="flex-1 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50"
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Edit Course"
                       >
-                        Edit
+                        <Edit3 className="w-4 h-4" />
                       </button>
+
                       {canSubmitApiCourseForReview(course) && (
                         <button
                           onClick={() => handleSubmitForReview(course)}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded"
+                          className="p-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
                           title="Submit for Review"
                         >
                           <Send className="w-4 h-4" />
                         </button>
                       )}
+
                       {canPublishApiCourse(course) && (
                         <button
                           onClick={() => handlePublishApiCourse(course)}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-green-500 rounded"
+                          className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                           title="Publish Course"
                         >
                           <Globe className="w-4 h-4" />
                         </button>
                       )}
-                      <button
-                        onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="More Options"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+
+                        {openDropdownCourseId === course.id && (
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                            <button
+                              onClick={() => {
+                                handleEditApiCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 mr-2" />
+                              Edit Course
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDeleteApiCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete Course
+                            </button>
+                            {canPublishApiCourse(course) && (
+                              <button
+                                onClick={() => {
+                                  handlePublishApiCourse(course);
+                                  setOpenDropdownCourseId(null);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+                              >
+                                <Globe className="w-3.5 h-3.5 mr-2" />
+                                Publish Course
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
         </div>
       </div>
     </div>
   );
 }
-
-
-const DraftCourseCard = ({ course, onEdit, onDelete }: any) => {
-  const [openDropdownCourseId, setOpenDropdownCourseId] = useState(false);
-
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow gap-4">
-
-      {/* Left Section: Thumbnail + Info */}
-      <div className="flex items-start sm:items-center space-x-4 flex-1">
-        {/* Course Thumbnail */}
-        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          {course.thumbnail ? (
-            <img
-              src={course.thumbnail}
-              alt={course.title}
-              className="w-full h-full object-cover rounded-lg"
-            />
-          ) : (
-            <BookOpen className="w-8 h-8 text-gray-400" />
-          )}
-        </div>
-
-        {/* Course Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-              {course.title}
-            </h3>
-            <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-              {course.status}
-            </span>
-            <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-              {course.visibility}
-            </span>
-          </div>
-          {course.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2">
-              {course.description}
-            </p>
-          )}
-          <p className="text-xs text-gray-500">
-            Last modified {course.lastModified}
-          </p>
-        </div>
-      </div>
-
-      {/* Right Section: Progress + Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
-        {/* Progress Section */}
-        <div className="text-left sm:text-right min-w-[120px]">
-          <div className="text-sm font-medium text-gray-900 mb-1">
-            Finish your course
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${course.progress}%` }}
-              ></div>
-            </div>
-            <span className="text-xs text-gray-500 font-medium">
-              {course.progress}%
-            </span>
-          </div>
-        </div>
-        <div>
-          <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-            INR {(course.earnings || 0).toFixed(2)}
-          </div>
-          <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-            Earned This Month
-          </div>
-        </div>
-        <div>
-          <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-            {course.enrollments || 0}
-          </div>
-          <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-            Enrollments this month
-          </div>
-        </div>
-        <div>
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={18}
-                className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-              />
-            ))}
-          </div>
-          <span className="text-[#181818] text-[12px] md:text-sm font-medium font-['Poppins'] leading-[14px] ml-1">
-            ({course.ratings || 0} Ratings)
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <button
-            onClick={() => onEdit(course)}
-            className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors w-full sm:w-auto"
-          >
-            Edit / manage course
-          </button>
-
-          {/* More Actions Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setOpenDropdownCourseId(!openDropdownCourseId)}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-
-            {openDropdownCourseId && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                <button
-                  onClick={() => {
-                    onEdit(course);
-                    setOpenDropdownCourseId(false);
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Course
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete(course);
-                    setOpenDropdownCourseId(false);
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Course
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
