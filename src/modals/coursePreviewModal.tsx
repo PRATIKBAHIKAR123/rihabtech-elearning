@@ -3,6 +3,24 @@ import { X, Play, Video, Clock, User, Globe, Award } from 'lucide-react';
 import ReactPlayer from 'react-player';
 import { Course } from '../utils/firebaseCourses';
 
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeVideoId = (url: string): string => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : '';
+};
+
+// Helper function to convert YouTube URL to proper format
+const convertYouTubeUrl = (url: string): string => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const videoId = extractYouTubeVideoId(url);
+    if (videoId) {
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+  }
+  return url;
+};
+
 interface PreviewVideo {
   id: string;
   title: string;
@@ -44,7 +62,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
               if (item.isPromotional === true) {
                 console.log('Item is marked as promotional:', item.lectureName);
                 
-                // Look for video files
+                // Handle uploaded videos (with contentFiles)
                 if (item.contentFiles && item.contentFiles.length > 0) {
                   console.log('Content files found:', item.contentFiles);
                   const videoFile = item.contentFiles.find(file => {
@@ -69,12 +87,29 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                       videoUrl: videoFile.url,
                       description: item.description
                     });
-                    console.log('Added promotional preview video:', {
+                    console.log('Added promotional uploaded video:', {
                       title: item.lectureName,
                       duration: videoFile.duration,
                       url: videoFile.url
                     });
                   }
+                }
+                
+                // Handle YouTube videos (with contentUrl)
+                else if ((item as any).videoSource === 'link' && (item as any).contentUrl) {
+                  console.log('YouTube video found:', item.lectureName, (item as any).contentUrl);
+                  videos.push({
+                    id: item.id || `${section.name}-${item.lectureName}`,
+                    title: item.lectureName || 'Untitled Video',
+                    duration: (item as any).duration ? formatDuration(typeof (item as any).duration === 'string' ? parseFloat((item as any).duration) || 0 : (item as any).duration) : '00:00',
+                    videoUrl: (item as any).contentUrl,
+                    description: item.description
+                  });
+                  console.log('Added promotional YouTube video:', {
+                    title: item.lectureName,
+                    duration: (item as any).duration,
+                    url: (item as any).contentUrl
+                  });
                 }
               } else {
                 console.log('Item is NOT marked as promotional, skipping:', item.lectureName);
@@ -122,11 +157,16 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const remainingSeconds = Math.round((seconds % 60) * 100) / 100; // Round to 2 decimal places
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toFixed(2).padStart(5, '0')}`;
   };
 
   const handleVideoSelect = (video: PreviewVideo) => {
+    console.log('Video selected:', video);
+    console.log('Original Video URL:', video.videoUrl);
+    console.log('Converted URL:', convertYouTubeUrl(video.videoUrl));
+    console.log('Extracted Video ID:', extractYouTubeVideoId(video.videoUrl));
+    console.log('Is YouTube URL:', video.videoUrl?.includes('youtube.com') || video.videoUrl?.includes('youtu.be'));
     setSelectedVideo(video);
     setIsVideoLoading(true);
     setVideoError(null);
@@ -139,8 +179,17 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
 
   const handleVideoError = (error: any) => {
     setIsVideoLoading(false);
-    setVideoError('Failed to load video. Please try again.');
     console.error('Video error:', error);
+    console.error('Selected video:', selectedVideo);
+    console.error('Video URL:', selectedVideo?.videoUrl);
+    
+    // Check if it's a YouTube video
+    const isYouTube = selectedVideo?.videoUrl?.includes('youtube.com') || selectedVideo?.videoUrl?.includes('youtu.be');
+    if (isYouTube) {
+      setVideoError('Failed to load YouTube video. Please check if the video is available and try again.');
+    } else {
+      setVideoError('Failed to load video. Please try again.');
+    }
   };
 
   const handleRetry = () => {
@@ -224,7 +273,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                   )}
                   
                   <ReactPlayer
-                    url={selectedVideo.videoUrl}
+                    url={convertYouTubeUrl(selectedVideo.videoUrl)}
                     controls={true}
                     width="100%"
                     height="100%"
@@ -232,6 +281,13 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                     onReady={handleVideoReady}
                     onError={handleVideoError}
                     config={{
+                      youtube: {
+                        playerVars: {
+                          modestbranding: 1,
+                          rel: 0,
+                          showinfo: 0
+                        }
+                      },
                       file: {
                         attributes: {
                           controlsList: 'nodownload',
