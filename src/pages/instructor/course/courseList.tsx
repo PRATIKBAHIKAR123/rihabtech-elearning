@@ -637,7 +637,7 @@ export default function CourseList() {
                       </div>
 
                       {course.description && (
-                        <p className="text-sm text-gray-600 truncate mb-1">{course.description}</p>
+                        <div className="text-sm text-gray-600 truncate mb-1" dangerouslySetInnerHTML={{ __html: course.description }}></div>
                       )}
 
                       {bestCoupon && (
@@ -808,7 +808,7 @@ export default function CourseList() {
                     </div>
 
                     {course.description && (
-                      <p className="text-sm text-gray-600 mb-2">{course.description}</p>
+                      <div className="text-sm text-gray-600 mb-2" dangerouslySetInnerHTML={{ __html: course.description }}></div>
                     )}
 
                     {bestCoupon && (
@@ -1023,9 +1023,8 @@ export default function CourseList() {
                         {/* Description with consistent height */}
                         <div className="h-4 flex items-center">
                           {course.description ? (
-                            <p className="text-xs text-gray-600 truncate" title={course.description}>
-                              {course.description}
-                            </p>
+                            <div className="text-xs text-gray-600 truncate" title={course.description} dangerouslySetInnerHTML={{ __html: course.description }}>
+                            </div>
                           ) : (
                             <span className="text-xs text-gray-400 italic">No description</span>
                           )}
@@ -1203,9 +1202,8 @@ export default function CourseList() {
                     </div>
 
                     {course.description && (
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2" title={course.description}>
-                        {course.description}
-                      </p>
+                      <div className="text-xs text-gray-600 mb-2 line-clamp-2" title={course.description} dangerouslySetInnerHTML={{ __html: course.description }}>
+                      </div>
                     )}
 
                     <div className="flex items-center gap-2 mb-3">

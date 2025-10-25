@@ -718,7 +718,7 @@ export function CourseCard({ course, progress = false }: {
             </div>
           </div>
           <h3 className="course-title">{course.title}</h3>
-          <p className="course-desciption">{course.description}</p>
+          <div className="course-desciption" dangerouslySetInnerHTML={{ __html: course.description || "" }}></div>
 
           {progress && (course as any).progress && (
             <div className="course-progress">

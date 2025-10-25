@@ -479,7 +479,7 @@ const PreviewCourse = () => {
             <div className="bg-gray-50 border rounded p-4">
               {course.title && <div className="mb-2"><span className="font-semibold">Title:</span> <span className="text-gray-700">{course.title}</span></div>}
               {course.subtitle && <div className="mb-2"><span className="font-semibold">Subtitle:</span> <span className="text-gray-700">{course.subtitle}</span></div>}
-              {course.description && <div className="mb-2"><span className="font-semibold">Description:</span> <span className="text-gray-700">{course.description}</span></div>}
+              {course.description && <div className="mb-2"><span className="font-semibold">Description:</span> <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: course.description }}></div></div>}
               {course.language && <div className="mb-2"><span className="font-semibold">Language:</span> <span className="text-gray-700">{course.language}</span></div>}
               {course.level && <div className="mb-2"><span className="font-semibold">Level:</span> <span className="text-gray-700">{course.level}</span></div>}
               {categoryName && <div className="mb-2"><span className="font-semibold">Category:</span> <span className="text-gray-700">{categoryName}</span></div>}
@@ -538,13 +538,13 @@ const PreviewCourse = () => {
         {course.welcomeMessage && (
           <div className="mb-2">
             <strong>Welcome Message:</strong>
-            <div className="bg-gray-50 border rounded p-2 mt-1">{course.welcomeMessage}</div>
+            <div className="bg-gray-50 border rounded p-2 mt-1" dangerouslySetInnerHTML={{ __html: course.welcomeMessage }}></div>
           </div>
         )}
         {course.congratulationsMessage && (
           <div className="mb-2">
             <strong>Congratulations Message:</strong>
-            <div className="bg-gray-50 border rounded p-2 mt-1">{course.congratulationsMessage}</div>
+            <div className="bg-gray-50 border rounded p-2 mt-1" dangerouslySetInnerHTML={{ __html: course.congratulationsMessage }}></div>
           </div>
         )}
         {(!course.welcomeMessage && !course.congratulationsMessage) && <div className="text-gray-400">No course messages.</div>}

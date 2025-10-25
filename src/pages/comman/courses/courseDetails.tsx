@@ -477,9 +477,8 @@ return {
                     <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2">
                       {courseItem.title}
                     </h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                      {courseItem.description || "No description available"}
-                    </p>
+                    <div className="text-gray-600 text-sm mb-3 line-clamp-3" dangerouslySetInnerHTML={{ __html: courseItem.description || "No description available" }}>
+                    </div>
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>{courseItem.level || "Beginner"}</span>
                       <span>{courseItem.language || "English"}</span>
@@ -590,9 +589,8 @@ return {
 
               <TabsContent value="overview" className="py-4">
                 <h2 className="details-title mb-4">Course Description</h2>
-                <p className="mb-6 details-description">
-                  {course.description || "No description available for this course."}
-                </p>
+                <div className="mb-6 details-description" dangerouslySetInnerHTML={{ __html: course.description || "No description available for this course." }}>
+                </div>
 
                 {course.subtitle && (
                   <p className="mb-6 details-description">
@@ -668,9 +666,8 @@ return {
 
                 <h2 className="details-title mb-4">Certification</h2>
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="details-description text-green-800">
-                    {course.welcomeMessage || "Certificate of completion will be provided upon finishing this course."}
-                  </p>
+                  <div className="details-description text-green-800" dangerouslySetInnerHTML={{ __html: course.welcomeMessage || "" }}>
+                  </div>
                 </div>
               </TabsContent>
 

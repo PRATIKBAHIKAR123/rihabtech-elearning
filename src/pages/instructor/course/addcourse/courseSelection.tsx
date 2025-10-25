@@ -374,9 +374,8 @@ const DraftCourseCard = ({ course, onEdit, onDelete }: any) => {
             </div>
 
             {course.description && (
-              <p className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2">
-                {course.description}
-              </p>
+              <div className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2" dangerouslySetInnerHTML={{ __html: course.description }}>
+              </div>
             )}
 
 
@@ -524,9 +523,8 @@ const ApiDraftCourseCard = ({ course, onEdit, onDelete }: any) => {
             </div>
 
             {course.description && (
-              <p className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2">
-                {course.description}
-              </p>
+              <div className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2" dangerouslySetInnerHTML={{ __html: course.description }}>
+              </div>
             )}
 
             <div className="text-left sm:text-right min-w-[120px]">

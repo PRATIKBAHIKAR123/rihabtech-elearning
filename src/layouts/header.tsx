@@ -626,9 +626,8 @@ export const MyLearningsMenu: React.FC = () => {
             />
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-              <p className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2">
-                {course.description}
-              </p>
+              <div className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }}>
+              </div>
 
               <div className="mt-3">
                 <div className="relative h-2 bg-gray-200 rounded-full">

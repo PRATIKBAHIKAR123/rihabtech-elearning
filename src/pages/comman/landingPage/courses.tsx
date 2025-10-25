@@ -169,7 +169,7 @@ export default function Courses() {
                           <span>{course.weeks} Weeks</span>
                         </div>
                       </div>
-                      <p className="course-description">{course.description || 'No description available'}</p>
+                      <div className="course-description" dangerouslySetInnerHTML={{ __html: course.description || 'No description available' }}></div>
                     </div>
 
                     <div className="course-pricing">
