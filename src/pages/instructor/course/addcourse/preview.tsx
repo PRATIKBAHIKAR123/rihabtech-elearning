@@ -20,6 +20,13 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useCourseData } from '../../../../hooks/useCourseData';
 import { toast } from 'sonner';
 
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeVideoId = (url: string): string => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : '';
+};
+
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -386,6 +393,7 @@ const PreviewCourse = () => {
                               {item.description && <div>Description: {item.description}</div>}
                               {item.contentType && <div>Type: {item.contentType}</div>}
                               {item.duration && <div>Duration: {Math.round(item.duration)} sec</div>}
+                              {/* Show video preview for uploaded videos */}
                               {item.contentFiles && item.contentFiles.length > 0 && (
                                 <div className="mt-2">
                                   <div className="font-semibold">Files:</div>
@@ -408,6 +416,35 @@ const PreviewCourse = () => {
                                       </li>
                                     ))}
                                   </ul>
+                                </div>
+                              )}
+
+                              {/* Show YouTube video preview for linked videos */}
+                              {item.contentType === 'video' && item.videoSource === 'link' && item.contentUrl && (
+                                <div className="mt-2">
+                                  <div className="font-semibold">YouTube Video:</div>
+                                  <div className="mt-2">
+                                    <iframe
+                                      width="320"
+                                      height="180"
+                                      src={`https://www.youtube.com/embed/${extractYouTubeVideoId(item.contentUrl)}`}
+                                      title={item.lectureName || 'YouTube Video'}
+                                      frameBorder="0"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                      style={{ maxWidth: 320, maxHeight: 180 }}
+                                    ></iframe>
+                                    <div className="mt-1 text-sm text-gray-600">
+                                      <a 
+                                        href={item.contentUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                      >
+                                        View on YouTube
+                                      </a>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
