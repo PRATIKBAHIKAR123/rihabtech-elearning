@@ -1,5 +1,5 @@
 import { Button } from "../../../../components/ui/button";
-import { Textarea } from "../../../../components/ui/textarea";
+import QuillEditor from "../../../../components/ui/quill-editor-default";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useEffect, useState } from "react";
@@ -19,6 +19,13 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
 
+  // Helper function to strip HTML tags and get plain text
+  const stripHtmlTags = (html: string) => {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
   const formik = useFormik<CourseMessagesForm>({
     initialValues: {
       welcomeMessage: courseData?.welcomeMessage || "",
@@ -26,22 +33,38 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
     },
     validationSchema: Yup.object({
       welcomeMessage: Yup.string()
-        .min(10, "Welcome message should be at least 10 characters")
-        .max(500, "Welcome message cannot exceed 500 characters"),
+        .test('min-length', 'Welcome message should be at least 10 characters', function (value) {
+          if (!value) return true; // Allow empty values
+          const plainText = stripHtmlTags(value);
+          return plainText.length >= 10;
+        })
+        .test('max-length', 'Welcome message cannot exceed 500 characters', function (value) {
+          if (!value) return true; // Allow empty values
+          const plainText = stripHtmlTags(value);
+          return plainText.length <= 500;
+        }),
       congratulationsMessage: Yup.string()
-        .min(10, "Congratulations message should be at least 10 characters")
-        .max(500, "Congratulations message cannot exceed 500 characters"),
+        .test('min-length', 'Congratulations message should be at least 10 characters', function (value) {
+          if (!value) return true; // Allow empty values
+          const plainText = stripHtmlTags(value);
+          return plainText.length >= 10;
+        })
+        .test('max-length', 'Congratulations message cannot exceed 500 characters', function (value) {
+          if (!value) return true; // Allow empty values
+          const plainText = stripHtmlTags(value);
+          return plainText.length <= 500;
+        }),
     }),
     onSubmit: async (values) => {
       setLoading(true);
-      
+
       // Check if user is logged in
       if (!user) {
         toast.error("Please login to update course");
         setLoading(false);
         return;
       }
-      
+
       try {
         if (isNewCourse || !courseData?.id) {
           toast.error("Please create a course first by setting the title");
@@ -52,10 +75,10 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
         // Comparison logic: Only call update API if messages have changed
         const currentWelcomeMessage = courseData.welcomeMessage || "";
         const currentCongratulationsMessage = courseData.congratulationsMessage || "";
-        
+
         const welcomeMessageChanged = currentWelcomeMessage !== values.welcomeMessage;
         const congratulationsMessageChanged = currentCongratulationsMessage !== values.congratulationsMessage;
-        
+
         if (!welcomeMessageChanged && !congratulationsMessageChanged) {
           setLoading(false);
           // No changes detected, go directly to course preview page
@@ -83,26 +106,26 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           target: courseData.target ?? [],
           curriculum: courseData.curriculum ?? undefined // Include curriculum data
         });
-        
+
         // After a successful update, update the shared courseData state
-        updateCourseData({ 
+        updateCourseData({
           ...courseData,
           welcomeMessage: values.welcomeMessage,
           congratulationsMessage: values.congratulationsMessage,
           curriculum: courseData.curriculum ?? undefined // Include curriculum data
         });
-        
+
         toast.success(updateResponse.message || "Course messages updated successfully!");
-        
+
         // Refresh course data from API to ensure all pages have the latest data
         await refreshCourseData();
-        
+
         setLoading(false);
         // Navigate to course preview page
         window.location.href = "/#/instructor/course-preview";
       } catch (error: any) {
         console.error("Failed to save course messages:", error);
-        
+
         // Handle specific error messages
         if (error.message?.includes('Authentication failed')) {
           toast.error("Authentication failed. Please login again.");
@@ -113,7 +136,7 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
         } else {
           toast.error("Failed to save course messages. Please try again.");
         }
-        
+
         setLoading(false);
       }
     },
@@ -156,16 +179,11 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
 
           <div className="mt-8 gap-2 flex flex-col">
             <label className="ins-label">Welcome Message</label>
-            <Textarea
-              className={`ins-control-border ${formik.touched.welcomeMessage && formik.errors.welcomeMessage
-                  ? "border-red-500"
-                  : ""
-                }`}
-              placeholder="Write a welcome message for your students..."
+            <QuillEditor
               value={formik.values.welcomeMessage}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              name="welcomeMessage"
+              onChange={(content) => formik.setFieldValue('welcomeMessage', content)}
+              placeholder="Write a welcome message for your students..."
+              error={formik.touched.welcomeMessage && !!formik.errors.welcomeMessage}
             />
             {formik.touched.welcomeMessage && formik.errors.welcomeMessage && (
               <div className="text-red-500 text-sm">
@@ -176,17 +194,11 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
 
           <div className="mt-4 gap-2 flex flex-col">
             <label className="ins-label">Congratulations Message</label>
-            <Textarea
-              className={`ins-control-border ${formik.touched.congratulationsMessage &&
-                  formik.errors.congratulationsMessage
-                  ? "border-red-500"
-                  : ""
-                }`}
-              placeholder="Write a congratulations message for course completion..."
+            <QuillEditor
               value={formik.values.congratulationsMessage}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              name="congratulationsMessage"
+              onChange={(content) => formik.setFieldValue('congratulationsMessage', content)}
+              placeholder="Write a congratulations message for course completion..."
+              error={formik.touched.congratulationsMessage && !!formik.errors.congratulationsMessage}
             />
             {formik.touched.congratulationsMessage &&
               formik.errors.congratulationsMessage && (

@@ -3,7 +3,7 @@ import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse } 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import QuillEditor from "../../../../components/ui/quill-editor-fixed";
+import QuillEditor from "../../../../components/ui/quill-editor-default";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
@@ -68,7 +68,7 @@ export function CourseLandingPage({ onSubmit }: any) {
         if (!value) return false;
         const plainText = stripHtmlTags(value);
         const wordCount = plainText.trim().split(/\s+/).filter(word => word.length > 0).length;
-        return wordCount >= 200;
+        return wordCount >= 10;
       }),
     language: Yup.string().required("Language is required"),
     level: Yup.string().required("Level is required"),
@@ -261,7 +261,18 @@ export function CourseLandingPage({ onSubmit }: any) {
         } else if (error.message?.includes('Server error')) {
           toast.error("Server error. Please try again later.");
         } else {
-          toast.error("Failed to save course landing page. Please try again.");
+          // Check if the error has validation errors from API response
+          if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+            // Show the first validation error to the user
+            const firstError = error.response.data.errors[0];
+            toast.error(firstError);
+          } else if (error.response?.data?.message) {
+            // Show the API error message
+            toast.error(error.response.data.message);
+          } else {
+            // Fallback to generic error message
+            toast.error("Failed to save course landing page. Please try again.");
+          }
         }
         
         setLoading(false);
@@ -382,10 +393,10 @@ export function CourseLandingPage({ onSubmit }: any) {
             value={formik.values.description}
             onChange={(content) => formik.setFieldValue('description', content)}
             placeholder="Insert your course Description"
-            height="200px"
+            height="300px"
             error={formik.touched.description && !!formik.errors.description}
           />
-          <div className="flex justify-between items-center mt-1">
+          {/* <div className="flex justify-between items-center mt-1">
             <div className="text-xs text-gray-500">
               {formik.values.description ? 
                 `${stripHtmlTags(formik.values.description).trim().split(/\s+/).filter(word => word.length > 0).length} words` : 
@@ -395,7 +406,7 @@ export function CourseLandingPage({ onSubmit }: any) {
             <div className="text-xs text-gray-500">
               Minimum 200 words required
             </div>
-          </div>
+          </div> */}
           {formik.touched.description && formik.errors.description && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.description}</div>
           )}

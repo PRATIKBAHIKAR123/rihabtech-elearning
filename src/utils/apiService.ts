@@ -37,6 +37,18 @@ class ApiService {
       } else if (error.response?.status >= 500) {
         console.error('Server error');
         throw new Error('Server error. Please try again later.');
+      } else if (error.response?.status === 400 || error.response?.status === 422) {
+        // Handle validation errors (400 Bad Request or 422 Unprocessable Entity)
+        if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+          // Show the first validation error to the user
+          const firstError = error.response.data.errors[0];
+          console.error('Validation Error:', firstError);
+          throw new Error(firstError);
+        } else if (error.response?.data?.message) {
+          // Show the API error message
+          console.error('API Error:', error.response.data.message);
+          throw new Error(error.response.data.message);
+        }
       }
       
       throw error;
