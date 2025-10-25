@@ -22,6 +22,19 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 
+// Debounce utility function
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
 // File type detection and icon mapping
 const getFileIcon = (fileName: string) => {
   const extension = fileName.split('.').pop()?.toLowerCase();
@@ -1046,18 +1059,17 @@ export function CourseCarriculam({ onSubmit }: any) {
     },
   });
 
-  // Debug form initialization
+  // Debug form initialization - only log when formInitialValues change, not on every formik.values change
   useEffect(() => {
     console.log("Form initial values updated:", formInitialValues);
-    console.log("Formik values:", formik.values);
-  }, [formInitialValues, formik.values]);
+  }, [formInitialValues]);
 
-  // Autosave on change (debounced) - Only save meaningful changes
-  useEffect(() => {
-    if (!loading && courseData?.id && user) {
-      const timeout = setTimeout(async () => {
+  // Optimized autosave with useCallback to prevent excessive re-renders
+  const debouncedAutosave = useCallback(
+    debounce(async (values: any) => {
+      if (!loading && courseData?.id && user) {
         try {
-          const serializableCurriculum = stripFilesFromCurriculum(formik.values);
+          const serializableCurriculum = stripFilesFromCurriculum(values);
           const currentCurriculum = courseData.curriculum;
           
           // Only autosave if there are meaningful changes (not just text content)
@@ -1106,28 +1118,35 @@ export function CourseCarriculam({ onSubmit }: any) {
           setIsAutoSaving(false);
           // Don't throw error for autosave failures, just log them
         }
-      }, 3000); // Increased debounce to 3 seconds
-      return () => clearTimeout(timeout);
-    }
-  }, [formik.values, loading, courseData, user]);
+      }
+    }, 3000), // 3 second debounce
+    [loading, courseData, user]
+  );
 
-  // Store curriculum data in global state whenever form values change (less aggressive)
   useEffect(() => {
-    if (!loading && courseData?.id && formik.values) {
-      const timeout = setTimeout(() => {
+    debouncedAutosave(formik.values);
+  }, [formik.values, debouncedAutosave]);
+
+  // Optimized global state storage with useCallback to prevent excessive re-renders
+  const debouncedStoreData = useCallback(
+    debounce((values: any) => {
+      if (!loading && courseData?.id && values) {
         // Only store if the data has actually changed
-        const serializableCurriculum = stripFilesFromCurriculum(formik.values);
+        const serializableCurriculum = stripFilesFromCurriculum(values);
         const currentCurriculum = courseData.curriculum;
         
         // Compare the serialized data to avoid unnecessary updates
         if (JSON.stringify(serializableCurriculum) !== JSON.stringify(currentCurriculum)) {
-          storeCurriculumData(formik.values);
+          storeCurriculumData(values);
         }
-      }, 2000); // Increased debounce to 2 seconds for global state updates
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [formik.values, loading, courseData]);
+      }
+    }, 2000), // 2 second debounce for global state updates
+    [loading, courseData]
+  );
+
+  useEffect(() => {
+    debouncedStoreData(formik.values);
+  }, [formik.values, debouncedStoreData]);
 
   // Store curriculum data when component unmounts (user navigates away)
   useEffect(() => {
@@ -2319,6 +2338,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             onChange={async (e) => {
                                                                               const files = Array.from(e.target.files || []);
                                                                               if (files.length === 0) return;
+                                                                              
+                                                                              // Don't clear the input value to allow re-selection
+                                                                              // e.target.value = '';
 
                                                                               // Insert placeholder entries with 'uploading' status so UI shows progress
                                                                               const placeholders = files.map((file) => ({
@@ -2450,24 +2472,32 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 url
                                                                               );
                                                                               
-                                                                              // Auto-fetch duration when URL is entered
+                                                                              // Auto-fetch duration when URL is entered (only if no manual duration is set)
                                                                               if (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com'))) {
-                                                                                setDurationFetching(prev => ({ ...prev, [key]: true }));
-                                                                                setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                                
-                                                                                try {
-                                                                                  const duration = await fetchVideoDuration(url);
-                                                                                  if (duration > 0) {
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                      duration
-                                                                                    );
+                                                                                // Only auto-detect if no manual duration has been set
+                                                                                const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
+                                                                                if (!currentDuration || currentDuration === 0) {
+                                                                                  setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                  setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                  
+                                                                                  try {
+                                                                                    const duration = await fetchVideoDuration(url);
+                                                                                    if (duration > 0) {
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                        duration
+                                                                                      );
+                                                                                    }
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                  } catch (error) {
+                                                                                    console.error('Failed to fetch video duration:', error);
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                    setDurationError(prev => ({ ...prev, [key]: true }));
                                                                                   }
+                                                                                } else {
+                                                                                  console.log('Manual duration already set, skipping auto-detection');
                                                                                   setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                } catch (error) {
-                                                                                  console.error('Failed to fetch video duration:', error);
-                                                                                  setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                  setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                  setDurationError(prev => ({ ...prev, [key]: false }));
                                                                                 }
                                                                               } else {
                                                                                 setDurationFetching(prev => ({ ...prev, [key]: false }));
@@ -2477,20 +2507,26 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             onPaste={async (e) => {
                                                                               const pastedText = e.clipboardData.getData('text');
                                                                               if (pastedText && (pastedText.includes('youtube.com') || pastedText.includes('youtu.be') || pastedText.includes('vimeo.com'))) {
-                                                                                // Small delay to ensure the URL is set first
-                                                                                setTimeout(async () => {
-                                                                                  try {
-                                                                                    const duration = await fetchVideoDuration(pastedText);
-                                                                                    if (duration > 0) {
-                                                                                      formik.setFieldValue(
-                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                        duration
-                                                                                      );
+                                                                                // Only auto-detect if no manual duration has been set
+                                                                                const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
+                                                                                if (!currentDuration || currentDuration === 0) {
+                                                                                  // Small delay to ensure the URL is set first
+                                                                                  setTimeout(async () => {
+                                                                                    try {
+                                                                                      const duration = await fetchVideoDuration(pastedText);
+                                                                                      if (duration > 0) {
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                          duration
+                                                                                        );
+                                                                                      }
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to fetch video duration:', error);
                                                                                     }
-                                                                                  } catch (error) {
-                                                                                    console.error('Failed to fetch video duration:', error);
-                                                                                  }
-                                                                                }, 100);
+                                                                                  }, 100);
+                                                                                } else {
+                                                                                  console.log('Manual duration already set, skipping auto-detection on paste');
+                                                                                }
                                                                               }
                                                                             }}
                                                                           />
@@ -2531,6 +2567,38 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               >
                                                                                 <RefreshCw size={14} />
                                                                               </Button>
+                                                                            </div>
+                                                                          )}
+
+                                                                          {/* Manual duration override for YouTube videos */}
+                                                                          {item.contentType === 'video' && item.videoSource === 'link' && item.contentUrl && (
+                                                                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                              <div className="flex items-center gap-2 mb-2">
+                                                                                <Clock size={16} className="text-blue-600" />
+                                                                                <span className="text-sm font-medium text-blue-800">
+                                                                                  Override Duration (if auto-detection is incorrect)
+                                                                                </span>
+                                                                              </div>
+                                                                              <div className="flex items-center gap-2">
+                                                                                <Input
+                                                                                  type="number"
+                                                                                  step="0.01"
+                                                                                  placeholder="Enter duration in seconds (e.g., 17.57)"
+                                                                                  className="w-48 h-8 text-sm"
+                                                                                  value={item.duration || ''}
+                                                                                  onChange={(e) => {
+                                                                                    const value = parseFloat(e.target.value) || 0;
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                      value
+                                                                                    );
+                                                                                  }}
+                                                                                />
+                                                                                <span className="text-xs text-gray-600">seconds</span>
+                                                                                <span className="text-sm text-gray-700">
+                                                                                  ({formatDuration(item.duration || 0)})
+                                                                                </span>
+                                                                              </div>
                                                                             </div>
                                                                           )}
                                                                           
@@ -2678,17 +2746,21 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       <div className="flex items-center gap-2">
                                                                                         <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
                                                                                           <div
-                                                                                            className="h-full bg-primary"
-                                                                                            style={{ width: `${content.uploadProgress}%` }}
+                                                                                            className="h-full bg-blue-500 transition-all duration-300"
+                                                                                            style={{ width: `${content.uploadProgress || 0}%` }}
                                                                                           />
                                                                                         </div>
-                                                                                        <span className="text-sm">{content.uploadProgress}%</span>
+                                                                                        <span className="text-sm font-medium text-blue-600">
+                                                                                          {content.uploadProgress || 0}%
+                                                                                        </span>
                                                                                       </div>
+                                                                                    ) : content.status === 'uploaded' ? (
+                                                                                      <span className="text-sm px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">
+                                                                                        Uploaded
+                                                                                      </span>
                                                                                     ) : (
-                                                                                      <span className={`text-sm px-2 py-1 rounded-full ${content.status === 'uploaded' ? 'bg-green-100 text-green-800' :
-                                                                                        'bg-red-100 text-red-800'
-                                                                                        }`}>
-                                                                                        {content.status}
+                                                                                      <span className="text-sm px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">
+                                                                                        Failed
                                                                                       </span>
                                                                                     )}
                                                                                   </td>
@@ -2753,8 +2825,39 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                         </div>
                                                                       )}
                                                                       
-                                                                      {/* Manual duration input for uploaded videos */}
+                                                                      {/* Show duration status for uploaded videos */}
                                                                       {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && (
+                                                                        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
+                                                                          <div className="flex items-center gap-2 mb-2">
+                                                                            <Clock size={16} className="text-gray-600" />
+                                                                            <span className="text-sm font-medium text-gray-800">
+                                                                              Video Duration Status
+                                                                            </span>
+                                                                          </div>
+                                                                          <div className="text-xs text-gray-600 space-y-1">
+                                                                            {item.contentFiles.map((file, fileIdx) => (
+                                                                              <div key={fileIdx} className="flex items-center justify-between">
+                                                                                <span className="truncate max-w-48">{file.name}</span>
+                                                                                <span className={`px-2 py-1 rounded text-xs ${
+                                                                                  file.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                                                                                  file.status === 'uploaded' && (file.duration && file.duration > 0) ? 'bg-green-100 text-green-800' :
+                                                                                  file.status === 'uploaded' && (!file.duration || file.duration === 0) ? 'bg-yellow-100 text-yellow-800' :
+                                                                                  'bg-red-100 text-red-800'
+                                                                                }`}>
+                                                                                  {file.status === 'uploading' ? 'Uploading...' :
+                                                                                   file.status === 'uploaded' && (file.duration && file.duration > 0) ? `Duration: ${formatDuration(file.duration)}` :
+                                                                                   file.status === 'uploaded' ? 'Duration not detected' :
+                                                                                   'Upload failed'}
+                                                                                </span>
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        </div>
+                                                                      )}
+
+                                                                      {/* Manual duration input for uploaded videos - only show if no duration detected */}
+                                                                      {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && 
+                                                                       item.contentFiles.some(file => file.status === 'uploaded' && (!file.duration || file.duration === 0)) && (
                                                                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                                                                           <div className="flex items-center gap-2 mb-2">
                                                                             <Clock size={16} className="text-blue-600" />
