@@ -9,6 +9,7 @@ import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
+import { LANGUAGES } from "../../../../utils/languages";
 
 // NOTE: Set your Cloudinary credentials here:
 const CLOUDINARY_CLOUD_NAME = 'dg9yh82rf'; // <-- Replace with your Cloudinary cloud name
@@ -390,9 +391,12 @@ export function CourseLandingPage({ onSubmit }: any) {
               >
                 <SelectValue placeholder="Choose a language" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="hindi">Hindi</SelectItem>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {LANGUAGES.map((language) => (
+                  <SelectItem key={language.value} value={language.value}>
+                    {language.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select
@@ -408,6 +412,8 @@ export function CourseLandingPage({ onSubmit }: any) {
               <SelectContent>
                 <SelectItem value="begginer">Beginner</SelectItem>
                 <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="expert">Expert</SelectItem>
+                <SelectItem value="all">All Levels</SelectItem>
               </SelectContent>
             </Select>
             <Select
