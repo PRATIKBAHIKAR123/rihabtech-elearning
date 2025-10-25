@@ -3,7 +3,7 @@ import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse } 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import { Textarea } from "../../../../components/ui/textarea";
+import QuillEditor from "../../../../components/ui/quill-editor-fixed";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
@@ -52,10 +52,24 @@ export function CourseLandingPage({ onSubmit }: any) {
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to strip HTML tags and get plain text
+  const stripHtmlTags = (html: string) => {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
   const validationSchema = Yup.object({
     title: Yup.string().required("Course title is required"),
     subtitle: Yup.string().required("Course subtitle is required"),
-    description: Yup.string().required("Course description is required"),
+    description: Yup.string()
+      .required("Course description is required")
+      .test('min-words', 'Description should have minimum 200 words', function(value) {
+        if (!value) return false;
+        const plainText = stripHtmlTags(value);
+        const wordCount = plainText.trim().split(/\s+/).filter(word => word.length > 0).length;
+        return wordCount >= 200;
+      }),
     language: Yup.string().required("Language is required"),
     level: Yup.string().required("Level is required"),
     category: Yup.string().required("Category is required"),
@@ -364,14 +378,24 @@ export function CourseLandingPage({ onSubmit }: any) {
         {/* Course Description */}
         <div className="mt-4 gap-2 flex flex-col">
           <label className="ins-label">Course Description<span className="text-[#ff0000]"> *</span></label>
-          <Textarea
-            className={`ins-control-border ${formik.touched.description && formik.errors.description ? '!border-red-500' : ''}`}
-            placeholder="Insert your course Description"
-            name="description"
+          <QuillEditor
             value={formik.values.description}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
+            onChange={(content) => formik.setFieldValue('description', content)}
+            placeholder="Insert your course Description"
+            height="200px"
+            error={formik.touched.description && !!formik.errors.description}
           />
+          <div className="flex justify-between items-center mt-1">
+            <div className="text-xs text-gray-500">
+              {formik.values.description ? 
+                `${stripHtmlTags(formik.values.description).trim().split(/\s+/).filter(word => word.length > 0).length} words` : 
+                '0 words'
+              }
+            </div>
+            <div className="text-xs text-gray-500">
+              Minimum 200 words required
+            </div>
+          </div>
           {formik.touched.description && formik.errors.description && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.description}</div>
           )}
