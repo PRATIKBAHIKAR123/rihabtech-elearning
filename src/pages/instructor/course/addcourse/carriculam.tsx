@@ -410,7 +410,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
         if (obj[key] !== undefined) {
           // Special handling for sections
           if (key === 'sections' && Array.isArray(obj[key])) {
-            newObj[key] = obj[key].map((section: any) => {
+            newObj[key] = obj[key].map((section: any, sectionIndex: number) => {
               if (!section) return null;
               
               const { id, name, published, seqNo, items } = section;
@@ -419,7 +419,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
               if (id !== undefined) result.id = id; // Preserve the section ID from API response
               if (name !== undefined) result.name = name;
               if (published !== undefined) result.published = published;
-              if (seqNo !== undefined) result.seqNo = seqNo;
+              result.seqNo = sectionIndex + 1; // Always set sequence number based on position
               if (items !== undefined) result.items = clean(items); // Recursively clean items
               
               return result;
@@ -427,7 +427,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
           }
           // Special handling for items (lectures, quizzes, assignments)
           else if (key === 'items' && Array.isArray(obj[key])) {
-            newObj[key] = obj[key].map((item: any) => {
+            newObj[key] = obj[key].map((item: any, itemIndex: number) => {
               if (!item) return null;
               
               const { id, type, lectureName, description, contentType, contentUrl, articleSource, videoSource, isPromotional, duration, published, seqNo, contentFiles, resources } = item;
@@ -444,7 +444,7 @@ function stripFilesFromCurriculum(curriculum: any): any {
               if (isPromotional !== undefined) result.isPromotional = isPromotional;
               if (duration !== undefined) result.duration = duration;
               if (published !== undefined) result.published = published;
-              if (seqNo !== undefined) result.seqNo = seqNo;
+              result.seqNo = itemIndex + 1; // Always set sequence number based on position
               if (contentFiles !== undefined) result.contentFiles = clean(contentFiles); // Recursively clean contentFiles
               if (resources !== undefined) result.resources = clean(resources); // Recursively clean resources
               
@@ -536,6 +536,17 @@ function stripFilesFromCurriculum(curriculum: any): any {
   
   const cleaned = clean(clone);
   console.log('Cleaned curriculum after stripping:', cleaned);
+  console.log('Sections with seqNo:', cleaned.sections?.map((s: any) => ({ name: s.name, seqNo: s.seqNo, itemsCount: s.items?.length })));
+  if (cleaned.sections) {
+    cleaned.sections.forEach((section: any, idx: number) => {
+      console.log(`Section ${idx + 1} (${section.name}) has seqNo: ${section.seqNo}`);
+      if (section.items) {
+        section.items.forEach((item: any, itemIdx: number) => {
+          console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}) has seqNo: ${item.seqNo}`);
+        });
+      }
+    });
+  }
   return cleaned;
 }
 
@@ -625,6 +636,23 @@ const sortCurriculumBySeqNo = (curriculum: any) => {
         items: section.items
           ?.sort((a: any, b: any) => (a.seqNo || 0) - (b.seqNo || 0))
       }))
+  };
+};
+
+// Helper function to normalize seqNo based on array index
+const normalizeSeqNo = (curriculum: any) => {
+  if (!curriculum || !curriculum.sections) return curriculum;
+  
+  return {
+    ...curriculum,
+    sections: curriculum.sections.map((section: any, sectionIndex: number) => ({
+      ...section,
+      seqNo: section.seqNo != null ? section.seqNo : (sectionIndex + 1), // Use existing seqNo if available, otherwise use index
+      items: section.items ? section.items.map((item: any, itemIndex: number) => ({
+        ...item,
+        seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1) // Use existing seqNo if available, otherwise use index
+      })) : []
+    }))
   };
 };
 
@@ -785,22 +813,52 @@ export function CourseCarriculam({ onSubmit }: any) {
           
           // Sort sections by seqNo and items within sections by seqNo
           const sortedCurriculum = sortCurriculumBySeqNo(curriculumData);
+          // Normalize seqNo to match array indices
+          const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
           
-          console.log("Sorted curriculum from localStorage:", sortedCurriculum);
-          setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
+          console.log("Normalized curriculum from localStorage:", normalizedCurriculum);
+          setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
           setCurriculumKey(prev => prev + 1); // Force formik reinitialization
-          lastSavedCurriculumRef.current = JSON.stringify(sortedCurriculum);
+          lastSavedCurriculumRef.current = JSON.stringify(normalizedCurriculum);
         } else if (courseData.curriculum) {
           console.log("Loading curriculum from API:", courseData.curriculum);
           
+          // Debug: Log seqNo BEFORE sorting
+          console.log("BEFORE sorting and normalization:");
+          if (courseData.curriculum.sections) {
+            courseData.curriculum.sections.forEach((section: any, idx: number) => {
+              console.log(`Section ${idx + 1} (${section.name}): seqNo=${section.seqNo}`);
+              if (section.items) {
+                section.items.forEach((item: any, itemIdx: number) => {
+                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}`);
+                });
+              }
+            });
+          }
+          
           // Sort sections by seqNo and items within sections by seqNo
           const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
+          console.log("AFTER sorting (before normalization):", sortedCurriculum);
           
-          console.log("Sorted curriculum from API:", sortedCurriculum);
-          setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
+          // Normalize seqNo to match array indices
+          const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
+          
+          console.log("AFTER normalization:");
+          if (normalizedCurriculum.sections) {
+            normalizedCurriculum.sections.forEach((section: any, idx: number) => {
+              console.log(`Section ${idx + 1} (${section.name}): seqNo=${section.seqNo}`);
+              if (section.items) {
+                section.items.forEach((item: any, itemIdx: number) => {
+                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}`);
+                });
+              }
+            });
+          }
+          
+          setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
           setCurriculumKey(prev => prev + 1); // Force formik reinitialization
           // Initialize the last saved ref with current curriculum
-          lastSavedCurriculumRef.current = JSON.stringify(sortedCurriculum);
+          lastSavedCurriculumRef.current = JSON.stringify(normalizedCurriculum);
         } else {
           console.log("No curriculum data from API or localStorage, checking Firebase fallback");
           // Fallback to Firebase if no API data
@@ -811,9 +869,11 @@ export function CourseCarriculam({ onSubmit }: any) {
               
               // Sort sections by seqNo and items within sections by seqNo
               const sortedCurriculum = sortCurriculumBySeqNo(draft.curriculum);
+              // Normalize seqNo to match array indices
+              const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
               
-              console.log("Sorted curriculum from Firebase:", sortedCurriculum);
-              setFormInitialValues(sortedCurriculum);
+              console.log("Normalized curriculum from Firebase:", normalizedCurriculum);
+              setFormInitialValues(normalizedCurriculum);
               setCurriculumKey(prev => prev + 1); // Force formik reinitialization
             }
           }
@@ -838,8 +898,10 @@ export function CourseCarriculam({ onSubmit }: any) {
       
       // Sort sections by seqNo and items within sections by seqNo
       const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
+      // Normalize seqNo to match array indices
+      const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
       
-      setFormInitialValues(sortedCurriculum as unknown as CurriculumFormValues);
+      setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
       setCurriculumKey(prev => prev + 1); // Force formik reinitialization
     }
   }, [courseData?.curriculum, loading]);
@@ -1063,6 +1125,39 @@ export function CourseCarriculam({ onSubmit }: any) {
   useEffect(() => {
     console.log("Form initial values updated:", formInitialValues);
   }, [formInitialValues]);
+
+  // Update seqNo for all sections and items - runs after drag operations and when items are added/removed
+  useEffect(() => {
+    if (!loading && formik.values.sections) {
+      let needsUpdate = false;
+      const sectionsWithSeqNo = formik.values.sections.map((section, sectionIndex) => {
+        if (section.seqNo !== sectionIndex + 1) needsUpdate = true;
+        
+        const itemsWithSeqNo = section.items.map((item, itemIndex) => {
+          if (item.seqNo !== itemIndex + 1) needsUpdate = true;
+          return {
+            ...item,
+            seqNo: itemIndex + 1
+          };
+        });
+        
+        return {
+          ...section,
+          seqNo: sectionIndex + 1,
+          items: itemsWithSeqNo
+        };
+      });
+      
+      // Only update if seqNo values are incorrect
+      if (needsUpdate) {
+        formik.setValues({
+          ...formik.values,
+          sections: sectionsWithSeqNo
+        }, false); // false = don't validate
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formik.values.sections?.length, loading]);
 
   // Optimized autosave with useCallback to prevent excessive re-renders
   const debouncedAutosave = useCallback(
@@ -1310,7 +1405,12 @@ export function CourseCarriculam({ onSubmit }: any) {
       );
       // Update seqNo for all sections after reordering
       const updatedSections = updateSectionSeqNo(newSections);
-      formik.setFieldValue('sections', updatedSections);
+      // Also update seqNo for all items in all sections
+      const sectionsWithItemSeqNo = updatedSections.map(section => ({
+        ...section,
+        items: updateItemSeqNo(section.items)
+      }));
+      formik.setFieldValue('sections', sectionsWithItemSeqNo);
       return;
     }
 

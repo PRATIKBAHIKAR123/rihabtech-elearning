@@ -38,6 +38,12 @@ export interface ApiCourseDisplayData extends CourseResponse {
 
 type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a' | 'published-first' | 'unpublished-first';
 
+// Helper function to strip HTML tags from description
+const stripHtmlTags = (html: string) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+};
+
 export default function CourseList() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<CourseDisplayData[]>([]);
@@ -1023,7 +1029,8 @@ export default function CourseList() {
                         {/* Description with consistent height */}
                         <div className="h-4 flex items-center">
                           {course.description ? (
-                            <div className="text-xs text-gray-600 truncate" title={course.description} dangerouslySetInnerHTML={{ __html: course.description }}>
+                            <div className="text-xs text-gray-600 truncate" title={stripHtmlTags(course.description)}>
+                              {stripHtmlTags(course.description)}
                             </div>
                           ) : (
                             <span className="text-xs text-gray-400 italic">No description</span>
@@ -1202,7 +1209,8 @@ export default function CourseList() {
                     </div>
 
                     {course.description && (
-                      <div className="text-xs text-gray-600 mb-2 line-clamp-2" title={course.description} dangerouslySetInnerHTML={{ __html: course.description }}>
+                      <div className="text-xs text-gray-600 mb-2 line-clamp-2" title={stripHtmlTags(course.description)}>
+                        {stripHtmlTags(course.description)}
                       </div>
                     )}
 
