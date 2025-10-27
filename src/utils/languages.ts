@@ -110,3 +110,10 @@ export const LANGUAGES: Language[] = [
   { value: "yi_DE", label: "ייִדיש" },
   { value: "zu_ZA", label: "isiZulu" }
 ];
+
+// Helper function to get language label from value
+export const getLanguageLabel = (value?: string | null): string => {
+  if (!value) return "";
+  const language = LANGUAGES.find(lang => lang.value === value);
+  return language ? language.label : value;
+};

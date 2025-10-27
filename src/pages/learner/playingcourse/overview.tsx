@@ -80,7 +80,7 @@ export default function Overview({ courseData, loading = false }: OverviewProps)
         <h1 className="details-title">Course Description</h1>
           <div className="space-y-4">
             {courseData.description ? (
-              <p className="details-description">{courseData.description}</p>
+              <div className="details-description" dangerouslySetInnerHTML={{ __html: courseData.description }}></div>
             ) : (
               <p className="details-description text-gray-500 italic">No description available for this course.</p>
             )}
@@ -147,26 +147,20 @@ export default function Overview({ courseData, loading = false }: OverviewProps)
         )}
 
         {/* Welcome Message */}
-        {/* {courseData.welcomeMessage && (
+        {courseData.welcomeMessage && (
           <div>
             <h1 className="details-title">Welcome Message</h1>
-            <p className="details-description">{courseData.welcomeMessage}</p>
+            <div className="details-description" dangerouslySetInnerHTML={{ __html: courseData.welcomeMessage }}></div>
           </div>
-        )} */}
+        )}
 
         {/* Certification */}
-        {/* <div>
-<h1 className="details-title">Certification</h1>
-          {courseData.congratulationsMessage ? (
-            <p className="details-description">{courseData.congratulationsMessage}</p>
-          ) : (
-            <p className="details-description">
-              Upon successful completion of this course, you will receive a certificate of completion. 
-              This certificate demonstrates your understanding of the course material and can be used 
-              to showcase your skills to potential employers or clients.
-            </p>
-          )}
-        </div> */}
+        {courseData.congratulationsMessage && (
+          <div>
+            <h1 className="details-title">Certification</h1>
+            <div className="details-description" dangerouslySetInnerHTML={{ __html: courseData.congratulationsMessage }}></div>
+          </div>
+        )}
 
         {/* Course Statistics */}
         {/* <div className="bg-gray-50 p-4 rounded-lg">

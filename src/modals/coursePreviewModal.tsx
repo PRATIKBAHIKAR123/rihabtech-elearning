@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Play, Video, Clock, User, Globe, Award } from 'lucide-react';
 import ReactPlayer from 'react-player';
 import { Course } from '../utils/firebaseCourses';
+import { getLanguageLabel } from '../utils/languages';
+import { getLevelLabel } from '../utils/levels';
 
 // Helper function to extract YouTube video ID from URL
 const extractYouTubeVideoId = (url: string): string => {
@@ -385,11 +387,11 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                 <div className="space-y-3 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <Award size={16} className="text-primary" />
-                    <span>Level: <span className="font-medium">{course.level || 'Beginner'}</span></span>
+                    <span>Level: <span className="font-medium">{course.level ? getLevelLabel(course.level) : "Not specified"}</span></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Globe size={16} className="text-primary" />
-                    <span>Language: <span className="font-medium">{course.language || 'English'}</span></span>
+                    <span>Language: <span className="font-medium">{getLanguageLabel(course.language)}</span></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-primary" />

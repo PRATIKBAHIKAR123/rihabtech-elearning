@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
 import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
+import { getLanguageLabel } from "../../../utils/languages";
+import { getLevelLabel } from "../../../utils/levels";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -481,7 +483,7 @@ return {
                     </div>
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>{courseItem.level || "Beginner"}</span>
-                      <span>{courseItem.language || "English"}</span>
+                      <span>{getLanguageLabel(courseItem.language)}</span>
                     </div>
                   </div>
                 </div>
@@ -557,7 +559,7 @@ return {
             <div className="flex items-center gap-2">
               <img src="Images/icons/Icon (1).png" alt="Star" className="w-4 h-4" />
               <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">
-                {course.level || "Beginner"}
+                {getLevelLabel(course.level)}
               </div>
             </div>
             <Divider className="h-0 md:h-4 bg-white" />
@@ -656,11 +658,11 @@ return {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 mb-2">Difficulty Level</h4>
-                    <p className="text-gray-600 capitalize">{course.level || "Beginner"}</p>
+                    <p className="text-gray-600 capitalize">{getLevelLabel(course.level)}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 mb-2">Language</h4>
-                    <p className="text-gray-600 capitalize">{course.language || "English"}</p>
+                    <p className="text-gray-600 capitalize">{getLanguageLabel(course.language)}</p>
                   </div>
                 </div>
 
@@ -984,7 +986,7 @@ return {
                       <img src="Images/icons/course-Icon-4.png" className="h-6" /> Language:
                     </span>
                     <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed">
-                      {course.language || "English"}
+                      {getLanguageLabel(course.language)}
                     </span>
                   </li>
                   <hr className="w-full bg-[#E5E5E5]" />
@@ -993,7 +995,7 @@ return {
                       <img src="Images/icons/Icon-5.png" className="h-6" /> Level:
                     </span>
                     <span className="text-[#181818] text-[15px] font-medium font-['Poppins'] leading-relaxed">
-                      {course.level || "Beginner"}
+                      {getLevelLabel(course.level)}
                     </span>
                   </li>
                 </ul>

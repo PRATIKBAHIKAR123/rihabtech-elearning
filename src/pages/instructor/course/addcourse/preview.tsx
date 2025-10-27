@@ -19,6 +19,8 @@ import { CourseWorkflowService } from '../../../../utils/courseWorkflowService';
 import { useAuth } from '../../../../context/AuthContext';
 import { useCourseData } from '../../../../hooks/useCourseData';
 import { toast } from 'sonner';
+import { getLanguageLabel } from '../../../../utils/languages';
+import { getLevelLabel } from '../../../../utils/levels';
 
 // Helper function to extract YouTube video ID from URL
 const extractYouTubeVideoId = (url: string): string => {
@@ -517,8 +519,8 @@ const PreviewCourse = () => {
               {course.title && <div className="mb-2"><span className="font-semibold">Title:</span> <span className="text-gray-700">{course.title}</span></div>}
               {course.subtitle && <div className="mb-2"><span className="font-semibold">Subtitle:</span> <span className="text-gray-700">{course.subtitle}</span></div>}
               {course.description && <div className="mb-2"><span className="font-semibold">Description:</span> <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: course.description }}></div></div>}
-              {course.language && <div className="mb-2"><span className="font-semibold">Language:</span> <span className="text-gray-700">{course.language}</span></div>}
-              {course.level && <div className="mb-2"><span className="font-semibold">Level:</span> <span className="text-gray-700">{course.level}</span></div>}
+              {course.language && <div className="mb-2"><span className="font-semibold">Language:</span> <span className="text-gray-700">{getLanguageLabel(course.language)}</span></div>}
+              {course.level && <div className="mb-2"><span className="font-semibold">Level:</span> <span className="text-gray-700">{getLevelLabel(course.level)}</span></div>}
               {categoryName && <div className="mb-2"><span className="font-semibold">Category:</span> <span className="text-gray-700">{categoryName}</span></div>}
               {subcategoryName && <div className="mb-2"><span className="font-semibold">Subcategory:</span> <span className="text-gray-700">{subcategoryName}</span></div>}
               {course.thumbnailUrl && (

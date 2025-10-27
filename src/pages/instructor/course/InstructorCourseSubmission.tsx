@@ -3,6 +3,8 @@ import { CourseWorkflowService } from '../../../utils/courseWorkflowService';
 import { Course, COURSE_STATUS } from '../../../utils/firebaseCourses';
 import { CourseSubmissionModal } from '../../../components/CourseSubmissionModal';
 import { CourseStatusIndicator } from '../../../components/CourseStatusIndicator';
+import { getLanguageLabel } from '../../../utils/languages';
+import { getLevelLabel } from '../../../utils/levels';
 
 interface InstructorCourseSubmissionProps {
   instructorId: string;
@@ -220,8 +222,8 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>Category: {course.category}</span>
-                        <span>Level: {course.level}</span>
-                        <span>Language: {course.language}</span>
+                        <span>Level: {getLevelLabel(course.level || "beginner")}</span>
+                        <span>Language: {getLanguageLabel(course.language)}</span>
                         <span>Price: {course.pricing}</span>
                         {course.updatedAt && (
                           <span>
