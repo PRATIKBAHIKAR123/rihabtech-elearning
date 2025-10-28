@@ -1,15 +1,16 @@
 import { useRef, useState, useEffect } from 'react';
 import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse } from '../../../../utils/courseApiService';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import QuillEditor from "../../../../components/ui/quill-editor-default";
+import { Combobox } from "../../../../components/ui/combobox";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 import { LANGUAGES } from "../../../../utils/languages";
+import { LEVELS } from "../../../../utils/levels";
 
 // NOTE: Set your Cloudinary credentials here:
 const CLOUDINARY_CLOUD_NAME = 'dg9yh82rf'; // <-- Replace with your Cloudinary cloud name
@@ -415,116 +416,77 @@ export function CourseLandingPage({ onSubmit }: any) {
         {/* Basic Info */}
         <div className="mt-4 gap-2 flex flex-col">
           <label className="ins-label">Basic Info<span className="text-[#ff0000]"> *</span></label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex flex-col">
-              <Select
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+            <div className="flex flex-col overflow-visible">
+              <Combobox
+                options={LANGUAGES.map(lang => ({ value: lang.value, label: lang.label }))}
                 value={formik.values.language}
                 onValueChange={value => formik.setFieldValue("language", value)}
-              >
-                <SelectTrigger
-                  className={`ins-control-border rounded-none w-full ${formik.touched.language && formik.errors.language ? '!border-red-500' : ''}`}
-                  onBlur={() => formik.setFieldTouched("language", true)}
-                >
-                  <SelectValue placeholder="Choose a language" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto">
-                  {LANGUAGES.map((language) => (
-                    <SelectItem key={language.value} value={language.value}>
-                      {language.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Choose a language"
+                searchPlaceholder="Search language..."
+                className={`ins-control-border rounded-none w-full ${formik.touched.language && formik.errors.language ? '!border-red-500' : ''}`}
+                onBlur={() => formik.setFieldTouched("language", true)}
+              />
               {formik.touched.language && formik.errors.language && (
                 <div className="text-red-500 text-xs mt-1">{formik.errors.language}</div>
               )}
             </div>
-            <div className="flex flex-col">
-              <Select
+            <div className="flex flex-col overflow-visible">
+              <Combobox
+                options={LEVELS.map(level => ({ value: level.value, label: level.label }))}
                 value={formik.values.level}
                 onValueChange={value => formik.setFieldValue("level", value)}
-              >
-                <SelectTrigger
-                  className={`ins-control-border rounded-none w-full ${formik.touched.level && formik.errors.level ? '!border-red-500' : ''}`}
-                  onBlur={() => formik.setFieldTouched("level", true)}
-                >
-                  <SelectValue placeholder="Select Level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="begginer">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="expert">Expert</SelectItem>
-                  <SelectItem value="all">All Levels</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select Level"
+                searchPlaceholder="Search level..."
+                className={`ins-control-border rounded-none w-full ${formik.touched.level && formik.errors.level ? '!border-red-500' : ''}`}
+                onBlur={() => formik.setFieldTouched("level", true)}
+              />
               {formik.touched.level && formik.errors.level && (
                 <div className="text-red-500 text-xs mt-1">{formik.errors.level}</div>
               )}
             </div>
-            <div className="flex flex-col">
-              <Select
+            <div className="flex flex-col overflow-visible">
+              <Combobox
+                options={categories.map(cat => ({ value: cat.id.toString(), label: cat.title }))}
                 value={formik.values.category}
                 onValueChange={value => {
                   formik.setFieldValue("category", value);
                   // Reset subcategory when category changes
                   formik.setFieldValue("subcategory", "");
                 }}
-              >
-                <SelectTrigger
-                  className={`ins-control-border rounded-none w-full ${formik.touched.category && formik.errors.category ? '!border-red-500' : ''}`}
-                  onBlur={() => formik.setFieldTouched("category", true)}
-                >
-                  <SelectValue placeholder="Choose a Category">
-                    {formik.values.category ? getCategoryName(formik.values.category) : ''}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id.toString()}>{cat.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Choose a Category"
+                searchPlaceholder="Search category..."
+                className={`ins-control-border rounded-none w-full ${formik.touched.category && formik.errors.category ? '!border-red-500' : ''}`}
+                onBlur={() => formik.setFieldTouched("category", true)}
+              />
               {formik.touched.category && formik.errors.category && (
                 <div className="text-red-500 text-xs mt-1">{formik.errors.category}</div>
               )}
             </div>
-            <div className="flex flex-col">
-              <Select
+            <div className="flex flex-col overflow-visible">
+              <Combobox
+                options={(() => {
+                  const filteredSubs = subCategories.filter(sub => {
+                    return sub.categoryId.toString() === formik.values.category;
+                  });
+                  
+                  return filteredSubs.map(sub => {
+                    // Try different property names in case the API uses a different structure
+                    const displayName = sub.name || sub.title || sub.subCategoryName || 'Unknown';
+                    return {
+                      value: sub.id.toString(),
+                      label: displayName
+                    };
+                  });
+                })()}
                 value={formik.values.subcategory}
                 onValueChange={value => formik.setFieldValue("subcategory", value)}
-              >
-                <SelectTrigger
-                  className={`ins-control-border rounded-none w-full ${formik.touched.subcategory && formik.errors.subcategory ? '!border-red-500' : ''}`}
-                  onBlur={() => formik.setFieldTouched("subcategory", true)}
-                >
-                  <SelectValue placeholder="Choose a SubCategory">
-                    {formik.values.subcategory ? getSubCategoryName(formik.values.subcategory) : ''}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(() => {
-                    const filteredSubs = subCategories.filter(sub => {
-                      return sub.categoryId.toString() === formik.values.category;
-                    });
-                    
-                    if (filteredSubs.length === 0) {
-                      return (
-                        <div className="px-3 py-2 text-gray-500 text-sm">
-                          No SubCategory found
-                        </div>
-                      );
-                    }
-                    
-                    return filteredSubs.map(sub => {
-                      // Try different property names in case the API uses a different structure
-                      const displayName = sub.name || sub.title || sub.subCategoryName || 'Unknown';
-                      return (
-                        <SelectItem key={sub.id} value={sub.id.toString()}>{displayName}</SelectItem>
-                      );
-                    });
-                  })()}
-                </SelectContent>
-              </Select>
+                placeholder="Choose a SubCategory"
+                searchPlaceholder="Search subcategory..."
+                disabled={!formik.values.category}
+                className={`ins-control-border rounded-none w-full ${formik.touched.subcategory && formik.errors.subcategory ? '!border-red-500' : ''}`}
+                onBlur={() => formik.setFieldTouched("subcategory", true)}
+              />
               {formik.touched.subcategory && formik.errors.subcategory && (
                 <div className="text-red-500 text-xs mt-1">{formik.errors.subcategory}</div>
               )}
