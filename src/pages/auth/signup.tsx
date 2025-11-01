@@ -65,19 +65,52 @@ export default function SignUpPage() {
             password: values.password,
           }),
         });
-        const data = await response.json();
+        
+        // Get response text first to handle both JSON and plain text
+        const responseText = await response.text();
+        let data: any;
+        
+        // Try to parse as JSON, if it fails, use the text directly
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = responseText;
+        }
+        
         if (response.ok && data) {
-          // If data is a string, parse it (API may return object or stringified object)
+          // If data is a string, try to parse it (API may return object or stringified object)
           let userObj = typeof data === 'string' ? JSON.parse(data) : data;
           localStorage.setItem('token', JSON.stringify(userObj));
           toast.success('Registration Successful');
           window.location.hash = '#/learner/homepage';
           window.location.reload();
         } else {
-          toast.error(data.message || 'Registration failed. Please try again.');
+          // Extract error message from various possible fields and formats
+          let errorMsg = 'Registration failed. Please try again.';
+          
+          if (typeof data === 'string' && data.trim()) {
+            // If response is a plain string, use it directly
+            errorMsg = data;
+          } else if (typeof data === 'object' && data !== null) {
+            // Try different possible error message fields
+            errorMsg = data.message || 
+                      data.error || 
+                      data.msg || 
+                      data.errorMessage ||
+                      data.error_description ||
+                      (data.errors && Array.isArray(data.errors) && data.errors[0]) ||
+                      (data.errors && typeof data.errors === 'string' && data.errors) ||
+                      errorMsg;
+          }
+          
+          console.error('Registration error response:', { status: response.status, data, errorMsg });
+          toast.error(errorMsg);
         }
-      } catch (error) {
-        toast.error('Registration failed. Please try again.');
+      } catch (error: any) {
+        console.error('Registration error:', error);
+        // If error has a message property, show it
+        const errorMsg = error.message || error.toString() || 'Registration failed. Please try again.';
+        toast.error(errorMsg);
       } finally {
         setLoading(false);
       }
