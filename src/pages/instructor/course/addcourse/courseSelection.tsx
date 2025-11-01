@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "../../../../components/ui/button";
-import { BookOpen, Edit3, MoreHorizontal, Trash2 } from "lucide-react";
+import { BookOpen, Edit3, MoreHorizontal } from "lucide-react";
 import { useAuth } from "../../../../context/AuthContext";
 import { courseApiService, CourseResponse } from "../../../../utils/courseApiService";
 import { COURSE_STATUS as STATUS_CONSTANTS } from "../../../../constants/courseStatus";
@@ -123,20 +123,21 @@ const CourseSelection = () => {
     window.location.hash = '#/instructor/course-title';
   };
 
-  const handleDeleteCourse = async (course: any) => {
-    if (window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
-      try {
-        // TODO: Add delete API endpoint to courseApiService if needed
-        // For now, just remove from local state
-        setCourses(courses.filter((c: any) => c.id !== course.id));
-        console.log(`Course "${course.title}" removed from list`);
-        // Note: This only removes from UI. Actual deletion requires API endpoint.
-      } catch (err) {
-        console.error("Error deleting course:", err);
-        alert("Failed to delete course. Please try again.");
-      }
-    }
-  };
+  // Delete course function - temporarily disabled
+  // const handleDeleteCourse = async (course: any) => {
+  //   if (window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
+  //     try {
+  //       // TODO: Add delete API endpoint to courseApiService if needed
+  //       // For now, just remove from local state
+  //       setCourses(courses.filter((c: any) => c.id !== course.id));
+  //       console.log(`Course "${course.title}" removed from list`);
+  //       // Note: This only removes from UI. Actual deletion requires API endpoint.
+  //     } catch (err) {
+  //       console.error("Error deleting course:", err);
+  //       alert("Failed to delete course. Please try again.");
+  //     }
+  //   }
+  // };
 
   return (
     <div className="p-8">
@@ -389,7 +390,8 @@ const CourseSelection = () => {
                               <Edit3 className="w-3.5 h-3.5 mr-2" />
                               Edit Course
                             </button>
-                            <button
+                            {/* Delete Course button hidden temporarily */}
+                            {/* <button
                               onClick={() => {
                                 handleDeleteCourse(course);
                                 setOpenDropdownCourseId(null);
@@ -398,7 +400,7 @@ const CourseSelection = () => {
                             >
                               <Trash2 className="w-3.5 h-3.5 mr-2" />
                               Delete Course
-                            </button>
+                            </button> */}
                           </div>
                         )}
                       </div>

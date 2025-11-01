@@ -760,7 +760,7 @@ export const Groups = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                  <SelectItem key={course.id} value={String(course.id)}>{course.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1066,7 +1066,7 @@ export const Groups = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
+                  <SelectItem key={course.id} value={String(course.id)}>{course.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
