@@ -3,13 +3,15 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "../../../../components/ui/button";
 import { BookOpen, Edit3, MoreHorizontal, Trash2 } from "lucide-react";
 import { useAuth } from "../../../../context/AuthContext";
-import {
-  getInstructorCourses,
-  deleteCourse
-} from "../../../../utils/firebaseInstructorCourses";
-import { COURSE_STATUS, COURSE_STATUS_LABELS } from "../../../../utils/firebaseCourses";
 import { courseApiService, CourseResponse } from "../../../../utils/courseApiService";
-import { getStatusById, getStatusColor, COURSE_STATUS as STATUS_CONSTANTS } from "../../../../constants/courseStatus";
+import { COURSE_STATUS as STATUS_CONSTANTS } from "../../../../constants/courseStatus";
+
+// Helper function to strip HTML tags from description
+const stripHtmlTags = (html: string | null) => {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+};
 
 // Interface for API course display
 interface ApiCourseDisplayData extends CourseResponse {
@@ -23,12 +25,34 @@ interface ApiCourseDisplayData extends CourseResponse {
 
 const CourseSelection = () => {
   const { user } = useAuth();
-  const [drafts, setDrafts] = useState<any[]>([]);
-  const [apiCourses, setApiCourses] = useState<ApiCourseDisplayData[]>([]);
+  const [courses, setCourses] = useState<ApiCourseDisplayData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [apiLoading, setApiLoading] = useState(true);
+  const [openDropdownCourseId, setOpenDropdownCourseId] = useState<number | null>(null);
 
-  const fetchInstructorCourses = useCallback(async () => {
+  // Helper function to calculate course progress
+  const calculateCourseProgress = (course: CourseResponse): number => {
+    if (!course.curriculum || !course.curriculum.sections || course.curriculum.sections.length === 0) {
+      return 0;
+    }
+
+    let totalItems = 0;
+    let completedItems = 0;
+
+    course.curriculum.sections.forEach(section => {
+      if (section.items && section.items.length > 0) {
+        totalItems += section.items.length;
+        section.items.forEach(item => {
+          if (item.published) {
+            completedItems++;
+          }
+        });
+      }
+    });
+
+    return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  };
+
+  const fetchCourses = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -37,112 +61,39 @@ const CourseSelection = () => {
         return;
       }
 
-      console.log("Fetching courses for user:", user.UserName);
-      const instructorCourses = await getInstructorCourses(user.UserName);
-
-      // Transform Firebase data to match the original mock data structure
-      const transformedCourses = instructorCourses.filter(course => course.status === COURSE_STATUS.DRAFT || course.status === COURSE_STATUS.PENDING_REVIEW).map(course => ({
-        id: course.id,
-        title: course.title || "Untitled Course",
-        status: course.status || COURSE_STATUS.DRAFT,
-        visibility: course.visibility || 'Private',
-        progress: course.progress || 0,
-        thumbnail: course.thumbnail || null,
-        lastModified: course.lastModified,
-        description: truncateDescription(course.description || "", 80) // Truncate description to 80 characters
-      }));
-
-      console.log("Transformed courses:", transformedCourses);
-      setDrafts(transformedCourses);
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      // Fallback to mock data if Firebase fails
-      setDrafts([
-        {
-          id: 1,
-          title: 'Photoshop',
-          status: 'DRAFT',
-          visibility: 'Public',
-          progress: 85,
-          thumbnail: null,
-          lastModified: '2 days ago',
-          description: 'Complete guide to Adobe Photoshop for beginners'
-        },
-        {
-          id: 2,
-          title: 'Photoshop',
-          status: 'DRAFT',
-          visibility: 'Public',
-          progress: 25,
-          thumbnail: null,
-          lastModified: '1 week ago',
-          description: 'Advanced Photoshop techniques and workflows'
-        },
-        {
-          id: 3,
-          title: 'React Development Masterclass',
-          status: 'DRAFT',
-          visibility: 'Private',
-          progress: 60,
-          thumbnail: null,
-          lastModified: '3 days ago',
-          description: 'Learn React from basics to advanced concepts'
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.UserName]);
-
-  const fetchApiCourses = useCallback(async () => {
-    try {
-      setApiLoading(true);
-
-      if (!user?.UserName) {
-        console.log("No user email found for API courses");
-        return;
-      }
-
       console.log("Fetching API courses for user:", user.UserName);
       const apiCoursesData = await courseApiService.getAllCourses();
       console.log("API courses:", apiCoursesData);
 
       // Transform API data to match the UI structure and filter for Draft courses (status: 1)
-      const transformedApiCourses: ApiCourseDisplayData[] = apiCoursesData
+      const transformedCourses: ApiCourseDisplayData[] = apiCoursesData
         .filter(course => course.status === STATUS_CONSTANTS.DRAFT) // Filter for Draft courses only
         .map(course => ({
           ...course,
-          // Add mock data for display purposes
-          progress: Math.floor(Math.random() * 100), // Random progress
-          lastModified: course.updatedAt ? new Date(course.updatedAt) : new Date(),
+          // Calculate progress based on course completion
+          progress: calculateCourseProgress(course),
+          lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
           visibility: 'Public', // Default visibility
           pricing: course.pricing || 'Free', // Use API pricing or default
           thumbnail: course.thumbnailUrl,
-          description: course.description
+          description: course.description || null
         }));
 
-      console.log("Transformed API courses:", transformedApiCourses);
-      setApiCourses(transformedApiCourses);
+      console.log("Transformed API courses:", transformedCourses);
+      setCourses(transformedCourses);
     } catch (err) {
       console.error("Error fetching API courses:", err);
     } finally {
-      setApiLoading(false);
+      setLoading(false);
     }
   }, [user?.UserName]);
 
-  // Fetch instructor courses on component mount
+  // Fetch courses on component mount
   useEffect(() => {
     if (user?.UserName) {
-      fetchInstructorCourses();
-      fetchApiCourses();
+      fetchCourses();
     }
-  }, [user?.UserName, fetchInstructorCourses, fetchApiCourses]);
-
-  // Helper function to truncate description
-  const truncateDescription = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
+  }, [user?.UserName, fetchCourses]);
 
   const handleAddNewCourse = () => {
     console.log('Add new course clicked');
@@ -167,17 +118,19 @@ const CourseSelection = () => {
   const handleEditCourse = (course: any) => {
     console.log('Edit course:', course);
     // Store the course ID in localStorage for the edit flow
-    localStorage.setItem('draftId', course.id);
+    localStorage.setItem('courseId', course.id.toString());
+    localStorage.removeItem('draftId');
     window.location.hash = '#/instructor/course-title';
   };
 
   const handleDeleteCourse = async (course: any) => {
     if (window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
       try {
-        await deleteCourse(course.id);
-        // Remove from local state
-        setDrafts(drafts.filter((draft: any) => draft.id !== course.id));
-        console.log(`Course "${course.title}" deleted successfully`);
+        // TODO: Add delete API endpoint to courseApiService if needed
+        // For now, just remove from local state
+        setCourses(courses.filter((c: any) => c.id !== course.id));
+        console.log(`Course "${course.title}" removed from list`);
+        // Note: This only removes from UI. Actual deletion requires API endpoint.
       } catch (err) {
         console.error("Error deleting course:", err);
         alert("Failed to delete course. Please try again.");
@@ -206,11 +159,32 @@ const CourseSelection = () => {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Drafts</h2>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your courses...</p>
+          <div className="flex flex-col gap-2 mt-4">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between animate-pulse">
+                <div className="flex gap-2 items-center">
+                  <div className="w-20 h-[82.29px] bg-gray-200 rounded-lg"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="h-3 bg-gray-200 rounded w-28"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-3 bg-gray-200 rounded w-32"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
+                </div>
+              </div>
+            ))}
           </div>
-        ) : drafts.length === 0 ? (
+        ) : courses.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No course drafts yet</h3>
@@ -223,398 +197,223 @@ const CourseSelection = () => {
             </button>
           </div>
         ) : (
-          <>
-            {drafts.map((course) => (
-              <DraftCourseCard
-                key={course.id}
-                course={course}
-                onEdit={handleEditCourse}
-                onDelete={handleDeleteCourse}
-              />
-            ))}
-          </>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden">
+            {/* Table Header */}
+            <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_120px] bg-gray-50 border-b border-gray-400">
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Thumbnail
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Course Details
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Progress
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Last Updated
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Actions
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-gray-400">
+              {courses.map((course) => (
+                <div key={course.id} className="hover:bg-gray-50 transition-colors">
+                  {/* Desktop Layout */}
+                  <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_120px]">
+                    {/* Thumbnail */}
+                    <div className="p-4 flex items-center justify-center">
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        {course.thumbnail ? (
+                          <img 
+                            src={course.thumbnail} 
+                            alt={course.title} 
+                            className="w-full h-full object-cover rounded-lg" 
+                          />
+                        ) : (
+                          <BookOpen className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Course Details */}
+                    <div className="p-4 min-w-0">
+                      <div className="flex flex-col gap-2">
+                        {/* Title with consistent height */}
+                        <div className="h-6 flex items-center">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate pr-2" title={course.title}>
+                            {course.title}
+                          </h3>
+                        </div>
+                        
+                        {/* Description with consistent height */}
+                        <div className="h-4 flex items-center">
+                          {course.description ? (
+                            <div className="text-xs text-gray-600 truncate" title={stripHtmlTags(course.description)}>
+                              {stripHtmlTags(course.description)}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">No description</span>
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                            {course.visibility}
+                          </span>
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
+                            {course.pricing}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="p-4 flex flex-col items-center justify-center">
+                      <div className="w-full max-w-[60px] bg-gray-200 rounded-full h-1.5 mb-1">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all"
+                          style={{ width: `${course.progress}%` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-gray-500 font-medium">
+                        {course.progress}%
+                      </div>
+                    </div>
+
+                    {/* Last Updated */}
+                    <div className="p-4 flex flex-col items-center justify-center">
+                      <div className="text-xs text-gray-600">
+                        {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="text-[10px] text-gray-500">
+                        {course.lastModified.toLocaleDateString('en-US', { year: 'numeric' })}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="p-4 flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => handleEditCourse(course)}
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Edit Course"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>                    
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout */}
+                  <div className="lg:hidden p-4">
+                    <div className="flex gap-3 mb-3">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative overflow-hidden">
+                        {course.thumbnail ? (
+                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-1 truncate" title={course.title}>
+                          {course.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                            {course.visibility}
+                          </span>
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
+                            {course.pricing}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {course.description && (
+                      <div className="text-xs text-gray-600 mb-2 line-clamp-2" title={stripHtmlTags(course.description)}>
+                        {stripHtmlTags(course.description)}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all"
+                          style={{ width: `${course.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
+                    </div>
+
+                    <div className="mb-3 text-center">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wide">Updated</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleEditCourse(course)}
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Edit Course"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="More Options"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+
+                        {openDropdownCourseId === course.id && (
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                            <button
+                              onClick={() => {
+                                handleEditCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 mr-2" />
+                              Edit Course
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDeleteCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete Course
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
-
-      {/* API Courses Section */}
-      <div className="space-y-4 mt-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">API Courses</h2>
-
-        {apiLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading API courses...</p>
-          </div>
-        ) : apiCourses.length === 0 ? (
-          <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No API courses yet</h3>
-            <p className="text-gray-600 mb-4">API courses will appear here when available.</p>
-          </div>
-        ) : (
-          <>
-            {apiCourses.map((course) => (
-              <ApiDraftCourseCard
-                key={course.id}
-                course={course}
-                onEdit={handleEditCourse}
-                onDelete={handleDeleteCourse}
-              />
-            ))}
-          </>
-        )}
-      </div>
     </div>
   );
 };
 
-const DraftCourseCard = ({ course, onEdit, onDelete }: any) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-
-
-  const getStatusColor = (status: number | string) => {
-    const statusValue = typeof status === 'number' ? status : status.toLowerCase();
-    switch (statusValue) {
-      case COURSE_STATUS.PUBLISHED:
-      case 'published':
-      case 'live':
-        return 'bg-[#3ab500]';
-      case COURSE_STATUS.APPROVED:
-      case 'approved':
-        return 'bg-blue-500';
-      case COURSE_STATUS.DRAFT:
-      case 'draft':
-        return 'bg-gray-400';
-      case COURSE_STATUS.PENDING_REVIEW:
-      case 'pending_review':
-      case 'pending':
-        return 'bg-yellow-400';
-      case COURSE_STATUS.NEEDS_REVISION:
-      case 'needs_revision':
-      case 'rejected':
-        return 'bg-red-400';
-      case COURSE_STATUS.DRAFT_UPDATE:
-      case 'draft_update':
-        return 'bg-orange-400';
-      case COURSE_STATUS.ARCHIVED:
-      case 'archived':
-        return 'bg-gray-600';
-      default:
-        return 'bg-gray-400';
-    }
-  };
-
-  const getStatusText = (status: number | string) => {
-    const statusValue = typeof status === 'number' ? status : status.toLowerCase();
-    switch (statusValue) {
-      case COURSE_STATUS.PUBLISHED:
-      case 'published':
-        return 'Published';
-      case COURSE_STATUS.APPROVED:
-      case 'approved':
-        return 'Approved';
-      case COURSE_STATUS.DRAFT:
-      case 'draft':
-        return 'Draft';
-      case COURSE_STATUS.PENDING_REVIEW:
-      case 'pending_review':
-      case 'pending':
-        return 'Pending Review';
-      case COURSE_STATUS.NEEDS_REVISION:
-      case 'needs_revision':
-        return 'Needs Revision';
-      case COURSE_STATUS.DRAFT_UPDATE:
-      case 'draft_update':
-        return 'Draft Update';
-      case COURSE_STATUS.ARCHIVED:
-      case 'archived':
-        return 'Archived';
-      default:
-        return COURSE_STATUS_LABELS[status] || 'Unknown';
-    }
-  };
-
-  return (
-    <div key={course.id} className="flex flex-col bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-      {/* Main Course Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-4">
-
-        {/* Left Section: Thumbnail + Info */}
-        <div className="flex items-start sm:items-center space-x-4 flex-1 md:truncate">
-          {/* Course Thumbnail */}
-          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 relative">
-            {course.thumbnail ? (
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <BookOpen className="w-8 h-8 text-gray-400" />
-            )}
-
-          </div>
-
-          {/* Course Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-                {course.title}
-              </h3>
-              <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getStatusColor(course.status)}`}>
-                {getStatusText(course.status)}
-              </span>
-              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                {course.visibility}
-              </span>
-              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                {course.pricing}
-              </span>
-
-            </div>
-
-            {course.description && (
-              <div className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2" dangerouslySetInnerHTML={{ __html: course.description }}>
-              </div>
-            )}
-
-
-            <div className="text-left sm:text-right min-w-[120px]">
-              <div className="flex items-center space-x-2">
-                <div className="text-sm font-medium text-gray-900 mb-1">
-                  Finish your course
-                </div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${course.progress}%` }}
-                  ></div>
-                </div>
-                <span className="text-xs text-gray-500 font-medium">
-                  {course.progress}%
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500">
-              Last modified {course.lastModified.toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Section: Stats + Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
-          {/* <div>
-                      <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-                        INR {(course.earnings || 0).toFixed(2)}
-                      </div>
-                      <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-                        Earned This Month
-                      </div>
-                    </div> */}
-          <div>
-            <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-              {course.enrollments || 0}
-            </div>
-            <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-              Enrollments this month
-            </div>
-          </div>
-
-          <div className="flex flex-row md:flex-col items-center justify-between gap-2 md:gap-4">
-            {/* Action Buttons */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-              <button
-                onClick={() => onEdit(course)}
-                className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors w-full sm:w-auto"
-              >
-                Edit / manage course
-              </button>
-
-              {/* More Actions Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowDropdown(true)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-
-                {showDropdown === course.id && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                    <button
-                      onClick={() => {
-                        onEdit(course);
-                        setShowDropdown(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      Edit Course
-                    </button>
-                    <button
-                      onClick={() => {
-                        onDelete(course);
-                        setShowDropdown(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Course
-                    </button>
-
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  );
-};
-
-const ApiDraftCourseCard = ({ course, onEdit, onDelete }: any) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const getCourseStatusColor = (status: number) => {
-    return getStatusColor(status);
-  };
-
-  const getCourseStatusText = (status: number) => {
-    return getStatusById(status);
-  };
-
-  return (
-    <div key={course.id} className="flex flex-col bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-      {/* Main Course Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-4">
-
-        {/* Left Section: Thumbnail + Info */}
-        <div className="flex items-start sm:items-center space-x-4 flex-1 md:truncate">
-          {/* Course Thumbnail */}
-          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 relative">
-            {course.thumbnail ? (
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <BookOpen className="w-8 h-8 text-gray-400" />
-            )}
-          </div>
-
-          {/* Course Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-                {course.title}
-              </h3>
-              <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getCourseStatusColor(course.status)}`}>
-                {getCourseStatusText(course.status)}
-              </span>
-              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                {course.visibility}
-              </span>
-              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded">
-                {course.pricing}
-              </span>
-            </div>
-
-            {course.description && (
-              <div className="text-sm text-gray-600 line-clamp-2 sm:truncate mb-2" dangerouslySetInnerHTML={{ __html: course.description }}>
-              </div>
-            )}
-
-            <div className="text-left sm:text-right min-w-[120px]">
-              <div className="flex items-center space-x-2">
-                <div className="text-sm font-medium text-gray-900 mb-1">
-                  Finish your course
-                </div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${course.progress}%` }}
-                  ></div>
-                </div>
-                <span className="text-xs text-gray-500 font-medium">
-                  {course.progress}%
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500">
-              Last modified {course.lastModified.toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Section: Stats + Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-4 sm:gap-0 w-full sm:w-auto">
-          <div>
-            <div className="text-[#1e1e1e] text-lg font-medium font-['Poppins']">
-              {course.enrollments || 0}
-            </div>
-            <div className="text-[#1e1e1e] text-sm font-medium font-['Nunito'] flex gap-2 items-center">
-              Enrollments this month
-            </div>
-          </div>
-
-          <div className="flex flex-row md:flex-col items-center justify-between gap-2 md:gap-4">
-            {/* Action Buttons */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-              <button
-                onClick={() => {
-                  localStorage.setItem('courseId', course.id.toString());
-                  onEdit(course);
-                }}
-                className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded hover:bg-purple-50 transition-colors w-full sm:w-auto"
-              >
-                Edit / manage course
-              </button>
-
-              {/* More Actions Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                    <button
-                      onClick={() => {
-                        localStorage.setItem('courseId', course.id.toString());
-                        onEdit(course);
-                        setShowDropdown(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      Edit Course
-                    </button>
-                    <button
-                      onClick={() => {
-                        onDelete(course);
-                        setShowDropdown(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Course
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 interface CourseCardProps {
   title: string;
