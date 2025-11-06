@@ -5,7 +5,6 @@ export interface Level {
 
 export const LEVELS: Level[] = [
   { value: "beginner", label: "Beginner" },
-  { value: "begginer", label: "Beginner" }, // Handle typo from API
   { value: "intermediate", label: "Intermediate" },
   { value: "expert", label: "Expert" },
   { value: "all", label: "All Levels" }
