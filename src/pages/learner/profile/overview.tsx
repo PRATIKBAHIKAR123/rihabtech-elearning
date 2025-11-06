@@ -56,15 +56,15 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
 
       // Real data from Firebase export for abdulquader152@gmail.com
       const overviewStats: OverviewStats = {
-        enrolledCourses: 2, // Based on course memberships found
-        avgProgress: 38, // From admin panel screenshot
-        watchMinutes: 90, // From admin panel screenshot
-        subscriptions: 4, // Based on subscription data found
-        totalSpent: totalSpent || 12351.64, // Sum of completed transactions: 588.82 + 11798.82
-        joinDate: new Date("2025-08-28"), // From admin panel screenshot
-        lastOnline: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000), // 11 days ago from screenshot
-        phone: profile.phoneNumber || "9993978653", // From Firebase data
-        address: profile.address || "N/A",
+        enrolledCourses: 0,
+        avgProgress: 0,
+        watchMinutes: 0,
+        subscriptions: 0,
+        totalSpent: totalSpent || 0,
+        joinDate: new Date(profile.createdDate),
+        lastOnline: new Date(profile.createdDate),
+        phone: profile.phoneNumber || "",
+        address: profile.address || "",
       };
 
       setStats(overviewStats);
@@ -235,7 +235,7 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Last Online</p>
                 <p className="text-sm text-gray-900">
-                  {getDaysAgo(stats.lastOnline)}d ago
+                  {formatDate(stats.lastOnline)}
                 </p>
               </div>
             </div>

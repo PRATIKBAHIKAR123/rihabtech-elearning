@@ -110,6 +110,10 @@ export interface CourseResponse {
   target?: string[];
   createdAt?: string;
   updatedAt?: string;
+  earnings?: number | null;
+  ratings?: number | null;
+  ratingScore?: number | null;
+  enrollments?: number | null;
   status?: number | null;
   instructorId?: string | null;
   progress?: number;

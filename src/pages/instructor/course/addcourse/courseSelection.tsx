@@ -207,9 +207,9 @@ const CourseSelection = () => {
               <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Course Details
               </div>
-              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+              {/* <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
                 Progress
-              </div>
+              </div> */}
               <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
                 Last Updated
               </div>
@@ -273,7 +273,7 @@ const CourseSelection = () => {
                     </div>
 
                     {/* Progress */}
-                    <div className="p-4 flex flex-col items-center justify-center">
+                    {/* <div className="p-4 flex flex-col items-center justify-center">
                       <div className="w-full max-w-[60px] bg-gray-200 rounded-full h-1.5 mb-1">
                         <div
                           className="bg-primary h-1.5 rounded-full transition-all"
@@ -283,7 +283,7 @@ const CourseSelection = () => {
                       <div className="text-[10px] text-gray-500 font-medium">
                         {course.progress}%
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Last Updated */}
                     <div className="p-4 flex flex-col items-center justify-center">

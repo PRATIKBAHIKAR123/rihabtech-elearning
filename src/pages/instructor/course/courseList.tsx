@@ -119,10 +119,10 @@ export default function CourseList() {
       const transformedCourses: ApiCourseDisplayData[] = apiCoursesData.map(course => ({
         ...course,
         // Add mock data for display purposes
-        earnings: Math.floor(Math.random() * 10000), // Random earnings
-        enrollments: Math.floor(Math.random() * 100), // Random enrollments
-        ratings: Math.floor(Math.random() * 50), // Random ratings
-        ratingScore: 4.5, // Default rating
+        earnings: course.earnings || 0, // Random earnings
+        enrollments: course.enrollments || 0, // Random enrollments
+        ratings: course.ratings || 0, // Random ratings
+        ratingScore: course.ratingScore || 0, // Default rating
         progress: calculateCourseProgress(course), // Calculate progress from curriculum
         lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
         visibility: 'Public', // Default visibility
@@ -281,11 +281,10 @@ export default function CourseList() {
           Courses
         </div>
         {/* Payout Notification Banner - Only show if there are pending payouts or available earnings */}
-        {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
+        {/* {(hasPendingPayouts || (earningsSummary?.availableForPayout || 0) >= 1000) && (
           <div className="rounded-[15px] border border-gray p-6 bg-gradient-to-r from-blue-50 to-green-50">
             <div className="text-[#393939] text-lg font-semibold font-['Raleway'] flex flex-col md:flex-row items-start md:items-center gap-2">
               <Button className="rounded-none bg-green-600 text-white hover:bg-green-700">
-                {/* <DollarSign className="h-4 w-4 mr-2" /> */}
                 New
               </Button>
               <span className="flex items-center">
@@ -318,7 +317,7 @@ export default function CourseList() {
               </div>
             )}
           </div>
-        )}
+        )} */}
         <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
           <div className="flex flex-col md:flex-row gap-3 w-full md:w-1/2">
             <div className="relative flex-grow">
@@ -392,84 +391,84 @@ export default function CourseList() {
         </div>
 
         {loading ? (
-            <div className="flex flex-col gap-2 mt-4">
-              {[...Array(3)].map((_, index) => (
-                <div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between animate-pulse">
-                  <div className="flex gap-2 items-center">
-                    <div className="w-20 h-[82.29px] bg-gray-200 rounded-lg"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-32"></div>
-                      <div className="h-3 bg-gray-200 rounded w-20"></div>
-                    </div>
-                  </div>
+          <div className="flex flex-col gap-2 mt-4">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="bg-white rounded-[15px] shadow-md p-2 flex flex-col md:flex-row items-left md:items-center justify-between animate-pulse">
+                <div className="flex gap-2 items-center">
+                  <div className="w-20 h-[82.29px] bg-gray-200 rounded-lg"></div>
                   <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                    <div className="h-3 bg-gray-200 rounded w-28"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-16"></div>
-                    <div className="h-3 bg-gray-200 rounded w-32"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="text-center py-12 mt-4">
-              <div className="text-gray-500 text-lg font-medium">
-                {searchTerm ? 'No courses found matching your search.' : 'No courses available yet.'}
-              </div>
-              {searchTerm && (
-                <Button
-                  onClick={() => setSearchTerm("")}
-                  className="mt-4 rounded-none"
-                >
-                  Clear Search
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden mt-6">
-              {/* Table Header */}
-              <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px] bg-gray-50 border-b border-gray-400">
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Thumbnail
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="h-3 bg-gray-200 rounded w-28"></div>
                 </div>
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Course Details
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-3 bg-gray-200 rounded w-32"></div>
                 </div>
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
-                  Enrollments
-                </div>
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
-                  Rating
-                </div>
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
-                  Progress
-                </div>
-                <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
-                  Actions
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : filteredCourses.length === 0 ? (
+          <div className="text-center py-12 mt-4">
+            <div className="text-gray-500 text-lg font-medium">
+              {searchTerm ? 'No courses found matching your search.' : 'No courses available yet.'}
+            </div>
+            {searchTerm && (
+              <Button
+                onClick={() => setSearchTerm("")}
+                className="mt-4 rounded-none"
+              >
+                Clear Search
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden mt-6">
+            {/* Table Header */}
+            <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px] bg-gray-50 border-b border-gray-400">
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Thumbnail
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Course Details
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Enrollments
+              </div>
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Rating
+              </div>
+              {/* <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Progress
+              </div> */}
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+                Actions
+              </div>
+            </div>
 
-              {/* Table Body */}
-              <div className="divide-y divide-gray-400">
-                {filteredCourses.map((course) => (
-                  <div key={course.id} className="hover:bg-gray-50 transition-colors">
-                    {/* Desktop Layout */}
-                    <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px]">
-                    
+            {/* Table Body */}
+            <div className="divide-y divide-gray-400">
+              {filteredCourses.map((course) => (
+                <div key={course.id} className="hover:bg-gray-50 transition-colors">
+                  {/* Desktop Layout */}
+                  <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px]">
+
                     {/* Thumbnail */}
                     <div className="p-4 flex items-center justify-center">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {course.thumbnail ? (
-                          <img 
-                            src={course.thumbnail} 
-                            alt={course.title} 
-                            className="w-full h-full object-cover rounded-lg" 
+                          <img
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <BookOpen className="w-5 h-5 text-gray-400" />
@@ -486,7 +485,7 @@ export default function CourseList() {
                             {course.title}
                           </h3>
                         </div>
-                        
+
                         {/* Description with consistent height */}
                         <div className="h-4 flex items-center">
                           {course.description ? (
@@ -547,7 +546,7 @@ export default function CourseList() {
                     </div>
 
                     {/* Progress */}
-                    <div className="p-4 flex flex-col items-center justify-center">
+                    {/* <div className="p-4 flex flex-col items-center justify-center">
                       <div className="w-full max-w-[60px] bg-gray-200 rounded-full h-1.5 mb-1">
                         <div
                           className="bg-primary h-1.5 rounded-full transition-all"
@@ -557,7 +556,7 @@ export default function CourseList() {
                       <div className="text-[10px] text-gray-500 font-medium">
                         {course.progress}%
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Actions */}
                     <div className="p-4 flex items-center justify-center gap-1">
@@ -637,10 +636,10 @@ export default function CourseList() {
                         )}
                       </div>
                     </div>
-                    </div>
+                  </div>
 
-                    {/* Mobile Layout */}
-                    <div className="lg:hidden p-4">
+                  {/* Mobile Layout */}
+                  <div className="lg:hidden p-4">
                     <div className="flex gap-3 mb-3">
                       <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative overflow-hidden">
                         {course.thumbnail ? (
