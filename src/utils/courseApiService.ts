@@ -101,6 +101,7 @@ export interface CourseResponse {
   level?: string | null;
   language?: string | null;
   pricing?: string | null;
+  visibility?: string | null;
   thumbnailUrl?: string | null;
   promoVideoUrl?: string | null;
   welcomeMessage?: string | null;

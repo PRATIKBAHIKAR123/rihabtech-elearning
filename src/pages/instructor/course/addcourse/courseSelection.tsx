@@ -83,7 +83,7 @@ const CourseSelection = () => {
           // Calculate progress based on course completion
           progress: calculateCourseProgress(course),
           lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
-          visibility: 'Public', // Default visibility
+          visibility: course.visibility || 'N/A', // Default visibility
           pricing: course.pricing || 'N/A', // Use API pricing or default
           thumbnail: course.thumbnailUrl,
           description: course.description || null
@@ -238,10 +238,10 @@ const CourseSelection = () => {
                     <div className="p-4 flex items-center justify-center">
                       <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {course.thumbnail ? (
-                          <img 
-                            src={course.thumbnail} 
-                            alt={course.title} 
-                            className="w-full h-full object-cover rounded-lg" 
+                          <img
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <BookOpen className="w-5 h-5 text-gray-400" />
@@ -258,7 +258,7 @@ const CourseSelection = () => {
                             {course.title}
                           </h3>
                         </div>
-                        
+
                         {/* Description with consistent height */}
                         <div className="h-4 flex items-center">
                           {course.description ? (
@@ -313,7 +313,7 @@ const CourseSelection = () => {
                         title="Edit Course"
                       >
                         <Edit3 className="w-4 h-4" />
-                      </button>                    
+                      </button>
                     </div>
                   </div>
 
@@ -335,9 +335,9 @@ const CourseSelection = () => {
                           {course.title}
                         </h3>
                         <div className="flex flex-wrap gap-1 mb-2">
-                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                          {/* <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
-                          </span>
+                          </span> */}
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
                             {formatPricing(course.pricing)}
                           </span>
@@ -435,27 +435,27 @@ interface CourseCardProps {
 
 const CourseCard = ({ title, icon, buttonText }: CourseCardProps) => {
 
-   const handleCoursetestSelection = (type: string) => {
-     if (type === 'Practice Test') {
-       localStorage.setItem('addcourseType', 'practiceTest')
-     } else {
-       localStorage.removeItem('addcourseType')
-     }
-     // Get courseId before clearing it
-     const courseId = localStorage.getItem('courseId');
-     // Clear any existing course data when starting a new course
-     localStorage.removeItem('draftId');
-     localStorage.removeItem('courseId');
-     // Clear any curriculum data from localStorage
-     if (courseId) {
-       localStorage.removeItem(`curriculum_${courseId}`);
-     }
-     // Clear global course data state
-     if (typeof window !== 'undefined') {
-       window.dispatchEvent(new CustomEvent('clearCourseData'));
-     }
-     window.location.hash = '#/instructor/course-title';
-   }
+  const handleCoursetestSelection = (type: string) => {
+    if (type === 'Practice Test') {
+      localStorage.setItem('addcourseType', 'practiceTest')
+    } else {
+      localStorage.removeItem('addcourseType')
+    }
+    // Get courseId before clearing it
+    const courseId = localStorage.getItem('courseId');
+    // Clear any existing course data when starting a new course
+    localStorage.removeItem('draftId');
+    localStorage.removeItem('courseId');
+    // Clear any curriculum data from localStorage
+    if (courseId) {
+      localStorage.removeItem(`curriculum_${courseId}`);
+    }
+    // Clear global course data state
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('clearCourseData'));
+    }
+    window.location.hash = '#/instructor/course-title';
+  }
   return (
     <div className="bg-white p-4 md:p-6 border border-gray-200 flex flex-col items-center text-center justify-center">
       <img src={icon} className="h-6" alt={title} />
