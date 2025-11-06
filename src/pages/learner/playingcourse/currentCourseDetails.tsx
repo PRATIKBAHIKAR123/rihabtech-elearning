@@ -13,10 +13,30 @@ import { getFullCourseData, CourseDetails, extractQuizData } from '../../../util
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { StudentProgressService } from '../../../utils/firebaseStudentProgressService';
+import { courseApiService, CourseResponse } from '../../../utils/courseApiService';
+
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeVideoId = (url: string): string => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : '';
+};
+
+// Helper function to convert YouTube URL to proper format
+const convertYouTubeUrl = (url: string): string => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const videoId = extractYouTubeVideoId(url);
+    if (videoId) {
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+  }
+  return url;
+};
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState("Notes");
   const [courseData, setCourseData] = useState<CourseDetails | null>(null);
+  const [apiCourseData, setApiCourseData] = useState<CourseResponse | null>(null);
   const [enrichedCourseData, setEnrichedCourseData] = useState<any>(courseData);
   const [activeModule, setActiveModule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +82,7 @@ export default function CourseDetailsPage() {
   // In a real app, you'd get this from React Router or props
   // const courseId = "8NjLqdGGeNuJKtjLFzxo"; // Using the ID from your Firebase data
 
-  // Fetch course data from Firebase
+  // Fetch course data from API
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
@@ -73,11 +93,72 @@ export default function CourseDetailsPage() {
           setLoading(false);
           return;
         }
-        const data = await getFullCourseData(courseId);
-        if (data) {
-          setCourseData(data);
-        } else {
-          setError("Course not found");
+        
+        // Try to fetch from API first
+        try {
+          const apiData = await courseApiService.getCourseById(parseInt(courseId));
+          console.log('API Course data:', apiData);
+          setApiCourseData(apiData);
+          
+          // Convert API data to the expected format for compatibility
+          const convertedData: CourseDetails = {
+            id: apiData.id.toString(),
+            title: apiData.title,
+            subtitle: apiData.subtitle || '',
+            description: apiData.description || '',
+            level: apiData.level || '',
+            language: apiData.language || '',
+            pricing: apiData.pricing || '',
+            thumbnailUrl: apiData.thumbnailUrl || '',
+            promoVideoUrl: apiData.promoVideoUrl || '',
+            welcomeMessage: apiData.welcomeMessage || '',
+            congratulationsMessage: apiData.congratulationsMessage || '',
+            learn: apiData.learn || [],
+            requirements: apiData.requirements || [],
+            target: apiData.target || [],
+            curriculum: apiData.curriculum ? {
+              sections: apiData.curriculum.sections.map(section => ({
+                id: section.name, // Use name as id for compatibility
+                name: section.name,
+                published: section.published,
+                items: section.items.map(item => ({
+                  id: item.lectureName || item.quizTitle || item.title || 'item',
+                  contentType: item.contentType || 'video',
+                  lectureName: item.lectureName || item.quizTitle || item.title || 'Untitled',
+                  description: item.description || '',
+                  published: item.published,
+                  isPromotional: item.isPromotional,
+                  contentFiles: item.contentFiles || [],
+                  // Add other properties as needed
+                  type: item.type,
+                  videoSource: item.videoSource,
+                  contentUrl: item.contentUrl,
+                  duration: item.duration,
+                  resources: item.resources
+                }))
+              }))
+            } : { sections: [] },
+            isPublished: apiData.isPublished || false,
+            hasUnpublishedChanges: apiData.hasUnpublishedChanges || false,
+            status: apiData.status || 0,
+            members: [], // Keep empty for now as this data is not in API response
+            editSummary: undefined, // Keep undefined for now as this data is not in API response
+            featured: false, // Default value
+            category: apiData.category?.toString() || '', // Convert number to string
+            submittedAt: apiData.submittedAt || '', // Use API submittedAt
+            instructorId: apiData.instructorId || '' // Use API instructorId
+          };
+          
+          setCourseData(convertedData);
+        } catch (apiError) {
+          console.warn('API fetch failed, falling back to Firebase:', apiError);
+          // Fallback to Firebase if API fails
+          const data = await getFullCourseData(courseId);
+          if (data) {
+            setCourseData(data);
+          } else {
+            setError("Course not found");
+          }
         }
       } catch (err) {
         console.error("Error fetching course data:", err);
@@ -534,7 +615,17 @@ function findNextLecture(courseData: any, progress: any) {
     duration: formatTime(segment.end - segment.start),
   });
 
-    const renderVideoPlayer = (module:any) => (
+    const renderVideoPlayer = (module:any) => {
+      const videoUrl = convertYouTubeUrl(module.contentUrl || module.contentFiles?.[0]?.url || "");
+      console.log('Video Player Debug:', {
+        module: module,
+        contentUrl: module.contentUrl,
+        contentFiles: module.contentFiles,
+        finalUrl: videoUrl,
+        isYouTube: videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')
+      });
+      
+      return (
     <div className="relative overflow-hidden mb-6 border-b rounded-lg pb-4"
               onMouseEnter={() => setIsHovered(true)}
   onMouseLeave={() => setIsHovered(false)}>
@@ -542,7 +633,7 @@ function findNextLecture(courseData: any, progress: any) {
   className={`relative h-[450px]`}>
                   <ReactPlayer
             ref={playerRef}
-            url={module.contentFiles?.[0]?.url || "https://youtu.be/4z9bvgTlxKw?si=xEmNVS7qFBcX9Kvf"}
+            url={videoUrl}
             playing={isPlaying}
             playbackRate={playbackRate}
             controls={false}
@@ -555,6 +646,10 @@ function findNextLecture(courseData: any, progress: any) {
             onPause={handlePause}
             onSeek={(seconds) => handleSeek(seconds)}
             onEnded={handleEnded}
+            onError={(error) => {
+              console.error('ReactPlayer Error:', error);
+              console.error('Video URL that failed:', videoUrl);
+            }}
             light={courseData?.thumbnailUrl || "Images/Banners/Person.jpg"}
             playIcon={
               <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
@@ -566,6 +661,21 @@ function findNextLecture(courseData: any, progress: any) {
                 </div>
               </div>
             }
+            config={{
+              youtube: {
+                playerVars: {
+                  modestbranding: 1,
+                  rel: 0,
+                  showinfo: 0
+                }
+              },
+              file: {
+                attributes: {
+                  controlsList: 'nodownload',
+                  onContextMenu: (e: any) => e.preventDefault()
+                }
+              }
+            }}
             style={{ borderRadius: '8px', overflow: 'hidden' }}
           />
         {/* Video Controls Overlay */}
@@ -751,7 +861,8 @@ function findNextLecture(courseData: any, progress: any) {
                 </div>
               </div>
             </div>
-  );
+      );
+    };
 
   const renderQuiz = (module: any) => {
     console.log('renderQuiz called with module:', module);
