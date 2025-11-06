@@ -160,7 +160,7 @@ export default function InstructorSignupSuccess() {
             
             {applicationStatus && (
               <div className="text-sm text-gray-600 space-y-1">
-                <p>Application ID: <span className="font-mono text-xs">{applicationStatus.applicationId?.slice(-8) || 'N/A'}</span></p>
+                {/* <p>Application ID: <span className="font-mono text-xs">{applicationStatus.applicationId?.slice(-8) || 'N/A'}</span></p> */}
                 <p>Applied on: {new Date(applicationStatus.appliedAt).toLocaleDateString()}</p>
                 <p>Status: <span className={`font-semibold ${getCurrentStatusColor()}`}>
                   {applicationStatus.statusId ? getStatusById(applicationStatus.statusId)?.text : applicationStatus.status}

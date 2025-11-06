@@ -47,6 +47,16 @@ const stripHtmlTags = (html: string) => {
   return doc.body.textContent || '';
 };
 
+// Helper function to format pricing value
+const formatPricing = (pricing: string | null | undefined): string => {
+  if (!pricing) return 'Free';
+  const lowerPricing = pricing.toLowerCase();
+  if (lowerPricing === 'free' || lowerPricing === 'paid') {
+    return lowerPricing.charAt(0).toUpperCase() + lowerPricing.slice(1);
+  }
+  return pricing; // Return as-is if it's not 'free' or 'paid'
+};
+
 export default function CourseList() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<ApiCourseDisplayData[]>([]);
@@ -433,7 +443,7 @@ export default function CourseList() {
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden mt-6">
             {/* Table Header */}
-            <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px] bg-gray-50 border-b border-gray-400">
+            <div className="hidden lg:grid lg:grid-cols-[180px_1fr_120px_120px_120px] bg-gray-50 border-b border-gray-400">
               <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Thumbnail
               </div>
@@ -459,11 +469,11 @@ export default function CourseList() {
               {filteredCourses.map((course) => (
                 <div key={course.id} className="hover:bg-gray-50 transition-colors">
                   {/* Desktop Layout */}
-                  <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_100px_120px]">
+                  <div className="hidden lg:grid lg:grid-cols-[180px_1fr_120px_120px_120px]">
 
                     {/* Thumbnail */}
                     <div className="p-4 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {course.thumbnail ? (
                           <img
                             src={course.thumbnail}
@@ -502,11 +512,11 @@ export default function CourseList() {
                           <span className={`px-2 py-0.5 text-[10px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
                             {getStatusById(course.status)}
                           </span>
-                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                          {/* <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
-                          </span>
+                          </span> */}
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
-                            {course.pricing}
+                            {formatPricing(course.pricing)}
                           </span>
                         </div>
 
@@ -536,7 +546,7 @@ export default function CourseList() {
                           <Star
                             key={i}
                             size={12}
-                            className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            className={`${i < Math.floor(course.ratingScore || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                           />
                         ))}
                       </div>
@@ -663,7 +673,7 @@ export default function CourseList() {
                             {course.visibility}
                           </span>
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
-                            {course.pricing}
+                            {formatPricing(course.pricing)}
                           </span>
                         </div>
                       </div>

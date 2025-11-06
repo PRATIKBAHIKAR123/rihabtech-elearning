@@ -273,12 +273,12 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({
               {/* Application Status */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <div>
+                  {/* <div>
                     <p className="text-gray-600 mb-2">Application Status</p>
                     <p className="text-sm text-gray-500">
                       Application ID: {applicationId}
                     </p>
-                  </div>
+                  </div> */}
                   <div className="text-right">
                     {getStatusBadge(applicationStatus)}
                   </div>

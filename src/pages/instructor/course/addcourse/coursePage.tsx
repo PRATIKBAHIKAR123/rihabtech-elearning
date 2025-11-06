@@ -84,13 +84,7 @@ export function CourseLandingPage({ onSubmit }: any) {
         return !!value || !!this.parent.thumbnailUrl;
       }
     ),
-    promoVideo: Yup.mixed().test(
-      "promoVideo-required",
-      "Promotional video is required",
-      function (value) {
-        return !!value || !!this.parent.promoVideoUrl;
-      }
-    ),
+    promoVideo: Yup.mixed().nullable(),
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -553,7 +547,7 @@ export function CourseLandingPage({ onSubmit }: any) {
 
         {/* Promotional Video Upload */}
         <div className="mt-4 gap-2 flex flex-col">
-          <label className="ins-label">Promotional Video<span className="text-[#ff0000]"> *</span></label>
+          <label className="ins-label">Promotional Video</label>
           <div className={`ins-control-border gap-3 items-center justify-center flex flex-col ${formik.touched.promoVideo && formik.errors.promoVideo ? '!border-red-500' : ''}`}>
             {promoVideo ? (
               <video

@@ -13,6 +13,16 @@ const stripHtmlTags = (html: string | null) => {
   return doc.body.textContent || '';
 };
 
+// Helper function to format pricing value
+const formatPricing = (pricing: string | null | undefined): string => {
+  if (!pricing) return 'Free';
+  const lowerPricing = pricing.toLowerCase();
+  if (lowerPricing === 'free' || lowerPricing === 'paid') {
+    return lowerPricing.charAt(0).toUpperCase() + lowerPricing.slice(1);
+  }
+  return pricing; // Return as-is if it's not 'free' or 'paid'
+};
+
 // Interface for API course display
 interface ApiCourseDisplayData extends CourseResponse {
   progress: number;
@@ -74,7 +84,7 @@ const CourseSelection = () => {
           progress: calculateCourseProgress(course),
           lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
           visibility: 'Public', // Default visibility
-          pricing: course.pricing || 'Free', // Use API pricing or default
+          pricing: course.pricing || 'N/A', // Use API pricing or default
           thumbnail: course.thumbnailUrl,
           description: course.description || null
         }));
@@ -200,7 +210,7 @@ const CourseSelection = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-400 overflow-hidden">
             {/* Table Header */}
-            <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_120px] bg-gray-50 border-b border-gray-400">
+            <div className="hidden lg:grid lg:grid-cols-[160px_1fr_140px_120px] bg-gray-50 border-b border-gray-400">
               <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Thumbnail
               </div>
@@ -213,7 +223,7 @@ const CourseSelection = () => {
               <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
                 Last Updated
               </div>
-              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+              <div className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
                 Actions
               </div>
             </div>
@@ -223,10 +233,10 @@ const CourseSelection = () => {
               {courses.map((course) => (
                 <div key={course.id} className="hover:bg-gray-50 transition-colors">
                   {/* Desktop Layout */}
-                  <div className="hidden lg:grid lg:grid-cols-[80px_1fr_120px_120px_120px]">
+                  <div className="hidden lg:grid lg:grid-cols-[180px_1fr_120px_120px]">
                     {/* Thumbnail */}
                     <div className="p-4 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {course.thumbnail ? (
                           <img 
                             src={course.thumbnail} 
@@ -262,11 +272,11 @@ const CourseSelection = () => {
 
                         {/* Tags */}
                         <div className="flex flex-wrap gap-1">
-                          <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
+                          {/* <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
-                          </span>
+                          </span> */}
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
-                            {course.pricing}
+                            {formatPricing(course.pricing || 'N/A')}
                           </span>
                         </div>
                       </div>
@@ -296,7 +306,7 @@ const CourseSelection = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="p-4 flex items-center justify-center gap-1">
+                    <div className="p-4 flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleEditCourse(course)}
                         className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
@@ -329,7 +339,7 @@ const CourseSelection = () => {
                             {course.visibility}
                           </span>
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
-                            {course.pricing}
+                            {formatPricing(course.pricing)}
                           </span>
                         </div>
                       </div>
@@ -341,7 +351,7 @@ const CourseSelection = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 mb-3">
+                    {/* <div className="flex items-center gap-2 mb-3">
                       <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                         <div
                           className="bg-primary h-1.5 rounded-full transition-all"
@@ -349,7 +359,7 @@ const CourseSelection = () => {
                         />
                       </div>
                       <span className="text-xs text-gray-500 font-medium">{course.progress}%</span>
-                    </div>
+                    </div> */}
 
                     <div className="mb-3 text-center">
                       <div>
