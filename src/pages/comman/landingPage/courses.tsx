@@ -63,9 +63,16 @@ export default function Courses() {
       return courses; // Show all courses if no category is selected
     }
 
-    // Filter courses by category ID
-    return courses;
-    //courses.filter(course => course.category === parseInt(activeTab));
+    // Parse activeTab to number and filter by matching category id
+    const activeCategoryId = Number(activeTab);
+    if (Number.isNaN(activeCategoryId)) {
+      return courses;
+    }
+
+    return courses.filter((course) => {
+      // course.category may be undefined or null
+      return typeof course.category === 'number' && course.category === activeCategoryId;
+    });
   }, [activeTab, courses]);
 
   useEffect(() => {
@@ -194,11 +201,12 @@ export default function Courses() {
               ))}
             </>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-600">No courses available for this category.</p>
-            </div>
+            null
           )}
         </div>
+        {getFilteredCourses().length == 0 ? (<div className="text-center py-8">
+              <p className="text-gray-600">No courses available for this category.</p>
+            </div>):null}
         <div className="w-full flex justify-center">
           <Button variant={'outline'} className="border-black text-black rounded-none px-4 py-2 text-sm font-medium hover:bg-blue-50" onClick={() => {
             window.location.href = '/#/courselist';
