@@ -13,6 +13,7 @@ import { LearnerCourse, learnerService } from "../utils/learnerService";
 import { getAllUserActiveSubscriptions, Subscription } from "../utils/subscriptionService";
 import { toast } from "sonner";
 import { instructorApiService } from "../utils/instructorApiService";
+import { getStatusMessage } from "../constants/instructorStatus";
 
 type HeaderProps = {
   onMenuClick: () => void;
@@ -48,12 +49,11 @@ function Header({ onMenuClick }: HeaderProps) {
           // No application found, redirect to instructor signup
           window.location.href = '/#/instructor-signup';
         } else {
-          // Get status information from constants
-          // const statusInfo = EN_INSTRUCTOR_STATUS.find(s => s.id === status);
+          const statusMessage = getStatusMessage(status);
 
           if (status === 1) {
             // Pending - already applied
-            toast.info("You have already applied to become an instructor. Your application is pending review.");
+            toast.info(statusMessage);
             window.location.href = '/#/instructor-signup-success';
           } else if (status === 2) {
             // Approved - update user role and redirect to instructor dashboard
@@ -69,12 +69,14 @@ function Header({ onMenuClick }: HeaderProps) {
             }
           } else if (status === 3) {
             // Rejected
-            toast.error("Your instructor application was rejected. Please contact support for more information.");
+            toast.error(statusMessage);
             window.location.href = '/#/instructor-signup-success';
           } else if (status === 4) {
             // On Hold
-            toast.info("Your instructor application is on hold for further review. Please wait for updates.");
+            toast.info(statusMessage);
             window.location.href = '/#/instructor-signup-success';
+          } else if (statusMessage) {
+            toast.info(statusMessage);
           }
         }
       }

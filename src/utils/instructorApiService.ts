@@ -3,6 +3,7 @@ import { apiService } from './apiService';
 // Interface for instructor status response
 export interface InstructorStatusResponse {
   currStatus: number | null;
+  currStatusDate?: string | null;
 }
 
 // Interface for instructor application data (if needed in future)

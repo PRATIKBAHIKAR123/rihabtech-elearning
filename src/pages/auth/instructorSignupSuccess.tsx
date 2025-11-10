@@ -22,14 +22,20 @@ export default function InstructorSignupSuccess() {
         // First try to get status from API
         const response = await instructorApiService.getCurrentStatus();
         
-        if (response && response.currStatus !== undefined && response.currStatus !== null) {
+        if (
+          response &&
+          response.currStatus !== undefined &&
+          response.currStatus !== null
+        ) {
           // Get status info from constants
           const statusInfo = getStatusById(response.currStatus);
           
           const mappedStatus = {
             status: statusInfo ? statusInfo.text.toLowerCase().replace(' ', '_') : 'pending',
             statusId: response.currStatus,
-            appliedAt: new Date().toISOString(), // Use current date as fallback
+            appliedAt: response.currStatusDate
+              ? new Date(response.currStatusDate).toISOString()
+              : new Date().toISOString(), // Use API date when available, fallback to current date
             applicationId: `api_${response.currStatus}_${Date.now()}`,
             email: 'user@example.com' // This could be enhanced to get from user context
           };
