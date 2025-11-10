@@ -8,6 +8,7 @@ interface QuillEditorProps {
   placeholder?: string;
   height?: string;
   error?: boolean;
+  maxLength?: number; // optional prop
 }
 
 const QuillEditor: React.FC<QuillEditorProps> = ({
@@ -15,7 +16,8 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   onChange,
   placeholder = "Enter content...",
   height = "200px",
-  error = false
+  error = false,
+  maxLength = 10000 // default to 2000 characters
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
@@ -23,16 +25,15 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
 
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
-      // Initialize Quill with default configuration
       quillRef.current = new Quill(editorRef.current, {
         theme: 'snow',
         placeholder: placeholder,
         modules: {
           toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
+            [{ header: [1, 2, 3, false] }],
             ['bold', 'italic', 'underline', 'strike'],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'align': [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
             ['blockquote', 'code-block'],
             ['link'],
             ['clean']
@@ -49,11 +50,16 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
         quillRef.current.root.innerHTML = value;
       }
 
-      // Listen for text changes
-      quillRef.current.on('text-change', () => {
+      // ✅ Character limit logic
+      quillRef.current.on('text-change', (delta, oldDelta, source) => {
         if (quillRef.current) {
-          const html = quillRef.current.root.innerHTML;
-          onChange(html);
+          const plainText = quillRef.current.getText().trim(); // raw text without tags
+          if (plainText.length > maxLength) {
+            quillRef.current.deleteText(maxLength, plainText.length);
+          } else {
+            const html = quillRef.current.root.innerHTML;
+            onChange(html);
+          }
         }
       });
 
@@ -67,7 +73,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
     };
   }, []);
 
-  // Update content when value prop changes
+  // Update content if value changes from outside
   useEffect(() => {
     if (quillRef.current && isInitialized && value !== quillRef.current.root.innerHTML) {
       quillRef.current.root.innerHTML = value;
@@ -77,17 +83,18 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   return (
     <div 
       className={`quill-editor ${error ? 'border-red-500' : 'border-gray-300'} border rounded-lg`}
-      style={{        
-        width: '100%'
-      }}
+      style={{ width: '100%' }}
     >
-      <div 
+      <div
         ref={editorRef}
         style={{ 
           height: `calc(${height} - 42px)`,
           width: '100%'
         }}
       />
+      <div className="text-sm text-gray-500 text-right mt-1 pr-2">
+        {quillRef.current ? `${quillRef.current.getText().trim().length}/${maxLength}` : `0/${maxLength}`}
+      </div>
     </div>
   );
 };
