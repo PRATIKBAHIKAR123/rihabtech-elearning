@@ -27,7 +27,7 @@ export default function BannerSection() {
   // fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await courseApiService.getAllCategories();
+      const data = await courseApiService.getPublicCategories();
       setCategories(data);
     };
     fetchCategories();

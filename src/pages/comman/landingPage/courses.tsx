@@ -79,7 +79,7 @@ export default function Courses() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const fetchedCategories = await courseApiService.getAllCategories();
+        const fetchedCategories = await courseApiService.getPublicCategories();
         console.log('Raw fetched categories:', fetchedCategories);
 
         // Filter categories that should show on home page (isActive and showOnHomePage)
@@ -204,7 +204,7 @@ export default function Courses() {
             null
           )}
         </div>
-        {getFilteredCourses().length == 0 ? (<div className="text-center py-8">
+        {getFilteredCourses().length === 0 ? (<div className="text-center py-8">
               <p className="text-gray-600">No courses available for this category.</p>
             </div>):null}
         <div className="w-full flex justify-center">

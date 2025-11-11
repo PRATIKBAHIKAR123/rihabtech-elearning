@@ -69,11 +69,12 @@ export default function CourseList() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const fetchedCategories = await courseApiService.getAllCategories();
+      const fetchedCategories = await courseApiService.getPublicCategories();
       console.log('Raw fetched categories:', fetchedCategories);
 
       // ✅ find category by ID
-      const category = fetchedCategories.find((c: any) => c.id === categoryId);
+      const categoryIdNumber = categoryId ? parseInt(categoryId, 10) : undefined;
+      const category = fetchedCategories.find((c: any) => c.id === categoryIdNumber);
 
       console.log('Processed category:', category);
       if (category) {

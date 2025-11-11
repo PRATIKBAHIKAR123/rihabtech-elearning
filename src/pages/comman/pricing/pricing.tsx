@@ -69,7 +69,7 @@ export default function Pricing() {
       setPricingPlans(plans);
 
       // Use courseApiService to get categories
-      const categoriesData = await courseApiService.getAllCategories();
+      const categoriesData = await courseApiService.getPublicCategories();
       const categoryOptions = [
         { id: "all", name: "All Categories" },
         ...categoriesData.map((c: Category) => ({ id: c.id.toString(), name: c.title })),
