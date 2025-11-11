@@ -513,10 +513,10 @@ export const CoursesMenu: React.FC = () => {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
   useEffect(() => {
-    courseApiService.getAllCategories().then((data) => {
+    courseApiService.getPublicCategories().then((data) => {
       setCategories(data);
     });
-    courseApiService.getAllSubCategories().then((data) => {
+    courseApiService.getPublicSubCategories().then((data) => {
       setSubCategories(data);
     });
   }, []);
@@ -529,7 +529,7 @@ export const CoursesMenu: React.FC = () => {
       <NavigationMenuContent className="bg-white shadow-lg rounded-md w-full">
         <div className="grid w-[400px] gap-6 p-6 md:w-[600px] md:grid-cols-2">
           {/* Loop through categories */}
-          {categories.map((category) => {
+                  {categories.map((category) => {
             const relatedSubs = subCategories.filter(
               (sub) => sub.categoryId === category.id
             );
@@ -543,12 +543,12 @@ export const CoursesMenu: React.FC = () => {
                   {relatedSubs.map((sub) => (
                     <IconListItem
                       key={sub.id}
-                      title={sub.name}
+                              title={sub.title || sub.name || sub.subCategoryName || 'No title'}
                       href={`#/courselist/${category.id}`} // 🔑 update route as needed
                       icon={null} // or your icon
                     //image={null} // if you have images
                     >
-                      {sub.name}
+                              {sub.title || sub.name || sub.subCategoryName || 'No Courses Available'}
                     </IconListItem>
                   ))}
                 </ul>

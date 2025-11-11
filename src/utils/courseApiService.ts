@@ -18,6 +18,7 @@ export interface SubCategory {
   title?: string;
   subCategoryName?: string;
   categoryId: number;
+  showOnHomePage?: boolean;
 }
 
 export interface CourseUpdateRequest {
@@ -257,6 +258,16 @@ class CourseApiService {
   // Get all subcategories
   async getAllSubCategories(): Promise<SubCategory[]> {
     return apiService.get<SubCategory[]>('/instructor/course/sub-categories');
+  }
+
+  // Get all categories (public endpoint)
+  async getPublicCategories(): Promise<Category[]> {
+    return apiService.get<Category[]>('/course/categories');
+  }
+
+  // Get all subcategories (public endpoint)
+  async getPublicSubCategories(): Promise<SubCategory[]> {
+    return apiService.get<SubCategory[]>('/course/sub-categories');
   }
 
   // Get all courses (public endpoint)
