@@ -26,7 +26,7 @@ const formatPricing = (pricing: string | null | undefined): string => {
 // Interface for API course display
 interface ApiCourseDisplayData extends CourseResponse {
   progress: number;
-  lastModified: Date;
+  modifiedDate?: Date | null;
   visibility: string;
   pricing: string;
   thumbnail?: string | null;
@@ -78,16 +78,28 @@ const CourseSelection = () => {
       // Transform API data to match the UI structure and filter for Draft courses (status: 1)
       const transformedCourses: ApiCourseDisplayData[] = apiCoursesData
         .filter(course => course.status === STATUS_CONSTANTS.DRAFT) // Filter for Draft courses only
-        .map(course => ({
-          ...course,
-          // Calculate progress based on course completion
-          progress: calculateCourseProgress(course),
-          lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
-          visibility: course.visibility || 'N/A', // Default visibility
-          pricing: course.pricing || 'N/A', // Use API pricing or default
-          thumbnail: course.thumbnailUrl,
-          description: course.description || null
-        }));
+        .map(course => {
+          // Convert modifiedDate to Date object if it's a string
+          let modifiedDate: Date | null = null;
+          if (course.modifiedDate) {
+            modifiedDate = course.modifiedDate instanceof Date
+              ? course.modifiedDate
+              : new Date(course.modifiedDate);
+          } else if (course.updatedAt) {
+            modifiedDate = new Date(course.updatedAt);
+          }
+
+          return {
+            ...course,
+            // Calculate progress based on course completion
+            progress: calculateCourseProgress(course),
+            modifiedDate: modifiedDate,
+            visibility: course.visibility || 'N/A', // Default visibility
+            pricing: course.pricing || 'N/A', // Use API pricing or default
+            thumbnail: course.thumbnailUrl,
+            description: course.description || null
+          };
+        });
 
       console.log("Transformed API courses:", transformedCourses);
       setCourses(transformedCourses);
@@ -298,10 +310,14 @@ const CourseSelection = () => {
                     {/* Last Updated */}
                     <div className="p-4 flex flex-col items-center justify-center">
                       <div className="text-xs text-gray-600">
-                        {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {course.modifiedDate && course.modifiedDate instanceof Date && !isNaN(course.modifiedDate.getTime())
+                          ? course.modifiedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : 'N/A'}
                       </div>
                       <div className="text-[10px] text-gray-500">
-                        {course.lastModified.toLocaleDateString('en-US', { year: 'numeric' })}
+                        {course.modifiedDate && course.modifiedDate instanceof Date && !isNaN(course.modifiedDate.getTime())
+                          ? course.modifiedDate.toLocaleDateString('en-US', { year: 'numeric' })
+                          : ''}
                       </div>
                     </div>
 
@@ -364,7 +380,9 @@ const CourseSelection = () => {
                     <div className="mb-3 text-center">
                       <div>
                         <div className="text-sm font-semibold text-gray-900">
-                          {course.lastModified.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {course.modifiedDate && course.modifiedDate instanceof Date && !isNaN(course.modifiedDate.getTime())
+                            ? course.modifiedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : 'N/A'}
                         </div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-wide">Updated</div>
                       </div>

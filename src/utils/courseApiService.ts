@@ -103,6 +103,7 @@ export interface CourseResponse {
   language?: string | null;
   pricing?: string | null;
   visibility?: string | null;
+  modifiedDate?: Date | string | null;
   thumbnailUrl?: string | null;
   promoVideoUrl?: string | null;
   welcomeMessage?: string | null;
