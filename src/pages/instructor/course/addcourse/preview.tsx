@@ -123,12 +123,12 @@ const PreviewCourse = () => {
     }
 
     // compute validations one more time before actually submitting
-    // const { canSubmit, missing } = computeMissingAndCanSubmit();
-    // if (!canSubmit) {
-    //   setMissingRequirements(missing);
-    //   setShowMissingDialog(true);
-    //   return;
-    // }
+    const { canSubmit, missing } = computeMissingAndCanSubmit();
+    if (!canSubmit) {
+      setMissingRequirements(missing);
+      setShowMissingDialog(true);
+      return;
+    }
 
     try {
       console.log('Submitting course for review...', {

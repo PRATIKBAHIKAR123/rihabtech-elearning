@@ -2434,6 +2434,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             className="ins-control-border flex-1 mr-2"
                                                                             type="file"
                                                                             accept="video/*"
+                                                                                style={{
+      display: !item.videoSource || item.videoSource === 'upload' ? 'block' : 'none'
+    }}
                                                                             multiple
                                                                             onChange={async (e) => {
                                                                               const files = Array.from(e.target.files || []);
