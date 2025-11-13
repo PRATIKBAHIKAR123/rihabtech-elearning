@@ -230,6 +230,20 @@ export interface CourseGetAllResponse {
   category?: number | null;
 }
 
+export interface SearchCourseRequest {
+  searchText?: string;
+}
+
+export interface SearchCourseResponse {
+  id: number;
+  title: string;
+  description: string | null;
+  category: string | null;
+  subCategory: string | null;
+  thumbnailUrl: string | null;
+  promoVideoUrl: string | null;
+}
+
 class CourseApiService {
   // Create a new course
   async createCourse(courseData: CourseCreateRequest): Promise<number | CourseResponse> {
@@ -274,6 +288,11 @@ class CourseApiService {
   // Get all courses (public endpoint)
   async getAllPublicCourses(): Promise<CourseGetAllResponse[]> {
     return apiService.post<CourseGetAllResponse[]>('/course/get-all', {});
+  }
+
+  // Search courses (public endpoint)
+  async searchCourses(searchRequest: SearchCourseRequest = {}): Promise<SearchCourseResponse[]> {
+    return apiService.post<SearchCourseResponse[]>('/course/search', searchRequest);
   }
 
   // Publish a course
