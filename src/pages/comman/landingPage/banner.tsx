@@ -1,28 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, List } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import { Button } from "../../../components/ui/button";
-import { Course, getAllCourses } from "../../../utils/firebaseCourses";
-import { courseApiService, Category } from "../../../utils/courseApiService";
+import { courseApiService, Category, SearchCourseResponse } from "../../../utils/courseApiService";
 
 export default function BannerSection() {
   const [searchTxt, setSearchTxt] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<SearchCourseResponse[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-
-  // fetch courses
-  useEffect(() => {
-    const fetchCourses = async () => {
-      const data = await getAllCourses();
-      setCourses(data);
-      setFilteredCourses(data);
-    };
-    fetchCourses();
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // fetch categories
   useEffect(() => {
@@ -33,22 +23,65 @@ export default function BannerSection() {
     fetchCategories();
   }, []);
 
-  // filter courses when typing
+  // Initial load - fetch all courses when component mounts
+  useEffect(() => {
+    const loadAllCourses = async () => {
+      try {
+        setLoading(true);
+        const results = await courseApiService.searchCourses({});
+        setFilteredCourses(results);
+      } catch (error) {
+        console.error("Error loading courses:", error);
+        setFilteredCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllCourses();
+  }, []);
+
+  // Search courses when typing (with debouncing)
   useEffect(() => {
     if (!searchTxt.trim()) {
-      setFilteredCourses(courses);
-    } else {
-      const lower = searchTxt.toLowerCase();
-      setFilteredCourses(
-        courses.filter(
-          (c) =>
-            c.title?.toLowerCase().includes(lower) ||
-            c.category?.toLowerCase().includes(lower) ||
-            c.subcategory?.toLowerCase().includes(lower)
-        )
-      );
+      // If search is empty, show all courses
+      const loadAllCourses = async () => {
+        try {
+          setLoading(true);
+          const results = await courseApiService.searchCourses({});
+          setFilteredCourses(results);
+        } catch (error) {
+          console.error("Error loading courses:", error);
+          setFilteredCourses([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadAllCourses();
+      return;
     }
-  }, [searchTxt, courses]);
+
+    // Perform search with searchText
+    const searchCourses = async () => {
+      try {
+        setLoading(true);
+        const results = await courseApiService.searchCourses({ searchText: searchTxt });
+        setFilteredCourses(results);
+      } catch (error) {
+        console.error("Error searching courses:", error);
+        setFilteredCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce the search
+    const timeoutId = setTimeout(() => {
+      searchCourses();
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTxt]);
 
   return (
     <section className="bg-gradient-to-b from-white to-[#f1f1fb] py-12 md:py-16">
@@ -85,51 +118,96 @@ export default function BannerSection() {
             </Popover>
 
             {/* Search Popover */}
-            <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-              <PopoverTrigger asChild>
-                <div className="relative w-full">
-                  <input
-                    placeholder="What do you want to learn?"
-                    className="outline outline-1 outline-offset-[-1px] outline-[#ff7700] px-4 py-3 w-full"
-                    value={searchTxt}
-                    // onFocus={() => setIsSearchOpen(true)}
-                    onChange={(e) => setSearchTxt(e.target.value)}
-                  />
-                  <Search className="absolute top-1/4 right-4" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-[500px] bg-white p-4 max-h-96 overflow-auto shadow-xl rounded-xl">
-                {filteredCourses.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No courses found</p>
-                ) : (
-                  filteredCourses.map((course, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-4 p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100"
-                      onClick={() => {
-                        window.location.href = `/courseDetails/${course.id}`;
-                        setIsSearchOpen(false);
-                      }}
-                    >
-                      <img
-                        src={course.thumbnailUrl}
-                        alt={course.title}
-                        className="w-24 h-16 object-cover rounded-md"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-                        <p className="text-xs text-gray-600 w-64 truncate mt-1">
-                          {course.description}
-                        </p>
-                      </div>
-                      <div className="text-sm font-medium text-primary mt-1">
-                        {course.pricing}
-                      </div>
+            <div className="relative w-full">
+              <input
+                ref={inputRef}
+                placeholder="What do you want to learn?"
+                className="outline outline-1 outline-offset-[-1px] outline-[#ff7700] px-4 py-3 w-full"
+                value={searchTxt}
+                onFocus={() => setIsSearchOpen(true)}
+                onChange={(e) => {
+                  setSearchTxt(e.target.value);
+                  setIsSearchOpen(true);
+                }}
+                onBlur={(e) => {
+                  // Don't close if clicking on popover content
+                  setTimeout(() => {
+                    const popoverContent = document.querySelector('[role="dialog"]');
+                    if (!popoverContent?.contains(document.activeElement)) {
+                      setIsSearchOpen(false);
+                    }
+                  }, 200);
+                }}
+              />
+              <Search className="absolute top-1/4 right-4 pointer-events-none z-10" />
+              <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                <PopoverTrigger asChild>
+                  <div className="absolute inset-0 pointer-events-none" aria-hidden="true" />
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-[500px] bg-white p-4 max-h-96 overflow-auto shadow-xl rounded-xl"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  align="start"
+                  sideOffset={4}
+                >
+                  {loading ? (
+                    <div className="p-6 text-center">
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <p className="mt-2 text-gray-600 text-sm">Searching...</p>
                     </div>
-                  ))
-                )}
-              </PopoverContent>
-            </Popover>
+                  ) : filteredCourses.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No courses found</p>
+                  ) : (
+                    filteredCourses.map((course, idx) => (
+                      <div
+                        key={course.id || idx}
+                        className="flex items-start gap-4 p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          window.location.href = `#/courseDetails?courseId=${course.id}`;
+                          setIsSearchOpen(false);
+                        }}
+                      >
+                        <div className="w-24 h-16 bg-gray-200 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden">
+                          {course.thumbnailUrl ? (
+                            <img
+                              src={course.thumbnailUrl}
+                              alt={course.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-course.jpg';
+                              }}
+                            />
+                          ) : (
+                            <Search className="w-6 h-6 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{course.title}</h3>
+                          {course.description && (
+                            <p 
+                              className="text-xs text-gray-600 w-64 truncate mt-1"
+                              dangerouslySetInnerHTML={{ __html: course.description }}
+                            />
+                          )}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {course.category && (
+                              <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                {course.category}
+                              </span>
+                            )}
+                            {course.subCategory && (
+                              <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                {course.subCategory}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 
