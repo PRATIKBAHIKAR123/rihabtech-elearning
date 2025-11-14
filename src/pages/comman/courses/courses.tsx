@@ -37,7 +37,7 @@ export default function SuggestedCourses({ courses, currentCourseId }: Suggested
                   window.location.reload();
                 }}>
                 <div className="relative">
-                  <img src={course.thumbnailUrl || "Images/courses/default-course.jpg"} alt={course.title} className="w-full h-40 object-cover" />
+                  <img src={course.thumbnailUrl || "/Logos/brand-icon.png"} alt={course.title} className="w-full h-40 object-cover" />
                   
                 </div>
                 <div className="py-4 flex flex-col gap-2">

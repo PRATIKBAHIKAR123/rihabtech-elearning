@@ -4,6 +4,7 @@ import { auth } from '../lib/firebase';
 
 // Custom user type that includes both Firebase and localStorage user data
 interface CustomUser {
+  Role: number;
   uid: string;
   email: string | null;
   displayName?: string | null;
@@ -49,7 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           UserName: userData.UserName,
           name: userData.name || userData.Name,
           phoneNumber: userData.phoneNumber,
-          address: userData.address
+          address: userData.address,
+          Role: userData.Role || userData.role || 0,
         };
         
         setUser(customUser);
@@ -98,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
+            Role: 0, // Default role for Firebase-only users
           };
           setUser(customUser);
         } else if (!firebaseUser && !localStorage.getItem('token')) {

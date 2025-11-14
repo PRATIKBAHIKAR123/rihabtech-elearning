@@ -104,7 +104,7 @@ const ProfilePhoto = () => {
                 type="button"
                 disabled={uploading}
               >
-                {uploading ? 'Uploading...' : 'Edit Profile'}
+                {uploading ? 'Uploading...' : 'Upload Profile Photo'}
               </button>
               <input
                 type="file"

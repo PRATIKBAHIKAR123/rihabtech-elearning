@@ -13,12 +13,13 @@ import {
   HomepageCourse
 } from '../../utils/learnerHomeService';
 import { toast } from 'sonner';
+import courseApiService, { CourseGetAllResponse } from "../../utils/courseApiService";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<{ Name?: string } | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<HomepageCourse[]>([]);
-  const [recommendedCourses, setRecommendedCourses] = useState<HomepageCourse[]>([]);
+  const [recommendedCourses, setRecommendedCourses] = useState<CourseGetAllResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +64,7 @@ export default function HomePage() {
           toast.warning('Using sample data. Some features may be limited.');
         } else {
           setEnrolledCourses(homeData.enrolledCourses);
-          setRecommendedCourses(homeData.recommendedCourses);
+          // setRecommendedCourses(homeData.recommendedCourses);
           setError(null);
         }
       } catch (error) {
@@ -77,6 +78,24 @@ export default function HomePage() {
         setLoading(false);
       }
     };
+
+        const fetchCourses = async () => {
+          try {
+            setLoading(true);
+            const apiCourses = await courseApiService.getAllPublicCourses();
+            console.log('Fetched API courses:', apiCourses);
+            
+            
+            setRecommendedCourses(apiCourses);
+          } catch (error) {
+            console.error("Error fetching courses:", error);
+            setRecommendedCourses([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+    
+        fetchCourses();
 
     loadHomeData();
   }, [user]);
@@ -97,7 +116,7 @@ export default function HomePage() {
         toast.warning('Failed to load data');
       } else {
         setEnrolledCourses(homeData.enrolledCourses);
-        setRecommendedCourses(homeData.recommendedCourses);
+        // setRecommendedCourses(homeData.recommendedCourses);
         setError(null);
         toast.success('Data refreshed successfully!');
       }
@@ -167,9 +186,9 @@ export default function HomePage() {
             </div>
           ) : enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {enrolledCourses.map((course, index) => (
+              {/* {enrolledCourses.map((course, index) => (
                 <CourseCard key={course.id || index} course={course} progress />
-              ))}
+              ))} */}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -239,7 +258,7 @@ export default function HomePage() {
 
 
 
-function CourseCard({ course, progress = false }: { course: HomepageCourse; progress?: boolean }) {
+function CourseCard({ course, progress = false }: { course: CourseGetAllResponse; progress?: boolean }) {
   return (
     <div className="course-card overflow-hidden" onClick={() => {
       if (course.progress!>0) {
@@ -249,7 +268,12 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
       }
     }}>
       <div className="relative">
-        <img src={course.image} alt={course.title} />
+        {course.thumbnailUrl?(
+        <img src={course.thumbnailUrl} alt={course.title} />
+        ):(
+<img src='/Logos/brand-icon.png' alt={course.title} />
+        )}
+
 
       </div>
 
@@ -258,12 +282,12 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
           <div className="course-students">
             <div className=" py-0.5 flex gap-2 items-center">
               {/* <User2 size={16}/> */}
-              <span>{course.students} Students</span>
+              <span>{course.enrolments} Students</span>
             </div>
             {/* <Divider/> */}
             <div className="py-0.5 flex items-center gap-2">
               {/* <Clock size={16}/> */}
-              <span>{course.duration} Weeks</span>
+              <span>{course.weeks} Weeks</span>
             </div>
           </div>
           <h3 className="course-title">{course.title}</h3>
@@ -283,10 +307,10 @@ function CourseCard({ course, progress = false }: { course: HomepageCourse; prog
         </div>
 
         <div className="course-price-section">
-          {course.price ? (
-            <span className="badge-free">{course.price}</span>
+          {(course.pricing=='free') ? (
+            <span className="badge-free">{course.pricing}</span>
           ) : (
-            <span className="badge-paid">{course.price}</span>
+            <span className="badge-paid">{course.pricing}</span>
           )}
         </div>
       </div>

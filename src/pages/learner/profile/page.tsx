@@ -30,6 +30,8 @@ import {
 import { Button } from "../../../components/ui/button";
 import axiosClient from "../../../utils/axiosClient";
 import { useAuth } from "../../../context/AuthContext";
+import BankDetails from "../../instructor/profile/bankDetails";
+import InstructorApplication from "../../instructor/profile/instructorApplication";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -60,7 +62,7 @@ const Profile = () => {
     window.location.href = "/";
   };
 
-  const sidebarItems = [
+  var sidebarItems = [
     //{ label: 'Public Profile', tab: 'public-Profile' },
     { label: "Overview", tab: "overview" },
     { label: "Profile", tab: "profile" },
@@ -69,12 +71,27 @@ const Profile = () => {
     { label: "Enrolled Courses", tab: "enrolled-courses" },
     { label: "Subscription Management", tab: "subscription-management" },
     { label: "Payment History", tab: "payment-history" },
+    { label: "Intructor Application", tab: "instructor-application" },
+    { label: "Bank Details", tab: "bank-details" },
+    
     // { label: 'Payment Method', tab: 'payment-method' },
     // { label: 'Terms Of Use', tab: 'terms-of-use' },
     //   { label: 'Privacy Policy', tab: 'privacy-policy' },
     //   { label: 'Refund Policy', tab: 'refund-policy' },
     // { label: 'Logout', tab: 'logout' },
   ];
+
+  if(user!.Role!=5){
+    sidebarItems = [
+      { label: "Overview", tab: "overview" },
+    { label: "Profile", tab: "profile" },
+    { label: "Profile Photo", tab: "profile-photo" },
+    { label: "Account & Security", tab: "account&security" },
+    { label: "Enrolled Courses", tab: "enrolled-courses" },
+    { label: "Subscription Management", tab: "subscription-management" },
+    { label: "Payment History", tab: "payment-history" }
+    ]
+  }
 
   return (
     <div className="public-profile-root min-h-screen">
@@ -192,6 +209,8 @@ const Profile = () => {
               />
             )}
             {activeTab == "profile-photo" && <ProfilePhoto />}
+                        {activeTab === 'bank-details' && <BankDetails />}
+                        {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
             {activeTab == "account&security" && <AccountSecurity />}
             {activeTab == "enrolled-courses" && (
               <EnrolledCourses profile={profile} />

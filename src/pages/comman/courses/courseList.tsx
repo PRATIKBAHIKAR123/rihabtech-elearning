@@ -672,7 +672,7 @@ export function CourseCard({ course, progress = false }: {
   const courseDuration = (course as any).weeks || (course as any).duration || 0;
   
   // Get image source - handle both interfaces
-  const imageSrc = (course as any).thumbnailUrl || (course as any).image || "Images/courses/course 4.jpg";
+  const imageSrc = (course as any).thumbnailUrl || (course as any).image || "/Logos/brand-icon.png";
   
   // Debug logging for image source
   console.log('CourseCard - Course data:', course);
@@ -700,7 +700,7 @@ export function CourseCard({ course, progress = false }: {
           alt={course.title}
           onError={(e) => {
             console.error('Image failed to load:', imageSrc);
-            e.currentTarget.src = 'Images/courses/course 4.jpg';
+            e.currentTarget.src = '/Logos/brand-icon.png';
           }}
           onLoad={() => {
             console.log('Image loaded successfully:', imageSrc);

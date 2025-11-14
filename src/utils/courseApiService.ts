@@ -228,6 +228,8 @@ export interface CourseGetAllResponse {
   enrolments: number;
   weeks: number;
   category?: number | null;
+  progress?: number;
+  thumbnailUrl?: string | null;
 }
 
 export interface SearchCourseRequest {

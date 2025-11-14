@@ -256,7 +256,11 @@ const CourseSelection = () => {
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
-                          <BookOpen className="w-5 h-5 text-gray-400" />
+                          <img
+                            src='/Logos/brand-icon.png'
+                            alt={course.title}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
                         )}
                       </div>
                     </div>

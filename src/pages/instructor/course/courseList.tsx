@@ -481,7 +481,11 @@ export default function CourseList() {
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
-                          <BookOpen className="w-5 h-5 text-gray-400" />
+                         <img
+                            src='/Logos/brand-icon.png'
+                            alt={course.title}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
                         )}
                       </div>
                     </div>
@@ -623,19 +627,18 @@ export default function CourseList() {
                         </button>
                       )}
 
-                      {/* Only show more options button if course is not published (since edit is the only action we show in dropdown) */}
-                      {course.status !== COURSE_STATUS.PUBLISHED && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="More Options"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="More Options"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
 
-                          {openDropdownCourseId === course.id && (
-                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                        {openDropdownCourseId === course.id && (
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                            {course.status !== COURSE_STATUS.PUBLISHED && (
                               <button
                                 onClick={() => {
                                   handleEditCourse(course);
@@ -646,33 +649,33 @@ export default function CourseList() {
                                 <Edit3 className="w-3.5 h-3.5 mr-2" />
                                 Edit Course
                               </button>
-                              {/* Delete Course button hidden temporarily */}
-                              {/* <button
+                            )}
+                            {/* Delete Course button hidden temporarily */}
+                            {/* <button
+                              onClick={() => {
+                                handleDeleteCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete Course
+                            </button> */}
+                            {canPublishCourse(course) && (
+                              <button
                                 onClick={() => {
-                                  handleDeleteCourse(course);
+                                  handlePublishCourse(course);
                                   setOpenDropdownCourseId(null);
                                 }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
                               >
-                                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                                Delete Course
-                              </button> */}
-                              {canPublishCourse(course) && (
-                                <button
-                                  onClick={() => {
-                                    handlePublishCourse(course);
-                                    setOpenDropdownCourseId(null);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
-                                >
-                                  <Globe className="w-3.5 h-3.5 mr-2" />
-                                  Publish Course
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                <Globe className="w-3.5 h-3.5 mr-2" />
+                                Publish Course
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -804,19 +807,18 @@ export default function CourseList() {
                         </button>
                       )}
 
-                      {/* Only show more options button if course is not published (since edit is the only action we show in dropdown) */}
-                      {course.status !== COURSE_STATUS.PUBLISHED && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="More Options"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="More Options"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
 
-                          {openDropdownCourseId === course.id && (
-                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                        {openDropdownCourseId === course.id && (
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                            {course.status !== COURSE_STATUS.PUBLISHED && (
                               <button
                                 onClick={() => {
                                   handleEditCourse(course);
@@ -827,33 +829,33 @@ export default function CourseList() {
                                 <Edit3 className="w-3.5 h-3.5 mr-2" />
                                 Edit Course
                               </button>
-                              {/* Delete Course button hidden temporarily */}
-                              {/* <button
+                            )}
+                            {/* Delete Course button hidden temporarily */}
+                            {/* <button
+                              onClick={() => {
+                                handleDeleteCourse(course);
+                                setOpenDropdownCourseId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete Course
+                            </button> */}
+                            {canPublishCourse(course) && (
+                              <button
                                 onClick={() => {
-                                  handleDeleteCourse(course);
+                                  handlePublishCourse(course);
                                   setOpenDropdownCourseId(null);
                                 }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
                               >
-                                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                                Delete Course
-                              </button> */}
-                              {canPublishCourse(course) && (
-                                <button
-                                  onClick={() => {
-                                    handlePublishCourse(course);
-                                    setOpenDropdownCourseId(null);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
-                                >
-                                  <Globe className="w-3.5 h-3.5 mr-2" />
-                                  Publish Course
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                <Globe className="w-3.5 h-3.5 mr-2" />
+                                Publish Course
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

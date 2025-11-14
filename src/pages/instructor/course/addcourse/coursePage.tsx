@@ -46,6 +46,7 @@ export function CourseLandingPage({ onSubmit }: any) {
   const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showImageGuidelines, setShowImageGuidelines] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
@@ -76,14 +77,27 @@ export function CourseLandingPage({ onSubmit }: any) {
     category: Yup.string().required("Category is required"),
     subcategory: Yup.string().required("Subcategory is required"),
     primaryTopic: Yup.string(),
-    thumbnail: Yup.mixed().test(
-      "thumbnail-required",
-      "Course image is required",
-      function (value) {
-        // If a file is uploaded or a Cloudinary URL exists, pass
-        return !!value || !!this.parent.thumbnailUrl;
+    thumbnail: Yup.mixed().nullable()
+    .test('thumbnail-required', 'Course image is required', function (value) {
+      // if thumbnailUrl exists, treat as valid
+      if (this.parent && this.parent.thumbnailUrl) return true;
+      // otherwise require a file
+      return !!value;
+    })
+    .test('thumbnail-size', 'File size must be less than 5 MB', function (value) {
+      if (!value) return true; // no file -> handled by required test
+      // value may be a File (browser) or something else. Protect with instanceof.
+      if (!(value instanceof File)) {
+        // if it's a string (url), allow it (handled by thumbnailUrl check), otherwise fail
+        return typeof value === 'string' ? true : false;
       }
-    ),
+      return value.size <= 5 * 1024 * 1024;
+    })
+    .test('thumbnail-type', 'Unsupported file type', function (value) {
+      if (!value) return true;
+      if (!(value instanceof File)) return true;
+      return /^(image\/jpeg|image\/jpg|image\/png|image\/gif)$/.test(value.type);
+    }),
     promoVideo: Yup.mixed().nullable(),
   });
 
@@ -316,13 +330,35 @@ export function CourseLandingPage({ onSubmit }: any) {
   }, [courseData, categories]);
 
   // Handlers for file/image/video
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setThumbnailImage(URL.createObjectURL(e.target.files[0]));
-      setThumbnailFile(e.target.files[0]);
-      formik.setFieldValue("thumbnail", e.target.files[0]);
-    }
-  };
+const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0] ?? null;
+  if (!file) {
+    // no file chosen
+    formik.setFieldValue('thumbnail', null);
+    formik.setFieldError('thumbnail', undefined);
+    setThumbnailImage(null);
+    return;
+  }
+
+  // QUICK FRONT-END GUARD: reject >5MB early and show error immediately
+  const MAX_BYTES = 5 * 1024 * 1024;
+  if (file.size > MAX_BYTES) {
+    formik.setFieldValue('thumbnail', null);
+    formik.setFieldError('thumbnail', 'File size must be less than 5 MB');
+    setThumbnailImage(null);
+    e.target.value = ''; // reset input so user can re-select
+    return;
+  }
+
+  // Accept file: clear previous form error and set value
+  formik.setFieldError('thumbnail', undefined);
+  formik.setFieldValue('thumbnail', file);
+  setThumbnailFile(file);
+  setThumbnailImage(URL.createObjectURL(file));
+
+  // Trigger validation if you need immediate validation run:
+  // formik.validateField('thumbnail');
+};
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -522,12 +558,16 @@ export function CourseLandingPage({ onSubmit }: any) {
               />
             )}
             <div className="text-primary text-sm text-center font-medium font-['Nunito']">
-              Upload your course image here. It must meet our{' '}
-              <a href="#" className="text-blue-500 underline">
-                course image quality standards
-              </a>{' '}
-              to be accepted. Important guidelines: 750x422 pixels; .jpg, .jpeg, .gif, or .png. no text on the image.
-            </div>
+  Upload your course image here. It must meet our{' '}
+  <button
+    type="button"
+    onClick={() => setShowImageGuidelines(true)}
+    className="text-blue-500 underline"
+  >
+    course image quality standards
+  </button>{' '}
+  to be accepted. Important guidelines: Below 5MB 750x422 pixels; .jpg, .jpeg, .gif, or .png. No text on the image.
+</div>
             <input
               type="file"
               accept="image/*"
@@ -589,6 +629,28 @@ export function CourseLandingPage({ onSubmit }: any) {
         </div>
         {uploadError && <div className="text-red-500 text-xs mt-2">{uploadError}</div>}
       </div>
+      {showImageGuidelines && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]">
+    <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-xl relative">
+      <h2 className="text-lg font-semibold mb-3">Course Image Quality Standards</h2>
+
+      <ul className="list-disc pl-5 text-sm space-y-2">
+        <li>File size must be below <strong>5MB</strong></li>
+        <li>Resolution should be <strong>750 × 422 px</strong></li>
+        <li>Accepted formats: <strong>.jpg, .jpeg, .gif, .png</strong></li>
+        <li>No text, watermarks, or logos on the image</li>
+        <li>Use high-contrast, clean, and professional visuals</li>
+      </ul>
+
+      <button
+        onClick={() => setShowImageGuidelines(false)}
+        className="mt-6 bg-primary text-white px-4 py-2 rounded hover:opacity-90 w-full"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
     </form>
   );
 }

@@ -143,12 +143,12 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
             <p className="text-gray-600 mb-2">
               {profile?.emailId || "user@example.com"}
             </p>
-            <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                 <CheckCircle className="w-4 h-4 mr-1" />
                 Active
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

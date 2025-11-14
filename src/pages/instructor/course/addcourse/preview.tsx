@@ -236,7 +236,7 @@ const PreviewCourse = () => {
     // if (!course.instructorDescription && !(landing.instructorDescription)) landingMissing.push('Have an instructor description with at least 50 words');
     if (!course.category && !landing.category) landingMissing.push('Select the category of your course');
     if (!course.level && !landing.level) landingMissing.push('Select the level of your course');
-    if (!course.subcategory && !landing.subcategory) landingMissing.push('Select the subcategory of your course');
+    if (!course.subCategory && !landing.subCategory) landingMissing.push('Select the subcategory of your course');
     if (!course.learn && course.learn.length<=0) landingMissing.push('Select what is primarily taught in your course');
     if (!course.thumbnailUrl && !landing.thumbnailUrl) landingMissing.push('Upload a course image');
     if (landingMissing.length > 0) missing['Course landing page'] = landingMissing;
@@ -591,11 +591,11 @@ const PreviewCourse = () => {
 
       <div className="mt-8 flex flex-col items-end gap-3">
         {/* Validation warning commented out for now */}
-        {/* {Object.keys(missingRequirements).length > 0 && (
+        {Object.keys(missingRequirements).length > 0 && (
           <div className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-100 rounded px-3 py-2">
             You cannot submit yet. {Object.keys(missingRequirements).length} sections have missing items. Click "Submit for Review" to see details.
           </div>
-        )} */}
+        )}
         <div className="flex items-center gap-3">
           <Button
             className="bg-primary text-white px-6 py-2 rounded shadow-lg"

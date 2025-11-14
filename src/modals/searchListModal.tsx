@@ -188,11 +188,15 @@ export default function SearchWithPopup() {
                           alt={result.course.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/placeholder-course.jpg';
+                            (e.target as HTMLImageElement).src = '/Logos/brand-icon.png';
                           }}
                         />
                       ) : (
-                        <Search className="w-6 h-6 text-gray-400" />
+                        <img
+                          src='/Logos/brand-icon.png'
+                          alt={result.course.title}
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
