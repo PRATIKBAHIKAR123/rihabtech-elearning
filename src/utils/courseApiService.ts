@@ -114,9 +114,9 @@ export interface CourseResponse {
   createdAt?: string;
   updatedAt?: string;
   earnings?: number | null;
-  ratings?: number | null;
+  rating?: number | null;
   ratingScore?: number | null;
-  enrollments?: number | null;
+  enrollment?: number | null;
   status?: number | null;
   instructorId?: string | null;
   progress?: number;

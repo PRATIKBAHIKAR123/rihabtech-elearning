@@ -9,8 +9,8 @@ import { getStatusById, getStatusColor, COURSE_STATUS } from "../../../constants
 // Interface for API course display
 export interface ApiCourseDisplayData extends CourseResponse {
   earnings: number;
-  enrollments: number;
-  ratings: number;
+  enrollment: number;
+  rating: number;
   ratingScore: number;
   progress: number;
   lastModified: Date;
@@ -27,8 +27,8 @@ export interface CourseDisplayData {
   title: string;
   description?: string | null;
   earnings?: number;
-  enrollments?: number;
-  ratings?: number;
+  enrollment?: number;
+  rating?: number;
   ratingScore?: number;
   progress?: number;
   lastModified?: Date | string;
@@ -130,8 +130,8 @@ export default function CourseList() {
         ...course,
         // Add mock data for display purposes
         earnings: course.earnings || 0, // Random earnings
-        enrollments: course.enrollments || 0, // Random enrollments
-        ratings: course.ratings || 0, // Random ratings
+        enrollment: course.enrollment || 0, // Random enrollment
+        rating: course.rating || 0, // Random rating
         ratingScore: course.ratingScore || 0, // Default rating
         progress: calculateCourseProgress(course), // Calculate progress from curriculum
         lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
@@ -532,7 +532,7 @@ export default function CourseList() {
                     {/* Enrollments */}
                     <div className="p-4 flex flex-col items-center justify-center">
                       <div className="text-lg font-semibold text-gray-900">
-                        {course.enrollments || 0}
+                        {course.enrollment || 0}
                       </div>
                       <div className="text-[10px] text-gray-500 uppercase tracking-wide">
                         Enrollments
@@ -542,16 +542,39 @@ export default function CourseList() {
                     {/* Rating */}
                     <div className="p-4 flex flex-col items-center justify-center">
                       <div className="flex items-center gap-0.5 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={12}
-                            className={`${i < Math.floor(course.ratingScore || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                          />
-                        ))}
+                        {[...Array(5)].map((_, i) => {
+                          const rating = course.rating || 0;
+                          const isFilled = rating >= i + 1;
+                          const isPartial = rating > i && rating < i + 1;
+                          
+                          return (
+                            <div key={i} className="relative inline-block" style={{ width: '12px', height: '12px' }}>
+                              {/* Gray background star */}
+                              <Star
+                                size={12}
+                                className="text-gray-300 absolute top-0 left-0"
+                              />
+                              {/* Yellow foreground star */}
+                              {(isFilled || isPartial) && (
+                                <div 
+                                  className="absolute top-0 left-0 overflow-hidden"
+                                  style={{ 
+                                    width: isPartial ? `${((rating - i) * 100)}%` : '100%',
+                                    height: '100%',
+                                  }}
+                                >
+                                  <Star
+                                    size={12}
+                                    className="fill-yellow-400 text-yellow-400"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="text-[10px] text-gray-500">
-                        {course.ratings || 0} ratings
+                        {course.rating ? course.rating.toFixed(1) : '0.0'} rating
                       </div>
                     </div>
 
@@ -697,20 +720,45 @@ export default function CourseList() {
 
                     <div className="grid grid-cols-3 gap-4 mb-3 text-center">
                       <div>
-                        <div className="text-lg font-semibold text-gray-900">{course.enrollments || 0}</div>
+                        <div className="text-lg font-semibold text-gray-900">{course.enrollment || 0}</div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-wide">Enrollments</div>
                       </div>
                       <div>
                         <div className="flex items-center justify-center gap-0.5 mb-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={10}
-                              className={`${i < Math.floor(course.ratingScore || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                            />
-                          ))}
+                          {[...Array(5)].map((_, i) => {
+                            const rating = course.rating || 0;
+                            const isFilled = rating >= i + 1;
+                            const isPartial = rating > i && rating < i + 1;
+                            
+                            return (
+                              <div key={i} className="relative inline-block" style={{ width: '10px', height: '10px' }}>
+                                {/* Gray background star */}
+                                <Star
+                                  size={10}
+                                  className="text-gray-300 absolute top-0 left-0"
+                                />
+                                {/* Yellow foreground star */}
+                                {(isFilled || isPartial) && (
+                                  <div 
+                                    className="absolute top-0 left-0 overflow-hidden"
+                                    style={{ 
+                                      width: isPartial ? `${((rating - i) * 100)}%` : '100%',
+                                      height: '100%',
+                                    }}
+                                  >
+                                    <Star
+                                      size={10}
+                                      className="fill-yellow-400 text-yellow-400"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="text-[10px] text-gray-500">{course.ratings || 0} ratings</div>
+                        <div className="text-[10px] text-gray-500">
+                          {course.rating ? course.rating.toFixed(1) : '0.0'} rating
+                        </div>
                       </div>
                       <div>
                         <div className="text-lg font-semibold text-gray-900">
