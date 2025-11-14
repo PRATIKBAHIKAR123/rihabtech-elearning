@@ -593,13 +593,15 @@ export default function CourseList() {
 
                     {/* Actions */}
                     <div className="p-4 flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => handleEditCourse(course)}
-                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
-                        title="Edit Course"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                      {course.status !== COURSE_STATUS.PUBLISHED && (
+                        <button
+                          onClick={() => handleEditCourse(course)}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Edit Course"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       {canSubmitForReview(course) && (
                         <button
@@ -632,16 +634,18 @@ export default function CourseList() {
 
                         {openDropdownCourseId === course.id && (
                           <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                            <button
-                              onClick={() => {
-                                handleEditCourse(course);
-                                setOpenDropdownCourseId(null);
-                              }}
-                              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 mr-2" />
-                              Edit Course
-                            </button>
+                            {course.status !== COURSE_STATUS.PUBLISHED && (
+                              <button
+                                onClick={() => {
+                                  handleEditCourse(course);
+                                  setOpenDropdownCourseId(null);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 mr-2" />
+                                Edit Course
+                              </button>
+                            )}
                             {/* Delete Course button hidden temporarily */}
                             {/* <button
                               onClick={() => {
@@ -769,13 +773,15 @@ export default function CourseList() {
                     </div>
 
                     <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEditCourse(course)}
-                        className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
-                        title="Edit Course"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                      {course.status !== COURSE_STATUS.PUBLISHED && (
+                        <button
+                          onClick={() => handleEditCourse(course)}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Edit Course"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       {canSubmitForReview(course) && (
                         <button
@@ -808,16 +814,18 @@ export default function CourseList() {
 
                         {openDropdownCourseId === course.id && (
                           <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                            <button
-                              onClick={() => {
-                                handleEditCourse(course);
-                                setOpenDropdownCourseId(null);
-                              }}
-                              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 mr-2" />
-                              Edit Course
-                            </button>
+                            {course.status !== COURSE_STATUS.PUBLISHED && (
+                              <button
+                                onClick={() => {
+                                  handleEditCourse(course);
+                                  setOpenDropdownCourseId(null);
+                                }}
+                                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 mr-2" />
+                                Edit Course
+                              </button>
+                            )}
                             {/* Delete Course button hidden temporarily */}
                             {/* <button
                               onClick={() => {
