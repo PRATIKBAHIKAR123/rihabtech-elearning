@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Star, ChevronDown, Edit3, MoreHorizontal, BookOpen, Send, Globe } from "lucide-react";
+import { Search, Star, ChevronDown, Edit3, MoreHorizontal, Send, Globe } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
@@ -473,18 +473,21 @@ export default function CourseList() {
 
                     {/* Thumbnail */}
                     <div className="p-4 flex items-center justify-center">
-                      <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden relative">
                         {course.thumbnail ? (
                           <img
                             src={course.thumbnail}
                             alt={course.title}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/Logos/brand-icon.png';
+                            }}
                           />
                         ) : (
-                         <img
+                          <img
                             src='/Logos/brand-icon.png'
                             alt={course.title}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="absolute inset-0 w-full h-full object-contain rounded-lg p-2"
                           />
                         )}
                       </div>
@@ -684,11 +687,20 @@ export default function CourseList() {
                     <div className="flex gap-3 mb-3">
                       <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative overflow-hidden">
                         {course.thumbnail ? (
-                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded-lg" />
+                          <img 
+                            src={course.thumbnail} 
+                            alt={course.title} 
+                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/Logos/brand-icon.png';
+                            }}
+                          />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-gray-400" />
-                          </div>
+                          <img
+                            src='/Logos/brand-icon.png'
+                            alt={course.title}
+                            className="absolute inset-0 w-full h-full object-contain rounded-lg p-2"
+                          />
                         )}
                       </div>
 
