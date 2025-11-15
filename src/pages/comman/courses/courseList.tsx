@@ -313,7 +313,7 @@ export default function CourseList() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 mt-2 mb-6">
                       {displayedCourses.map((course, index) => (
                         <CourseCard key={course.id} course={course} />
                       ))}
@@ -674,72 +674,117 @@ export function CourseCard({ course, progress = false }: {
   // Get image source - handle both interfaces
   const imageSrc = (course as any).thumbnailUrl || (course as any).image || "/Logos/brand-icon.png";
   
-  // Debug logging for image source
-  console.log('CourseCard - Course data:', course);
-  console.log('CourseCard - Image source:', imageSrc);
-  console.log('CourseCard - thumbnailUrl:', (course as any).thumbnailUrl);
-  console.log('CourseCard - image:', (course as any).image);
-  
   // Get pricing - handle both interfaces
   const pricing = (course as any).pricing || (course as any).price;
   const isFree = pricing === "free" || pricing === null || pricing === "" || pricing === 0;
   
+  // Strip HTML tags from description for preview (keep only text)
+  const stripHtml = (html: string) => {
+    if (!html) return "";
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+  
+  const descriptionText = stripHtml(course.description || "");
+  const truncatedDescription = descriptionText.length > 120 
+    ? descriptionText.substring(0, 120) + "..." 
+    : descriptionText;
+  
+  // Format student count
+  const formatStudentCount = (count: number) => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
+  
   return (
-    <div className="course-card overflow-hidden" onClick={() => {
-      // if(course.progress?course.progress>0:false){
-      //   window.location.href = `#learner/current-course/?courseId=${course.id}`;
-      // }else{
-        // Navigate to course details with the course ID
+    <div 
+      className="course-card overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg" 
+      onClick={() => {
         window.location.hash = `#/courseDetails?courseId=${course.id}`;
         window.location.reload();
-      // }
-    }}>
-      <div className="relative">
+      }}
+    >
+      {/* Course Image */}
+      <div className="relative overflow-hidden bg-gray-200 h-40 flex-shrink-0">
         <img 
           src={imageSrc} 
           alt={course.title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          style={{ minHeight: '10rem', maxHeight: '10rem' }}
           onError={(e) => {
-            console.error('Image failed to load:', imageSrc);
             e.currentTarget.src = '/Logos/brand-icon.png';
           }}
-          onLoad={() => {
-            console.log('Image loaded successfully:', imageSrc);
-          }}
         />
+        {/* Pricing Badge on Image */}
+        <div className="absolute top-2 right-2 z-10">
+          {isFree ? (
+            <span className="badge-free-small">Free</span>
+          ) : (
+            <span className="badge-paid-small">Paid</span>
+          )}
+        </div>
       </div>
 
+      {/* Course Details */}
       <div className="course-details-section">
         <div className="course-content">
-          <div className="course-students">
-            <div className=" py-0.5 flex gap-2 items-center">
-              <span>{studentCount} Students</span>
-            </div>
-            <div className="py-0.5 flex items-center gap-2">
-              <span>{courseDuration} Weeks</span>
+          {/* Course Meta Info */}
+          <div className="course-students mb-2">
+            <div className="flex items-center gap-4 text-xs text-[#666666]">
+              <div className="flex items-center gap-1">
+                <User2 size={14} />
+                <span>{formatStudentCount(studentCount)} Students</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BookOpen size={14} />
+                <span>{courseDuration} {courseDuration === 1 ? 'Week' : 'Weeks'}</span>
+              </div>
             </div>
           </div>
-          <h3 className="course-title">{course.title}</h3>
-          <div className="course-desciption" dangerouslySetInnerHTML={{ __html: course.description || "" }}></div>
+          
+          {/* Course Title */}
+          <h3 className="course-title mb-2 group-hover:text-primary transition-colors duration-200">
+            {course.title}
+          </h3>
+          
+          {/* Course Description */}
+          {descriptionText && (
+            <p className="course-desciption mb-3">
+              {truncatedDescription}
+            </p>
+          )}
 
+          {/* Progress Bar (if applicable) */}
           {progress && (course as any).progress && (
-            <div className="course-progress">
+            <div className="course-progress mb-3">
               <div className="course-progress-bar">
                 <div
                   className="progress-completed"
                   style={{ width: `${(course as any).progress}%` }}
-                ></div><div className="progress-dot" />
+                ></div>
+                <div className="progress-dot" />
               </div>
               <div className="progress-text-completed">{(course as any).progress}% Completed</div>
             </div>
           )}
         </div>
 
-        <div className="course-price-section">
-          {isFree ? (
-            <span className="badge-free">Free</span>
-          ) : (
-            <span className="badge-paid">Paid</span>
-          )}
+        {/* Course Price Section */}
+        <div className="course-price-section mt-auto pt-3 border-t border-gray-100">
+          <div className="flex items-center justify-between w-full">
+            {isFree ? (
+              <span className="badge-free text-sm">Free Course</span>
+            ) : (
+              <span className="badge-paid text-sm">View Details</span>
+            )}
+            <ChevronRight 
+              size={18} 
+              className="text-[#666666] group-hover:text-primary transition-colors duration-200 flex-shrink-0" 
+            />
+          </div>
         </div>
       </div>
     </div>
