@@ -27,6 +27,7 @@ import InstructorSignupSuccess from "./pages/auth/instructorSignupSuccess";
 import VerifyResetOtpPage from "./pages/auth/verify-reset-otp";
 import ResetPasswordPage from "./pages/auth/reset-password";
 import { SubscriptionProvider } from "./context/subscriptionContext";
+import Profile from "./pages/learner/profile/page";
 
 function App() {
   useEffect(() => {
@@ -147,6 +148,16 @@ function App() {
             <CommanLayout>
               <InstructorDetailsPage />
             </CommanLayout>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <CommanLayout>
+                <Profile />
+              </CommanLayout>
+            </ProtectedRoute>
           }
         />
         <Route

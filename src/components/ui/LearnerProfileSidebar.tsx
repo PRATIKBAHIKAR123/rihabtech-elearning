@@ -2,12 +2,12 @@ import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 
 const sidebarItems = [
-  { label: 'Public Profile', path: '/learner/profile/public-profile' },
-  { label: 'Profile', path: '/learner/profile' },
-  { label: 'Profile Photo', path: '/learner/profile/profile-photo' },
-  { label: 'Account & Security', path: '/learner/profile/account&security' },
-  { label: 'Payment Method', path: '/learner/profile/payment-method' },
-  { label: 'Terms Of Use', path: '/learner/profile/terms-of-use' },
+  { label: 'Public Profile', path: '/profile' },
+  { label: 'Profile', path: '/profile' },
+  { label: 'Profile Photo', path: '/profile' },
+  { label: 'Account & Security', path: '/profile' },
+  { label: 'Payment Method', path: '/profile' },
+  { label: 'Terms Of Use', path: '/profile' },
 ];
 
 const LearnerProfileSidebar = () => {
@@ -46,7 +46,7 @@ const LearnerProfileSidebar = () => {
             </Link>
           ))}
           <Link
-            to="/learner/profile/logout"
+            to="/profile"
             className="
               flex-shrink-0
               px-4 md:px-6 py-3 md:py-4

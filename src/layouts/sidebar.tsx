@@ -41,7 +41,7 @@ import {  X } from 'lucide-react';
   
         {/* Nav Menu */}
        {isLearnerPath && <nav className="mt-4 px-4 space-y-2 text-sm">
-  <MobileSidebarItem text="Profile" route='#/learner/profile' onClose={onClose} />
+  <MobileSidebarItem text="Profile" route='#/profile' onClose={onClose} />
   <MobileSidebarItem text="My Learnings" route='#/learner/my-learnings' hasDropdown onClose={onClose} />
 </nav>}
 

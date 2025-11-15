@@ -11,7 +11,7 @@ const profileMenuList = [
     title: "Profile",
     description: "Learner's Profile",
     icon: <User className="w-6 h-6 text-orange-500" />,
-    path: "/#/learner/profile",
+    path: "/#/profile",
   },
   // {
   //   title: "Terms",

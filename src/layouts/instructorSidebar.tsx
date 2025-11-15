@@ -13,7 +13,7 @@ const Sidebar = () => {
         <SidebarItem icon={<BarChartBig />} text="Performance" route='#/instructor/dashboard' />
         <SidebarItem icon={<UsersIcon />} text="Groups" route='#/instructor/groups' />
         <SidebarItem icon={<UserIcon />} text="Students" route='#/instructor/students' />
-        <SidebarItem icon={<ProfileIcon />} text="Profile" route='#/instructor/profile' />
+        <SidebarItem icon={<ProfileIcon />} text="Profile" route='#/profile' />
         <SidebarItem icon={<LucideMessageCircleQuestion />} text="Support" route='#/instructor/support' />
       </nav>
     </div>
@@ -130,7 +130,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, badge, route }) =
           <MobileSidebarItem text="Performance" route='#/instructor/dashboard' hasDropdown />
           <MobileSidebarItem text="Students" route='#/instructor/students' />
           <MobileSidebarItem text="Groups" route='#/instructor/groups' />
-          <MobileSidebarItem text="Profile" route='#/instructor/profile' />
+          <MobileSidebarItem text="Profile" route='#/profile' />
         </nav>
       </div>
     );

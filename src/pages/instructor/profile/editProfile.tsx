@@ -11,13 +11,14 @@ import 'react-phone-input-2/lib/style.css';
 
 interface InstructorEditProfileProps {
   user: any;
+  profile?: any; // Optional profile prop - if provided, skip API call
 }
 
-const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user }) => {
+const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, profile: initialProfile }) => {
   const [phoneCountry, setPhoneCountry] = useState('IN');
   const [success, setSuccess] = useState('');
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(initialProfile || null);
+  const [loading, setLoading] = useState(!initialProfile); // Only loading if profile not provided
   const [error, setError] = useState('');
 
   // Update form values when profile data is loaded
@@ -41,8 +42,15 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user }) =
     }
   }, [profile]);
 
-  // Fetch profile data from API
+  // Fetch profile data from API only if not provided as prop
   useEffect(() => {
+    // If profile is already provided, skip API call
+    if (initialProfile) {
+      setProfile(initialProfile);
+      setLoading(false);
+      return;
+    }
+
     const fetchProfile = async () => {
       setLoading(true);
       setError('');
@@ -82,7 +90,7 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user }) =
     if (user?.AccessToken) {
       fetchProfile();
     }
-  }, [user]);
+  }, [user, initialProfile]); // Add initialProfile to dependencies
 
   const formik = useFormik({
     initialValues: {

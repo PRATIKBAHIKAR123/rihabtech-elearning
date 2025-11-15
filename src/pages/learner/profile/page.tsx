@@ -2,7 +2,7 @@ import LearnerProfileSidebar from "../../../components/ui/LearnerProfileSidebar"
 import GradientHeader from "../../../components/ui/GradientHeader";
 import PublicProfile from "./public-profile";
 import EditProfile from "./profile";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import LoadingIcon from "../../../components/ui/LoadingIcon";
 import ProfilePhoto from "./profile-photo";
 import AccountSecurity from "./account&security";
@@ -32,6 +32,7 @@ import axiosClient from "../../../utils/axiosClient";
 import { useAuth } from "../../../context/AuthContext";
 import BankDetails from "../../instructor/profile/bankDetails";
 import InstructorApplication from "../../instructor/profile/instructorApplication";
+import InstructorEditProfile from "../../instructor/profile/editProfile";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -62,46 +63,94 @@ const Profile = () => {
     window.location.href = "/";
   };
 
-  var sidebarItems = [
-    //{ label: 'Public Profile', tab: 'public-Profile' },
+  // Base sidebar items for all users
+  const baseSidebarItems = [
     { label: "Overview", tab: "overview" },
     { label: "Profile", tab: "profile" },
     { label: "Profile Photo", tab: "profile-photo" },
     { label: "Account & Security", tab: "account&security" },
+  ];
+
+  // Student-only items (Role 4) - These are required for students
+  const studentSidebarItems = [
     { label: "Enrolled Courses", tab: "enrolled-courses" },
     { label: "Subscription Management", tab: "subscription-management" },
     { label: "Payment History", tab: "payment-history" },
-    { label: "Intructor Application", tab: "instructor-application" },
+    { label: "Instructor Application", tab: "instructor-application" },
     { label: "Bank Details", tab: "bank-details" },
-    
-    // { label: 'Payment Method', tab: 'payment-method' },
-    // { label: 'Terms Of Use', tab: 'terms-of-use' },
-    //   { label: 'Privacy Policy', tab: 'privacy-policy' },
-    //   { label: 'Refund Policy', tab: 'refund-policy' },
-    // { label: 'Logout', tab: 'logout' },
   ];
 
-  if(user!.Role!=5){
-    sidebarItems = [
-      { label: "Overview", tab: "overview" },
-    { label: "Profile", tab: "profile" },
-    { label: "Profile Photo", tab: "profile-photo" },
-    { label: "Account & Security", tab: "account&security" },
-    { label: "Enrolled Courses", tab: "enrolled-courses" },
-    { label: "Subscription Management", tab: "subscription-management" },
-    { label: "Payment History", tab: "payment-history" }
-    ]
-  }
+  // Instructor-only items (Role 5) - Additional items for instructors
+  // Note: Some items like "Bank Details" and "Instructor Application" may overlap with studentSidebarItems
+  const instructorSidebarItems: Array<{ label: string; tab: string }> = [
+    // Currently no unique instructor-only items, but kept for future use
+    // Bank Details and Instructor Application are already in studentSidebarItems
+  ];
+
+  // Get user role (Role 4 = Student/Learner, Role 5 = Instructor)
+  // Default to 4 (Student) if user is null or Role is undefined
+  const userRole = useMemo(() => {
+    if (!user) return 4; // Default to student
+    return (user.Role !== undefined && user.Role !== null) ? user.Role : 4;
+  }, [user]);
+
+  const isInstructor = userRole === 5;
+  const isStudent = !isInstructor; // Default to student if not instructor
+
+  // Build sidebar items based on role:
+  // - Role 4 (Student): Show base items + student items only
+  // - Role 5 (Instructor): Show base items + student items + instructor items (all combined, deduplicated)
+  const sidebarItems = useMemo(() => {
+    let items;
+    if (userRole === 5) {
+      // Instructor (Role 5): Show base + student + instructor items (all combined)
+      // Combine all items and remove duplicates based on tab value
+      const allItems = [...baseSidebarItems, ...studentSidebarItems, ...instructorSidebarItems];
+      const uniqueItems = allItems.filter((item, index, self) => 
+        index === self.findIndex((t) => t.tab === item.tab)
+      );
+      items = uniqueItems;
+    } else {
+      // Student (Role 4) or default: Show only base + student items
+      items = [...baseSidebarItems, ...studentSidebarItems];
+    }
+    
+    console.log('Building sidebar items:', {
+      userRole,
+      isInstructor,
+      isStudent,
+      userRoleValue: user?.Role,
+      itemsCount: items.length,
+      items: items.map(item => item.label),
+      studentItems: studentSidebarItems.map(item => item.label),
+      instructorItems: instructorSidebarItems.map(item => item.label)
+    });
+    
+    return items;
+  }, [isInstructor, isStudent, userRole, user]);
+
+  // Debug: Log sidebar items to verify they're being set correctly
+  useEffect(() => {
+    console.log('Profile Sidebar Debug:', {
+      userRole,
+      isInstructor,
+      isStudent,
+      userExists: !!user,
+      userRoleValue: user?.Role,
+      sidebarItemsCount: sidebarItems.length,
+      sidebarItems: sidebarItems.map(item => item.label)
+    });
+  }, [user, userRole, isInstructor, isStudent, sidebarItems]);
 
   return (
     <div className="public-profile-root min-h-screen">
       <GradientHeader
-        subtitle="My Profile / Learner"
+        subtitle={`My Profile / ${isInstructor ? "Instructor" : "Learner"}`}
         title={
           loading ? (
             <LoadingIcon className="inline-block" />
           ) : (
-            profile?.name || "My Profile"
+            profile?.name || user?.name || user?.displayName || "My Profile"
           )
         }
       />
@@ -119,37 +168,41 @@ const Profile = () => {
             scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100
           "
               >
-                {sidebarItems.map((item, index) => (
-                  <a
-                    key={item.label}
-                    onClick={() => setActiveTab(item.tab)}
-                    className={`
-                flex-shrink-0
-                px-4 md:px-6 py-3 md:py-4
-                text-base font-barlow transition-colors duration-150
-                ${
-                  activeTab === item.tab
-                    ? "text-primary font-bold bg-[#fff7ef]"
-                    : "text-[#222] font-medium hover:bg-[#f8f8f8]"
-                }
-                ${
-                  index !== sidebarItems.length - 1
-                    ? "md:border-b md:border-[#eee]"
-                    : ""
-                }
-                ${
-                  index !== sidebarItems.length - 1
-                    ? "border-r border-[#eee] md:border-r-0"
-                    : ""
-                }
-                text-center md:text-left
-                min-w-[140px] md:min-w-0
-                cursor-pointer
-              `}
-                  >
-                    {item.label}
-                  </a>
-                ))}
+                {sidebarItems && sidebarItems.length > 0 ? (
+                  sidebarItems.map((item, index) => (
+                    <a
+                      key={`${item.tab}-${index}`}
+                      onClick={() => setActiveTab(item.tab)}
+                      className={`
+                  flex-shrink-0
+                  px-4 md:px-6 py-3 md:py-4
+                  text-base font-barlow transition-colors duration-150
+                  ${
+                    activeTab === item.tab
+                      ? "text-primary font-bold bg-[#fff7ef]"
+                      : "text-[#222] font-medium hover:bg-[#f8f8f8]"
+                  }
+                  ${
+                    index !== sidebarItems.length - 1
+                      ? "md:border-b md:border-[#eee]"
+                      : ""
+                  }
+                  ${
+                    index !== sidebarItems.length - 1
+                      ? "border-r border-[#eee] md:border-r-0"
+                      : ""
+                  }
+                  text-center md:text-left
+                  min-w-[140px] md:min-w-0
+                  cursor-pointer
+                `}
+                    >
+                      {item.label}
+                    </a>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-gray-500">Loading menu...</div>
+                )}
                 <Dialog>
                   <DialogTrigger asChild>
                     <a
@@ -200,25 +253,44 @@ const Profile = () => {
             {activeTab == "overview" && profile && (
               <Overview profile={profile} />
             )}
-            {activeTab == "profile" && profile && (
-              <EditProfile
-                profile={profile}
-                loading={loading}
-                error={error}
-                onProfileUpdate={setProfile}
-              />
+            {activeTab == "profile" && (
+              <>
+                {isInstructor && user ? (
+                  profile ? (
+                    <InstructorEditProfile user={user} profile={profile} />
+                  ) : loading ? (
+                    <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm px-0 py-0 mt-[32px] mb-2">
+                      <div className="px-8 py-8 flex flex-col items-center justify-center">
+                        <LoadingIcon className="inline-block" />
+                        <p className="text-gray-600 mt-4">Loading profile...</p>
+                      </div>
+                    </div>
+                  ) : null
+                ) : (
+                  profile ? (
+                    <EditProfile
+                      profile={profile}
+                      loading={loading}
+                      error={error}
+                      onProfileUpdate={setProfile}
+                    />
+                  ) : loading ? (
+                    <LoadingIcon className="inline-block" />
+                  ) : null
+                )}
+              </>
             )}
             {activeTab == "profile-photo" && <ProfilePhoto />}
-                        {activeTab === 'bank-details' && <BankDetails />}
-                        {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
+            {activeTab === 'bank-details' && <BankDetails />}
+            {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
             {activeTab == "account&security" && <AccountSecurity />}
-            {activeTab == "enrolled-courses" && (
+            {activeTab == "enrolled-courses" && isStudent && (
               <EnrolledCourses profile={profile} />
             )}
-            {activeTab == "subscription-management" && (
+            {activeTab == "subscription-management" && isStudent && (
               <SubscriptionManagement profile={profile} />
             )}
-            {activeTab == "payment-history" && (
+            {activeTab == "payment-history" && isStudent && (
               <PaymentHistory profile={profile} />
             )}
             {activeTab == "payment-method" && <ProfilePaymentMethod />}
