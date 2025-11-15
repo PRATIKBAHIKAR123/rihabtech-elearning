@@ -789,7 +789,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 sm:p-6 border border-green-200 min-w-0">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <div className="text-2xl sm:text-3xl font-bold text-green-900 mb-1 truncate">
+                <div className="text-2xl sm:text-3xl font-bold text-green-900 mb-1 break-words">
                   {formatAmount(
                     transactions
                       .filter((t) => t.status === "completed")
@@ -835,7 +835,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 sm:p-6 border border-orange-200 min-w-0">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <div className="text-2xl sm:text-3xl font-bold text-orange-900 mb-1 truncate">
+                <div className="text-2xl sm:text-3xl font-bold text-orange-900 mb-1 break-words">
                   {transactions.length > 0
                     ? formatAmount(
                         transactions
