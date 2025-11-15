@@ -246,10 +246,10 @@ const Profile = () => {
             </div>
           </aside>
         </div>
-        <div className="flex flex-col flex-1 gap-2 items-center w-full mb-2 relative">
+        <div className="flex flex-col flex-1 gap-2 items-center w-full mb-2 relative overflow-x-hidden">
           {activeTab == "public-Profile" && <PublicProfile />}
           {/* Profile Card */}
-          <div className="w-full">
+          <div className="w-full max-w-full overflow-x-hidden">
             {activeTab == "overview" && profile && (
               <Overview profile={profile} />
             )}
@@ -284,13 +284,13 @@ const Profile = () => {
             {activeTab === 'bank-details' && <BankDetails />}
             {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
             {activeTab == "account&security" && <AccountSecurity />}
-            {activeTab == "enrolled-courses" && isStudent && (
+            {activeTab == "enrolled-courses" && profile && (
               <EnrolledCourses profile={profile} />
             )}
-            {activeTab == "subscription-management" && isStudent && (
+            {activeTab == "subscription-management" && profile && (
               <SubscriptionManagement profile={profile} />
             )}
-            {activeTab == "payment-history" && isStudent && (
+            {activeTab == "payment-history" && profile && (
               <PaymentHistory profile={profile} />
             )}
             {activeTab == "payment-method" && <ProfilePaymentMethod />}

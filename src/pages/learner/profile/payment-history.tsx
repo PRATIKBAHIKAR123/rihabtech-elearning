@@ -32,15 +32,23 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
   const [error, setError] = useState("");
 
   const loadPaymentHistory = useCallback(async () => {
-    if (!user?.uid) return;
+    // Use user email or user ID from profile
+    // Check user.UserName, user.email, profile.emailId, or user.uid
+    const userId = user?.UserName || user?.email || profile?.emailId || user?.uid;
+    if (!userId) {
+      setLoading(false);
+      setError("User information not available");
+      return;
+    }
 
     setLoading(true);
     setError("");
 
     try {
       // Load real transactions from Razorpay service
+      // Note: razorpayService might expect email or userId - adjust based on API
       const userTransactions = await razorpayService.getUserTransactions(
-        user.uid
+        userId
       );
 
       // If no transactions from service, use real data from Firebase export
@@ -541,7 +549,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => {
     loadPaymentHistory();
@@ -754,80 +762,80 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
   }
 
   return (
-    <div className="space-y-8 mt-8">
+    <div className="w-full max-w-full space-y-8 mt-8 overflow-x-hidden">
       {/* Header with Stats */}
-      <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm p-4 sm:p-6 md:p-8 overflow-hidden max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#ff7700] mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#ff7700] mb-2">
               Payment History
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               Track all your payment transactions and receipts
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-gray-900">
+          <div className="text-left sm:text-right">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
               {transactions.length}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs sm:text-sm text-gray-600">
               Transaction{transactions.length !== 1 ? "s" : ""}
             </div>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full max-w-full">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 sm:p-6 border border-green-200 min-w-0">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-green-900 mb-1">
+              <div className="min-w-0 flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-green-900 mb-1 truncate">
                   {formatAmount(
                     transactions
                       .filter((t) => t.status === "completed")
                       .reduce((sum, t) => sum + t.totalAmount, 0)
                   )}
                 </div>
-                <div className="text-sm font-medium text-green-700">
+                <div className="text-xs sm:text-sm font-medium text-green-700">
                   Total Paid
                 </div>
               </div>
-              <DollarSign className="w-10 h-10 text-green-600" />
+              <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 text-green-600 flex-shrink-0" />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 sm:p-6 border border-blue-200 min-w-0">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-blue-900 mb-1">
+              <div className="min-w-0 flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-900 mb-1">
                   {transactions.length}
                 </div>
-                <div className="text-sm font-medium text-blue-700">
+                <div className="text-xs sm:text-sm font-medium text-blue-700">
                   Total Payments
                 </div>
               </div>
-              <CreditCard className="w-10 h-10 text-blue-600" />
+              <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 flex-shrink-0" />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 sm:p-6 border border-purple-200 min-w-0">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-purple-900 mb-1">
+              <div className="min-w-0 flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-900 mb-1">
                   {transactions.filter((t) => t.status === "completed").length}
                 </div>
-                <div className="text-sm font-medium text-purple-700">
+                <div className="text-xs sm:text-sm font-medium text-purple-700">
                   Successful
                 </div>
               </div>
-              <CheckCircle className="w-10 h-10 text-purple-600" />
+              <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-purple-600 flex-shrink-0" />
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 sm:p-6 border border-orange-200 min-w-0">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold text-orange-900 mb-1">
+              <div className="min-w-0 flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-orange-900 mb-1 truncate">
                   {transactions.length > 0
                     ? formatAmount(
                         transactions
@@ -839,11 +847,11 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                       )
                     : "₹0"}
                 </div>
-                <div className="text-sm font-medium text-orange-700">
+                <div className="text-xs sm:text-sm font-medium text-orange-700">
                   Last Payment
                 </div>
               </div>
-              <DollarSign className="w-10 h-10 text-orange-600" />
+              <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600 flex-shrink-0" />
             </div>
           </div>
         </div>
@@ -873,18 +881,18 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm">
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-8">
+        <div className="bg-white rounded-xl border border-[#E6E6E6] shadow-sm overflow-hidden w-full max-w-full">
+          <div className="p-4 sm:p-6 md:p-8 w-full max-w-full overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                   Transaction Details
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600">
                   View and manage your payment transactions
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -910,26 +918,27 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+            <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 w-full">
+              <div className="inline-block min-w-full align-middle w-full">
+                <table className="min-w-full w-full divide-y divide-gray-100">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Transaction ID
                     </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Plan Details
                     </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Amount
                     </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Status
                     </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Date
                     </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
@@ -942,8 +951,8 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                       }`}
                     >
-                      <td className="py-6 px-6">
-                        <div className="flex items-center space-x-3">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
                           {getStatusIcon(transaction.status)}
                           <div>
                             <div className="text-sm font-mono text-gray-900 font-medium">
@@ -955,7 +964,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-6 px-6">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
                         <div className="space-y-1">
                           <div className="font-medium text-gray-900 text-sm">
                             {transaction.planName}
@@ -970,7 +979,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                           )}
                         </div>
                       </td>
-                      <td className="py-6 px-6">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
                         <div className="space-y-1">
                           <div className="text-lg font-bold text-gray-900">
                             {formatAmount(transaction.totalAmount)}
@@ -987,10 +996,10 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                           )}
                         </div>
                       </td>
-                      <td className="py-6 px-6">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
                         {getStatusBadge(transaction.status)}
                       </td>
-                      <td className="py-6 px-6">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
                         <div className="space-y-1">
                           <div className="flex items-center text-sm text-gray-900">
                             <Calendar className="w-4 h-4 mr-2 text-gray-400" />
@@ -1002,7 +1011,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-6 px-6">
+                      <td className="py-4 sm:py-6 px-3 sm:px-6">
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -1032,6 +1041,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
