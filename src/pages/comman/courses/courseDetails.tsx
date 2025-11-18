@@ -18,7 +18,6 @@ import { getUserActiveSubscription, Subscription } from "../../../utils/subscrip
 import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
 import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
-import DOMPurify from "dompurify";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -413,10 +412,7 @@ return {
 };
 };
 
-const getSafeHtml = (content: string) => {
-  if (!content) return "<p>No content available</p>";
-  return DOMPurify.sanitize(content);
-};
+
 
   // Loading state
   if (loading) {
