@@ -15,9 +15,10 @@ import { enrollUserInCourse, isUserEnrolledInCourse } from "../../../utils/payme
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
-import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
+import { courseApiService, CourseGetAllResponse, CourseResponse } from "../../../utils/courseApiService";
 import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
+import { CourseCard } from "./courseList";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -38,7 +39,7 @@ export default function CourseDetails() {
   const [course, setCourse] = useState<ExtendedCourse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [availableCourses, setAvailableCourses] = useState<ExtendedCourse[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<CourseGetAllResponse[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const { user, loading: authLoading } = useAuth();
@@ -78,43 +79,7 @@ const [activePlan, setActivePlan] = useState<Subscription | null>(null);
     try {
       const courses = await courseApiService.getAllPublicCourses();
       // Transform the response to match our interface
-      const transformedCourses: ExtendedCourse[] = courses.map(course => ({
-        id: course.id,
-        title: course.title,
-        description: course.description,
-        pricing: course.pricing,
-        category: course.category,
-        // Add default values for missing fields
-        subtitle: null,
-        level: null,
-        language: null,
-        thumbnailUrl: null,
-        promoVideoUrl: null,
-        welcomeMessage: null,
-        congratulationsMessage: null,
-        instructorId: null,
-        status: null,
-        progress: 0,
-        isPublished: false,
-        publishedAt: null,
-        lastPublishedAt: null,
-        submittedForReview: false,
-        submittedAt: null,
-        isLocked: false,
-        lockedBy: null,
-        lockedAt: null,
-        lockReason: null,
-        version: 0,
-        hasUnpublishedChanges: false,
-        isIntendedLearnersFinal: false,
-        isCurriculumFinal: false,
-        createdDate: new Date().toISOString(),
-        learn: [],
-        requirements: [],
-        target: [],
-        curriculum: undefined,
-        rejectionInfo: null
-      }));
+      const transformedCourses: CourseGetAllResponse[] = courses;
       setAvailableCourses(transformedCourses);
     } catch (error) {
       console.error("Error fetching available courses:", error);
@@ -153,6 +118,7 @@ useEffect(() => {
         setLoading(false);
         return;
       }
+      await fetchAvailableCourses();
 
       setLoading(true);
       // Use API service to fetch course by ID
@@ -458,37 +424,7 @@ return {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {availableCourses.map((courseItem) => (
-                <div
-                  key={courseItem.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
-                  onClick={() => {
-                    // Navigate to course details with the selected course ID
-                    window.location.hash = `#/courseDetails?courseId=${courseItem.id}`;
-                    window.location.reload(); // Reload to fetch the selected course
-                  }}
-                >
-                  <div className="relative">
-                    <img
-                      src={courseItem.thumbnailUrl || "Images/courses/default-course.jpg"}
-                      alt={courseItem.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded text-sm font-medium">
-                      {courseItem.pricing === "Free" ? "Free" : `₹${courseItem.pricing}`}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2">
-                      {courseItem.title}
-                    </h3>
-                    <div className="text-gray-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html:  courseItem.description || "No description available" }}>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>{courseItem.level || "Beginner"}</span>
-                      <span>{getLanguageLabel(courseItem.language)}</span>
-                    </div>
-                  </div>
-                </div>
+                <CourseCard key={courseItem.id} course={courseItem} />
               ))}
             </div>
           </div>
@@ -670,7 +606,8 @@ return {
 
                 <h2 className="details-title mb-4">Certification</h2>
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="details-description text-green-800" dangerouslySetInnerHTML={{ __html: course.welcomeMessage || "" }}>
+                  <div className="details-description text-green-800">
+                    No any Certifications available for this course.
                   </div>
                 </div>
               </TabsContent>

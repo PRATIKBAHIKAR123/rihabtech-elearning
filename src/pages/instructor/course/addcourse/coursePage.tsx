@@ -656,7 +656,7 @@ const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       <ul className="list-disc pl-5 text-sm space-y-2">
         <li>File size must be below <strong>5MB</strong></li>
-        <li>Resolution should be <strong>750 × 422 px</strong></li>
+        <li>Resolution should be <strong>750 × 422 px</strong> (This resolution is best fit for your thumbnail Image)</li>
         <li>Accepted formats: <strong>.jpg, .jpeg, .gif, .png</strong></li>
         <li>No text, watermarks, or logos on the image</li>
         <li>Use high-contrast, clean, and professional visuals</li>

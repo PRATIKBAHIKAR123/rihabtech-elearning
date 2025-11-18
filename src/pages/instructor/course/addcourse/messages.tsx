@@ -184,6 +184,7 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
               onChange={(content) => formik.setFieldValue('welcomeMessage', content)}
               placeholder="Write a welcome message for your students..."
               error={formik.touched.welcomeMessage && !!formik.errors.welcomeMessage}
+              maxLength={1000}
             />
             {formik.touched.welcomeMessage && formik.errors.welcomeMessage && (
               <div className="text-red-500 text-sm">
@@ -199,6 +200,7 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
               onChange={(content) => formik.setFieldValue('congratulationsMessage', content)}
               placeholder="Write a congratulations message for course completion..."
               error={formik.touched.congratulationsMessage && !!formik.errors.congratulationsMessage}
+              maxLength={1000}
             />
             {formik.touched.congratulationsMessage &&
               formik.errors.congratulationsMessage && (

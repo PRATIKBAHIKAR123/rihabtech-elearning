@@ -629,7 +629,7 @@ export default function CourseList() {
                           <Globe className="w-4 h-4" />
                         </button>
                       )}
-
+{course.status !== COURSE_STATUS.PUBLISHED && (
                       <div className="relative">
                         <button
                           onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
@@ -679,6 +679,7 @@ export default function CourseList() {
                           </div>
                         )}
                       </div>
+)}
                     </div>
                   </div>
 

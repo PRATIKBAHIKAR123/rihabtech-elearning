@@ -3,6 +3,7 @@ import Divider from "../../../components/ui/divider";
 import { Button } from "../../../components/ui/button";
 import { useState, useEffect, useCallback } from "react";
 import { courseApiService, Category, CourseGetAllResponse } from "../../../utils/courseApiService";
+import { htmlToText } from "../../../lib/utils";
 
 // Course interface based on your Firebase data structure
 // interface Course {
@@ -175,7 +176,7 @@ export default function Courses() {
                           <span>{course.weeks} Weeks</span>
                         </div>
                       </div>
-                      <div className="course-description" dangerouslySetInnerHTML={{ __html: course.description || 'No description available' }}></div>
+                      <div className="course-description" >{htmlToText(course.description??'')}</div>
                     </div>
 
                     <div className="course-pricing">

@@ -18,4 +18,9 @@ export default function ScrollToTop() {
 
   return null;
 }
+
+export const  htmlToText = (html: string) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "No Description Available";
+};
   

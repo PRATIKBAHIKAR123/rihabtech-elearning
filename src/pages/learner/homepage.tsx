@@ -14,6 +14,7 @@ import {
 } from '../../utils/learnerHomeService';
 import { toast } from 'sonner';
 import courseApiService, { CourseGetAllResponse } from "../../utils/courseApiService";
+import { htmlToText } from "../../lib/utils";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -291,7 +292,7 @@ function CourseCard({ course, progress = false }: { course: CourseGetAllResponse
             </div>
           </div>
           <h3 className="course-title">{course.title}</h3>
-          <p className="course-desciption" dangerouslySetInnerHTML={{ __html: course.description || 'No description available' }}></p>
+          <p className="course-desciption">{htmlToText(course.description??'')}</p>
 
           {progress && (
             <div className="course-progress">
