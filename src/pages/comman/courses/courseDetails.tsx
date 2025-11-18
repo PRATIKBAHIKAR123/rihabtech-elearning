@@ -18,6 +18,7 @@ import { getUserActiveSubscription, Subscription } from "../../../utils/subscrip
 import { courseApiService, CourseResponse } from "../../../utils/courseApiService";
 import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
+import DOMPurify from "dompurify";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -412,6 +413,11 @@ return {
 };
 };
 
+const getSafeHtml = (content: string) => {
+  if (!content) return "<p>No content available</p>";
+  return DOMPurify.sanitize(content);
+};
+
   // Loading state
   if (loading) {
     return (
@@ -479,7 +485,7 @@ return {
                     <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2">
                       {courseItem.title}
                     </h3>
-                    <div className="text-gray-600 text-sm mb-3 line-clamp-3" dangerouslySetInnerHTML={{ __html: courseItem.description || "No description available" }}>
+                    <div className="text-gray-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html:  courseItem.description || "No description available" }}>
                     </div>
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>{courseItem.level || "Beginner"}</span>
@@ -925,6 +931,7 @@ return {
               <ReactPlayer
                 controls={true}
                 url={course.promoVideoUrl || '/courses/video2 - Trim.mp4'}
+                light={course.thumbnailUrl || "/Logos/brand-icon.png"}
                 className="rounded-md mb-4 z-999"
                 height={'220px'}
                 width={'320px'}

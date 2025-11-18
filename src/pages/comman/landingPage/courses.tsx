@@ -158,10 +158,9 @@ export default function Courses() {
                   }}
                 >
                   <div className="relative">
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-500">No Image</span>
-                    </div>
-                  </div>
+                  <img src={course.thumbnailUrl || "/Logos/brand-icon.png"} alt={course.title} className="w-full h-40 object-cover" />
+                  
+                </div>
                   <div className="course-body">
                     <div className="course-content">
                       <h3 className="course-title">{course.title}</h3>

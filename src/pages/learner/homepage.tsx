@@ -291,7 +291,7 @@ function CourseCard({ course, progress = false }: { course: CourseGetAllResponse
             </div>
           </div>
           <h3 className="course-title">{course.title}</h3>
-          <p className="course-desciption">{course.description}</p>
+          <p className="course-desciption" dangerouslySetInnerHTML={{ __html: course.description || 'No description available' }}></p>
 
           {progress && (
             <div className="course-progress">

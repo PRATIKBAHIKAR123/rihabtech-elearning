@@ -2441,6 +2441,24 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             onChange={async (e) => {
                                                                               const files = Array.from(e.target.files || []);
                                                                               if (files.length === 0) return;
+
+                                                                                const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+
+  for (let file of files) {
+    if (file.size > MAX_SIZE) {
+      formik.setFieldError(
+        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+        `${file.name} is should below than 100 MB`
+      );
+      return; // stop upload
+    }
+  }
+
+  // Clear previous errors
+  formik.setFieldError(
+    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+    ""
+  );
                                                                               
                                                                               // Don't clear the input value to allow re-selection
                                                                               // e.target.value = '';
@@ -2555,8 +2573,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               );
                                                                             }}
                                                                           />
+                                                                          
                                                                         </div>
                                                                       )}
+                                                                      {(() => {
+  const fieldError =
+    (formik.errors.sections as any)?.[sectionIdx]?.items?.[itemIdx]?.contentFiles;
+
+  return typeof fieldError === "string" ? (
+    <p className="text-red-500 text-sm">{fieldError}</p>
+  ) : null;
+})()}
                                                                       {/* Video link option */}
                                                                       {item.videoSource === 'link' && (
                                                                         <div className="flex flex-col gap-2 mb-2">

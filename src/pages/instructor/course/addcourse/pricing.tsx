@@ -284,7 +284,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       <div className="mb-6">
         <h4 className="font-medium text-gray-700 mb-4">Access Platforms</h4>
         <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+          {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox 
               checked={access.website}
               onCheckedChange={(checked:any) => handleAccessChange('website', checked as boolean)}
@@ -294,7 +294,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
               <label className="font-medium text-gray-700 cursor-pointer">Website</label>
               <p className="text-sm text-gray-500">Access through web browser</p>
             </div>
-          </div>
+          </div> */}
           
           {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox 
@@ -404,14 +404,14 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       )}
 
       {/* Summary */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      {/* <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h4 className="font-medium text-gray-800 mb-2">Access Summary</h4>
         <div className="text-sm text-gray-600 space-y-1">
           <p>• Website Access: <span className="font-medium">{access.website ? 'Enabled' : 'Disabled'}</span></p>
           <p>• App Access: <span className="font-medium">{access.app ? 'Enabled' : 'Disabled'}</span></p>
           <p>• Private Access: <span className="font-medium">{access.private ? `Enabled (${members.length} members)` : 'Disabled'}</span></p>
         </div>
-      </div>
+      </div> */}
 
       {/* Submit Button */}
       <div className="flex justify-end">

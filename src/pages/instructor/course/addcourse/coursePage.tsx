@@ -98,7 +98,16 @@ export function CourseLandingPage({ onSubmit }: any) {
       if (!(value instanceof File)) return true;
       return /^(image\/jpeg|image\/jpg|image\/png|image\/gif)$/.test(value.type);
     }),
-    promoVideo: Yup.mixed().nullable(),
+    promoVideo: Yup.mixed().nullable()
+    .test("fileSize", "Video must be less than 100 MB", function (value) {
+    if (!value) return true; // ⬅️ IMPORTANT: do NOT trigger required error
+
+    // Narrow type
+    const file = value as File;
+    if (!(file instanceof File)) return true;
+
+    return file.size <= 100 * 1024 * 1024;
+  }),
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -360,13 +369,22 @@ const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   // formik.validateField('thumbnail');
 };
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setPromoVideo(URL.createObjectURL(e.target.files[0]));
-      setPromoVideoFile(e.target.files[0]);
-      formik.setFieldValue("promoVideo", e.target.files[0]);
-    }
-  };
+const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  
+  formik.setFieldTouched("promoVideo", true, true);
+
+  if (!file) {
+    formik.setFieldValue("promoVideo", null);
+    return;
+  }
+
+  formik.setFieldValue("promoVideo", file);
+
+  // Preview
+  setPromoVideo(URL.createObjectURL(file));
+  setPromoVideoFile(file);
+};
 
   // Don't render the form while loading course data
   if (isLoading) {
@@ -617,8 +635,10 @@ const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               Upload File
             </label>
             {formik.touched.promoVideo && formik.errors.promoVideo && (
-              <div className="text-red-500 text-xs mt-1">{formik.errors.promoVideo as string}</div>
-            )}
+  <div className="text-red-500 text-xs mt-1">
+    {formik.errors.promoVideo as string}
+  </div>
+)}
           </div>
         </div>
 
