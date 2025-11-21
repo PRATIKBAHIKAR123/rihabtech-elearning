@@ -34,7 +34,7 @@ const convertYouTubeUrl = (url: string): string => {
 };
 
 export default function CourseDetailsPage() {
-  const [activeTab, setActiveTab] = useState("Notes");
+  const [activeTab, setActiveTab] = useState("Overview");
   const [courseData, setCourseData] = useState<CourseDetails | null>(null);
   const [apiCourseData, setApiCourseData] = useState<CourseResponse | null>(null);
   const [enrichedCourseData, setEnrichedCourseData] = useState<any>(courseData);
@@ -129,12 +129,13 @@ export default function CourseDetailsPage() {
                   published: item.published,
                   isPromotional: item.isPromotional,
                   contentFiles: item.contentFiles || [],
-                  // Add other properties as needed
+                  contentText: item.contentText,
+                  articleSource: item.articleSource,
                   type: item.type,
                   videoSource: item.videoSource,
                   contentUrl: item.contentUrl,
                   duration: item.duration,
-                  resources: item.resources
+                  resources: item.resources,
                 }))
               }))
             } : { sections: [] },
@@ -821,7 +822,29 @@ function findNextLecture(courseData: any, progress: any) {
               </p>
             </div>
           </div>
+          {module?.resources?.length > 0 && (
+  <div className="bg-white border rounded-lg p-4 mt-4">
+    <h3 className="text-lg font-semibold mb-3">Resources</h3>
+
+    <ul className="space-y-2">
+      {module.resources.map((res:any, index:number) => (
+        <li key={res.id || index} className="flex items-center justify-between border p-2 rounded">
           
+          <span className="text-sm font-medium text-gray-700">
+            {res.name}
+          </span>
+
+          <button
+            onClick={() => window.open(res.url, "_blank")}
+            className="px-3 py-1 border rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Download
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
           {/* <div className="mt-4">
             <button 
               onClick={downloadAnalytics}
@@ -953,6 +976,13 @@ function findNextLecture(courseData: any, progress: any) {
     </div>
   );
 
+    const renderWrittenContent = (module:any) => (
+    <div className="bg-white border rounded-lg p-6 mb-6">
+        <p dangerouslySetInnerHTML={{__html: module.contentText||""}}>
+        </p>
+    </div>
+  );
+
   const renderModuleContent = () => {
     if (!activeModule) {
       return (
@@ -970,6 +1000,7 @@ function findNextLecture(courseData: any, progress: any) {
     const hasQuestions = (activeModule as any).questions && (activeModule as any).questions.length > 0;
     const isQuiz = activeModule.contentType === 'quiz' || (activeModule as any).type === 'quiz';
     const isAssignment = activeModule.contentType === 'assignment' || (activeModule as any).type === 'assignment';
+        const isWrittenDoc = (activeModule.contentType === 'article' || (activeModule as any).type === 'lecture') && activeModule.articleSource=="write";
     
     console.log('Module analysis:', { hasQuestions, isQuiz, isAssignment, contentType: activeModule.contentType, type: (activeModule as any).type });
 
@@ -979,8 +1010,13 @@ function findNextLecture(courseData: any, progress: any) {
         return renderVideoPlayer(activeModule);
       case 'quiz':
         return renderQuiz(activeModule);
-      case 'document':
-        return renderDocument(activeModule);
+      case 'article':
+        if(isWrittenDoc){
+          return renderWrittenContent(activeModule);
+        }
+        else{
+          return renderDocument(activeModule);
+        }
       case 'assignment':
         // If assignment has questions, render as quiz, otherwise as document
         if (hasQuestions) {

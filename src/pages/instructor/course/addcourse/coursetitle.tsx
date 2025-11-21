@@ -187,6 +187,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
     }
   }, [courseData]); // Remove formik from dependencies
 
+
   // Clear form when it's a new course
   useEffect(() => {
     if (isNewCourse) {

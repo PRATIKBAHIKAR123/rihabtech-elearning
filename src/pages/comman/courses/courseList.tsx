@@ -1,10 +1,10 @@
 import { BookOpen, ChevronDown, ChevronRight, Filter, User2, X } from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
 import { useParams } from "react-router-dom";
-import { courseApiService, CourseGetAllResponse } from "../../../utils/courseApiService";
+import { courseApiService, CourseGetAllResponse, SubCategory } from "../../../utils/courseApiService";
 
 export default function CourseList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -121,8 +121,9 @@ export default function CourseList() {
     // Topic filter (using course title)
     if (selectedTopics.length > 0) {
       filtered = filtered.filter(course => {
+        console.log('Filtering course:', course.title, 'with subCategoryText:', course.subCategoryText);
         return selectedTopics.some(topic => 
-          course.title.toLowerCase().includes(topic.toLowerCase())
+          course.subCategoryText!.toLowerCase().includes(topic.toLowerCase())
         );
       });
     }
@@ -424,19 +425,27 @@ function FilterContent({
   // State for expanded sections
   const [showMoreDuration, setShowMoreDuration] = useState(false);
   const [showMoreTopics, setShowMoreTopics] = useState(false);
+    const [additionalTopics, setadditionalTopics] = useState<SubCategory[]>([]);
   
   // Additional items that will show when "Show more" is clicked
   const additionalDurations = [
     { id: "duration-17-plus", label: "17+ Hours" },
     { id: "duration-all", label: "All Durations" }
   ];
-  
-  const additionalTopics = [
-    { id: "topic-angular", label: "Angular" },
-    { id: "topic-vue", label: "Vue.js" },
-    { id: "topic-javascript", label: "JavaScript" },
-    { id: "topic-typescript", label: "TypeScript" }
-  ];
+
+  useEffect(() => {
+    // Simulate fetching additional topics from an API or data source
+    const fetchAdditionalTopics = async () => {
+      // Replace this with actual data fetching logic if needed 
+      courseApiService.getPublicSubCategories().then((data) => {
+            setadditionalTopics(data as any);
+          });
+        }
+    fetchAdditionalTopics();
+  }, []);
+        
+          
+
 
   // Handle price filter changes
   const handlePriceChange = (priceType: string, checked: boolean) => {
@@ -493,8 +502,9 @@ function FilterContent({
       </FilterAccordion>
 
       {/* Topic Filter */}
-      <FilterAccordion title="Topic">
-        <div className="space-y-3 font-bold">
+      <FilterAccordion title="Sub Category">
+        <div className="space-y-3 font-bold max-h-64 overflow-y-auto">
+          {additionalTopics.length > 0 && (
           <div className="flex items-center">
             <Checkbox 
               id="topic-react" 
@@ -502,13 +512,14 @@ function FilterContent({
               checked={selectedTopics.includes('topic-react')}
               onCheckedChange={(checked) => handleTopicChange('topic-react', checked as boolean)}
             />
-            <label htmlFor="topic-react">React JS</label>
+            {<label htmlFor="topic-react">{additionalTopics[0]!.title}</label>}
           </div>
+          )}
           
           {/* Additional topics that appear when "Show more" is clicked */}
           {showMoreTopics && (
             <>
-              {additionalTopics.map(topic => (
+              {additionalTopics.slice(1).map((topic:any) => (
                 <div key={topic.id} className="flex items-center">
                   <Checkbox 
                     id={topic.id} 
@@ -516,7 +527,7 @@ function FilterContent({
                     checked={selectedTopics.includes(topic.id)}
                     onCheckedChange={(checked) => handleTopicChange(topic.id, checked as boolean)}
                   />
-                  <label htmlFor={topic.id}>{topic.label}</label>
+                  <label htmlFor={topic.id}>{topic.title}</label>
                 </div>
               ))}
             </>

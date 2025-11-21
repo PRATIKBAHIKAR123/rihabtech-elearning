@@ -1908,14 +1908,14 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         />
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <Button
+                                        {/* <Button
                                           type="button"
                                           variant="outline"
                                           className="px-2 py-1 rounded-none"
                                           onClick={() => setUploadModal({ open: true, sectionIdx })}
                                         >
                                           <UploadCloud size={18} />
-                                        </Button>
+                                        </Button> */}
                                         <HoverCard>
                                           <HoverCardTrigger asChild>
                                             <Button
@@ -3182,6 +3182,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                               )}
                                                             </div>
                                                           )}
+                                                          {/* {item.type === 'lecture' && item.contentFiles?.length > 0 && (
+  <div className="mt-1 text-xs text-gray-600">
+    {item.contentFiles.map((f, idx) => (
+      <div key={idx} className="flex justify-between border p-1 rounded mb-1">
+        <span>{f.name}</span>
+        <span>{f.uploadProgress ?? 0}%</span>
+        <span>{f.status}</span>
+      </div>
+    ))}
+  </div>
+)} */}
                                                           {/* QUIZ */}
                                                           {item.type === 'quiz' && (
                                                             <div className="flex flex-col gap-2">
@@ -4859,7 +4870,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      onClose();
+       onClose();
     } catch (error) {
       console.error('Upload failed:', error);
     }

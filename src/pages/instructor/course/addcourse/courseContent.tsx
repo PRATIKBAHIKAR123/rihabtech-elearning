@@ -198,7 +198,7 @@ interface CourseCreationItemProps {
 
 const CourseCreationItem: React.FC<CourseCreationItemProps> = ({ icon, label, checked = false, onClick }) => {
     return (
-      <div className={`mb-4 flex items-center p-2 ${checked ? 'bg-primary rounded-[7px] ' : 'bg-transparent'}`} onClick={onClick}>
+      <div className={`mb-4 flex items-center p-2 ${checked ? 'bg-primary rounded-[7px] ' : 'bg-transparent'} cursor-pointer`} onClick={onClick}>
         {/* <div className={`w-6 h-6 rounded-full border flex items-center justify-center mr-3 ${checked ? 'bg-primary border-primary' : 'border-gray-300'}`}>
           {checked && <Check size={16} className="text-white" />}
           <RadioGroup>

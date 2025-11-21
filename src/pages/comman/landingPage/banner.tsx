@@ -11,6 +11,7 @@ export default function BannerSection() {
 
   const [filteredCourses, setFilteredCourses] = useState<SearchCourseResponse[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+        const [isCategoriesloading, setisCategoriesloading] = useState(true);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -18,6 +19,7 @@ export default function BannerSection() {
   useEffect(() => {
     const fetchCategories = async () => {
       const data = await courseApiService.getPublicCategories();
+      setisCategoriesloading(false);
       setCategories(data);
     };
     fetchCategories();
@@ -102,12 +104,15 @@ export default function BannerSection() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-60 bg-white shadow-xl rounded-xl p-2">
+                {isCategoriesloading && (
+                  <p className="text-gray-500 text-sm p-4">Loading Categories...</p>
+                )}
                 {categories.map((cat) => (
                   <div
                     key={cat.id}
                     className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded"
                     onClick={() => {
-                      window.location.href = `/courselist/${cat.id.toString()}`;
+                      window.location.href = `#/courselist/${cat.id.toString()}`;
                       setIsCategoryOpen(false);
                     }}
                   >
@@ -139,7 +144,7 @@ export default function BannerSection() {
                   }, 200);
                 }}
               />
-              <Search className="absolute top-1/4 right-4 pointer-events-none z-10" />
+              <Search className="absolute top-1/4 right-4 pointer-events-none z-5" />
               <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <PopoverTrigger asChild>
                   <div className="absolute inset-0 pointer-events-none" aria-hidden="true" />

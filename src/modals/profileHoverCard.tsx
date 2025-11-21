@@ -32,24 +32,24 @@ const profileMenuList = [
   //   icon: <FileText className="w-6 h-6 text-orange-500" />,
   //   path: "/#/refund-policy",
   // },
-  {
-    title: "Analytics",
-    description: "Your analytics dashboard",
-    icon: <BarChart3 className="w-6 h-6 text-orange-500" />,
-    path: "/#/learner/analytics",
-  },
+  // {
+  //   title: "Analytics",
+  //   description: "Your analytics dashboard",
+  //   icon: <BarChart3 className="w-6 h-6 text-orange-500" />,
+  //   path: "/#/learner/analytics",
+  // },
   {
     title: "Courses",
     description: "View all enrolled courses",
     icon: <LayoutGrid className="w-6 h-6 text-orange-500" />,
     path: "#/learner/my-learnings",
   },
-  {
-    title: "Settings",
-    description: "Manage your account settings",
-    icon: <Settings className="w-6 h-6 text-orange-500" />,
-    path: "/#/learner/settings",
-  },
+  // {
+  //   title: "Settings",
+  //   description: "Manage your account settings",
+  //   icon: <Settings className="w-6 h-6 text-orange-500" />,
+  //   path: "/#/learner/settings",
+  // },
   {
     title: "Logout",
     description: "Sign out of your account",

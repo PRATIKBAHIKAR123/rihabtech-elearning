@@ -231,6 +231,9 @@ const PreviewCourse = () => {
     const desc = description.replace(/<[^>]*>/g, '').trim();
     const wordCount = desc ? desc.split(/\s+/).filter(Boolean).length : 0;
     console.log('wordCount',wordCount)
+        if (course.learn.length == 0) landingMissing.push('Have a course `What will students learn in your course` with at least 1 item');
+        if (course.requirements.length == 0) landingMissing.push('Have a course `Are there any course requirements or prerequisites` with at least 1 item');
+        if (course.target.length == 0) landingMissing.push('Have a course `Who is this course for` with at least 1 item');
     if (wordCount < 50) landingMissing.push('Have a course description with at least 50 words');
     if (!landing.subtitle && !course.subtitle) landingMissing.push('Have a course subtitle');
     // if (!course.instructorDescription && !(landing.instructorDescription)) landingMissing.push('Have an instructor description with at least 50 words');
@@ -408,9 +411,12 @@ const PreviewCourse = () => {
                                           </video>
                                         ) : null}
                                         {f.contentType === 'article' || item.contentType === 'article' || f.name?.toLowerCase().endsWith('.pdf') ? (
+                                          <div>
                                           <a href={f.url || item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-2">
                                             <span role="img" aria-label="document">📄</span> {f.name || 'Document'}
                                           </a>
+                                          
+                                          </div>
                                         ) : null}
                                         {!f.contentType && !f.name?.toLowerCase().endsWith('.pdf') && !f.url?.endsWith('.pdf') && !f.url?.endsWith('.mp4') && (
                                           <span>{f.name || f.url || 'File'}</span>
@@ -420,6 +426,8 @@ const PreviewCourse = () => {
                                   </ul>
                                 </div>
                               )}
+
+
 
                               {/* Show YouTube video preview for linked videos */}
                               {item.contentType === 'video' && item.videoSource === 'link' && item.contentUrl && (
@@ -447,6 +455,17 @@ const PreviewCourse = () => {
                                       </a>
                                     </div>
                                   </div>
+                                </div>
+                              )}
+
+                              {(item.contentType === 'article' && item.contentText)&&<div dangerouslySetInnerHTML={{ __html: item.contentText }}>
+                   
+                                          </div>}
+
+                                          {item.contentType === 'article' && item.articleSource === 'link' && item.contentUrl && (
+                                <div className="mt-2">
+                                  <div className="font-semibold">Article Link:</div>
+                                  <a className='text-blue-600 underline' target='_blank' href={item.contentUrl}>{item.contentUrl}</a>
                                 </div>
                               )}
                             </div>

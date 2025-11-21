@@ -345,7 +345,7 @@ export default function CourseList() {
             <div className="relative">
               <Button
                 variant="outline"
-                className="rounded-none border-primary text-primary w-full md:w-auto flex items-center gap-2"
+                className="rounded-none border-primary text-primary w-full md:w-auto flex items-center gap-2 hover:text-white"
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
               >
                 {getSortDisplayText(sortBy)}

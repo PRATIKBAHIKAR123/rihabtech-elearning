@@ -49,6 +49,15 @@ export interface CourseDetails {
           name: string;
           url: string;
         }>;
+        contentText?: string;
+        articleSource?: string;
+        resources?: Array<{
+          name: string;
+          url?: string;
+          cloudinaryUrl?: string;
+          cloudinaryPublicId?: string;
+          type: string;
+        }>;
       }>;
     }>;
   };

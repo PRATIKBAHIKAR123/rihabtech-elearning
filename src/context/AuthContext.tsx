@@ -13,6 +13,7 @@ interface CustomUser {
   name?: string;
   phoneNumber?: string;
   address?: string;
+  AccessToken?: string;
 }
 
 interface AuthContextType {
@@ -52,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           phoneNumber: userData.phoneNumber,
           address: userData.address,
           Role: userData.Role || userData.role || 0,
+          AccessToken: userData.AccessToken,
         };
         
         setUser(customUser);

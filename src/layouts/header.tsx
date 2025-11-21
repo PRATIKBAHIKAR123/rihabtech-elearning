@@ -534,7 +534,7 @@ export const CoursesMenu: React.FC = () => {
         Courses
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-white shadow-lg rounded-md w-full">
-        <div className="grid w-[400px] gap-6 p-6 md:w-[600px] md:grid-cols-2">
+        <div className="grid w-[400px] gap-6 p-6 md:w-[600px] h-96 overflow-y-scroll md:grid-cols-2 z-50">
           {/* Loop through categories */}
                   {categories.map((category) => {
             const relatedSubs = subCategories.filter(
