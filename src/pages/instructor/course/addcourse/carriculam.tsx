@@ -2275,9 +2275,36 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               const files = Array.from(e.target.files || []);
                                                                               if (files.length === 0) return;
 
-                                                                              const fileObjects = files.map((file) => ({
+                                                                              const newFiles = await Promise.all(
+                                                                                Array.from(files).map(async (file) => {
+                                                                                  // Upload to Cloudinary
+                                                                                  let cloudinaryUrl = '';
+                                                                                  let cloudinaryPublicId = '';
+                                                                                  
+                                                                                  try {
+                                                                                    const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                    cloudinaryUrl = uploadResult.url;
+                                                                                    cloudinaryPublicId = uploadResult.publicId;
+                                                                                  } catch (error) {
+                                                                                    console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                    // Fallback to local file
+                                                                                    cloudinaryUrl = URL.createObjectURL(file);
+                                                                                  }
+
+                                                                                  return {
+                                                                                    name: file.name,
+                                                                                    file: file,
+                                                                                    url: cloudinaryUrl,
+                                                                                    cloudinaryUrl: cloudinaryUrl,
+                                                                                    cloudinaryPublicId: cloudinaryPublicId,
+                                                                                    type: 'lecture'
+                                                                                  };
+                                                                                })
+                                                                              );
+
+                                                                              const fileObjects = newFiles.map((file) => ({
                                                                                 file,
-                                                                                url: URL.createObjectURL(file),
+                                                                                url: file.cloudinaryUrl,
                                                                                 name: file.name,
                                                                                 status: 'uploaded' as VideoStatus,
                                                                                 uploadedAt: new Date()

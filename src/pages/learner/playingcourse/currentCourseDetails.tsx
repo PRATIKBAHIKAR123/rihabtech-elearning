@@ -653,7 +653,7 @@ function findNextLecture(courseData: any, progress: any) {
             }}
             light={courseData?.thumbnailUrl || "Images/Banners/Person.jpg"}
             playIcon={
-              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <div className="absolute inset-0 flex items-center justify-center z-5 pointer-events-none">
                 <div
                   className="bg-white bg-opacity-80 rounded-full p-3 cursor-pointer pointer-events-auto"
                   onClick={handlePlay}
@@ -958,21 +958,20 @@ function findNextLecture(courseData: any, progress: any) {
           <p className="text-gray-600 text-sm">{module.description}</p>
         </div>
       </div>
-      
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-sm text-gray-600">File Type</p>
-          <p className="font-bold text-lg">{module.fileType}</p>
-        </div>
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-sm text-gray-600">File Size</p>
-          <p className="font-bold text-lg">{module.fileSize}</p>
-        </div>
-      </div>
+      {module.contentFiles?.map((file: any, index: number) => (
+      <div key={index} className="mb-6">
+        <h3 className="text-lg font-medium mb-2">{file.name}</h3>
 
-      <button className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors">
-        Download Resource
-      </button>
+        {renderPreview(file)}
+
+        <button
+          className="bg-green-500 text-white px-4 py-2 mt-4 rounded"
+          onClick={() => window.open(file.url, "_blank")}
+        >
+          Download
+        </button>
+      </div>
+    ))}
     </div>
   );
 
@@ -993,6 +992,9 @@ function findNextLecture(courseData: any, progress: any) {
         </div>
       );
     }
+
+
+
 
     console.log('Rendering module content for:', activeModule);
 
@@ -1038,6 +1040,65 @@ function findNextLecture(courseData: any, progress: any) {
         );
     }
   };
+
+
+      const getFileType = (fileName: string) => {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  return ext;
+};
+
+const renderPreview = (file: any) => {
+  const ext = getFileType(file.name);
+
+  if (!file.url) return null;
+
+  switch (ext) {
+    case "pdf":
+      return (
+        <iframe
+          src={file.url}
+          className="w-full h-[600px] border rounded"
+          title="PDF Preview"
+        />
+      );
+
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "webp":
+      return (
+        <img
+          src={file.url}
+          alt={file.name}
+          className="w-full h-auto rounded border"
+        />
+      );
+
+    case "txt":
+      return (
+        <iframe
+          src={file.url}
+          className="w-full h-[500px] border rounded"
+        />
+      );
+
+    case "doc":
+    case "docx":
+    case "xls":
+    case "xlsx":
+      return (
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${file.url}`}
+          className="w-full h-[600px] border rounded"
+        />
+      );
+
+    default:
+      return (
+        <p className="text-gray-600">Preview not available for this file type.</p>
+      );
+  }
+};
 
   const getModuleIcon = (type: any, completed: any, module: any = null) => {
     const iconProps = { size: 12, className: `${completed ? 'text-white' : 'text-orange-500'} ml-0.5` };
