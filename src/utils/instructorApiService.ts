@@ -41,8 +41,8 @@ class InstructorApiService {
   }
 
   // Get instructor profile (if needed in future)
-  async getProfile(): Promise<InstructorProfile> {
-    return apiService.get<InstructorProfile>('/instructor/profile');
+  async getProfile(id:number): Promise<{}> {
+    return apiService.get('/instructor/details'+`/${id}`);
   }
 
   // Update instructor profile (if needed in future)

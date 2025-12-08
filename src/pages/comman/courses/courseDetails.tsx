@@ -19,6 +19,7 @@ import { courseApiService, CourseGetAllResponse, CourseResponse } from "../../..
 import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
 import { CourseCard } from "./courseList";
+import instructorApiService from "../../../utils/instructorApiService";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -30,6 +31,9 @@ interface InstructorData {
   email: string;
   role: string;
   bio: string;
+  areaOfExpertise: string;
+  teachingTopics: string;
+  publishedCourseCount: number;
 }
 
 export default function CourseDetails() {
@@ -122,7 +126,7 @@ useEffect(() => {
 
       setLoading(true);
       // Use API service to fetch course by ID
-      const courseData = await courseApiService.getCourseById(parseInt(extractedCourseId));
+      const courseData = await courseApiService.getCourseDetails(parseInt(extractedCourseId));
       setCourse(courseData);
 
       if (user) {
@@ -159,18 +163,20 @@ useEffect(() => {
     return totalLessons;
   };
 
-  const getInstructorDetails = (): void => {
+  const getInstructorDetails = async (): Promise<void> => {
     if (!course?.instructorId) return;
     const instructorId = course.instructorId;
     if (instructorId) {
-      // For now, we'll set a default instructor since we don't have instructor API
-      // This should be updated when instructor API is available
+      const instructorData = await instructorApiService.getProfile(parseInt(instructorId));
       setInstructor({
         id: instructorId,
-        name: "Instructor",
-        email: "instructor@example.com",
+        name: (instructorData as any)?.instructorName || "Unknown Instructor",
+        email: (instructorData as any)?.instructorEmail || "",
         role: "Instructor",
-        bio: "Experienced instructor with expertise in the subject matter."
+        bio: "Experienced instructor with expertise in the subject matter.",
+        areaOfExpertise: (instructorData as any)?.areaOfExpertise || "N/A",
+        teachingTopics: (instructorData as any)?.teachingTopics || "N/A",
+        publishedCourseCount: (instructorData as any)?.publishedCourseCount || 0,
       });
     }
   };
@@ -710,7 +716,7 @@ return {
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-semibold text-gray-800 mb-3">Areas of Expertise</h3>
                       <div className="flex flex-wrap gap-2">
-                        {['Web Development', 'JavaScript', 'React', 'Node.js', 'Python', 'Data Science', 'Machine Learning'].map((skill, index) => (
+                        {instructor?.areaOfExpertise.split(',').map((skill, index) => (
                           <span
                             key={index}
                             className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium"

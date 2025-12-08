@@ -5,6 +5,7 @@ import { title } from "process";
 import path from "path";
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
+import { API_BASE_URL_IMG } from "../lib/api";
 
 const profileMenuList = [
   {
@@ -97,9 +98,11 @@ export const ProfileMenu: React.FC = () => {
     <HoverCard open={isOpen} onOpenChange={setIsOpen}>
       <HoverCardTrigger asChild>
         <div className="ml-0 md:ml-4 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-          <div className="w-7 md:w-10 h-7 md:h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+          {(user?.ProfileImage==null)?(<div className="w-7 md:w-10 h-7 md:h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
             {initials}
-          </div>
+          </div>):(<div className="w-7 md:w-10 h-7 md:h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+            <img src={API_BASE_URL_IMG+user?.ProfileImage} alt="Profile" className="w-full h-full rounded-full object-cover" />
+          </div>)}
         </div>
       </HoverCardTrigger>
       <HoverCardContent className="hover-card bg-white rounded-2xl shadow-xl p-6 h-auto w-96">

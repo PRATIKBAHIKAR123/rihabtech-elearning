@@ -264,6 +264,10 @@ class CourseApiService {
     return apiService.get<CourseResponse>(`/instructor/course/get-by-id/${id}`);
   }
 
+    async getCourseDetails(id: number): Promise<CourseResponse> {
+    return apiService.get<CourseResponse>(`/course/details/${id}`);
+  }
+
   // Get all courses for instructor
   async getAllCourses(): Promise<CourseResponse[]> {
     return apiService.get<CourseResponse[]>('/instructor/course/get-all');

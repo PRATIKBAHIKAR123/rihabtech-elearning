@@ -163,6 +163,8 @@ export interface Question {
 export interface QuizItem {
   id?: number; // Add ID field from API response
   type: 'quiz';
+  contentType: string; // Required by API
+  lectureName: string; // Required by API
   quizTitle: string;
   quizDescription: string;
   questions: Question[];
@@ -204,6 +206,8 @@ export interface AssignmentQuestion {
 export interface Assignment {
   id?: number; // Add ID field from API response
   type: 'assignment';
+  contentType: string; // Required by API
+  lectureName: string; // Required by API
   title: string;
   description: string;
   duration: number; // in minutes
@@ -280,6 +284,8 @@ interface AddTypeState {
 
 const getInitialAssignment = (seqNo: number = 1): Assignment => ({
   type: "assignment",
+  contentType: "assignment",
+  lectureName: "Assignment",
   title: "",
   description: "",
   duration: 30,
@@ -293,10 +299,12 @@ const getInitialAssignment = (seqNo: number = 1): Assignment => ({
     }
   ],
   seqNo: seqNo,
-});
+} as Assignment);
 
 const getInitialQuiz = (seqNo: number = 1): QuizItem => ({
   type: "quiz",
+  contentType: "quiz",
+  lectureName: "Quiz",
   quizTitle: "",
   quizDescription: "",
   questions: [
@@ -308,7 +316,7 @@ const getInitialQuiz = (seqNo: number = 1): QuizItem => ({
   ],
   duration: 15, // Default duration of 15 minutes
   seqNo: seqNo,
-});
+} as QuizItem);
 const getInitialLecture = (index: number): LectureItem => ({
   type: "lecture",
   lectureName: `Lecture ${index}`,
@@ -455,6 +463,9 @@ function stripFilesFromCurriculum(curriculum: any): any {
                 if (quizDescription !== undefined) result.quizDescription = quizDescription;
                 if (questions !== undefined) result.questions = questions;
                 if (quizDuration !== undefined) result.duration = quizDuration;
+                // REQUIRED: Set contentType and lectureName for quiz
+                result.contentType = "quiz";
+                result.lectureName = quizTitle || "Quiz";
               }
               
               // Handle assignment-specific fields
@@ -465,6 +476,9 @@ function stripFilesFromCurriculum(curriculum: any): any {
                 if (assignmentDuration !== undefined) result.duration = assignmentDuration;
                 if (totalMarks !== undefined) result.totalMarks = totalMarks;
                 if (assignmentQuestions !== undefined) result.questions = assignmentQuestions;
+                // REQUIRED: Set contentType and lectureName for assignment
+                result.contentType = "assignment";
+                result.lectureName = title || "Assignment";
               }
               
               return result;
@@ -984,9 +998,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                   duration: Yup.number()
                     .min(1, "Duration must be at least 1 minute")
                     .required("Duration is required"),
-                  totalMarks: Yup.number()
-                    .min(1, "Total marks must be at least 1")
-                    .required("Total marks are required"),
+                  totalMarks: Yup.number(),
+                    // .min(1, "Total marks must be at least 1"),
+                    // .required("Total marks are required"),
                   questions: Yup.array()
                     .of(
                       Yup.object({
@@ -1125,6 +1139,32 @@ export function CourseCarriculam({ onSubmit }: any) {
   useEffect(() => {
     console.log("Form initial values updated:", formInitialValues);
   }, [formInitialValues]);
+
+  // Sync lectureName with title/quizTitle for quiz and assignment items
+  useEffect(() => {
+    if (!loading && formik.values.sections) {
+      let needsUpdate = false;
+      const updatedSections = formik.values.sections.map(section => ({
+        ...section,
+        items: section.items.map((item: any) => {
+          if (item.type === 'quiz' && item.quizTitle && item.lectureName !== item.quizTitle) {
+            needsUpdate = true;
+            return { ...item, lectureName: item.quizTitle };
+          }
+          if (item.type === 'assignment' && item.title && item.lectureName !== item.title) {
+            needsUpdate = true;
+            return { ...item, lectureName: item.title };
+          }
+          return item;
+        })
+      }));
+
+      if (needsUpdate) {
+        formik.setValues({ ...formik.values, sections: updatedSections }, false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formik.values.sections?.map((s: any) => s.items?.map((i: any) => (i.type === 'quiz' ? i.quizTitle : i.type === 'assignment' ? i.title : '')).join('')).join(''), loading]);
 
   // Update seqNo for all sections and items - runs after drag operations and when items are added/removed
   useEffect(() => {
@@ -1315,9 +1355,11 @@ export function CourseCarriculam({ onSubmit }: any) {
       // Update formik with the new quiz data
       formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
         type: 'quiz',
+        contentType: "quiz",
         quizTitle,
         quizDescription,
         questions,
+        lectureName: quizTitle,
         duration: 15, // Default duration of 15 minutes
         seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
       });
@@ -1449,22 +1491,8 @@ export function CourseCarriculam({ onSubmit }: any) {
   };
 
   const handleAddQuiz = (sectionIdx: number) => {
-    const newQuiz: QuizItem = {
-      type: "quiz",
-      quizTitle: "",
-      quizDescription: "",
-      questions: [
-        {
-          question: "",
-          options: ["", ""],
-          correctOption: [],
-        },
-      ],
-      duration: 15, // Default duration of 15 minutes
-      seqNo: formik.values.sections[sectionIdx].items.length + 1,
-    };
-
     const newItemIdx = formik.values.sections[sectionIdx].items.length;
+    const newQuiz = getInitialQuiz(newItemIdx + 1);
 
     formik.setFieldValue(`sections.${sectionIdx}.items`, [
       ...formik.values.sections[sectionIdx].items,
@@ -1482,6 +1510,8 @@ export function CourseCarriculam({ onSubmit }: any) {
       const [title, description, duration, questionsText, totalMarksExcel, wordLimitExcel, modelAnswerText] = rows[0];
       formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
         type: 'assignment',
+        contentType: 'assignment',
+        lectureName: title || 'Assignment',
         title: title || 'New Assignment',
         description: description || '',
         duration: parseInt(duration) || 0,
@@ -3296,6 +3326,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               quizDescription,
                                                                               questions,
                                                                               duration: quizDuration,
+                                                                              contentType: "quiz",
+                                                                              lectureName: quizTitle,
                                                                               seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
                                                                             });
                                                                           };
@@ -3406,7 +3438,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                         name={`sections[${sectionIdx}].items[${itemIdx}].questions`}
                                                                         render={arrayHelpers => (
                                                                           <div className="space-y-4">
-                                                                            {item.questions.map((question, qIdx) => (
+                                                                            {item.questions && item.questions.map((question, qIdx) => (
                                                                               <div key={qIdx} className="border p-3 rounded bg-white">
                                                                                 <div className="flex justify-between items-start mb-2">
                                                                                   <Input
@@ -3431,7 +3463,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 </div>
 
                                                                                 <div className="space-y-2">
-                                                                                  {question.options.map((option, optIdx) => (
+                                                                                  {item.questions && question.options!.map((option, optIdx) => (
                                                                                     <div key={optIdx} className="flex items-center gap-2">
                                                                                       <Checkbox
                                                                                         checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
@@ -3729,7 +3761,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
                                                                         {({ push: pushQuestion, remove: removeQuestion }) => (
                                                                           <div className="flex flex-col gap-4">
-                                                                            {item.questions.map((question, qIdx) => (
+                                                                            {item.questions && item.questions.map((question, qIdx) => (
                                                                               <div key={qIdx} className="border p-3 rounded">
                                                                                 <div className="flex justify-between mb-2">
                                                                                   <span className="font-medium">Question {qIdx + 1}</span>

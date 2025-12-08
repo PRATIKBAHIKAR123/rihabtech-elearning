@@ -14,6 +14,7 @@ interface CustomUser {
   phoneNumber?: string;
   address?: string;
   AccessToken?: string;
+  ProfileImage?: string;
 }
 
 interface AuthContextType {
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           address: userData.address,
           Role: userData.Role || userData.role || 0,
           AccessToken: userData.AccessToken,
+          ProfileImage: userData.ProfileImage || userData.profileImage,
         };
         
         setUser(customUser);
@@ -103,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             Role: 0, // Default role for Firebase-only users
+            ProfileImage: firebaseUser.photoURL || undefined,
           };
           setUser(customUser);
         } else if (!firebaseUser && !localStorage.getItem('token')) {
