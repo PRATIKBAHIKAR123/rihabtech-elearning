@@ -57,6 +57,17 @@ const formatPricing = (pricing: string | null | undefined): string => {
   return pricing; // Return as-is if it's not 'free' or 'paid'
 };
 
+// Helper to normalize boolean-ish API values (boolean | string | number)
+const normalizeBoolean = (value: unknown): boolean => {
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true' || value === '1';
+  }
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+  return Boolean(value);
+};
+
 export default function CourseList() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<ApiCourseDisplayData[]>([]);
@@ -90,6 +101,21 @@ export default function CourseList() {
     });
 
     return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  };
+
+  // Flag courses that are in revision and cannot be resubmitted
+  const isRevisionLocked = (course: ApiCourseDisplayData) => {
+    // Only lock if status is NEEDS_REVISION AND allowResubmission is explicitly false
+    const isLocked = course.status === COURSE_STATUS.NEEDS_REVISION && course.allowResubmission === false;
+    if (course.status === COURSE_STATUS.NEEDS_REVISION) {
+      console.log(`Course "${course.title}": status=${course.status}, allowResubmission=${course.allowResubmission}, isLocked=${isLocked}`);
+    }
+    return isLocked;
+  };
+
+  // Check if course needs revision (for highlighting, regardless of allowResubmission)
+  const needsRevision = (course: ApiCourseDisplayData) => {
+    return course.status === COURSE_STATUS.NEEDS_REVISION;
   };
 
   // Load payout data for the instructor
@@ -139,7 +165,8 @@ export default function CourseList() {
         pricing: course.pricing || 'N/A', // Use API pricing or default
         thumbnail: course.thumbnailUrl,
         description: course.description || null,
-        status: course.status || 1 // Ensure status is a number, default to 1 (Draft)
+        status: course.status || 1, // Ensure status is a number, default to 1 (Draft)
+        allowResubmission: normalizeBoolean(course.allowResubmission) // normalize to boolean
       }));
 
       console.log("Transformed API courses:", transformedCourses);
@@ -466,8 +493,14 @@ export default function CourseList() {
 
             {/* Table Body */}
             <div className="divide-y divide-gray-400">
-              {filteredCourses.map((course) => (
-                <div key={course.id} className="hover:bg-gray-50 transition-colors">
+              {filteredCourses.map((course) => {
+                const locked = isRevisionLocked(course);
+                const needsRev = needsRevision(course);
+                return (
+                <div
+                  key={course.id}
+                  className={`${needsRev ? (locked ? 'bg-red-100 border-l-4 border-red-500 hover:bg-red-200' : 'bg-red-50 border-l-4 border-red-300 hover:bg-red-100') : 'hover:bg-gray-50'} transition-colors`}
+                >
                   {/* Desktop Layout */}
                   <div className="hidden lg:grid lg:grid-cols-[180px_1fr_120px_120px_120px]">
 
@@ -525,6 +558,11 @@ export default function CourseList() {
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
                             {formatPricing(course.pricing)}
                           </span>
+                          {needsRevision(course) && !course.allowResubmission && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-red-700 bg-red-100 border border-red-200 rounded">
+                              Resubmission not allowed
+                            </span>
+                          )}
                         </div>
 
                         {/* Last Updated */}
@@ -600,7 +638,7 @@ export default function CourseList() {
 
                     {/* Actions */}
                     <div className="p-4 flex items-center justify-center gap-1">
-                      {course.status !== COURSE_STATUS.PUBLISHED && (
+                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
                         <button
                           onClick={() => handleEditCourse(course)}
                           className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
@@ -629,57 +667,58 @@ export default function CourseList() {
                           <Globe className="w-4 h-4" />
                         </button>
                       )}
-{course.status !== COURSE_STATUS.PUBLISHED && (
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="More Options"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
 
-                        {openDropdownCourseId === course.id && (
-                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                            {course.status !== COURSE_STATUS.PUBLISHED && (
-                              <button
+                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="More Options"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {openDropdownCourseId === course.id && (
+                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                              {course.status !== COURSE_STATUS.PUBLISHED && (
+                                <button
+                                  onClick={() => {
+                                    handleEditCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 mr-2" />
+                                  Edit Course
+                                </button>
+                              )}
+                              {/* Delete Course button hidden temporarily */}
+                              {/* <button
                                 onClick={() => {
-                                  handleEditCourse(course);
+                                  handleDeleteCourse(course);
                                   setOpenDropdownCourseId(null);
                                 }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                               >
-                                <Edit3 className="w-3.5 h-3.5 mr-2" />
-                                Edit Course
-                              </button>
-                            )}
-                            {/* Delete Course button hidden temporarily */}
-                            {/* <button
-                              onClick={() => {
-                                handleDeleteCourse(course);
-                                setOpenDropdownCourseId(null);
-                              }}
-                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              Delete Course
-                            </button> */}
-                            {canPublishCourse(course) && (
-                              <button
-                                onClick={() => {
-                                  handlePublishCourse(course);
-                                  setOpenDropdownCourseId(null);
-                                }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
-                              >
-                                <Globe className="w-3.5 h-3.5 mr-2" />
-                                Publish Course
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-)}
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Delete Course
+                              </button> */}
+                              {canPublishCourse(course) && (
+                                <button
+                                  onClick={() => {
+                                    handlePublishCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+                                >
+                                  <Globe className="w-3.5 h-3.5 mr-2" />
+                                  Publish Course
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -719,6 +758,11 @@ export default function CourseList() {
                           <span className="px-2 py-0.5 text-[10px] font-medium text-gray-600 bg-gray-100 rounded">
                             {formatPricing(course.pricing)}
                           </span>
+                          {needsRevision(course) && !course.allowResubmission && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-red-700 bg-red-100 border border-red-200 rounded">
+                              Resubmission not allowed
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -790,7 +834,7 @@ export default function CourseList() {
                     </div>
 
                     <div className="flex items-center justify-center gap-2">
-                      {course.status !== COURSE_STATUS.PUBLISHED && (
+                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
                         <button
                           onClick={() => handleEditCourse(course)}
                           className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
@@ -820,59 +864,62 @@ export default function CourseList() {
                         </button>
                       )}
 
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
-                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="More Options"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                      {!isRevisionLocked(course) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="More Options"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
 
-                        {openDropdownCourseId === course.id && (
-                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                            {course.status !== COURSE_STATUS.PUBLISHED && (
-                              <button
+                          {openDropdownCourseId === course.id && (
+                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
+                              {course.status !== COURSE_STATUS.PUBLISHED && (
+                                <button
+                                  onClick={() => {
+                                    handleEditCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 mr-2" />
+                                  Edit Course
+                                </button>
+                              )}
+                              {/* Delete Course button hidden temporarily */}
+                              {/* <button
                                 onClick={() => {
-                                  handleEditCourse(course);
+                                  handleDeleteCourse(course);
                                   setOpenDropdownCourseId(null);
                                 }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                               >
-                                <Edit3 className="w-3.5 h-3.5 mr-2" />
-                                Edit Course
-                              </button>
-                            )}
-                            {/* Delete Course button hidden temporarily */}
-                            {/* <button
-                              onClick={() => {
-                                handleDeleteCourse(course);
-                                setOpenDropdownCourseId(null);
-                              }}
-                              className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              Delete Course
-                            </button> */}
-                            {canPublishCourse(course) && (
-                              <button
-                                onClick={() => {
-                                  handlePublishCourse(course);
-                                  setOpenDropdownCourseId(null);
-                                }}
-                                className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
-                              >
-                                <Globe className="w-3.5 h-3.5 mr-2" />
-                                Publish Course
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Delete Course
+                              </button> */}
+                              {canPublishCourse(course) && (
+                                <button
+                                  onClick={() => {
+                                    handlePublishCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+                                >
+                                  <Globe className="w-3.5 h-3.5 mr-2" />
+                                  Publish Course
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

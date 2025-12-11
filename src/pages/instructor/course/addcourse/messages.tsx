@@ -21,9 +21,23 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
 
   // Helper function to strip HTML tags and get plain text
   const stripHtmlTags = (html: string) => {
+    if (!html) return '';
     const temp = document.createElement('div');
     temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
+    const text = temp.textContent || temp.innerText || '';
+    // Trim whitespace to match API behavior
+    return text.trim();
+  };
+
+  // Helper to get plain-text length (for min-length validation)
+  const getPlainLength = (html: string) => {
+    const plainText = stripHtmlTags(html || '');
+    return plainText.length;
+  };
+
+  // Helper to get HTML string length (for max-length validation - API counts HTML string)
+  const getHtmlLength = (html: string) => {
+    return (html || '').length;
   };
 
   const formik = useFormik<CourseMessagesForm>({
@@ -35,27 +49,41 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
       welcomeMessage: Yup.string()
         .test('min-length', 'Welcome message should be at least 10 characters', function (value) {
           if (!value) return true; // Allow empty values
-          const plainText = stripHtmlTags(value);
-          return plainText.length >= 10;
+          const plainText = getPlainLength(value);
+          return plainText >= 10;
         })
-        .test('max-length', 'Welcome message cannot exceed 500 characters', function (value) {
+        .test('max-length', 'Max 1000 characters allowed in welcome message', function (value) {
           if (!value) return true; // Allow empty values
-          const plainText = stripHtmlTags(value);
-          return plainText.length <= 500;
+          // API's MaxLength(1000) validates the HTML string length, not plain text
+          const htmlLength = getHtmlLength(value);
+          return htmlLength <= 1000;
         }),
       congratulationsMessage: Yup.string()
         .test('min-length', 'Congratulations message should be at least 10 characters', function (value) {
           if (!value) return true; // Allow empty values
-          const plainText = stripHtmlTags(value);
-          return plainText.length >= 10;
+          const plainText = getPlainLength(value);
+          return plainText >= 10;
         })
-        .test('max-length', 'Congratulations message cannot exceed 500 characters', function (value) {
+        .test('max-length', 'Max 1000 characters allowed in congratulations message', function (value) {
           if (!value) return true; // Allow empty values
-          const plainText = stripHtmlTags(value);
-          return plainText.length <= 500;
+          // API's MaxLength(1000) validates the HTML string length, not plain text
+          const htmlLength = getHtmlLength(value);
+          return htmlLength <= 1000;
         }),
     }),
     onSubmit: async (values) => {
+      // Validate form before proceeding
+      const errors = await formik.validateForm();
+      if (Object.keys(errors).length > 0) {
+        formik.setTouched({
+          welcomeMessage: true,
+          congratulationsMessage: true,
+        });
+        toast.error("Please fix validation errors before submitting");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
 
       // Check if user is logged in
@@ -72,6 +100,24 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           return;
         }
 
+        // Enforce API limit: HTML string must be <= 1000 characters (API's MaxLength validates HTML string)
+        const welcomeHtmlLength = getHtmlLength(values.welcomeMessage);
+        const congratsHtmlLength = getHtmlLength(values.congratulationsMessage);
+
+        if (welcomeHtmlLength > 1000) {
+          formik.setFieldError('welcomeMessage', `Max 1000 characters allowed in welcome message (current: ${welcomeHtmlLength} characters including HTML tags)`);
+          toast.error(`Welcome message exceeds 1000 characters (${welcomeHtmlLength} characters including HTML tags)`);
+          setLoading(false);
+          return;
+        }
+
+        if (congratsHtmlLength > 1000) {
+          formik.setFieldError('congratulationsMessage', `Max 1000 characters allowed in congratulations message (current: ${congratsHtmlLength} characters including HTML tags)`);
+          toast.error(`Congratulations message exceeds 1000 characters (${congratsHtmlLength} characters including HTML tags)`);
+          setLoading(false);
+          return;
+        }
+
         // Comparison logic: Only call update API if messages have changed
         const currentWelcomeMessage = courseData.welcomeMessage || "";
         const currentCongratulationsMessage = courseData.congratulationsMessage || "";
@@ -84,6 +130,35 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           // No changes detected, go directly to course preview page
           window.location.href = "/#/instructor/course-preview";
           return; // Exit early
+        }
+
+        // Final validation check right before API call (safety net)
+        const finalWelcomeHtmlLength = getHtmlLength(values.welcomeMessage);
+        const finalCongratsHtmlLength = getHtmlLength(values.congratulationsMessage);
+        const finalWelcomePlainLength = getPlainLength(values.welcomeMessage);
+        const finalCongratsPlainLength = getPlainLength(values.congratulationsMessage);
+        
+        console.log('Final validation before API call:', {
+          welcomeHtmlLength: finalWelcomeHtmlLength,
+          congratsHtmlLength: finalCongratsHtmlLength,
+          welcomePlainLength: finalWelcomePlainLength,
+          congratsPlainLength: finalCongratsPlainLength,
+          welcomeHTML: values.welcomeMessage?.substring(0, 100) + '...',
+          congratsHTML: values.congratulationsMessage?.substring(0, 100) + '...'
+        });
+
+        if (finalWelcomeHtmlLength > 1000) {
+          formik.setFieldError('welcomeMessage', `Max 1000 characters allowed in welcome message (current: ${finalWelcomeHtmlLength} characters including HTML tags)`);
+          toast.error(`Welcome message exceeds 1000 characters (${finalWelcomeHtmlLength} characters including HTML tags)`);
+          setLoading(false);
+          return;
+        }
+
+        if (finalCongratsHtmlLength > 1000) {
+          formik.setFieldError('congratulationsMessage', `Max 1000 characters allowed in congratulations message (current: ${finalCongratsHtmlLength} characters including HTML tags)`);
+          toast.error(`Congratulations message exceeds 1000 characters (${finalCongratsHtmlLength} characters including HTML tags)`);
+          setLoading(false);
+          return;
         }
 
         // If data has changed, proceed with update

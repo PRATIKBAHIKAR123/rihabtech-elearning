@@ -17,11 +17,13 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   placeholder = "Enter content...",
   height = "200px",
   error = false,
-  maxLength = 10000 // default to 2000 characters
+  maxLength = 10000 // default to 10000 characters
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [htmlLength, setHtmlLength] = useState(0);
+  const lastValidHtmlRef = useRef<string>('');
 
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
@@ -48,18 +50,33 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
       // Set initial content
       if (value) {
         quillRef.current.root.innerHTML = value;
+        setHtmlLength(value.length);
+        lastValidHtmlRef.current = value;
+      } else {
+        setHtmlLength(0);
+        lastValidHtmlRef.current = '';
       }
 
-      // ✅ Character limit logic
+      // ✅ Character limit logic - count HTML string length (including tags) to match API validation
       quillRef.current.on('text-change', (delta, oldDelta, source) => {
         if (quillRef.current) {
-          const plainText = quillRef.current.getText().trim(); // raw text without tags
-          if (plainText.length > maxLength) {
-            quillRef.current.deleteText(maxLength, plainText.length);
-          } else {
-            const html = quillRef.current.root.innerHTML;
-            onChange(html);
+          const html = quillRef.current.root.innerHTML;
+          const currentHtmlLength = html.length;
+          
+          // Enforce limit: if HTML string exceeds maxLength, revert to last valid HTML
+          if (currentHtmlLength > maxLength) {
+            // Revert to last valid HTML
+            quillRef.current.root.innerHTML = lastValidHtmlRef.current;
+            setHtmlLength(lastValidHtmlRef.current.length);
+            return; // Don't call onChange if we reverted
           }
+          
+          // Update last valid HTML and counter
+          lastValidHtmlRef.current = html;
+          setHtmlLength(currentHtmlLength);
+          
+          // Call onChange with valid HTML
+          onChange(html);
         }
       });
 
@@ -76,7 +93,10 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
   // Update content if value changes from outside
   useEffect(() => {
     if (quillRef.current && isInitialized && value !== quillRef.current.root.innerHTML) {
-      quillRef.current.root.innerHTML = value;
+      const newValue = value || '';
+      quillRef.current.root.innerHTML = newValue;
+      setHtmlLength(newValue.length);
+      lastValidHtmlRef.current = newValue;
     }
   }, [value, isInitialized]);
 
@@ -93,7 +113,7 @@ const QuillEditor: React.FC<QuillEditorProps> = ({
         }}
       />
       <div className="text-sm text-gray-500 text-right mt-1 pr-2">
-        {quillRef.current ? `${quillRef.current.getText().trim().length}/${maxLength}` : `0/${maxLength}`}
+        {isInitialized && quillRef.current ? `${htmlLength}/${maxLength}` : `${(value || '').length}/${maxLength}`}
       </div>
     </div>
   );

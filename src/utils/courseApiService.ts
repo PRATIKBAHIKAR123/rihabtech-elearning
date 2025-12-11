@@ -133,6 +133,7 @@ export interface CourseResponse {
   hasUnpublishedChanges?: boolean;
   isIntendedLearnersFinal?: boolean;
   isCurriculumFinal?: boolean;
+  allowResubmission?: boolean;
   createdDate?: string;
   curriculum?: {
     sections: Array<{
