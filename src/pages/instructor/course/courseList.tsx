@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Star, ChevronDown, Edit3, MoreHorizontal, Send, Globe } from "lucide-react";
+import { Search, Star, ChevronDown, Edit3, MoreHorizontal, Send, Globe, Lock } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import { payoutService, EarningsSummary } from "../../../utils/payoutService";
@@ -258,6 +258,22 @@ export default function CourseList() {
       } catch (err) {
         console.error("Error publishing course:", err);
         alert("Failed to publish course. Please try again.");
+      }
+    }
+  };
+
+  const handleUnpublishCourse = async (course: ApiCourseDisplayData) => {
+    if (window.confirm(`Are you sure you want to unpublish "${course.title}"? This will make it unavailable to students.`)) {
+      try {
+        const response = await courseApiService.unpublishCourse(course.id);
+        console.log('Course unpublished successfully:', response);
+
+        // Refresh the courses list
+        await fetchCourses();
+        alert("Course unpublished successfully!");
+      } catch (err) {
+        console.error("Error unpublishing course:", err);
+        alert("Failed to unpublish course. Please try again.");
       }
     }
   };
@@ -668,6 +684,16 @@ export default function CourseList() {
                         </button>
                       )}
 
+                      {course.status === COURSE_STATUS.PUBLISHED && (
+                        <button
+                          onClick={() => handleUnpublishCourse(course)}
+                          className="p-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
+                          title="Unpublish Course"
+                        >
+                          <Lock className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
                         <div className="relative">
                           <button
@@ -713,6 +739,18 @@ export default function CourseList() {
                                 >
                                   <Globe className="w-3.5 h-3.5 mr-2" />
                                   Publish Course
+                                </button>
+                              )}
+                              {course.status === COURSE_STATUS.PUBLISHED && (
+                                <button
+                                  onClick={() => {
+                                    handleUnpublishCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-orange-600 hover:bg-orange-50"
+                                >
+                                  <Lock className="w-3.5 h-3.5 mr-2" />
+                                  Unpublish Course
                                 </button>
                               )}
                             </div>
@@ -864,6 +902,16 @@ export default function CourseList() {
                         </button>
                       )}
 
+                      {course.status === COURSE_STATUS.PUBLISHED && (
+                        <button
+                          onClick={() => handleUnpublishCourse(course)}
+                          className="p-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
+                          title="Unpublish Course"
+                        >
+                          <Lock className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {!isRevisionLocked(course) && (
                         <div className="relative">
                           <button
@@ -909,6 +957,18 @@ export default function CourseList() {
                                 >
                                   <Globe className="w-3.5 h-3.5 mr-2" />
                                   Publish Course
+                                </button>
+                              )}
+                              {course.status === COURSE_STATUS.PUBLISHED && (
+                                <button
+                                  onClick={() => {
+                                    handleUnpublishCourse(course);
+                                    setOpenDropdownCourseId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-sm text-orange-600 hover:bg-orange-50"
+                                >
+                                  <Lock className="w-3.5 h-3.5 mr-2" />
+                                  Unpublish Course
                                 </button>
                               )}
                             </div>

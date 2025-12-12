@@ -221,6 +221,12 @@ export interface CourseSubmitForReviewResponse {
   isSubmitted?: boolean;
 }
 
+export interface CourseUnpublishResponse {
+  message: string;
+  unpublishedAt?: string;
+  isPublished?: boolean;
+}
+
 export interface CourseGetAllResponse {
   id: number;
   title: string;
@@ -317,6 +323,11 @@ class CourseApiService {
   // Submit course for review
   async submitCourseForReview(courseId: number): Promise<CourseSubmitForReviewResponse> {
     return apiService.post<CourseSubmitForReviewResponse>('/instructor/course/submit-for-review', courseId);
+  }
+
+  // Unpublish a course
+  async unpublishCourse(courseId: number): Promise<CourseUnpublishResponse> {
+    return apiService.post<CourseUnpublishResponse>('/instructor/course/unpublish', { courseId });
   }
 }
 
