@@ -76,15 +76,12 @@ const Profile = () => {
     { label: "Enrolled Courses", tab: "enrolled-courses" },
     { label: "Subscription Management", tab: "subscription-management" },
     { label: "Payment History", tab: "payment-history" },
-    { label: "Instructor Application", tab: "instructor-application" },
-    { label: "Bank Details", tab: "bank-details" },
   ];
 
-  // Instructor-only items (Role 5) - Additional items for instructors
-  // Note: Some items like "Bank Details" and "Instructor Application" may overlap with studentSidebarItems
+  // Instructor-only items (Role 5) - Only shown to instructors
   const instructorSidebarItems: Array<{ label: string; tab: string }> = [
-    // Currently no unique instructor-only items, but kept for future use
-    // Bank Details and Instructor Application are already in studentSidebarItems
+    { label: "Instructor Application", tab: "instructor-application" },
+    { label: "Bank Details", tab: "bank-details" },
   ];
 
   // Get user role (Role 4 = Student/Learner, Role 5 = Instructor)
