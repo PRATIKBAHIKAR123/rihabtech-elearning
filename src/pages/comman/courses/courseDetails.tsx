@@ -126,7 +126,7 @@ useEffect(() => {
 
       setLoading(true);
       // Use API service to fetch course by ID
-      const courseData = await courseApiService.getCourseDetails(parseInt(extractedCourseId));
+      const courseData = await courseApiService.getCourseByIdPublic(parseInt(extractedCourseId));
       setCourse(courseData);
 
       if (user) {

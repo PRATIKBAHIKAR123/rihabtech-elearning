@@ -96,7 +96,7 @@ export default function CourseDetailsPage() {
         
         // Try to fetch from API first
         try {
-          const apiData = await courseApiService.getCourseById(parseInt(courseId));
+          const apiData = await courseApiService.getCourseDetails(parseInt(courseId));
           console.log('API Course data:', apiData);
           setApiCourseData(apiData);
           

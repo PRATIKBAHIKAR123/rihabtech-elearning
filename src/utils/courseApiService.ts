@@ -271,6 +271,11 @@ class CourseApiService {
     return apiService.get<CourseResponse>(`/instructor/course/get-by-id/${id}`);
   }
 
+  // Get course by ID (public endpoint for enrolled students)
+  async getCourseByIdPublic(id: number): Promise<CourseResponse> {
+    return apiService.get<CourseResponse>(`/course/get-by-id-public/${id}`);
+  }
+
     async getCourseDetails(id: number): Promise<CourseResponse> {
     return apiService.get<CourseResponse>(`/course/details/${id}`);
   }
