@@ -23,11 +23,16 @@ interface UserData {
   }
 }
 
-const BankDetails: React.FC = () => {
+interface BankDetailsProps {
+  profile?: any; // Optional profile prop with instructorProfile data
+}
+
+const BankDetails: React.FC<BankDetailsProps> = ({ profile }) => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [hasBankDetails, setHasBankDetails] = useState(false);
+  const [bankDetailsData, setBankDetailsData] = useState<BankDetailsFormData | null>(null);
 
   const bankDetailsSchema = useFormik({
     initialValues: {
@@ -108,32 +113,58 @@ const BankDetails: React.FC = () => {
   });
 
   useEffect(() => {
-    // Get user data from localStorage
+    // First, try to load from API profile data
+    if (profile?.instructorProfile) {
+      const instructorData = profile.instructorProfile;
+      console.log('Loading bank details from API:', instructorData);
+      
+      // Check if instructor has bank details
+      const hasBankInfo = !!(instructorData.bankName || instructorData.bankAccountNo);
+      
+      if (hasBankInfo) {
+        const bankData: BankDetailsFormData = {
+          bankName: instructorData.bankName || '',
+          bankBranch: instructorData.bankBranch || '',
+          bankAccountNo: instructorData.bankAccountNo || '',
+          bankIFSCCode: instructorData.bankIFSCCode || '',
+        };
+        
+        setBankDetailsData(bankData);
+        setHasBankDetails(true);
+        
+        // Set form initial values
+        bankDetailsSchema.setValues(bankData);
+      }
+    }
+    
+    // Get user data from localStorage for token
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const userData = JSON.parse(token) as UserData;
         setUser(userData);
         
-        // Check if user has bank details
-        const hasBankInfo = !!(userData.bankDetails && userData.bankDetails.bankName);
-        setHasBankDetails(hasBankInfo);
-        
-        // Set form initial values if bank details exist
-        if (hasBankInfo) {
-          bankDetailsSchema.setValues({
-            bankName: userData.bankDetails?.bankName || '',
-            bankBranch: userData.bankDetails?.bankBranch || '',
-            bankAccountNo: userData.bankDetails?.bankAccountNo || '',
-            bankIFSCCode: userData.bankDetails?.bankIFSCCode || '',
-          });
+        // Only use localStorage bank details if API data is not available
+        if (!profile?.instructorProfile?.bankName) {
+          const hasBankInfo = !!(userData.bankDetails && userData.bankDetails.bankName);
+          setHasBankDetails(hasBankInfo);
+          
+          // Set form initial values if bank details exist
+          if (hasBankInfo) {
+            bankDetailsSchema.setValues({
+              bankName: userData.bankDetails?.bankName || '',
+              bankBranch: userData.bankDetails?.bankBranch || '',
+              bankAccountNo: userData.bankDetails?.bankAccountNo || '',
+              bankIFSCCode: userData.bankDetails?.bankIFSCCode || '',
+            });
+          }
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
         toast.error('Failed to load user information');
       }
     }
-  }, []);
+  }, [profile]);
 
   if (!user) {
     return (
@@ -172,31 +203,40 @@ const BankDetails: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
-                  <p className="text-gray-900 font-medium">{user.bankDetails?.bankName}</p>
+                  <p className="text-gray-900 font-medium">{bankDetailsData?.bankName || user.bankDetails?.bankName || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label>
-                  <p className="text-gray-900 font-medium">{user.bankDetails?.bankBranch}</p>
+                  <p className="text-gray-900 font-medium">{bankDetailsData?.bankBranch || user.bankDetails?.bankBranch || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
                   <p className="text-gray-900 font-medium">
-                    {user.bankDetails?.bankAccountNo 
-                      ? `****-****-${user.bankDetails.bankAccountNo.slice(-4)}` 
-                      : ''}
+                    {(bankDetailsData?.bankAccountNo || user.bankDetails?.bankAccountNo)
+                      ? `****-****-${(bankDetailsData?.bankAccountNo || user.bankDetails?.bankAccountNo || '').slice(-4)}` 
+                      : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
-                  <p className="text-gray-900 font-medium">{user.bankDetails?.bankIFSCCode}</p>
+                  <p className="text-gray-900 font-medium">{bankDetailsData?.bankIFSCCode || user.bankDetails?.bankIFSCCode || 'N/A'}</p>
                 </div>
               </div>
 
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-green-800 text-sm">
-                  <strong>Bank details are configured!</strong> Your payment information is set up and ready for receiving course sales payments.
-                </p>
-              </div>
+              {profile?.instructorProfile?.isBankDetailsApproved && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-green-800 text-sm">
+                    <strong>Bank details are approved!</strong> Your payment information is set up and ready for receiving course sales payments.
+                  </p>
+                </div>
+              )}
+              {!profile?.instructorProfile?.isBankDetailsApproved && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Bank details pending approval.</strong> Your bank details are submitted and awaiting admin approval.
+                  </p>
+                </div>
+              )}
             </>
           ) : (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">

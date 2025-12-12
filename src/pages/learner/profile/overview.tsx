@@ -54,15 +54,16 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
         .filter((t) => t.status === "completed")
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Real data from Firebase export for abdulquader152@gmail.com
+      // Use data from API response (studentProfile object)
+      const studentProfile = profile?.studentProfile || {};
       const overviewStats: OverviewStats = {
-        enrolledCourses: 0,
-        avgProgress: 0,
-        watchMinutes: 0,
-        subscriptions: 0,
+        enrolledCourses: studentProfile.enrolledCourses || 0,
+        avgProgress: studentProfile.averageProgress || 0,
+        watchMinutes: studentProfile.watchMinutes || 0,
+        subscriptions: studentProfile.subscriptions || 0,
         totalSpent: totalSpent || 0,
-        joinDate: new Date(profile.createdDate),
-        lastOnline: new Date(profile.createdDate),
+        joinDate: profile.createdDate ? new Date(profile.createdDate) : new Date(),
+        lastOnline: profile.createdDate ? new Date(profile.createdDate) : new Date(),
         phone: profile.phoneNumber || "",
         address: profile.address || "",
       };
@@ -143,12 +144,20 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
             <p className="text-gray-600 mb-2">
               {profile?.emailId || "user@example.com"}
             </p>
-            {/* <div className="flex items-center space-x-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Active
-              </span>
-            </div> */}
+            {profile?.studentProfile?.statusText && (
+              <div className="flex items-center space-x-4">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  profile.studentProfile.status === 1 
+                    ? 'bg-green-100 text-green-800' 
+                    : profile.studentProfile.status === 2
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  {profile.studentProfile.statusText}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

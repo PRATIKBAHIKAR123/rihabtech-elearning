@@ -6,6 +6,7 @@ import { Button } from "../../../components/ui/button";
 
 interface InstructorApplicationProps {
   user: any;
+  profile?: any; // Optional profile prop with instructorProfile data
 }
 
 interface ApplicationData {
@@ -23,6 +24,7 @@ interface ApplicationData {
 
 const InstructorApplication: React.FC<InstructorApplicationProps> = ({
   user,
+  profile,
 }) => {
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState<string>("");
@@ -43,13 +45,62 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({
     panImage: "skipped-for-now",
   });
 
+  // Load data from API profile first, then check Firebase as fallback
   useEffect(() => {
+    // Check if instructorProfile exists in API response
+    if (profile?.instructorProfile) {
+      const instructorData = profile.instructorProfile;
+      console.log('Loading instructor data from API:', instructorData);
+      
+      // Check if instructor has applied (has areaOfExpertise or teachingTopics)
+      const hasInstructorData = instructorData.areaOfExpertise || instructorData.teachingTopics || instructorData.panNo || instructorData.aadhaarNo;
+      
+      if (hasInstructorData) {
+        setHasApplied(true);
+        // Map API status to application status
+        // currStatus: 1 = pending, 2 = approved/rejected (check isBlocked)
+        let status = "pending";
+        if (instructorData.currStatus === 2) {
+          status = instructorData.isBlocked ? "rejected" : "approved";
+        } else if (instructorData.currStatus === 1) {
+          status = "pending";
+        }
+        setApplicationStatus(status);
+        
+        // Set application data from API (store full values for display)
+        const apiApplicationData: ApplicationData = {
+          experties: instructorData.areaOfExpertise || "",
+          topic: instructorData.teachingTopics || "",
+          PANnumber: instructorData.panNo || "",
+          adhaarnumber: instructorData.aadhaarNo || "", // Store full value
+          aadharImage: instructorData.aadhaarFile || "skipped-for-now",
+          panImage: instructorData.panFile || "skipped-for-now",
+        };
+        
+        setApplicationData(apiApplicationData);
+        
+        // Pre-populate form data (store full values for editing)
+        setFormData({
+          experties: instructorData.areaOfExpertise || "",
+          topic: instructorData.teachingTopics || "",
+          PANnumber: instructorData.panNo || "",
+          adhaarnumber: instructorData.aadhaarNo || "", // Store full value for editing
+          aadharImage: instructorData.aadhaarFile || "skipped-for-now",
+          panImage: instructorData.panFile || "skipped-for-now",
+        });
+        
+        setLoading(false);
+        return; // Don't check Firebase if API data exists
+      }
+    }
+    
+    // Fallback to Firebase check if no API data
     if (user?.UserName) {
       checkExistingApplication(user.UserName);
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   const checkExistingApplication = async (userEmail: string) => {
     try {

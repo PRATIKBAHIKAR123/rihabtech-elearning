@@ -87,9 +87,14 @@ const Profile = () => {
   // Get user role (Role 4 = Student/Learner, Role 5 = Instructor)
   // Default to 4 (Student) if user is null or Role is undefined
   const userRole = useMemo(() => {
+    // First try to get role from profile API response
+    if (profile?.roleId !== undefined && profile?.roleId !== null) {
+      return profile.roleId;
+    }
+    // Fallback to user object
     if (!user) return 4; // Default to student
     return (user.Role !== undefined && user.Role !== null) ? user.Role : 4;
-  }, [user]);
+  }, [user, profile]);
 
   const isInstructor = userRole === 5;
   const isStudent = !isInstructor; // Default to student if not instructor
@@ -278,8 +283,8 @@ const Profile = () => {
               </>
             )}
             {activeTab == "profile-photo" && <ProfilePhoto />}
-            {activeTab === 'bank-details' && <BankDetails />}
-            {activeTab === 'instructor-application' && user && <InstructorApplication user={user} />}
+            {activeTab === 'bank-details' && <BankDetails profile={profile} />}
+            {activeTab === 'instructor-application' && user && <InstructorApplication user={user} profile={profile} />}
             {activeTab == "account&security" && <AccountSecurity />}
             {activeTab == "enrolled-courses" && profile && (
               <EnrolledCourses profile={profile} />
