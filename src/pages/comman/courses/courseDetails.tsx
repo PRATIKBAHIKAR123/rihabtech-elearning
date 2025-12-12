@@ -602,7 +602,7 @@ return {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 mb-2">Difficulty Level</h4>
-                    <p className="text-gray-600 capitalize">{getLevelLabel(course.level)}</p>
+                    <p className="text-gray-600">{getLevelLabel(course.level)}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-semibold text-gray-800 mb-2">Language</h4>
