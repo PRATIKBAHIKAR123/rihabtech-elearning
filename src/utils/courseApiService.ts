@@ -299,6 +299,11 @@ class CourseApiService {
     return apiService.post<CourseGetAllResponse[]>('/course/get-all', {});
   }
 
+  // Get featured courses (public endpoint)
+  async getFeaturedCourses(): Promise<CourseGetAllResponse[]> {
+    return apiService.get<CourseGetAllResponse[]>('/course/featured-Course');
+  }
+
   // Search courses (public endpoint)
   async searchCourses(searchRequest: SearchCourseRequest = {}): Promise<SearchCourseResponse[]> {
     return apiService.post<SearchCourseResponse[]>('/course/search', searchRequest);

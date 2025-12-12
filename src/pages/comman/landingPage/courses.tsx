@@ -43,15 +43,15 @@ export default function Courses() {
   const [loading, setLoading] = useState(true);
   const [coursesLoading, setCoursesLoading] = useState(true);
 
-  // Function to fetch courses from API
+  // Function to fetch featured courses from API
   const fetchCourses = async () => {
     try {
       setCoursesLoading(true);
-      const apiCoursesData = await courseApiService.getAllPublicCourses();
-      console.log('Fetched API courses:', apiCoursesData);
+      const apiCoursesData = await courseApiService.getFeaturedCourses();
+      console.log('Fetched featured courses:', apiCoursesData);
       setCourses(apiCoursesData);
     } catch (error) {
-      console.error("Error fetching API courses:", error);
+      console.error("Error fetching featured courses:", error);
     } finally {
       setCoursesLoading(false);
     }
