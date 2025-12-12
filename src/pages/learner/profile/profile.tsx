@@ -15,6 +15,7 @@ import axiosClient from '../../../utils/axiosClient';
 const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onProfileUpdate: (profile: any) => void }> = ({ profile, loading, error, onProfileUpdate }) => {
   const [phoneCountry, setPhoneCountry] = useState('IN');
   const [success, setSuccess] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const formik = useFormik({
     initialValues: {
       id: profile?.id || '',
@@ -24,7 +25,7 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
       gender: profile?.gender || '',
       address: profile?.address || '',
     },
-    enableReinitialize: true,
+    enableReinitialize: false, // Disable auto-reinitialize to prevent form clearing
     validationSchema: Yup.object({
       name: Yup.string().required('Full Name is required'),
       email: Yup.string().email('Invalid email address').required('Email is required'),
@@ -34,6 +35,7 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
     }),
     onSubmit: async (values) => {
       try {
+        setIsUpdating(true);
         const response = await axiosClient.post('/update-profile', {
           name: values.name,
           emailId: values.email,
@@ -44,13 +46,53 @@ const EditProfile: React.FC<{ profile: any, loading: boolean, error: string, onP
         const data = response.data;
         toast.success('Profile updated successfully');
         setSuccess('Profile updated successfully!');
-        onProfileUpdate(data); // update parent state
+        
+        // Update formik values directly first to prevent form clearing
+        formik.setValues({
+          id: values.id,
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          gender: values.gender,
+          address: values.address
+        });
+        
+        // Ensure the updated profile data has all required fields in the correct format
+        const updatedProfileData = {
+          ...profile, // Preserve existing profile data
+          ...data, // Override with API response
+          id: data.id || profile?.id || values.id,
+          name: data.name || values.name,
+          emailId: data.emailId || values.email,
+          phoneNumber: data.phoneNumber || values.phone,
+          gender: data.gender || values.gender,
+          address: data.address || values.address
+        };
+        
+        // Update parent state with properly formatted data
+        onProfileUpdate(updatedProfileData);
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Profile update failed');
         setSuccess('');
+      } finally {
+        setIsUpdating(false);
       }
     },
   });
+
+  // Sync formik values when profile changes (only on initial load, not during updates)
+  useEffect(() => {
+    if (profile && !isUpdating) {
+      formik.setValues({
+        id: profile.id || '',
+        name: profile.name || '',
+        email: profile.emailId || '',
+        phone: profile.phoneNumber || '',
+        gender: profile.gender || '',
+        address: profile.address || '',
+      });
+    }
+  }, [profile?.id, profile?.name, profile?.emailId, profile?.phoneNumber, profile?.gender, profile?.address]); // Only sync when profile data actually changes
 
   if (loading) return <LoadingIcon />;
   if (error && typeof error === 'string') return <div className="text-red-500 text-center py-8">{error}</div>;

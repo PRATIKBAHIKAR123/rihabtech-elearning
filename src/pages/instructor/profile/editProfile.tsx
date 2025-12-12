@@ -20,10 +20,11 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, pro
   const [profile, setProfile] = useState<any>(initialProfile || null);
   const [loading, setLoading] = useState(!initialProfile); // Only loading if profile not provided
   const [error, setError] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Update form values when profile data is loaded
+  // Update form values when profile data is loaded (but not when updating from form submission)
   useEffect(() => {
-    if (profile) {
+    if (profile && !isUpdating) {
       console.log('Setting form values from profile:', profile);
       console.log('Gender value being set:', profile.gender);
       formik.setValues({
@@ -40,7 +41,7 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, pro
         console.log('Gender in form after setting:', formik.values.gender);
       }, 100);
     }
-  }, [profile]);
+  }, [profile, isUpdating]);
 
   // Fetch profile data from API only if not provided as prop
   useEffect(() => {
@@ -110,9 +111,11 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, pro
     }),
     onSubmit: async (values) => {
       try {
+        setIsUpdating(true);
         const token = user?.AccessToken;
         if (!token) {
           toast.error('Please login to update profile');
+          setIsUpdating(false);
           return;
         }
 
@@ -143,10 +146,20 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, pro
           toast.success('Profile updated successfully');
           setSuccess('Profile updated successfully!');
           
-          // Update local profile state with new data
+          // Update formik values directly first to prevent form clearing
+          formik.setValues({
+            name: values.name,
+            email: values.email,
+            phone: values.phone,
+            gender: values.gender,
+            address: values.address
+          });
+          
+          // Update local profile state with new data (preserve all existing fields)
           const updatedProfile = {
             ...profile,
             name: values.name,
+            emailId: values.email, // Preserve email
             phoneNumber: values.phone,
             gender: values.gender,
             address: values.address
@@ -167,6 +180,8 @@ const InstructorEditProfile: React.FC<InstructorEditProfileProps> = ({ user, pro
         console.error('Profile update error:', error);
         toast.error(error.message || 'Profile update failed');
         setSuccess('');
+      } finally {
+        setIsUpdating(false);
       }
     },
   });

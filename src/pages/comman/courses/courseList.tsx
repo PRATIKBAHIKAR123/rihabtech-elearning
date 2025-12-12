@@ -2,7 +2,6 @@ import { BookOpen, ChevronDown, ChevronRight, Filter, User2, X } from "lucide-re
 import { Button } from "../../../components/ui/button";
 import { useState, useEffect, useCallback, use } from "react";
 import { Checkbox } from "../../../components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio";
 import { useParams } from "react-router-dom";
 import { courseApiService, CourseGetAllResponse, SubCategory } from "../../../utils/courseApiService";
 
@@ -18,7 +17,7 @@ export default function CourseList() {
   const [displayedCourses, setDisplayedCourses] = useState<CourseGetAllResponse[]>([]);
   
   // Filter states
-  const [selectedRating, setSelectedRating] = useState<string>("");
+  const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
   const [selectedPrice, setSelectedPrice] = useState<string[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -29,30 +28,121 @@ export default function CourseList() {
 
   // Clear all filters
   const clearAllFilters = () => {
-    setSelectedRating("");
+    setSelectedRatings([]);
     setSelectedPrice([]);
     setSelectedDuration([]);
     setSelectedTopics([]);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = selectedRating || selectedPrice.length > 0 || selectedDuration.length > 0 || selectedTopics.length > 0;
+  const hasActiveFilters = selectedRatings.length > 0 || selectedPrice.length > 0 || selectedDuration.length > 0 || selectedTopics.length > 0;
 
-  // Fetch courses from API
+  // Fetch courses from API with filters
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const apiCourses = await courseApiService.getAllPublicCourses();
-        console.log('Fetched API courses:', apiCourses);
         
-        // Filter courses by category if categoryId is provided
-        const filteredCourses = categoryId 
-          ? apiCourses.filter(course => course.category === parseInt(categoryId))
-          : apiCourses;
+        // Build filter object for API with all required fields and default values
+        const filters: {
+          category: number;
+          subCategories: number[];
+          subCategory: number;
+          searchText: string;
+          pricing: string;
+          minVideoDuration: number[];
+          maxVideoDuration: number[];
+          minRating: number[];
+          maxRating: number[];
+        } = {
+          category: 0,
+          subCategories: [0],
+          subCategory: 0,
+          searchText: '',
+          pricing: '',
+          minVideoDuration: [0],
+          maxVideoDuration: [0],
+          minRating: [0],
+          maxRating: [0]
+        };
         
-        setCourses(filteredCourses);
-        setFilteredCourses(filteredCourses);
+        // Category filter
+        if (categoryId) {
+          filters.category = parseInt(categoryId);
+        }
+        
+        // Pricing filter
+        if (selectedPrice.length > 0) {
+          if (selectedPrice.includes('free') && selectedPrice.includes('paid')) {
+            // Both selected, no filter - keep default empty string
+            filters.pricing = '';
+          } else if (selectedPrice.includes('free')) {
+            filters.pricing = 'free';
+          } else if (selectedPrice.includes('paid')) {
+            filters.pricing = 'paid';
+          }
+        }
+        
+        // Video duration filter - support multiple duration ranges
+        if (selectedDuration.length > 0) {
+          const minDurations: number[] = [];
+          const maxDurations: number[] = [];
+          
+          selectedDuration.forEach(dur => {
+            if (dur === 'duration-0-1') {
+              minDurations.push(0);
+              maxDurations.push(1);
+            } else if (dur === 'duration-1-3') {
+              minDurations.push(1);
+              maxDurations.push(3);
+            } else if (dur === 'duration-3-6') {
+              minDurations.push(3);
+              maxDurations.push(6);
+            } else if (dur === 'duration-6-17') {
+              minDurations.push(6);
+              maxDurations.push(17);
+            } else if (dur === 'duration-17-plus') {
+              minDurations.push(17);
+              maxDurations.push(999); // Large number for "and above"
+            }
+          });
+          
+          if (minDurations.length > 0) {
+            filters.minVideoDuration = minDurations;
+          }
+          if (maxDurations.length > 0) {
+            filters.maxVideoDuration = maxDurations;
+          }
+        }
+        
+        // SubCategory filter - support multiple subcategories
+        if (selectedTopics.length > 0) {
+          // Extract subcategory IDs from selected topics
+          const subCatIds = selectedTopics
+            .map(topic => {
+              // Try to parse as number (if topic is subcategory ID)
+              const id = parseInt(topic);
+              return isNaN(id) ? null : id;
+            })
+            .filter((id): id is number => id !== null);
+          
+          if (subCatIds.length > 0) {
+            filters.subCategories = subCatIds;
+          }
+        }
+        
+        // Rating filter - support multiple minimum ratings
+        if (selectedRatings.length > 0) {
+          const minRatings = selectedRatings.map(r => parseFloat(r));
+          filters.minRating = minRatings;
+          // For "X & up" ratings, we don't need max, just min
+        }
+        
+        const apiCourses = await courseApiService.getAllPublicCourses(filters);
+        console.log('Fetched API courses with filters:', apiCourses);
+        
+        setCourses(apiCourses);
+        setFilteredCourses(apiCourses);
       } catch (error) {
         console.error("Error fetching courses:", error);
         setCourses([]);
@@ -63,7 +153,7 @@ export default function CourseList() {
     };
 
     fetchCourses();
-  }, [categoryId]);
+  }, [categoryId, selectedPrice, selectedDuration, selectedTopics, selectedRatings]); // Re-fetch when filters change
 
      useEffect(() => {
   const fetchCategories = async () => {
@@ -91,46 +181,27 @@ export default function CourseList() {
   fetchCategories();
 }, [categoryId]);
 
-  // Apply filters to courses
+  // Apply client-side filters (only for subcategories/topics since API handles others)
   const applyFilters = useCallback(() => {
     let filtered = [...courses];
 
-    // Price filter
-    if (selectedPrice.length > 0) {
-      filtered = filtered.filter(course => {
-        const isFree = course.pricing === "free" || course.pricing === null || course.pricing === "";
-        if (selectedPrice.includes('free') && isFree) return true;
-        if (selectedPrice.includes('paid') && !isFree) return true;
-        return false;
-      });
-    }
-
-    // Duration filter (using weeks from API)
-    if (selectedDuration.length > 0) {
-      filtered = filtered.filter(course => {
-        const duration = course.weeks || 0;
-        if (selectedDuration.includes('duration-0-1') && duration >= 0 && duration <= 1) return true;
-        if (selectedDuration.includes('duration-1-3') && duration > 1 && duration <= 3) return true;
-        if (selectedDuration.includes('duration-3-6') && duration > 3 && duration <= 6) return true;
-        if (selectedDuration.includes('duration-6-17') && duration > 6 && duration <= 17) return true;
-        if (selectedDuration.includes('duration-17-plus') && duration > 17) return true;
-        return false;
-      });
-    }
-
-    // Topic filter (using course title)
+    // Topic/SubCategory filter (client-side since we're matching by subCategoryText)
     if (selectedTopics.length > 0) {
       filtered = filtered.filter(course => {
         console.log('Filtering course:', course.title, 'with subCategoryText:', course.subCategoryText);
-        return selectedTopics.some(topic => 
-          course.subCategoryText!.toLowerCase().includes(topic.toLowerCase())
-        );
+        return selectedTopics.some(topic => {
+          // Match by subCategory ID or title
+          const topicId = String(topic);
+          const topicString = String(topic || '').toLowerCase();
+          return course.subCategory?.toString() === topicId || 
+                 (course.subCategoryText && course.subCategoryText.toLowerCase().includes(topicString));
+        });
       });
     }
 
     setFilteredCourses(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [courses, selectedPrice, selectedDuration, selectedTopics]);
+  }, [courses, selectedTopics]); // Only depend on topics since price and duration are handled by API
 
   // Pagination logic
   const updateDisplayedCourses = useCallback(() => {
@@ -150,7 +221,7 @@ export default function CourseList() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Apply filters whenever filter states change
+  // Apply filters whenever filter states change (only topics now)
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
@@ -185,8 +256,8 @@ export default function CourseList() {
         {/* Filter Sidebar - Desktop */}
         <div className={`hidden lg:block lg:w-1/4 xl:w-1/5 pr-8 ${isFilterOpen ? '' : 'lg:hidden'}`}>
           <FilterContent 
-            selectedRating={selectedRating}
-            setSelectedRating={setSelectedRating}
+            selectedRatings={selectedRatings}
+            setSelectedRatings={setSelectedRatings}
             selectedPrice={selectedPrice}
             setSelectedPrice={setSelectedPrice}
             selectedDuration={selectedDuration}
@@ -278,8 +349,8 @@ export default function CourseList() {
                   </div>
 
                   <FilterContent 
-                    selectedRating={selectedRating}
-                    setSelectedRating={setSelectedRating}
+                    selectedRatings={selectedRatings}
+                    setSelectedRatings={setSelectedRatings}
                     selectedPrice={selectedPrice}
                     setSelectedPrice={setSelectedPrice}
                     selectedDuration={selectedDuration}
@@ -404,8 +475,8 @@ function FilterAccordion({ title, children, defaultOpen = true }: FilterAccordio
 
 // Filter Content Component with Accordions
 function FilterContent({ 
-  selectedRating, 
-  setSelectedRating, 
+  selectedRatings, 
+  setSelectedRatings, 
   selectedPrice, 
   setSelectedPrice, 
   selectedDuration, 
@@ -413,8 +484,8 @@ function FilterContent({
   selectedTopics, 
   setSelectedTopics 
 }: {
-  selectedRating: string;
-  setSelectedRating: (value: string) => void;
+  selectedRatings: string[];
+  setSelectedRatings: (value: string[]) => void;
   selectedPrice: string[];
   setSelectedPrice: (value: string[]) => void;
   selectedDuration: string[];
@@ -505,31 +576,24 @@ function FilterContent({
       <FilterAccordion title="Sub Category">
         <div className="space-y-3 font-bold max-h-64 overflow-y-auto">
           {additionalTopics.length > 0 && (
-          <div className="flex items-center">
-            <Checkbox 
-              id="topic-react" 
-              className="mr-3" 
-              checked={selectedTopics.includes('topic-react')}
-              onCheckedChange={(checked) => handleTopicChange('topic-react', checked as boolean)}
-            />
-            {<label htmlFor="topic-react">{additionalTopics[0]!.title}</label>}
-          </div>
-          )}
-          
-          {/* Additional topics that appear when "Show more" is clicked */}
-          {showMoreTopics && (
             <>
-              {additionalTopics.slice(1).map((topic:any) => (
-                <div key={topic.id} className="flex items-center">
-                  <Checkbox 
-                    id={topic.id} 
-                    className="mr-3" 
-                    checked={selectedTopics.includes(topic.id)}
-                    onCheckedChange={(checked) => handleTopicChange(topic.id, checked as boolean)}
-                  />
-                  <label htmlFor={topic.id}>{topic.title}</label>
-                </div>
-              ))}
+              {additionalTopics.map((topic: any) => {
+                // Show first topic always, others only when "Show more" is clicked
+                if (!showMoreTopics && additionalTopics.indexOf(topic) > 0) {
+                  return null;
+                }
+                return (
+                  <div key={topic.id} className="flex items-center">
+                    <Checkbox 
+                      id={String(topic.id)} 
+                      className="mr-3" 
+                      checked={selectedTopics.includes(String(topic.id))}
+                      onCheckedChange={(checked) => handleTopicChange(String(topic.id), checked as boolean)}
+                    />
+                    <label htmlFor={String(topic.id)}>{topic.title}</label>
+                  </div>
+                );
+              })}
             </>
           )}
         </div>
@@ -612,11 +676,21 @@ function FilterContent({
 
       {/* Ratings Filter */}
       <FilterAccordion title="Ratings">
-        <div className="space-y-3">
-          <RadioGroup value={selectedRating} onValueChange={setSelectedRating}>
+        <div className="space-y-3 font-bold">
           <div className="flex items-center">
-            <RadioGroupItem id="rating-4.5" value={"4.5"} className="mr-3" />
-            <label htmlFor="rating-4.5" className="flex items-center font-bold">
+            <Checkbox 
+              id="rating-4.5" 
+              className="mr-3" 
+              checked={selectedRatings.includes("4.5")}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setSelectedRatings([...selectedRatings, "4.5"]);
+                } else {
+                  setSelectedRatings(selectedRatings.filter(r => r !== "4.5"));
+                }
+              }}
+            />
+            <label htmlFor="rating-4.5" className="flex items-center">
               <div className="flex text-yellow-400">
                 ★★★★<span className="text-yellow-400">½</span>
               </div>
@@ -624,8 +698,19 @@ function FilterContent({
             </label>
           </div>
           <div className="flex items-center">
-            <RadioGroupItem id="rating-4.0" value={"4.0"} className="mr-3" />
-            <label htmlFor="rating-4.0" className="flex items-center font-bold">
+            <Checkbox 
+              id="rating-4.0" 
+              className="mr-3" 
+              checked={selectedRatings.includes("4.0")}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setSelectedRatings([...selectedRatings, "4.0"]);
+                } else {
+                  setSelectedRatings(selectedRatings.filter(r => r !== "4.0"));
+                }
+              }}
+            />
+            <label htmlFor="rating-4.0" className="flex items-center">
               <div className="flex text-yellow-400">
                 ★★★★<span className="text-gray-300">★</span>
               </div>
@@ -633,8 +718,19 @@ function FilterContent({
             </label>
           </div>
           <div className="flex items-center">
-            <RadioGroupItem id="rating-3.5" value={"3.5"} className="mr-3" />
-            <label htmlFor="rating-3.5" className="flex items-center font-bold">
+            <Checkbox 
+              id="rating-3.5" 
+              className="mr-3" 
+              checked={selectedRatings.includes("3.5")}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setSelectedRatings([...selectedRatings, "3.5"]);
+                } else {
+                  setSelectedRatings(selectedRatings.filter(r => r !== "3.5"));
+                }
+              }}
+            />
+            <label htmlFor="rating-3.5" className="flex items-center">
               <div className="flex text-yellow-400">
                 ★★★<span className="text-yellow-400">½</span><span className="text-gray-300">★</span>
               </div>
@@ -642,15 +738,25 @@ function FilterContent({
             </label>
           </div>
           <div className="flex items-center">
-            <RadioGroupItem id="rating-3.0" value={"3.0"} className="mr-3" />
-            <label htmlFor="rating-3.0" className="flex items-center font-bold">
+            <Checkbox 
+              id="rating-3.0" 
+              className="mr-3" 
+              checked={selectedRatings.includes("3.0")}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setSelectedRatings([...selectedRatings, "3.0"]);
+                } else {
+                  setSelectedRatings(selectedRatings.filter(r => r !== "3.0"));
+                }
+              }}
+            />
+            <label htmlFor="rating-3.0" className="flex items-center">
               <div className="flex text-yellow-400">
                 ★★★<span className="text-gray-300">★★</span>
               </div>
               <span className="ml-2">3.0 & up (781)</span>
             </label>
           </div>
-          </RadioGroup>
         </div>
       </FilterAccordion>
     </div>

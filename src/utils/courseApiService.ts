@@ -300,9 +300,42 @@ class CourseApiService {
     return apiService.get<SubCategory[]>('/course/sub-categories');
   }
 
-  // Get all courses (public endpoint)
-  async getAllPublicCourses(): Promise<CourseGetAllResponse[]> {
-    return apiService.post<CourseGetAllResponse[]>('/course/get-all', {});
+  // Get all courses (public endpoint) with filters
+  async getAllPublicCourses(filters?: {
+    category?: number;
+    subCategories?: number[];
+    subCategory?: number; // Backward compatibility
+    searchText?: string;
+    pricing?: string;
+    minVideoDuration?: number[];
+    maxVideoDuration?: number[];
+    minRating?: number[];
+    maxRating?: number[];
+  }): Promise<CourseGetAllResponse[]> {
+    // Always include all required fields with default values
+    const requestBody: {
+      category: number;
+      subCategories: number[];
+      subCategory: number;
+      searchText: string;
+      pricing: string;
+      minVideoDuration: number[];
+      maxVideoDuration: number[];
+      minRating: number[];
+      maxRating: number[];
+    } = {
+      category: filters?.category ?? 0,
+      subCategories: filters?.subCategories && filters.subCategories.length > 0 ? filters.subCategories : [0],
+      subCategory: filters?.subCategory ?? 0,
+      searchText: filters?.searchText ?? '',
+      pricing: filters?.pricing ?? '',
+      minVideoDuration: filters?.minVideoDuration && filters.minVideoDuration.length > 0 ? filters.minVideoDuration : [0],
+      maxVideoDuration: filters?.maxVideoDuration && filters.maxVideoDuration.length > 0 ? filters.maxVideoDuration : [0],
+      minRating: filters?.minRating && filters.minRating.length > 0 ? filters.minRating : [0],
+      maxRating: filters?.maxRating && filters.maxRating.length > 0 ? filters.maxRating : [0]
+    };
+    
+    return apiService.post<CourseGetAllResponse[]>('/course/get-all', requestBody);
   }
 
   // Get featured courses (public endpoint)
