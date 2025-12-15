@@ -19,6 +19,8 @@ export interface ApiCourseDisplayData extends CourseResponse {
   thumbnail?: string | null;
   description?: string | null;
   status: number; // Ensure status is a number
+  isFeatured?: number; // 0 or 1
+  is_featured?: boolean; // boolean flag
 }
 
 // Flexible interface for backward compatibility (supports both Firebase and API courses)
@@ -116,6 +118,11 @@ export default function CourseList() {
   // Check if course needs revision (for highlighting, regardless of allowResubmission)
   const needsRevision = (course: ApiCourseDisplayData) => {
     return course.status === COURSE_STATUS.NEEDS_REVISION;
+  };
+
+  // Check if course is featured
+  const isFeatured = (course: ApiCourseDisplayData) => {
+    return course.isFeatured === 1 || course.is_featured === true;
   };
 
   // Load payout data for the instructor
@@ -512,10 +519,11 @@ export default function CourseList() {
               {filteredCourses.map((course) => {
                 const locked = isRevisionLocked(course);
                 const needsRev = needsRevision(course);
+                const featured = isFeatured(course);
                 return (
                 <div
                   key={course.id}
-                  className={`${needsRev ? (locked ? 'bg-red-100 border-l-4 border-red-500 hover:bg-red-200' : 'bg-red-50 border-l-4 border-red-300 hover:bg-red-100') : 'hover:bg-gray-50'} transition-colors`}
+                  className={`${needsRev ? (locked ? 'bg-red-100 border-l-4 border-red-500 hover:bg-red-200' : 'bg-red-50 border-l-4 border-red-300 hover:bg-red-100') : featured ? 'bg-yellow-50 border-l-4 border-yellow-400 hover:bg-yellow-100' : 'hover:bg-gray-50'} transition-colors`}
                 >
                   {/* Desktop Layout */}
                   <div className="hidden lg:grid lg:grid-cols-[180px_1fr_120px_120px_120px]">
@@ -546,7 +554,10 @@ export default function CourseList() {
                     <div className="p-4 min-w-0">
                       <div className="flex flex-col gap-2">
                         {/* Title with consistent height */}
-                        <div className="h-6 flex items-center">
+                        <div className="h-6 flex items-center gap-2">
+                          {featured && (
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                          )}
                           <h3 className="text-sm font-semibold text-gray-900 truncate pr-2" title={course.title}>
                             {course.title}
                           </h3>
@@ -568,6 +579,12 @@ export default function CourseList() {
                           <span className={`px-2 py-0.5 text-[10px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
                             {getStatusById(course.status)}
                           </span>
+                          {featured && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-yellow-800 bg-yellow-200 border border-yellow-300 rounded flex items-center gap-1">
+                              <Star className="w-2.5 h-2.5 fill-yellow-600 text-yellow-600" />
+                              Featured
+                            </span>
+                          )}
                           {/* <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
                           </span> */}
@@ -783,13 +800,24 @@ export default function CourseList() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-1 truncate" title={course.title}>
-                          {course.title}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          {featured && (
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                          )}
+                          <h3 className="text-sm font-semibold text-gray-900 truncate" title={course.title}>
+                            {course.title}
+                          </h3>
+                        </div>
                         <div className="flex flex-wrap gap-1 mb-2">
                           <span className={`px-2 py-0.5 text-[10px] font-medium text-white rounded ${getStatusColor(course.status)}`}>
                             {getStatusById(course.status)}
                           </span>
+                          {featured && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-yellow-800 bg-yellow-200 border border-yellow-300 rounded flex items-center gap-1">
+                              <Star className="w-2.5 h-2.5 fill-yellow-600 text-yellow-600" />
+                              Featured
+                            </span>
+                          )}
                           <span className="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 rounded">
                             {course.visibility}
                           </span>
