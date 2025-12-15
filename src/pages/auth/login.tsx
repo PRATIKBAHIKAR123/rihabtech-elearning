@@ -13,13 +13,36 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
 
-    // Initialize Google OAuth
+    // Initialize Google OAuth and handle callback
     useEffect(() => {
+      console.log('🔵 LoginPage useEffect running');
+      console.log('Current URL:', window.location.href);
+      console.log('Pathname:', window.location.pathname);
+      console.log('Search:', window.location.search);
+      console.log('Hash:', window.location.hash);
+      
+      // Handle path-based redirect from Google (/login?code=...)
+      // Convert to hash route if needed for HashRouter compatibility
+      if (window.location.pathname === '/login' && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (code || error) {
+          console.log('✅ OAuth callback detected on /login path');
+          // Convert to hash route and preserve query params
+          window.location.hash = `/login${window.location.search}`;
+          // The useEffect will run again with the hash route
+          return;
+        }
+      }
+      
+      // Initialize Google OAuth
       GoogleAuth.init().then(() => {
         console.log('Google OAuth initialized');
       });
       
-      // Handle OAuth 2.0 callback only if there's a code in the URL
+      // Handle OAuth 2.0 callback from hash route or after redirect
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
       
@@ -27,13 +50,24 @@ export default function LoginPage() {
       const error = urlParams.get('error') || hashParams.get('error');
       
       console.log('Checking for OAuth callback...');
-      console.log('Search params:', window.location.search);
-      console.log('Hash:', window.location.hash);
-      console.log('Code:', code, 'Error:', error);
+      console.log('Code from search:', urlParams.get('code'));
+      console.log('Code from hash:', hashParams.get('code'));
+      console.log('Final code:', code);
+      console.log('Final error:', error);
       
-      if (code || error) {
-        console.log('OAuth callback detected, processing...');
-        GoogleAuth.handleOAuth2Callback();
+      if (code) {
+        console.log('✅ OAuth callback detected, processing...');
+        GoogleAuth.handleOAuth2Callback().catch((err) => {
+          console.error('❌ Error in OAuth callback handler:', err);
+        });
+      } else if (error) {
+        console.error('❌ OAuth error detected:', error);
+        toast.error('Google authentication failed. Please try again.');
+        // Clean up URL
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '/login';
+        window.history.replaceState({}, '', url.toString());
       } else {
         console.log('No OAuth callback detected');
       }
