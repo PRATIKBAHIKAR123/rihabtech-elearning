@@ -108,20 +108,31 @@ export default function InstructorSignupPage() {
       PANnumber: '',
     },
     validationSchema: Yup.object({
-      experties: Yup.string().required('Area of Expertise is required'),
-      topic: Yup.string().required('Teaching Topics are required'),
+      experties: Yup.string()
+        .required('Area of Expertise is required')
+        .max(250, 'Max 250 characters allowed in area of expertise'),
+      topic: Yup.string()
+        .required('Teaching Topics are required')
+        .max(250, 'Max 250 characters allowed in teaching topics'),
+      bio: Yup.string()
+        .max(1000, 'Max 1000 characters allowed in bio'),
       adhaarnumber: Yup.string()
         .matches(/^\d{12}$/, 'Aadhaar Number must be 12 digits')
+        .max(12, 'Max 12 characters allowed in aadhaar no')
         .required('Aadhaar Number is required'),
       PANnumber: Yup.string()
         .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'PAN Number must be 10 characters (e.g. ABCDE1234F)')
+        .max(10, 'Max 10 characters allowed in pan no')
         .required('PAN Number is required'),
-      // bankName: Yup.string().required('Bank Name is required'),
-      // bankBranch: Yup.string().required('Bank Branch is required'),
-      // bankAccountNo: Yup.string().required('Bank Account Number is required'),
+      // bankName: Yup.string()
+      //   .max(50, 'Max 50 characters allowed in bank name'),
+      // bankBranch: Yup.string()
+      //   .max(150, 'Max 150 characters allowed in bank branch'),
+      // bankAccountNo: Yup.string()
+      //   .max(20, 'Max 20 characters allowed in bank account no'),
       // bankIFSCCode: Yup.string()
       //   .matches(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'IFSC Code must be in correct format (e.g. SBIN0123456)')
-      //   .required('Bank IFSC Code is required'),
+      //   .max(11, 'Max 11 characters allowed in bank ifsc code'),
     }),
     onSubmit: async (values, { setSubmitting, setErrors }) => {
       if (!aadharImage || !panImage) {
@@ -278,6 +289,7 @@ export default function InstructorSignupPage() {
                   value={signupSchema.values.experties}
                   onChange={signupSchema.handleChange}
                   onBlur={signupSchema.handleBlur}
+                  maxLength={250}
                 />
                 {signupSchema.touched.experties && signupSchema.errors.experties && (
                   <div className="text-red-500 text-xs mt-1">{signupSchema.errors.experties}</div>
@@ -295,6 +307,7 @@ export default function InstructorSignupPage() {
                   value={signupSchema.values.topic}
                   onChange={signupSchema.handleChange}
                   onBlur={signupSchema.handleBlur}
+                  maxLength={250}
                 />
                 {signupSchema.touched.topic && signupSchema.errors.topic && (
                   <div className="text-red-500 text-xs mt-1">{signupSchema.errors.topic}</div>
@@ -314,6 +327,7 @@ export default function InstructorSignupPage() {
                 value={signupSchema.values.bio}
                 onChange={signupSchema.handleChange}
                 onBlur={signupSchema.handleBlur}
+                maxLength={1000}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-vertical"
               />
               {signupSchema.touched.bio && signupSchema.errors.bio && (
@@ -426,6 +440,7 @@ export default function InstructorSignupPage() {
                   value={signupSchema.values.adhaarnumber}
                   onChange={signupSchema.handleChange}
                   onBlur={signupSchema.handleBlur}
+                  maxLength={12}
                 />
                 {signupSchema.touched.adhaarnumber && signupSchema.errors.adhaarnumber && (
                   <div className="text-red-500 text-xs mt-1">{signupSchema.errors.adhaarnumber}</div>
@@ -443,6 +458,7 @@ export default function InstructorSignupPage() {
                   value={signupSchema.values.PANnumber}
                   onChange={signupSchema.handleChange}
                   onBlur={signupSchema.handleBlur}
+                  maxLength={10}
                 />
                 {signupSchema.touched.PANnumber && signupSchema.errors.PANnumber && (
                   <div className="text-red-500 text-xs mt-1">{signupSchema.errors.PANnumber}</div>

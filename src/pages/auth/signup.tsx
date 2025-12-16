@@ -26,10 +26,16 @@ export default function SignUpPage() {
       termsconditions: false,
     },
     validationSchema: Yup.object({
-      name: Yup.string().required('Name is Required'),
-      email: Yup.string().email('Invalid email').required('Email is Required'),
+      name: Yup.string()
+        .required('Name is Required')
+        .max(50, 'Name can be a maximum of 50 characters'),
+      email: Yup.string()
+        .email('Invalid email')
+        .required('Email is Required')
+        .max(100, 'Email can be a maximum of 100 characters'),
       password: Yup.string()
         .min(8, 'Password must be at least 8 characters')
+        .max(25, 'Password can be a maximum of 25 characters')
         .matches(/^[a-zA-Z0-9]+$/, 'Password must contain only letters and numbers')
         .required('Password is Required'),
       confirmPassword: Yup.string()
@@ -46,8 +52,11 @@ export default function SignUpPage() {
             return false;
           }
         })
+        .max(100, 'Phone number can be a maximum of 100 characters')
         .required('Contact Number is Required'),
-      address: Yup.string().required('Address is Required'),
+      address: Yup.string()
+        .required('Address is Required')
+        .max(250, 'Address can be a maximum of 250 characters'),
       termsconditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions'),
     }),
     onSubmit: async (values) => {
