@@ -42,43 +42,41 @@ function Header({ onMenuClick }: HeaderProps) {
       // Check current instructor status
       const response = await instructorApiService.getCurrentStatus();
 
-      if (response && response.currStatus !== undefined) {
+      // If currStatus is not in response, it means no application exists yet
+      if (response && response.currStatus !== undefined && response.currStatus !== null) {
         const status = response.currStatus;
+        const statusMessage = getStatusMessage(status);
 
-        if (status === null || status === undefined) {
-          // No application found, redirect to instructor signup
-          window.location.href = '/#/instructor-signup';
-        } else {
-          const statusMessage = getStatusMessage(status);
-
-          if (status === 1) {
-            // Pending - already applied
-            toast.info(statusMessage);
-            window.location.href = '/#/instructor-signup-success';
-          } else if (status === 2) {
-            // Approved - update user role and redirect to instructor dashboard
-            const tokenData = localStorage.getItem('token');
-            if (tokenData) {
-              const userData = JSON.parse(tokenData);
-              if (userData.Role !== 5) {
-                userData.Role = 5; // Update role to instructor
-                localStorage.setItem('token', JSON.stringify(userData));
-              }
-              //toast.success("Congratulations! Your instructor application has been approved.");
-              window.location.href = '/#/instructor/course-test-selection';
+        if (status === 1) {
+          // Pending - already applied
+          toast.info(statusMessage);
+          window.location.href = '/#/instructor-signup-success';
+        } else if (status === 2) {
+          // Approved - update user role and redirect to instructor dashboard
+          const tokenData = localStorage.getItem('token');
+          if (tokenData) {
+            const userData = JSON.parse(tokenData);
+            if (userData.Role !== 5) {
+              userData.Role = 5; // Update role to instructor
+              localStorage.setItem('token', JSON.stringify(userData));
             }
-          } else if (status === 3) {
-            // Rejected
-            toast.error(statusMessage);
-            window.location.href = '/#/instructor-signup-success';
-          } else if (status === 4) {
-            // On Hold
-            toast.info(statusMessage);
-            window.location.href = '/#/instructor-signup-success';
-          } else if (statusMessage) {
-            toast.info(statusMessage);
+            //toast.success("Congratulations! Your instructor application has been approved.");
+            window.location.href = '/#/instructor/course-test-selection';
           }
+        } else if (status === 3) {
+          // Rejected
+          toast.error(statusMessage);
+          window.location.href = '/#/instructor-signup-success';
+        } else if (status === 4) {
+          // On Hold
+          toast.info(statusMessage);
+          window.location.href = '/#/instructor-signup-success';
+        } else if (statusMessage) {
+          toast.info(statusMessage);
         }
+      } else {
+        // No application found (currStatus is undefined or null), redirect to instructor signup
+        window.location.href = '/#/instructor-signup';
       }
     } catch (error: any) {
       console.error('Error checking instructor status:', error);

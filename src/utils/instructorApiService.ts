@@ -2,8 +2,9 @@ import { apiService } from './apiService';
 
 // Interface for instructor status response
 export interface InstructorStatusResponse {
-  currStatus: number | null;
+  currStatus?: number | null;
   currStatusDate?: string | null;
+  isBlocked?: boolean;
 }
 
 // Interface for instructor application data (if needed in future)
