@@ -39,16 +39,50 @@ class ApiService {
         throw new Error('Server error. Please try again later.');
       } else if (error.response?.status === 400 || error.response?.status === 422) {
         // Handle validation errors (400 Bad Request or 422 Unprocessable Entity)
-        if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        // Preserve the original error object so response data is available
+        const apiError: any = new Error();
+        
+        // Check if response.data is a string (direct error message)
+        if (typeof error.response?.data === 'string') {
+          console.error('API Error (string):', error.response.data);
+          apiError.message = error.response.data;
+        }
+        // Check if response.data is an object with errors array
+        else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
           // Show the first validation error to the user
           const firstError = error.response.data.errors[0];
           console.error('Validation Error:', firstError);
-          throw new Error(firstError);
-        } else if (error.response?.data?.message) {
+          apiError.message = firstError;
+        }
+        // Check if response.data is an object with message property
+        else if (error.response?.data?.message) {
           // Show the API error message
           console.error('API Error:', error.response.data.message);
-          throw new Error(error.response.data.message);
+          apiError.message = error.response.data.message;
         }
+        // Check other possible error fields
+        else if (error.response?.data?.error) {
+          console.error('API Error (error field):', error.response.data.error);
+          apiError.message = error.response.data.error;
+        }
+        else {
+          // If no specific message, try other possible fields
+          const errorMsg = error.response?.data?.title || error.message || 'Request failed';
+          console.error('API Error (fallback):', errorMsg);
+          apiError.message = errorMsg;
+        }
+        
+        // Preserve response data for component error handling
+        apiError.response = error.response;
+        throw apiError;
+      }
+      
+      // For other errors, preserve the original error but ensure message is available
+      if (!error.message && error.response?.data) {
+        const errorMsg = error.response.data.message || error.response.data.error || `Request failed with status code ${error.response.status}`;
+        const apiError: any = new Error(errorMsg);
+        apiError.response = error.response;
+        throw apiError;
       }
       
       throw error;

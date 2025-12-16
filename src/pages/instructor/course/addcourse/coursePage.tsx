@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse } from '../../../../utils/courseApiService';
+import { courseApiService, Category, SubCategory, UpdateCourseMessageResponse, CourseUpdateRequest } from '../../../../utils/courseApiService';
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import QuillEditor from "../../../../components/ui/quill-editor-default";
@@ -238,7 +238,7 @@ export function CourseLandingPage({ onSubmit }: any) {
           learn: courseData.learn ?? [],
           requirements: courseData.requirements ?? [],
           target: courseData.target ?? [],
-          curriculum: courseData.curriculum ?? undefined // Include curriculum data
+          curriculum: courseData.curriculum as CourseUpdateRequest['curriculum'] ?? undefined // Include curriculum data
         });
         
         // After a successful update, update the shared courseData state with the new data

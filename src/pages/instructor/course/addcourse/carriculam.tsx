@@ -22,10 +22,10 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 
-// Debounce utility function
+// Debounce utility function with cancel capability
 const debounce = (func: Function, wait: number) => {
   let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: any[]) {
+  const debouncedFunction = function executedFunction(...args: any[]) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -33,6 +33,10 @@ const debounce = (func: Function, wait: number) => {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+  (debouncedFunction as any).cancel = () => {
+    clearTimeout(timeout);
+  };
+  return debouncedFunction;
 };
 
 // File type detection and icon mapping
@@ -155,6 +159,7 @@ const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) =>
 };
 
 export interface Question {
+  id?: number; // Question ID from API - required for UPSERT
   question: string;
   options: string[];
   correctOption: number[];
@@ -198,6 +203,7 @@ interface VideoContent {
 }
 
 export interface AssignmentQuestion {
+  id?: number; // Question ID from API - required for UPSERT
   question: string;
   marks: number;
   answer: string; // Add this field
@@ -474,15 +480,36 @@ function stripFilesFromCurriculum(curriculum: any): any {
               
               // Handle assignment-specific fields
               if (type === 'assignment') {
-                const { title, description: assignmentDescription, duration: assignmentDuration, totalMarks, questions: assignmentQuestions } = item;
+                const { title, description: assignmentDescription, duration: assignmentDuration, totalMarks, questions } = item;
                 if (title !== undefined) result.title = title;
                 if (assignmentDescription !== undefined) result.description = assignmentDescription;
                 if (assignmentDuration !== undefined) result.duration = assignmentDuration;
                 if (totalMarks !== undefined) result.totalMarks = totalMarks;
-                if (assignmentQuestions !== undefined) result.questions = assignmentQuestions;
+                // API expects assignmentQuestions, not questions for assignments
+                // Note: In the form, assignments use "questions" but API expects "assignmentQuestions"
+                if (questions !== undefined) {
+                  result.assignmentQuestions = questions.map((q: any) => ({
+                    id: q.id, // Preserve question ID if present
+                    question: q.question,
+                    marks: typeof q.marks === 'string' ? parseFloat(q.marks) : q.marks, // Convert string marks to number
+                    answer: q.answer,
+                    maxWordLimit: q.maxWordLimit
+                  }));
+                }
                 // REQUIRED: Set contentType and lectureName for assignment
                 result.contentType = "assignment";
                 result.lectureName = title || "Assignment";
+              }
+              
+              // Ensure type is always set for all items
+              if (!result.type && type) {
+                result.type = type;
+              }
+              
+              // Ensure we have at least a type field - don't filter out items without IDs
+              if (!result.type) {
+                console.warn('Item missing type field:', item);
+                return null; // Only filter out if type is missing
               }
               
               return result;
@@ -777,7 +804,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [formInitialValues, setFormInitialValues] = useState(initialValues);
   const [curriculumKey, setCurriculumKey] = useState(0);
   const lastSavedCurriculumRef = useRef<string | null>(null);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const isSavingRef = useRef(false); // Track if any save operation is in progress
 
   // Function to store curriculum data in global state when navigating
   const storeCurriculumData = useCallback((formValues?: any) => {
@@ -1036,12 +1063,20 @@ export function CourseCarriculam({ onSubmit }: any) {
     initialValues: formInitialValues,
     validationSchema,
     onSubmit: async (values) => {
+      // Prevent duplicate saves
+      if (isSavingRef.current || saving) {
+        console.log('Save already in progress, ignoring duplicate request');
+        return;
+      }
+      
       setSaving(true);
+      isSavingRef.current = true;
       
       // Check if user is logged in
       if (!user) {
         toast.error("Please login to save curriculum");
         setSaving(false);
+        isSavingRef.current = false;
         return;
       }
       
@@ -1049,6 +1084,7 @@ export function CourseCarriculam({ onSubmit }: any) {
       if (!courseData?.id) {
         toast.error("Please create a course first");
         setSaving(false);
+        isSavingRef.current = false;
         return;
       }
       
@@ -1064,6 +1100,7 @@ export function CourseCarriculam({ onSubmit }: any) {
           console.error('Curriculum validation failed:', validation.errors);
           toast.error(`Please fix the following issues:\n${validation.errors.join('\n')}`);
           setSaving(false);
+          isSavingRef.current = false;
           return;
         }
 
@@ -1095,6 +1132,10 @@ export function CourseCarriculam({ onSubmit }: any) {
           curriculum: serializableCurriculum
         };
         
+        // Update lastSavedCurriculumRef
+        const currentCurriculumString = JSON.stringify(serializableCurriculum);
+        lastSavedCurriculumRef.current = currentCurriculumString;
+        
         // Save curriculum to API using updateCourse
         const response: UpdateCourseMessageResponse = await courseApiService.updateCourse(courseUpdateData);
         
@@ -1116,6 +1157,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         toast.success(response.message || "Curriculum saved successfully!");
         
         setSaving(false);
+        isSavingRef.current = false;
         
         // Ensure curriculum data is stored in global state before navigation
         storeCurriculumData(values);
@@ -1136,6 +1178,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         }
         
         setSaving(false);
+        isSavingRef.current = false;
         throw error;
       }
     },
@@ -1205,68 +1248,7 @@ export function CourseCarriculam({ onSubmit }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.sections?.length, loading]);
 
-  // Optimized autosave with useCallback to prevent excessive re-renders
-  const debouncedAutosave = useCallback(
-    debounce(async (values: any) => {
-      if (!loading && courseData?.id && user) {
-        try {
-          const serializableCurriculum = stripFilesFromCurriculum(values);
-          const currentCurriculum = courseData.curriculum;
-          
-          // Only autosave if there are meaningful changes (not just text content)
-          const currentCurriculumString = JSON.stringify(serializableCurriculum);
-          const hasStructuralChanges = currentCurriculumString !== lastSavedCurriculumRef.current;
-          
-          if (hasStructuralChanges) {
-            lastSavedCurriculumRef.current = currentCurriculumString;
-            setIsAutoSaving(true);
-            console.log('Autosaving curriculum (structural changes detected):', { courseId: courseData.id, curriculum: serializableCurriculum });
-            
-            // Prepare course update data with curriculum
-            const courseUpdateData = {
-              id: courseData.id,
-              title: courseData.title,
-              subtitle: courseData.subtitle ?? null,
-              description: courseData.description ?? null,
-              category: courseData.category ?? null,
-              subCategory: courseData.subCategory ?? null,
-              level: courseData.level ?? null,
-              language: courseData.language ?? null,
-              pricing: courseData.pricing ?? null,
-              thumbnailUrl: courseData.thumbnailUrl ?? null,
-              promoVideoUrl: courseData.promoVideoUrl ?? null,
-              welcomeMessage: courseData.welcomeMessage ?? null,
-              congratulationsMessage: courseData.congratulationsMessage ?? null,
-              learn: courseData.learn ?? [],
-              requirements: courseData.requirements ?? [],
-              target: courseData.target ?? [],
-              curriculum: serializableCurriculum
-            };
-            
-            // Save curriculum to API using updateCourse
-            await courseApiService.updateCourse(courseUpdateData);
-            
-            // Clear localStorage since data is now saved to API
-            localStorage.removeItem(`curriculum_${courseData.id}`);
-            
-            console.log('Curriculum autosaved successfully to API');
-            setIsAutoSaving(false);
-          } else {
-            console.log('No structural changes detected, skipping autosave');
-          }
-        } catch (error) {
-          console.error('Error during autosave:', error);
-          setIsAutoSaving(false);
-          // Don't throw error for autosave failures, just log them
-        }
-      }
-    }, 3000), // 3 second debounce
-    [loading, courseData, user]
-  );
-
-  useEffect(() => {
-    debouncedAutosave(formik.values);
-  }, [formik.values, debouncedAutosave]);
+  // Autosave disabled - removed autosave functionality
 
   // Optimized global state storage with useCallback to prevent excessive re-renders
   const debouncedStoreData = useCallback(
@@ -1854,12 +1836,6 @@ export function CourseCarriculam({ onSubmit }: any) {
               <Clock className="text-primary" size={22} />
               <span className="font-bold text-xl">Total Course Duration:</span>
               <span className="font-bold text-primary text-xl">{formatDuration(totalCourseDuration)}</span>
-              {isAutoSaving && (
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span>Auto-saving...</span>
-                </div>
-              )}
               <HoverCard>
                 <HoverCardTrigger asChild>
                   <button

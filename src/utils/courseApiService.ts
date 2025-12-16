@@ -40,9 +40,12 @@ export interface CourseUpdateRequest {
   target?: string[];
   curriculum?: {
     sections: Array<{
+      id?: number; // Section ID from API - required for UPSERT
       name: string;
       published: boolean;
+      seqNo: number; // Sequence number
       items: Array<{
+        id?: number; // Item ID from API - required for UPSERT (lecture/quiz/assignment)
         type: 'lecture' | 'quiz' | 'assignment';
         lectureName?: string;
         description?: string;
@@ -52,6 +55,7 @@ export interface CourseUpdateRequest {
         contentText?: string;
         articleSource?: 'upload' | 'link' | 'write';
         contentFiles?: Array<{
+          id?: number; // Content file ID from API
           name: string;
           url: string;
           cloudinaryUrl?: string;
@@ -61,6 +65,7 @@ export interface CourseUpdateRequest {
           uploadedAt: string;
         }>;
         resources?: Array<{
+          id?: number; // Resource ID from API
           name: string;
           url?: string;
           cloudinaryUrl?: string;
@@ -70,10 +75,12 @@ export interface CourseUpdateRequest {
         published: boolean;
         isPromotional?: boolean;
         duration?: number;
+        seqNo?: number; // Item sequence number
         // Quiz specific fields
         quizTitle?: string;
         quizDescription?: string;
-        quizQuestions?: Array<{
+        questions?: Array<{
+          id?: number; // Question ID from API
           question: string;
           options: string[];
           correctOption: number[];
@@ -84,7 +91,7 @@ export interface CourseUpdateRequest {
         assignmentQuestions?: Array<{
           question: string;
           marks: number;
-          answer: string;
+          answer?: string;
           maxWordLimit?: number;
         }>;
       }>;

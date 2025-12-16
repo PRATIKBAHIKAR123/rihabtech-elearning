@@ -12,7 +12,7 @@ import {
 } from "../../../../components/ui/select";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { X, UserPlus, Globe, Smartphone, Lock, Users } from "lucide-react";
-import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { courseApiService, CourseUpdateRequest, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
@@ -177,7 +177,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
         learn: courseData.learn ?? [],
         requirements: courseData.requirements ?? [],
         target: courseData.target ?? [],
-        curriculum: courseData.curriculum ?? undefined // Include curriculum data
+        curriculum: courseData.curriculum as CourseUpdateRequest['curriculum'] ?? undefined // Include curriculum data
       });
       
       // After a successful update, update the shared courseData state with the new pricing

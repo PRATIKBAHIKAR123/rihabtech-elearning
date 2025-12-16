@@ -143,18 +143,54 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
         window.location.hash = "#/instructor/course-category";
       } catch (error: any) {
         console.error("Failed to save course:", error);
+        console.error("Error response:", error.response);
+        console.error("Error response data:", error.response?.data);
+        console.error("Error response data message:", error.response?.data?.message);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
         
-        // Handle specific error messages
-        if (error.message?.includes('Authentication failed')) {
-          toast.error("Authentication failed. Please login again.");
-        } else if (error.message?.includes('Access forbidden')) {
-          toast.error("You don't have permission to perform this action.");
-        } else if (error.message?.includes('Server error')) {
-          toast.error("Server error. Please try again later.");
-        } else {
-          toast.error("Failed to save course. Please try again.");
+        // Extract error message from API response - check ALL possible locations
+        let errorMessage = "Failed to save course. Please try again.";
+        
+        // Priority 1: Check error.message first (apiService sets this from response.data)
+        // This is the most reliable since apiService already extracted it
+        if (error.message && !error.message.includes('Request failed with status code')) {
+          errorMessage = error.message;
+          console.log("✅ Using error.message (from apiService):", errorMessage);
+        }
+        // Priority 2: Check if error.response.data is a string (direct error message)
+        else if (typeof error.response?.data === 'string' && error.response.data.trim()) {
+          errorMessage = error.response.data;
+          console.log("✅ Using error.response.data (string):", errorMessage);
+        }
+        // Priority 3: Check error.response.data.message (object with message property)
+        else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+          console.log("✅ Using error.response.data.message:", errorMessage);
+        }
+        // Priority 4: Check error.response.data.error
+        else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+          console.log("✅ Using error.response.data.error:", errorMessage);
+        }
+        // Priority 5: Check error.response.data.errors array
+        else if (Array.isArray(error.response?.data?.errors) && error.response.data.errors.length > 0) {
+          errorMessage = error.response.data.errors[0];
+          console.log("✅ Using error.response.data.errors[0]:", errorMessage);
+        }
+        // Priority 6: Check for specific error types in message
+        else if (error.message) {
+          if (error.message.includes('Authentication failed')) {
+            errorMessage = "Authentication failed. Please login again.";
+          } else if (error.message.includes('Access forbidden')) {
+            errorMessage = "You don't have permission to perform this action.";
+          } else if (error.message.includes('Server error')) {
+            errorMessage = "Server error. Please try again later.";
+          }
         }
         
+        console.log("Final error message to display:", errorMessage);
+        toast.error(errorMessage);
         setLoading(false);
       }
     },

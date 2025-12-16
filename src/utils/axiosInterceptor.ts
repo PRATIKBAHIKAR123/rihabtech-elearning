@@ -63,15 +63,15 @@ apiClient.interceptors.response.use(
       console.error('Server error');
     } else if (error.response?.status === 400 || error.response?.status === 422) {
       // Handle validation errors (400 Bad Request or 422 Unprocessable Entity)
+      // Don't show toast here - let the component handle it to avoid duplicate toasts
+      // Just log the error for debugging
       if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        // Show the first validation error to the user
         const firstError = error.response.data.errors[0];
         console.error('Validation Error:', firstError);
-        toast.error(firstError);
       } else if (error.response?.data?.message) {
-        // Show the API error message
         console.error('API Error:', error.response.data.message);
-        toast.error(error.response.data.message);
+      } else {
+        console.error('API Error (no message found):', error.response?.data);
       }
     }
 

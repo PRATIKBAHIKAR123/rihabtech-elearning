@@ -3,7 +3,7 @@ import QuillEditor from "../../../../components/ui/quill-editor-default";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useEffect, useState } from "react";
-import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { courseApiService, CourseUpdateRequest, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
@@ -179,7 +179,7 @@ export function CourseMessages({ onSubmit }: { onSubmit?: any }) {
           learn: courseData.learn ?? [],
           requirements: courseData.requirements ?? [],
           target: courseData.target ?? [],
-          curriculum: courseData.curriculum ?? undefined // Include curriculum data
+          curriculum: courseData.curriculum as CourseUpdateRequest['curriculum'] ?? undefined // Include curriculum data
         });
 
         // After a successful update, update the shared courseData state
