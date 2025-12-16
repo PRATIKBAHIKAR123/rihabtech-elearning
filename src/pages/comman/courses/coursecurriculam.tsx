@@ -288,7 +288,7 @@ export default function Curriculum({ course, onPreviewCourse,lectureIndex,sectio
                         <span className="text-gray-800">
                           {lecture.title}
                         </span>
-                         {lecture.type === 'video' && lecture.videoUrl && lecture.isPromotional === true && (
+                         {lecture.type === 'video' && lecture.videoUrl && (lecture.isPromotional === true || lecture.preview === true) && (
                            <button
                              onClick={() => onPreviewCourse?.()}
                              className="ml-2 px-2 py-1 text-xs text-primary border border-primary rounded hover:bg-primary hover:text-white transition-colors"

@@ -57,12 +57,12 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
              console.log('Processing item:', item);
              console.log('Item isPromotional value:', item.isPromotional);
              console.log('Item isPromotional type:', typeof item.isPromotional);
-             // Check if this is a video item that should be available for preview
-             // For free preview, we show videos regardless of published status
-             if (item.contentType === 'video') {
-              // Only include videos that are marked as promotional/preview
-              if (item.isPromotional === true) {
-                console.log('Item is marked as promotional:', item.lectureName);
+            // Check if this is a video item that should be available for preview
+            // For free preview, we show videos that are either promotional or published
+            if (item.contentType === 'video') {
+              // Include videos that are marked as promotional/preview OR published
+              if (item.isPromotional === true || item.published === true) {
+                console.log('Item is available for preview (promotional or published):', item.lectureName, { isPromotional: item.isPromotional, published: item.published });
                 
                 // Handle uploaded videos (with contentFiles)
                 if (item.contentFiles && item.contentFiles.length > 0) {
@@ -114,7 +114,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                   });
                 }
               } else {
-                console.log('Item is NOT marked as promotional, skipping:', item.lectureName);
+                console.log('Item is NOT available for preview (not promotional and not published), skipping:', item.lectureName);
               }
               
 

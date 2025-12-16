@@ -139,12 +139,12 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
           {/* User Details */}
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
-              {profile?.name || "User Name"}
+              {profile?.name}
             </h2>
             <p className="text-gray-600 mb-2">
-              {profile?.emailId || "user@example.com"}
+              {profile?.emailId}
             </p>
-            {profile?.studentProfile?.statusText && (
+            {/* {profile?.studentProfile?.statusText && (
               <div className="flex items-center space-x-4">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                   profile.studentProfile.status === 1 
@@ -157,7 +157,7 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
                   {profile.studentProfile.statusText}
                 </span>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>

@@ -47,498 +47,16 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
     try {
       // Load real transactions from Razorpay service
       // Note: razorpayService might expect email or userId - adjust based on API
-      const userTransactions = await razorpayService.getUserTransactions(
-        userId
-      );
+      const userTransactions: PaymentTransaction[] = [];
+      // = await razorpayService.getUserTransactions(
+      //   userId
+      // );
 
       // If no transactions from service, use real data from Firebase export
       if (userTransactions.length === 0) {
         // Complete real data from Firebase export - all 15 transactions for abdulquader152@gmail.com
-        const realTransactions: PaymentTransaction[] = [
-          {
-            id: "AUqoK5ncoPH0GKlU9m91",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 0,
-            taxAmount: 0,
-            platformFee: 0,
-            instructorShare: 0,
-            totalAmount: 0,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_vfe6b8fux",
-            razorpayPaymentId: "AUqoK5ncoPH0GKlU9m91",
-            razorpaySignature: "signature_1756890903959_vfe6b8fux",
-            status: "pending",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "credit_card",
-              bank: "ICICI Bank",
-              transactionId: "TXN1756890903959_pending",
-            },
-            receipt: "RCP_1756890900398_pd2rqbi2v",
-            notes: "Monthly Plan (179 Days) payment - pending",
-            createdAt: new Date(1756890904 * 1000),
-            updatedAt: new Date(1756890905 * 1000),
-          },
-          {
-            id: "BhfIIiiFavoQcDYiW25Q",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "6lsqtmxDXHxcSEGmtPZC",
-            planName: "Basic Monthly",
-            planDuration: "1 Month Plan",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756900983396_9f32c6cbg",
-            razorpayPaymentId: "pay_1756900983396_9f32c6cbg",
-            razorpaySignature: "signature_1756900983396_9f32c6cbg",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              upiId: "abdulquader152@paytm",
-              transactionId: "TXN1756900983396",
-            },
-            receipt: "RCP_1756900980266_fyuu054z9",
-            notes: "Basic monthly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "Ee8TgDYjzOZCRa9AgY7I",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "premium-yearly-plan",
-            planName: "Premium Yearly",
-            planDuration: "12 Month Plan",
-            amount: 9999,
-            taxAmount: 1799.82,
-            platformFee: 999.9,
-            instructorShare: 7999.2,
-            totalAmount: 11798.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_abdul_premium",
-            razorpayPaymentId: "pay_1756890903959_abdul_premium",
-            razorpaySignature: "signature_1756890903959_abdul_premium",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "netbanking",
-              bank: "Axis Bank",
-              transactionId: "TXN1756890903959_abdul_premium",
-            },
-            receipt: "RCP_1756890900398_abdul_premium",
-            notes: "Premium yearly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "G1OnDCeDeViVkuxwdD8J",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "919993978653",
-            planId: "6lsqtmxDXHxcSEGmtPZC",
-            planName: "test 0",
-            planDuration: "30 Days",
-            amount: 0,
-            taxAmount: 0,
-            platformFee: 0,
-            instructorShare: 0,
-            totalAmount: 0,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756900983396_9f32c6cbg",
-            razorpayPaymentId: "G1OnDCeDeViVkuxwdD8J",
-            razorpaySignature: "signature_1756900983396_9f32c6cbg",
-            status: "pending",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              transactionId: "TXN1756900983396_pending",
-            },
-            receipt: "RCP_1756900980266_fyuu054z9",
-            notes: "test 0 (30 Days) payment - pending",
-            createdAt: new Date(1756900983 * 1000),
-            updatedAt: new Date(1756900984 * 1000),
-          },
-          {
-            id: "RbeFygwxQuOfmC36gGk7",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "premium-yearly-plan",
-            planName: "Premium Yearly",
-            planDuration: "12 Month Plan",
-            amount: 9999,
-            taxAmount: 1799.82,
-            platformFee: 999.9,
-            instructorShare: 7999.2,
-            totalAmount: 11798.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756900983396_premium_yearly",
-            razorpayPaymentId: "pay_1756900983396_premium_yearly",
-            razorpaySignature: "signature_1756900983396_premium_yearly",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "netbanking",
-              bank: "Axis Bank",
-              transactionId: "TXN1756900983396_premium",
-            },
-            receipt: "RCP_1756900980266_premium_yearly",
-            notes: "Premium yearly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "TOsnwOYSbvUf8Ukd3s9Y",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "919993978653",
-            planId: "6lsqtmxDXHxcSEGmtPZC",
-            planName: "test 0",
-            planDuration: "30 Days",
-            amount: 0,
-            taxAmount: 0,
-            platformFee: 0,
-            instructorShare: 0,
-            totalAmount: 0,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756897022370_m4mf7zxoy",
-            razorpayPaymentId: "TOsnwOYSbvUf8Ukd3s9Y",
-            razorpaySignature: "signature_1756897022370_m4mf7zxoy",
-            status: "pending",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              transactionId: "TXN1756897022370_pending",
-            },
-            receipt: "RCP_1756897019652_h6s7azxj5",
-            notes: "test 0 (30 Days) payment - pending",
-            createdAt: new Date(1756897023 * 1000),
-            updatedAt: new Date(1756897023 * 1000),
-          },
-          {
-            id: "ToS7LxJ4c0klgar9dG5k",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_vfe6b8fux2",
-            razorpayPaymentId: "pay_1756890903959_vfe6b8fux2",
-            razorpaySignature: "signature_1756890903959_vfe6b8fux2",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "credit_card",
-              bank: "ICICI Bank",
-              transactionId: "TXN1756890903959_2",
-            },
-            receipt: "RCP_1756890900398_pd2rqbi2v2",
-            notes: "Monthly subscription payment - second plan",
-            createdAt: new Date(1725235200 * 1000),
-            updatedAt: new Date(1725235200 * 1000),
-          },
-          {
-            id: "VmNmhIMknxNkFa5g2QMj",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "basic-monthly-plan",
-            planName: "Basic Monthly",
-            planDuration: "1 Month Plan",
-            amount: 299,
-            taxAmount: 53.82,
-            platformFee: 29.9,
-            instructorShare: 239.2,
-            totalAmount: 352.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_abdul_basic",
-            razorpayPaymentId: "pay_1756890903959_abdul_basic",
-            razorpaySignature: "signature_1756890903959_abdul_basic",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              upiId: "abdulquader152@paytm",
-              transactionId: "TXN1756890903959_abdul_basic",
-            },
-            receipt: "RCP_1756890900398_abdul_basic",
-            notes: "Basic monthly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "ZFcVBd5wzId6idyAjZf1",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "919993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 400,
-            taxAmount: 72,
-            platformFee: 160,
-            instructorShare: 240,
-            totalAmount: 472,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756892415592_ij61ejgh0",
-            razorpayPaymentId: "ZFcVBd5wzId6idyAjZf1",
-            razorpaySignature: "signature_1756892415592_ij61ejgh0",
-            status: "pending",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "credit_card",
-              bank: "ICICI Bank",
-              transactionId: "TXN1756892415592_pending",
-            },
-            receipt: "RCP_1756892414238_0u1w5arup",
-            notes: "Monthly Plan (179 Days) payment - pending",
-            createdAt: new Date(1756892416 * 1000),
-            updatedAt: new Date(1756892416 * 1000),
-          },
-          {
-            id: "asCjVSwqihUJPt4f44Er",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "basic_monthly",
-            planName: "Basic Monthly",
-            planDuration: "100 Days",
-            amount: 0,
-            taxAmount: 0,
-            platformFee: 0,
-            instructorShare: 0,
-            totalAmount: 0,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756891951602_6q2x66vgw",
-            razorpayPaymentId: "asCjVSwqihUJPt4f44Er",
-            razorpaySignature: "signature_1756891951602_6q2x66vgw",
-            status: "pending",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              transactionId: "TXN1756891951602_pending",
-            },
-            receipt: "RCP_1756891949344_y6m9utd5i",
-            notes: "Basic Monthly (100 Days) payment - pending",
-            createdAt: new Date(1756891952 * 1000),
-            updatedAt: new Date(1756891953 * 1000),
-          },
-          {
-            id: "br7odDvGSRqyyTIqz6ir",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_vfe6b8fux",
-            razorpayPaymentId: "pay_1756890903959_vfe6b8fux",
-            razorpaySignature: "signature_1756890903959_vfe6b8fux",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "netbanking",
-              bank: "HDFC Bank",
-              transactionId: "TXN1756890903959",
-            },
-            receipt: "RCP_1756890900398_pd2rqbi2v",
-            notes: "Monthly subscription payment",
-            createdAt: new Date(1725580800 * 1000),
-            updatedAt: new Date(1725580800 * 1000),
-          },
-          {
-            id: "gBn8IBndA9fsvIXDPafb",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_vfe6b8fux",
-            razorpayPaymentId: "pay_1756890903959_vfe6b8fux",
-            razorpaySignature: "signature_1756890903959_vfe6b8fux",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "netbanking",
-              bank: "HDFC Bank",
-              transactionId: "TXN1756890903959",
-            },
-            receipt: "RCP_1756890900398_pd2rqbi2v",
-            notes: "Monthly subscription payment",
-            createdAt: new Date(1725580800 * 1000),
-            updatedAt: new Date(1725580800 * 1000),
-          },
-          {
-            id: "gSBZdfI8Hybg5NTWiVNX",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "6lsqtmxDXHxcSEGmtPZC",
-            planName: "Basic Monthly",
-            planDuration: "1 Month Plan",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756900983396_9f32c6cbg",
-            razorpayPaymentId: "pay_1756900983396_9f32c6cbg",
-            razorpaySignature: "signature_1756900983396_9f32c6cbg",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "upi",
-              bank: "SBI",
-              upiId: "abdulquader152@paytm",
-              transactionId: "TXN1756900983396",
-            },
-            receipt: "RCP_1756900980266_fyuu054z9",
-            notes: "Basic monthly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "qrMSRGbkNkUTcJddW8Do",
-            userId: "localStorage-user",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "premium-yearly-plan",
-            planName: "Premium Yearly",
-            planDuration: "12 Month Plan",
-            amount: 9999,
-            taxAmount: 1799.82,
-            platformFee: 999.9,
-            instructorShare: 7999.2,
-            totalAmount: 11798.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756900983396_premium_yearly",
-            razorpayPaymentId: "pay_1756900983396_premium_yearly",
-            razorpaySignature: "signature_1756900983396_premium_yearly",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "netbanking",
-              bank: "Axis Bank",
-              transactionId: "TXN1756900983396_premium",
-            },
-            receipt: "RCP_1756900980266_premium_yearly",
-            notes: "Premium yearly plan payment",
-            createdAt: new Date(1724976000 * 1000),
-            updatedAt: new Date(1724976000 * 1000),
-          },
-          {
-            id: "vWoDTefRmiq2bxVCBKaa",
-            userId: "abdulquader152@gmail.com",
-            userEmail: "abdulquader152@gmail.com",
-            userName: "Abdul Qadeer",
-            userPhone: "9993978653",
-            planId: "1LiHqK8JpUgGsukC9lKA",
-            planName: "Monthly Plan",
-            planDuration: "179 Days",
-            amount: 499,
-            taxAmount: 89.82,
-            platformFee: 49.9,
-            instructorShare: 399.2,
-            totalAmount: 588.82,
-            currency: "INR",
-            categoryId: undefined,
-            categoryName: "All Categories",
-            razorpayOrderId: "order_1756890903959_vfe6b8fux2",
-            razorpayPaymentId: "pay_1756890903959_vfe6b8fux2",
-            razorpaySignature: "signature_1756890903959_vfe6b8fux2",
-            status: "completed",
-            paymentMethod: "Razorpay",
-            paymentDetails: {
-              method: "credit_card",
-              bank: "ICICI Bank",
-              transactionId: "TXN1756890903959_2",
-            },
-            receipt: "RCP_1756890900398_pd2rqbi2v2",
-            notes: "Monthly subscription payment - second plan",
-            createdAt: new Date(1725235200 * 1000),
-            updatedAt: new Date(1725235200 * 1000),
-          },
-        ];
+        const realTransactions: PaymentTransaction[] = [];
+
         setTransactions(realTransactions);
       } else {
         setTransactions(userTransactions);
@@ -733,9 +251,8 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `payment_history_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    link.download = `payment_history_${new Date().toISOString().split("T")[0]
+      }.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -838,13 +355,13 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                 <div className="text-2xl sm:text-3xl font-bold text-orange-900 mb-1 break-words">
                   {transactions.length > 0
                     ? formatAmount(
-                        transactions
-                          .filter((t) => t.status === "completed")
-                          .sort(
-                            (a, b) =>
-                              b.createdAt.getTime() - a.createdAt.getTime()
-                          )[0]?.totalAmount || 0
-                      )
+                      transactions
+                        .filter((t) => t.status === "completed")
+                        .sort(
+                          (a, b) =>
+                            b.createdAt.getTime() - a.createdAt.getTime()
+                        )[0]?.totalAmount || 0
+                    )
                     : "₹0"}
                 </div>
                 <div className="text-xs sm:text-sm font-medium text-orange-700">
@@ -924,123 +441,122 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
                   <thead>
                     <tr className="border-b-2 border-gray-200">
                       <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Transaction ID
-                    </th>
-                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Plan Details
-                    </th>
-                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Amount
-                    </th>
-                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Status
-                    </th>
-                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Date
-                    </th>
-                    <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {transactions.map((transaction, index) => (
-                    <tr
-                      key={transaction.id}
-                      className={`hover:bg-gray-50 transition-colors duration-150 ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                      }`}
-                    >
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        <div className="flex items-center space-x-2 sm:space-x-3">
-                          {getStatusIcon(transaction.status)}
-                          <div>
-                            <div className="text-sm font-mono text-gray-900 font-medium">
-                              {transaction.razorpayPaymentId}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Order: {transaction.razorpayOrderId}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        <div className="space-y-1">
-                          <div className="font-medium text-gray-900 text-sm">
-                            {transaction.planName}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Duration: {transaction.planDuration}
-                          </div>
-                          {transaction.categoryName && (
-                            <div className="text-xs text-gray-500">
-                              Category: {transaction.categoryName}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        <div className="space-y-1">
-                          <div className="text-lg font-bold text-gray-900">
-                            {formatAmount(transaction.totalAmount)}
-                          </div>
-                          {transaction.amount > 0 && (
-                            <div className="text-xs text-gray-500">
-                              Base: {formatAmount(transaction.amount)}
-                            </div>
-                          )}
-                          {transaction.taxAmount > 0 && (
-                            <div className="text-xs text-gray-500">
-                              Tax: {formatAmount(transaction.taxAmount)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        {getStatusBadge(transaction.status)}
-                      </td>
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-900">
-                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                            {formatDate(transaction.createdAt)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {transaction.paymentMethod} •{" "}
-                            {transaction.paymentDetails.bank}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 sm:py-6 px-3 sm:px-6">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => downloadPDF(transaction)}
-                            className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
-                            title="Download PDF Receipt"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            PDF
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.open(transaction.receipt, "_blank")
-                            }
-                            className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
-                            title="View Receipt"
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </td>
+                        Transaction ID
+                      </th>
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Plan Details
+                      </th>
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Amount
+                      </th>
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Date
+                      </th>
+                      <th className="text-left py-4 px-3 sm:px-6 font-semibold text-gray-700 text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {transactions.map((transaction, index) => (
+                      <tr
+                        key={transaction.id}
+                        className={`hover:bg-gray-50 transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                          }`}
+                      >
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                            {getStatusIcon(transaction.status)}
+                            <div>
+                              <div className="text-sm font-mono text-gray-900 font-medium">
+                                {transaction.razorpayPaymentId}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Order: {transaction.razorpayOrderId}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          <div className="space-y-1">
+                            <div className="font-medium text-gray-900 text-sm">
+                              {transaction.planName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Duration: {transaction.planDuration}
+                            </div>
+                            {transaction.categoryName && (
+                              <div className="text-xs text-gray-500">
+                                Category: {transaction.categoryName}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          <div className="space-y-1">
+                            <div className="text-lg font-bold text-gray-900">
+                              {formatAmount(transaction.totalAmount)}
+                            </div>
+                            {transaction.amount > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Base: {formatAmount(transaction.amount)}
+                              </div>
+                            )}
+                            {transaction.taxAmount > 0 && (
+                              <div className="text-xs text-gray-500">
+                                Tax: {formatAmount(transaction.taxAmount)}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          {getStatusBadge(transaction.status)}
+                        </td>
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          <div className="space-y-1">
+                            <div className="flex items-center text-sm text-gray-900">
+                              <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                              {formatDate(transaction.createdAt)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {transaction.paymentMethod} •{" "}
+                              {transaction.paymentDetails.bank}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 sm:py-6 px-3 sm:px-6">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadPDF(transaction)}
+                              className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
+                              title="Download PDF Receipt"
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              PDF
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(transaction.receipt, "_blank")
+                              }
+                              className="text-xs px-3 py-1 border-gray-300 hover:bg-gray-50"
+                              title="View Receipt"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

@@ -263,7 +263,10 @@ const EnrolledCourses: React.FC<EnrolledCoursesProps> = ({ profile }) => {
             <p className="text-gray-600 mb-4">
               You haven't enrolled in any courses yet.
             </p>
-            <Button className="bg-[#ff7700] hover:bg-[#e55e00] text-white">
+            <Button 
+              className="bg-[#ff7700] hover:bg-[#e55e00] text-white"
+              onClick={() => window.location.href = '/#/courselist'}
+            >
               Browse Courses
             </Button>
           </div>

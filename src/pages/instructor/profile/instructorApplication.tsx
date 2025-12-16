@@ -312,13 +312,13 @@ const InstructorApplication: React.FC<InstructorApplicationProps> = ({
                 <h3 className="text-xl font-semibold text-gray-900">
                   Instructor Application
                 </h3>
-                <Button
+                {/* <Button
                   onClick={() => setIsEditMode(true)}
                   variant="outline"
                   className="border-[#ff7700] text-[#ff7700] hover:bg-[#fff7ef]"
                 >
                   Edit
-                </Button>
+                </Button> */}
               </div>
 
               {/* Application Status */}
