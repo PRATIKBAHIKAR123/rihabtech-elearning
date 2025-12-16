@@ -14,7 +14,7 @@ const ProfilePhoto = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { logout, user } = useAuth();
+  const { logout, user, refreshAuth } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -122,7 +122,7 @@ const ProfilePhoto = () => {
       // API expects field name 'profileImageFile' with binary string
       form.append('profileImageFile', selectedFile);
 
-      const res = await axiosClient.post('/upload-profile-photo', form, {
+      await axiosClient.post('/upload-profile-photo', form, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -135,22 +135,54 @@ const ProfilePhoto = () => {
         }
       });
 
-      // Assume upload is successful if we reach here (no error thrown)
-      // Try to get new image path from response
-      const newImage = res.data?.profileImage || res.data?.path || null;
-      
-      if (newImage) {
-        // Update photo state with the uploaded image URL
-        const imageUrl = newImage.startsWith('http') ? newImage : (API_BASE_URL_IMG + newImage);
-        setPhoto(imageUrl);
-        // Clear preview photo so we only show the uploaded photo
-        setPreviewPhoto(null);
-        // update local profile object so other UI reads new value
-        setProfile((prev: any) => ({ ...(prev || {}), profileImage: newImage }));
-      } else {
-        // If no path returned, keep showing preview as it was already uploaded
-        // The preview will show the uploaded image until profile is refreshed
-        setPhoto(previewPhoto); // Use preview as the photo
+      // Upload successful - fetch updated profile to get the new image path
+      try {
+        const profileRes = await axiosClient.get("/user-profile", {
+          timeout: 30000
+        });
+        
+        const newImage = profileRes.data?.profileImage || null;
+        
+        if (newImage) {
+          // Update photo state with the uploaded image URL
+          const imageUrl = newImage.startsWith('http') ? newImage : (API_BASE_URL_IMG + newImage);
+          setPhoto(imageUrl);
+          // Clear preview photo so we only show the uploaded photo
+          setPreviewPhoto(null);
+          // update local profile object so other UI reads new value
+          setProfile((prev: any) => ({ ...(prev || {}), profileImage: newImage }));
+          
+          // Update token in localStorage with new ProfileImage
+          const tokenData = localStorage.getItem('token');
+          if (tokenData) {
+            try {
+              const userData = JSON.parse(tokenData);
+              // Update ProfileImage in token
+              userData.ProfileImage = newImage;
+              // Save updated token back to localStorage
+              localStorage.setItem('token', JSON.stringify(userData));
+              
+              // Trigger storage event to update other components/tabs
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'token',
+                newValue: JSON.stringify(userData),
+                storageArea: localStorage
+              }));
+              
+              // Refresh auth context to update header and other components
+              refreshAuth();
+            } catch (error) {
+              console.error('Error updating token with new profile image:', error);
+            }
+          }
+        } else {
+          // If no path returned, keep showing preview as it was already uploaded
+          setPhoto(previewPhoto); // Use preview as the photo
+        }
+      } catch (profileError) {
+        console.error('Error fetching updated profile:', profileError);
+        // Even if profile fetch fails, show success and use preview
+        setPhoto(previewPhoto);
       }
       
       // Always clear selected file and hide buttons after successful upload
