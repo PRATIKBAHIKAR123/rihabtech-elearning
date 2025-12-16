@@ -167,7 +167,7 @@ export default function CourseList() {
         rating: course.rating || 0, // Random rating
         ratingScore: course.ratingScore || 0, // Default rating
         progress: calculateCourseProgress(course), // Calculate progress from curriculum
-        lastModified: course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date()),
+        lastModified: course.modifiedDate ? new Date(course.modifiedDate) : (course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : new Date())),
         visibility: course.visibility || 'N/A', // Default visibility
         pricing: course.pricing || 'N/A', // Use API pricing or default
         thumbnail: course.thumbnailUrl,
