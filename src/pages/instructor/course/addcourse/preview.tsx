@@ -370,7 +370,7 @@ const PreviewCourse = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-bold text-lg text-primary">Section {sectionIdx + 1}:</span>
                   <span className="font-semibold text-gray-700">{section.name}</span>
-                  {section.published ? (
+                  {(section.published !== false) ? (
                     <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">Published</span>
                   ) : (
                     <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">Unpublished</span>
@@ -384,7 +384,7 @@ const PreviewCourse = () => {
                         <li key={itemIdx} className="mb-2">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="font-semibold text-gray-800 capitalize">{item.type === 'lecture' ? 'Lecture' : item.type === 'quiz' ? 'Quiz' : item.type === 'assignment' ? 'Assignment' : 'Item'}: {item.lectureName || item.quizTitle || item.title || ''}</div>
-                            {item.published ? (
+                            {(item.published !== false) ? (
                               <span className="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Published</span>
                             ) : (
                               <span className="px-2 py-1 bg-orange-200 text-orange-700 rounded text-xs">Unpublished</span>

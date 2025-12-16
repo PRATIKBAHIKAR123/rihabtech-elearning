@@ -170,6 +170,7 @@ export interface QuizItem {
   questions: Question[];
   duration: number; // in minutes
   seqNo: number;
+  published?: boolean; // Add published property
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -214,6 +215,7 @@ export interface Assignment {
   totalMarks: number;
   questions: AssignmentQuestion[];
   seqNo: number;
+  published?: boolean; // Add published property
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -298,6 +300,7 @@ const getInitialAssignment = (seqNo: number = 1): Assignment => ({
       maxWordLimit: 500 // Default word limit
     }
   ],
+  published: true, // Default to published
   seqNo: seqNo,
 } as Assignment);
 
@@ -315,6 +318,7 @@ const getInitialQuiz = (seqNo: number = 1): QuizItem => ({
     },
   ],
   duration: 15, // Default duration of 15 minutes
+  published: true, // Default to published
   seqNo: seqNo,
 } as QuizItem);
 const getInitialLecture = (index: number): LectureItem => ({
@@ -327,9 +331,9 @@ const getInitialLecture = (index: number): LectureItem => ({
   contentText: "",
   resources: [],
   contentUrl: "",
-  published: false, // Default to unpublished
+  published: true, // Default to published
   description: "", // Add description field
-  isPromotional: true, // Default to non-promotional
+  isPromotional: true, // Default to promotional for free preview
   duration: 0, // Default duration for external videos
   seqNo: index,
 });
@@ -662,9 +666,11 @@ const normalizeSeqNo = (curriculum: any) => {
     sections: curriculum.sections.map((section: any, sectionIndex: number) => ({
       ...section,
       seqNo: section.seqNo != null ? section.seqNo : (sectionIndex + 1), // Use existing seqNo if available, otherwise use index
+      published: section.published !== undefined ? section.published : true, // Default to published if not set
       items: section.items ? section.items.map((item: any, itemIndex: number) => ({
         ...item,
-        seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1) // Use existing seqNo if available, otherwise use index
+        seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1), // Use existing seqNo if available, otherwise use index
+        published: item.published !== undefined ? item.published : true // Default to published if not set (for lectures, quizzes, assignments)
       })) : []
     }))
   };
@@ -762,7 +768,7 @@ export function CourseCarriculam({ onSubmit }: any) {
       {
         name: "Introduction",
         items: [getInitialLecture(1)],
-        published: false, // Default to unpublished
+        published: true, // Default to published
         seqNo: 1
       },
     ],
@@ -1952,10 +1958,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                               type="button"
                                               variant="ghost"
                                               size="icon"
-                                              onClick={() => formik.setFieldValue(`sections[${sectionIdx}].published`, !section.published)}
-                                              aria-label={section.published ? "Unpublish Section" : "Publish Section"}
+                                              onClick={() => formik.setFieldValue(`sections[${sectionIdx}].published`, !(section.published !== false))}
+                                              aria-label={(section.published !== false) ? "Unpublish Section" : "Publish Section"}
                                             >
-                                              {section.published ? (
+                                              {(section.published !== false) ? (
                                                 <CheckCircle className="text-green-500" />
                                               ) : (
                                                 <XCircle className="text-red-500" />
@@ -1963,7 +1969,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                             </Button>
                                           </HoverCardTrigger>
                                           <HoverCardContent side="top" className="p-2 text-xs">
-                                            {section.published ? "Unpublish Section" : "Publish Section"}
+                                            {(section.published !== false) ? "Unpublish Section" : "Publish Section"}
                                           </HoverCardContent>
                                         </HoverCard>
                                         {formik.values.sections.length > 1 && (
@@ -2094,10 +2100,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       type="button"
                                                                       variant="ghost"
                                                                       size="icon"
-                                                                      onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !item.published)}
-                                                                      aria-label={item.published ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                      onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                      aria-label={(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
                                                                     >
-                                                                      {item.published ? (
+                                                                      {(item.published !== false) ? (
                                                                         <CheckCircle className="text-green-500" />
                                                                       ) : (
                                                                         <XCircle className="text-red-500" />
@@ -2105,7 +2111,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                     </Button>
                                                                   </HoverCardTrigger>
                                                                   <HoverCardContent side="top" className="p-2 text-xs">
-                                                                    {item.published ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                    {(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
                                                                   </HoverCardContent>
                                                                 </HoverCard>
                                                                 
@@ -2350,6 +2356,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
                                                                                 fileObjects
                                                                               );
+                                                                              
+                                                                              // Reset file input to allow re-selection of the same file
+                                                                              e.target.value = '';
                                                                             }}
                                                                           />
 
@@ -2628,6 +2637,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
                                                                                 fileNameWithoutExt
                                                                               );
+                                                                              
+                                                                              // Reset file input to allow re-selection of the same file
+                                                                              e.target.value = '';
                                                                             }}
                                                                           />
                                                                           
@@ -3128,6 +3140,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].resources`,
                                                                                 [...currentResources, ...newResources]
                                                                               );
+                                                                              
+                                                                              // Reset file input to allow re-selection of the same file
+                                                                              fileInput.value = '';
                                                                             }
                                                                           };
 
@@ -3293,6 +3308,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       onChange={(e) => {
                                                                         const file = e.target.files?.[0];
                                                                         if (file) {
+                                                                          // Reset file input to allow re-selection of the same file
+                                                                          e.target.value = '';
+                                                                          
                                                                           const reader = new FileReader();
                                                                           reader.onload = (e) => {
                                                                             const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -3348,6 +3366,27 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       <UploadCloud size={16} />
                                                                     </Button>
                                                                   </div>
+                                                                  {/* Publish/Unpublish HoverCard for quiz */}
+                                                                  <HoverCard>
+                                                                    <HoverCardTrigger asChild>
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                        aria-label={(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
+                                                                      >
+                                                                        {(item.published !== false) ? (
+                                                                          <CheckCircle className="text-green-500" />
+                                                                        ) : (
+                                                                          <XCircle className="text-red-500" />
+                                                                        )}
+                                                                      </Button>
+                                                                    </HoverCardTrigger>
+                                                                    <HoverCardContent side="top" className="p-2 text-xs">
+                                                                      {(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
+                                                                    </HoverCardContent>
+                                                                  </HoverCard>
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
@@ -3648,6 +3687,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       onChange={(e) => {
                                                                         const file = e.target.files?.[0];
                                                                         if (file) {
+                                                                          // Reset file input to allow re-selection of the same file
+                                                                          e.target.value = '';
+                                                                          
                                                                           const reader = new FileReader();
                                                                           reader.onload = (e) => {
                                                                             const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -3674,6 +3716,27 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       <UploadCloud size={16} />
                                                                     </Button>
                                                                   </div>
+                                                                  {/* Publish/Unpublish HoverCard for assignment */}
+                                                                  <HoverCard>
+                                                                    <HoverCardTrigger asChild>
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                        aria-label={(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
+                                                                      >
+                                                                        {(item.published !== false) ? (
+                                                                          <CheckCircle className="text-green-500" />
+                                                                        ) : (
+                                                                          <XCircle className="text-red-500" />
+                                                                        )}
+                                                                      </Button>
+                                                                    </HoverCardTrigger>
+                                                                    <HoverCardContent side="top" className="p-2 text-xs">
+                                                                      {(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
+                                                                    </HoverCardContent>
+                                                                  </HoverCard>
                                                                   <Button
                                                                     type="button"
                                                                     variant="outline"
@@ -4060,6 +4123,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       `sections[${sectionIdx}].items[${itemIdx}].resources`,
                                                                                       [...currentResources, ...newResources]
                                                                                     );
+                                                                                    
+                                                                                    // Reset file input to allow re-selection of the same file
+                                                                                    fileInput.value = '';
                                                                                   }
                                                                                 };
 
@@ -4248,9 +4314,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                     contentUrl: "",
                                                     contentText: "",
                                                     resources: [],
-                                                    published: false, // Default to unpublished
+                                                    published: true, // Default to published
                                                     description: "", // Add description field
-                                                    isPromotional: false, // Default to non-promotional
+                                                    isPromotional: true, // Default to promotional for free preview
                                                     seqNo: section.items.length + 1, // Set seqNo based on current items count
                                                   });
                                                   setAddType(null);
@@ -4332,12 +4398,13 @@ export function CourseCarriculam({ onSubmit }: any) {
                               contentFile: null,
                               contentUrl: "",
                               contentText: "",
-                              published: false, // Default to unpublished
+                              published: true, // Default to published
                               description: "", // Add description field
+                              isPromotional: true, // Default to promotional for free preview
                               seqNo: 1 // First item in the section
                             },
                           ],
-                          published: false // Default to unpublished
+                          published: true // Default to published
                         });
                         // Automatically expand the newly created section
                         setExpandedSections(prev => ({
@@ -4430,9 +4497,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                     contentText: '',
                     articleSource: 'upload' as const,
                     resources: [],
-                    published: false,
+                    published: true, // Default to published
                     description: '',
-                    isPromotional: false,
+                    isPromotional: true, // Default to promotional for free preview
                     seqNo: formik.values.sections[sectionIdx].items.length + 1
                   };
 
@@ -4541,8 +4608,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   contentText: '',
                   articleSource: 'upload' as const,
                   resources: [],
-                  published: false,
-                  isPromotional: false,
+                  published: true, // Default to published
+                  isPromotional: true, // Default to promotional for free preview
                   seqNo: currentSectionItems.length + 1,
                 };
                 console.log('Created fallback lecture object:', lecture);
@@ -4620,8 +4687,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                     contentText: '',
                     articleSource: 'upload' as const,
                     resources: [],
-                    published: false,
-                    isPromotional: false,
+                    published: true, // Default to published
+                    isPromotional: true, // Default to promotional for free preview
                     seqNo: currentSectionItems.length + index + 1,
                   };
                 }
@@ -4644,8 +4711,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                   contentText: '',
                   articleSource: 'upload' as const,
                   resources: [],
-                  published: false,
-                  isPromotional: false,
+                  published: true, // Default to published
+                  isPromotional: true, // Default to promotional for free preview
                   seqNo: currentSectionItems.length + index + 1,
                 };
               })
@@ -4701,8 +4768,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentText: '',
               articleSource: 'upload' as const,
               resources: [],
-              published: false, // Default to unpublished
-              isPromotional: false, // Default to non-promotional
+              published: true, // Default to published
+              isPromotional: true, // Default to promotional for free preview
               seqNo: currentSectionItems.length + idx + 1,
             }));
 
@@ -4765,8 +4832,8 @@ export function CourseCarriculam({ onSubmit }: any) {
               contentText: htmlContent,
               articleSource: 'write' as const,
               resources: [],
-              published: false, // Default to unpublished
-              isPromotional: false, // Default to non-promotional
+              published: true, // Default to published
+              isPromotional: true, // Default to promotional for free preview
               seqNo: currentSectionItems.length + 1,
             };
 
