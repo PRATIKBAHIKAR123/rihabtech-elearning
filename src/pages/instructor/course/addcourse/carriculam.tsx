@@ -781,9 +781,10 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [editAssignment, setEditAssignment] = useState<ViewItemState | null>(null);
   const [uploadModal, setUploadModal] = useState<{ open: boolean; sectionIdx: number | null }>({ open: false, sectionIdx: null });
   const [uploadType, setUploadType] = useState<'video' | 'document' | 'url' | 'write' | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [sectionIdx, setSectionIdx] = useState<number | null>(null);
-  const [articleContent, setArticleContent] = useState('');
+  const [quizUploadModal, setQuizUploadModal] = useState<{ open: boolean; sectionIdx: number | null; itemIdx: number | null }>({ open: false, sectionIdx: null, itemIdx: null });
+  const [assignmentUploadModal, setAssignmentUploadModal] = useState<{ open: boolean; sectionIdx: number | null; itemIdx: number | null }>({ open: false, sectionIdx: null, itemIdx: null });
+  const [quizUploadFile, setQuizUploadFile] = useState<File | null>(null);
+  const [assignmentUploadFile, setAssignmentUploadFile] = useState<File | null>(null);
   const [coursePublished, setCoursePublished] = useState(false);
   const [durationFetching, setDurationFetching] = useState<{ [key: string]: boolean }>({});
   const [durationError, setDurationError] = useState<{ [key: string]: boolean }>({});
@@ -1303,58 +1304,6 @@ export function CourseCarriculam({ onSubmit }: any) {
     };
   }, [courseData?.id]);
 
-  const handleQuizExcelUpload = async (file: File, sectionIdx: number, itemIdx: number) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-      // Skip header row
-      const rows = (json as any[][]).slice(1);
-
-      // Get quiz title and description from first row
-      const quizTitle = rows[0][0] || 'New Quiz';
-      const quizDescription = rows[0][1] || '';
-
-      // Process questions
-      const questions: Question[] = [];
-      let currentQuestion: Partial<Question> = {};
-
-      rows.forEach((row, index) => {
-        if (row[2]) { // If there's a question
-          if (Object.keys(currentQuestion).length > 0) {
-            questions.push(currentQuestion as Question);
-          }
-          currentQuestion = {
-            question: row[2],
-            options: row[3] ? row[3].split(',') : [],
-            correctOption: row[4] ? [parseInt(row[4]) - 1] : [0]
-          };
-        }
-      });
-
-      // Add the last question
-      if (Object.keys(currentQuestion).length > 0) {
-        questions.push(currentQuestion as Question);
-      }
-
-      // Update formik with the new quiz data
-      formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
-        type: 'quiz',
-        contentType: "quiz",
-        quizTitle,
-        quizDescription,
-        questions,
-        lectureName: quizTitle,
-        duration: 15, // Default duration of 15 minutes
-        seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
-      });
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
   const handleAssignmentSave = (sectionIdx: number, itemIdx: number) => {
     const currentAssignment = formik.values.sections[sectionIdx].items[itemIdx];
     if (currentAssignment.type === "assignment") {
@@ -1491,6 +1440,81 @@ export function CourseCarriculam({ onSubmit }: any) {
     setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
     setViewItem({ sectionIdx, itemIdx: newItemIdx });
     setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
+  };
+
+  const handleQuizExcelUpload = (sectionIdx: number, itemIdx: number, file: File) => {
+    if (sectionIdx == null || itemIdx == null) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const rows = (json as any[][]).slice(1);
+
+        const firstRow = rows[0] || [];
+        const quizTitle = firstRow[0] || 'New Quiz';
+        const quizDescription = firstRow[1] || '';
+        const quizDuration = parseInt(firstRow[2]) || 15;
+
+        const questions: Question[] = [];
+        let currentQuestion: Partial<Question> = {};
+        rows.forEach((row) => {
+          if (row[3]) {
+            if (Object.keys(currentQuestion).length > 0) {
+              questions.push(currentQuestion as Question);
+            }
+            currentQuestion = {
+              question: row[3],
+              options: row[4] ? row[4].split(',') : [],
+              correctOption: row[5] ? row[5].split(',').map((opt: string) => parseInt(opt) - 1) : [0],
+            };
+          }
+        });
+        if (Object.keys(currentQuestion).length > 0) {
+          questions.push(currentQuestion as Question);
+        }
+
+        formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
+          type: 'quiz',
+          quizTitle,
+          quizDescription,
+          questions,
+          duration: quizDuration,
+          contentType: 'quiz',
+          lectureName: quizTitle,
+          seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1,
+        });
+      } catch (err) {
+        console.error('Failed to process quiz Excel:', err);
+        toast.error('Unable to read quiz Excel file. Please check the format.');
+      }
+    };
+    reader.onerror = () => toast.error('Unable to read quiz Excel file.');
+    reader.readAsArrayBuffer(file);
+  };
+
+  const processAssignmentExcelFile = (sectionIdx: number, itemIdx: number, file: File) => {
+    if (sectionIdx == null || itemIdx == null) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const rows = (json as any[][]).slice(1);
+        handleAssignmentExcelUpload(sectionIdx, itemIdx, rows);
+      } catch (err) {
+        console.error('Failed to process assignment Excel:', err);
+        toast.error('Unable to read assignment Excel file. Please check the format.');
+      }
+    };
+    reader.onerror = () => toast.error('Unable to read assignment Excel file.');
+    reader.readAsArrayBuffer(file);
   };
 
   const handleAssignmentExcelUpload = (sectionIdx: number, itemIdx: number, rows: any[][]) => {
@@ -3277,71 +3301,19 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   >
                                                                     <Download size={16} />
                                                                   </Button>
-                                                                  <div className="relative">
-                                                                    <input
-                                                                      type="file"
-                                                                      accept=".xlsx,.xls"
-                                                                      onChange={(e) => {
-                                                                        const file = e.target.files?.[0];
-                                                                        if (file) {
-                                                                          // Reset file input to allow re-selection of the same file
-                                                                          e.target.value = '';
-                                                                          
-                                                                          const reader = new FileReader();
-                                                                          reader.onload = (e) => {
-                                                                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                                                                            const workbook = XLSX.read(data, { type: 'array' });
-                                                                            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                                                                            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                                                                            const rows = (json as any[][]).slice(1);
-                                                                            const quizTitle = rows[0][0] || 'New Quiz';
-                                                                            const quizDescription = rows[0][1] || '';
-                                                                            const quizDuration = parseInt(rows[0][2]) || 15; // Parse duration from column 2
-                                                                            const questions: Question[] = [];
-                                                                            let currentQuestion: Partial<Question> = {};
-                                                                            rows.forEach((row, index) => {
-                                                                              if (row[3]) { // Question is now in column 3
-                                                                                if (Object.keys(currentQuestion).length > 0) {
-                                                                                  questions.push(currentQuestion as Question);
-                                                                                }
-                                                                                currentQuestion = {
-                                                                                  question: row[3],
-                                                                                  options: row[4] ? row[4].split(',') : [], // Options in column 4
-                                                                                  correctOption: row[5] ? row[5].split(',').map((opt: string) => parseInt(opt) - 1) : [0] // Correct options in column 5
-                                                                                };
-                                                                              }
-                                                                            });
-                                                                            if (Object.keys(currentQuestion).length > 0) {
-                                                                              questions.push(currentQuestion as Question);
-                                                                            }
-                                                                            formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}]`, {
-                                                                              type: 'quiz',
-                                                                              quizTitle,
-                                                                              quizDescription,
-                                                                              questions,
-                                                                              duration: quizDuration,
-                                                                              contentType: "quiz",
-                                                                              lectureName: quizTitle,
-                                                                              seqNo: formik.values.sections[sectionIdx].items[itemIdx]?.seqNo || itemIdx + 1
-                                                                            });
-                                                                          };
-                                                                          reader.readAsArrayBuffer(file);
-                                                                        }
-                                                                      }}
-                                                                      className="hidden"
-                                                                      id={`quiz-excel-upload-${sectionIdx}-${itemIdx}`}
-                                                                    />
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="outline"
-                                                                      size="icon"
-                                                                      className="h-8 w-8"
-                                                                      onClick={() => document.getElementById(`quiz-excel-upload-${sectionIdx}-${itemIdx}`)?.click()}
-                                                                      title="Upload Quiz from Excel"
-                                                                    >
-                                                                      <UploadCloud size={16} />
-                                                                    </Button>
-                                                                  </div>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => {
+                                                                      setQuizUploadFile(null);
+                                                                      setQuizUploadModal({ open: true, sectionIdx, itemIdx });
+                                                                    }}
+                                                                    title="Upload Quiz from Excel"
+                                                                  >
+                                                                    <UploadCloud size={16} />
+                                                                  </Button>
                                                                   {/* Publish/Unpublish HoverCard for quiz */}
                                                                   <HoverCard>
                                                                     <HoverCardTrigger asChild>
@@ -3656,42 +3628,19 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   >
                                                                     <Download size={16} />
                                                                   </Button>
-                                                                  <div className="relative">
-                                                                    <input
-                                                                      type="file"
-                                                                      accept=".xlsx,.xls"
-                                                                      onChange={(e) => {
-                                                                        const file = e.target.files?.[0];
-                                                                        if (file) {
-                                                                          // Reset file input to allow re-selection of the same file
-                                                                          e.target.value = '';
-                                                                          
-                                                                          const reader = new FileReader();
-                                                                          reader.onload = (e) => {
-                                                                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                                                                            const workbook = XLSX.read(data, { type: 'array' });
-                                                                            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                                                                            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                                                                            const rows = (json as any[][]).slice(1);
-                                                                            handleAssignmentExcelUpload(sectionIdx, itemIdx, rows);
-                                                                          };
-                                                                          reader.readAsArrayBuffer(file);
-                                                                        }
-                                                                      }}
-                                                                      className="hidden"
-                                                                      id={`assignment-excel-upload-${sectionIdx}-${itemIdx}`}
-                                                                    />
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="outline"
-                                                                      size="icon"
-                                                                      className="h-8 w-8"
-                                                                      onClick={() => document.getElementById(`assignment-excel-upload-${sectionIdx}-${itemIdx}`)?.click()}
-                                                                      title="Upload Assignment from Excel"
-                                                                    >
-                                                                      <UploadCloud size={16} />
-                                                                    </Button>
-                                                                  </div>
+                                                                  <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => {
+                                                                      setAssignmentUploadFile(null);
+                                                                      setAssignmentUploadModal({ open: true, sectionIdx, itemIdx });
+                                                                    }}
+                                                                    title="Upload Assignment from Excel"
+                                                                  >
+                                                                    <UploadCloud size={16} />
+                                                                  </Button>
                                                                   {/* Publish/Unpublish HoverCard for assignment */}
                                                                   <HoverCard>
                                                                     <HoverCardTrigger asChild>
@@ -4406,6 +4355,109 @@ export function CourseCarriculam({ onSubmit }: any) {
           </Button>
         </div>
       </form>
+      {/* Quiz Excel Upload Modal */}
+      <Dialog
+        open={quizUploadModal.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setQuizUploadFile(null);
+            setQuizUploadModal({ open: false, sectionIdx: null, itemIdx: null });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload Quiz from Excel</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => setQuizUploadFile(e.target.files?.[0] || null)}
+            />
+            {quizUploadFile && (
+              <p className="text-sm text-gray-600">Selected: {quizUploadFile.name}</p>
+            )}
+            <Button
+              className="w-full rounded-none"
+              disabled={
+                !quizUploadFile ||
+                quizUploadModal.sectionIdx === null ||
+                quizUploadModal.itemIdx === null
+              }
+              onClick={() => {
+                if (
+                  quizUploadFile &&
+                  quizUploadModal.sectionIdx !== null &&
+                  quizUploadModal.itemIdx !== null
+                ) {
+                  handleQuizExcelUpload(
+                    quizUploadModal.sectionIdx,
+                    quizUploadModal.itemIdx,
+                    quizUploadFile
+                  );
+                  setQuizUploadFile(null);
+                  setQuizUploadModal({ open: false, sectionIdx: null, itemIdx: null });
+                }
+              }}
+            >
+              Upload
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assignment Excel Upload Modal */}
+      <Dialog
+        open={assignmentUploadModal.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssignmentUploadFile(null);
+            setAssignmentUploadModal({ open: false, sectionIdx: null, itemIdx: null });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload Assignment from Excel</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => setAssignmentUploadFile(e.target.files?.[0] || null)}
+            />
+            {assignmentUploadFile && (
+              <p className="text-sm text-gray-600">Selected: {assignmentUploadFile.name}</p>
+            )}
+            <Button
+              className="w-full rounded-none"
+              disabled={
+                !assignmentUploadFile ||
+                assignmentUploadModal.sectionIdx === null ||
+                assignmentUploadModal.itemIdx === null
+              }
+              onClick={() => {
+                if (
+                  assignmentUploadFile &&
+                  assignmentUploadModal.sectionIdx !== null &&
+                  assignmentUploadModal.itemIdx !== null
+                ) {
+                  processAssignmentExcelFile(
+                    assignmentUploadModal.sectionIdx,
+                    assignmentUploadModal.itemIdx,
+                    assignmentUploadFile
+                  );
+                  setAssignmentUploadFile(null);
+                  setAssignmentUploadModal({ open: false, sectionIdx: null, itemIdx: null });
+                }
+              }}
+            >
+              Upload
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Upload Content Modal */}
       <UploadContentModal
         open={uploadModal.open}
