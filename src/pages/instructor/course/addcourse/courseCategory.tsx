@@ -3,7 +3,7 @@ import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { courseApiService, Category, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { courseApiService, Category, UpdateCourseMessageResponse, CourseUpdateRequest } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
@@ -27,6 +27,28 @@ const CourseCategory = () => {
     
     fetchCategories();
   }, []);
+
+  // Keep existing curriculum when updating category to avoid wiping it
+  const getExistingCurriculum = (): CourseUpdateRequest["curriculum"] | undefined => {
+    if (courseData?.curriculum && courseData.curriculum.sections?.length) {
+      return courseData.curriculum as CourseUpdateRequest["curriculum"];
+    }
+    if (courseData?.id) {
+      const localCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+      if (localCurriculum) {
+        try {
+          const parsed = JSON.parse(localCurriculum);
+          if (parsed?.sections?.length) {
+            return parsed as CourseUpdateRequest["curriculum"];
+          }
+        } catch (err) {
+          console.warn("Failed to parse local curriculum", err);
+        }
+      }
+    }
+    return undefined;
+  };
+
   const formik = useFormik({
     initialValues: {
       category: "",
@@ -78,7 +100,8 @@ const CourseCategory = () => {
           congratulationsMessage: courseData.congratulationsMessage ?? null,
           learn: courseData.learn ?? [],
           requirements: courseData.requirements ?? [],
-          target: courseData.target ?? []
+          target: courseData.target ?? [],
+          curriculum: getExistingCurriculum()
         });
         
         // After a successful update, update the shared courseData state with the new category
@@ -97,7 +120,8 @@ const CourseCategory = () => {
           congratulationsMessage: courseData.congratulationsMessage ?? null,
           learn: courseData.learn ?? [],
           requirements: courseData.requirements ?? [],
-          target: courseData.target ?? []
+          target: courseData.target ?? [],
+          curriculum: getExistingCurriculum()
         });
         
         

@@ -4,7 +4,7 @@ import { Input } from "../../../../components/ui/input";
 import { useFormik, FieldArray, FormikProvider } from "formik";
 import * as Yup from "yup";
 import { useEffect, useState } from "react";
-import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { courseApiService, UpdateCourseMessageResponse, CourseUpdateRequest } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
@@ -21,6 +21,31 @@ export function IntendentLearners({ onSubmit }: any) {
   };
 
   const [formInitialValues, setFormInitialValues] = useState(initialValues);
+
+  // Reuse the last known curriculum when updating intended learners so we don't overwrite it
+  const getExistingCurriculum = (): CourseUpdateRequest["curriculum"] | undefined => {
+    // Prefer the in-memory course data
+    if (courseData?.curriculum && courseData.curriculum.sections?.length) {
+      return courseData.curriculum as CourseUpdateRequest["curriculum"];
+    }
+
+    // Fallback to any curriculum saved locally (unsaved changes)
+    if (courseData?.id) {
+      const localCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+      if (localCurriculum) {
+        try {
+          const parsed = JSON.parse(localCurriculum);
+          if (parsed?.sections?.length) {
+            return parsed as CourseUpdateRequest["curriculum"];
+          }
+        } catch (err) {
+          console.warn("Failed to parse local curriculum", err);
+        }
+      }
+    }
+
+    return undefined;
+  };
 
   useEffect(() => {
     // Set form values when course data is loaded
@@ -109,7 +134,8 @@ export function IntendentLearners({ onSubmit }: any) {
           congratulationsMessage: courseData.congratulationsMessage ?? null,
           learn: filteredValuesLearn,
           requirements: filteredValuesRequirements,
-          target: filteredValuesTarget
+          target: filteredValuesTarget,
+          curriculum: getExistingCurriculum() // keep curriculum intact
         });
         
         // After a successful update, update the shared courseData state with the new data
@@ -128,7 +154,8 @@ export function IntendentLearners({ onSubmit }: any) {
           congratulationsMessage: courseData.congratulationsMessage ?? null,
           learn: filteredValuesLearn,
           requirements: filteredValuesRequirements,
-          target: filteredValuesTarget
+          target: filteredValuesTarget,
+          curriculum: getExistingCurriculum()
         });
         
         toast.success(updateResponse.message || "Course intended learners updated successfully!");

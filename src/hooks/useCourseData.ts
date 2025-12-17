@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { courseApiService, CourseResponse } from '../utils/courseApiService';
 import { toast } from 'sonner';
+import { transformApiCurriculumToForm, sortCurriculumBySeqNo, stripFilesFromCurriculumForStorage } from '../utils/curriculumHelper';
 
 interface UseCourseDataReturn {
   courseData: CourseResponse | null;
@@ -54,6 +55,30 @@ export const useCourseData = (): UseCourseDataReturn => {
       globalIsLoading = true;
       
       const apiCourseData = await courseApiService.getCourseById(parseInt(existingCourseId));
+      
+      // Transform and save curriculum to localStorage if it exists
+      if (apiCourseData.curriculum && apiCourseData.curriculum.sections && apiCourseData.curriculum.sections.length > 0) {
+        try {
+          // Sort curriculum by seqNo
+          const sortedCurriculum = sortCurriculumBySeqNo(apiCourseData.curriculum);
+          
+          // Transform API curriculum to form structure
+          const transformedCurriculum = transformApiCurriculumToForm(sortedCurriculum);
+          
+          // Strip files and prepare for localStorage
+          const serializableCurriculum = stripFilesFromCurriculumForStorage(transformedCurriculum);
+          
+          // Save to localStorage
+          localStorage.setItem(`curriculum_${existingCourseId}`, JSON.stringify(serializableCurriculum));
+          console.log("Saved curriculum to localStorage in useCourseData:", serializableCurriculum);
+        } catch (curriculumError) {
+          console.error("Error saving curriculum to localStorage:", curriculumError);
+          // Don't fail the entire operation if curriculum save fails
+        }
+      } else {
+        // Clear any existing curriculum data if course has no curriculum
+        localStorage.removeItem(`curriculum_${existingCourseId}`);
+      }
       
       globalCourseData = apiCourseData;
       globalIsNewCourse = false;

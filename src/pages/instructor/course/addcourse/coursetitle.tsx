@@ -5,7 +5,7 @@ import { Input } from "../../../../components/ui/input";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
-import { courseApiService, CourseResponse, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
+import { courseApiService, CourseResponse, UpdateCourseMessageResponse, CourseUpdateRequest } from "../../../../utils/courseApiService";
 import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
 import { useCourseData, clearCourseData } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
@@ -32,6 +32,27 @@ type RejectionInfo = {
 };
 
 const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
+
+  // Reuse the last known curriculum so title updates don't wipe it
+  const getExistingCurriculum = (): CourseUpdateRequest["curriculum"] | undefined => {
+    if (courseData?.curriculum && courseData.curriculum.sections?.length) {
+      return courseData.curriculum as CourseUpdateRequest["curriculum"];
+    }
+    if (courseData?.id) {
+      const localCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+      if (localCurriculum) {
+        try {
+          const parsed = JSON.parse(localCurriculum);
+          if (parsed?.sections?.length) {
+            return parsed as CourseUpdateRequest["curriculum"];
+          }
+        } catch (err) {
+          console.warn("Failed to parse local curriculum", err);
+        }
+      }
+    }
+    return undefined;
+  };
   
   const formik = useFormik({
     initialValues: {
@@ -110,7 +131,8 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             congratulationsMessage: courseData.congratulationsMessage ?? null,
             learn: courseData.learn ?? [],
             requirements: courseData.requirements ?? [],
-            target: courseData.target ?? []
+          target: courseData.target ?? [],
+          curriculum: getExistingCurriculum()
           });
           
           // After a successful update, update the shared courseData state with the new title
@@ -129,7 +151,8 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
             congratulationsMessage: courseData.congratulationsMessage ?? null,
             learn: courseData.learn ?? [],
             requirements: courseData.requirements ?? [],
-            target: courseData.target ?? []
+          target: courseData.target ?? [],
+          curriculum: getExistingCurriculum()
           });
           
           

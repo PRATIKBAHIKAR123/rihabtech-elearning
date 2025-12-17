@@ -411,7 +411,7 @@ const downloadQuizSampleExcel = () => {
 };
 
 // Helper to recursively remove File objects and undefined values from curriculum data
-function stripFilesFromCurriculum(curriculum: any): any {
+function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = false): any {
   if (!curriculum) return curriculum;
   
   console.log('Original curriculum before stripping:', curriculum);
@@ -485,16 +485,23 @@ function stripFilesFromCurriculum(curriculum: any): any {
                 if (assignmentDescription !== undefined) result.description = assignmentDescription;
                 if (assignmentDuration !== undefined) result.duration = assignmentDuration;
                 if (totalMarks !== undefined) result.totalMarks = totalMarks;
-                // API expects assignmentQuestions, not questions for assignments
-                // Note: In the form, assignments use "questions" but API expects "assignmentQuestions"
+                
+                // For API submission, convert questions to assignmentQuestions
+                // For localStorage, keep questions as-is (form structure)
                 if (questions !== undefined) {
-                  result.assignmentQuestions = questions.map((q: any) => ({
-                    id: q.id, // Preserve question ID if present
-                    question: q.question,
-                    marks: typeof q.marks === 'string' ? parseFloat(q.marks) : q.marks, // Convert string marks to number
-                    answer: q.answer,
-                    maxWordLimit: q.maxWordLimit
-                  }));
+                  if (forApiSubmission) {
+                    // API expects assignmentQuestions, not questions for assignments
+                    result.assignmentQuestions = questions.map((q: any) => ({
+                      id: q.id, // Preserve question ID if present
+                      question: q.question,
+                      marks: typeof q.marks === 'string' ? parseFloat(q.marks) : q.marks, // Convert string marks to number
+                      answer: q.answer,
+                      maxWordLimit: q.maxWordLimit
+                    }));
+                  } else {
+                    // Keep questions for localStorage (form structure)
+                    result.questions = questions;
+                  }
                 }
                 // REQUIRED: Set contentType and lectureName for assignment
                 result.contentType = "assignment";
@@ -684,23 +691,138 @@ const sortCurriculumBySeqNo = (curriculum: any) => {
   };
 };
 
-// Helper function to normalize seqNo based on array index
-const normalizeSeqNo = (curriculum: any) => {
+// Helper function to transform API curriculum data to form structure
+const transformApiCurriculumToForm = (curriculum: any) => {
   if (!curriculum || !curriculum.sections) return curriculum;
   
   return {
     ...curriculum,
     sections: curriculum.sections.map((section: any, sectionIndex: number) => ({
       ...section,
-      seqNo: section.seqNo != null ? section.seqNo : (sectionIndex + 1), // Use existing seqNo if available, otherwise use index
-      published: section.published !== undefined ? section.published : true, // Default to published if not set
-      items: section.items ? section.items.map((item: any, itemIndex: number) => ({
-        ...item,
-        seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1), // Use existing seqNo if available, otherwise use index
-        published: item.published !== undefined ? item.published : true // Default to published if not set (for lectures, quizzes, assignments)
-      })) : []
+      seqNo: section.seqNo != null ? section.seqNo : (sectionIndex + 1),
+      published: section.published !== undefined ? section.published : true,
+      items: section.items ? section.items.map((item: any, itemIndex: number) => {
+        // Transform based on item type
+        const transformedItem: any = {
+          ...item,
+          seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1),
+          published: item.published !== undefined ? item.published : true,
+        };
+
+        // Transform quiz items
+        if (item.type === 'quiz') {
+          transformedItem.type = 'quiz';
+          transformedItem.quizTitle = item.quizTitle || '';
+          transformedItem.quizDescription = item.quizDescription || '';
+          transformedItem.duration = item.duration || 0;
+          transformedItem.contentType = item.contentType || 'quiz';
+          transformedItem.lectureName = item.quizTitle || 'Quiz';
+          
+          // Transform questions - ensure correctOption is an array
+          if (item.questions && Array.isArray(item.questions)) {
+            transformedItem.questions = item.questions.map((q: any) => ({
+              id: q.id,
+              question: q.question || '',
+              options: q.options || [],
+              correctOption: Array.isArray(q.correctOption) ? q.correctOption : (q.correctOption !== undefined ? [q.correctOption] : [])
+            }));
+          } else {
+            transformedItem.questions = [];
+          }
+          
+          // Preserve resources if they exist
+          if (item.resources) {
+            transformedItem.resources = item.resources;
+          }
+        }
+        // Transform assignment items
+        else if (item.type === 'assignment') {
+          transformedItem.type = 'assignment';
+          transformedItem.title = item.title || '';
+          transformedItem.description = item.description || '';
+          transformedItem.duration = item.duration || 0;
+          transformedItem.totalMarks = item.totalMarks || 0;
+          transformedItem.contentType = item.contentType || 'assignment';
+          transformedItem.lectureName = item.title || 'Assignment';
+          
+          // Transform questions - API returns questions, form uses questions
+          if (item.questions && Array.isArray(item.questions)) {
+            transformedItem.questions = item.questions.map((q: any) => ({
+              id: q.id,
+              question: q.question || '',
+              marks: q.marks || 0,
+              answer: q.answer || '',
+              maxWordLimit: q.maxWordLimit || 0
+            }));
+          } else {
+            transformedItem.questions = [];
+          }
+          
+          // Preserve resources if they exist
+          if (item.resources) {
+            transformedItem.resources = item.resources;
+          }
+        }
+        // Transform lecture items
+        else if (item.type === 'lecture') {
+          transformedItem.type = 'lecture';
+          transformedItem.lectureName = item.lectureName || '';
+          transformedItem.description = item.description || '';
+          transformedItem.contentType = item.contentType || 'video';
+          transformedItem.isPromotional = item.isPromotional || false;
+          transformedItem.duration = item.duration || 0;
+          
+          // Transform contentFiles - ensure they have the correct structure
+          if (item.contentFiles && Array.isArray(item.contentFiles)) {
+            transformedItem.contentFiles = item.contentFiles.map((file: any) => ({
+              id: file.id,
+              name: file.name || '',
+              url: file.url || '',
+              cloudinaryUrl: file.url || file.cloudinaryUrl || '',
+              duration: file.duration || 0,
+              status: file.status || 'uploaded'
+            }));
+          } else {
+            transformedItem.contentFiles = [];
+          }
+          
+          // Handle contentUrl for external videos/articles
+          if (item.contentUrl) {
+            transformedItem.contentUrl = item.contentUrl;
+          }
+          
+          // Handle contentText for articles
+          if (item.contentText) {
+            transformedItem.contentText = item.contentText;
+          }
+          
+          // Determine videoSource/articleSource based on contentUrl and contentFiles
+          if (item.contentType === 'video') {
+            transformedItem.videoSource = item.contentUrl ? 'link' : (item.contentFiles?.length > 0 ? 'upload' : 'upload');
+          } else if (item.contentType === 'article') {
+            transformedItem.articleSource = item.contentUrl ? 'link' : (item.contentText ? 'write' : (item.contentFiles?.length > 0 ? 'upload' : 'write'));
+          }
+          
+          // Preserve resources if they exist
+          if (item.resources) {
+            transformedItem.resources = item.resources;
+          }
+        }
+        
+        return transformedItem;
+      }) : []
     }))
   };
+};
+
+// Helper function to normalize seqNo based on array index
+const normalizeSeqNo = (curriculum: any) => {
+  if (!curriculum || !curriculum.sections) return curriculum;
+  
+  // First transform API data to form structure
+  const transformed = transformApiCurriculumToForm(curriculum);
+  
+  return transformed;
 };
 
 // Debug function to log curriculum data
@@ -810,6 +932,21 @@ export function CourseCarriculam({ onSubmit }: any) {
   // Function to store curriculum data in global state when navigating
   const storeCurriculumData = useCallback((formValues?: any) => {
     if (courseData?.id && formValues && !isUpdatingRef.current) {
+      // Don't save if it's the default "Introduction" section with empty lecture
+      // This prevents overwriting API data with default values
+      if (formValues.sections && formValues.sections.length === 1) {
+        const section = formValues.sections[0];
+        if (section.name === "Introduction" && 
+            section.items && section.items.length === 1 && 
+            section.items[0].type === "lecture" &&
+            section.items[0].lectureName === "Lecture 1" &&
+            (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
+            !section.items[0].contentUrl) {
+          console.log('Skipping save of default curriculum values');
+          return;
+        }
+      }
+      
       isUpdatingRef.current = true;
       
       const serializableCurriculum = stripFilesFromCurriculum(formValues);
@@ -852,23 +989,14 @@ export function CourseCarriculam({ onSubmit }: any) {
       }
       
       try {
-        // Check localStorage first for unsaved curriculum data
-        const savedCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+        // Wait for course data to be fully loaded before processing curriculum
+        if (isLoading) {
+          console.log("Still loading course data, waiting...");
+          return;
+        }
         
-        if (savedCurriculum) {
-          console.log("Loading curriculum from localStorage (unsaved changes):", JSON.parse(savedCurriculum));
-          const curriculumData = JSON.parse(savedCurriculum);
-          
-          // Sort sections by seqNo and items within sections by seqNo
-          const sortedCurriculum = sortCurriculumBySeqNo(curriculumData);
-          // Normalize seqNo to match array indices
-          const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-          
-          console.log("Normalized curriculum from localStorage:", normalizedCurriculum);
-          setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
-          setCurriculumKey(prev => prev + 1); // Force formik reinitialization
-          lastSavedCurriculumRef.current = JSON.stringify(normalizedCurriculum);
-        } else if (courseData.curriculum) {
+        // Prioritize API data over localStorage - API is the source of truth
+        if (courseData.curriculum && courseData.curriculum.sections && courseData.curriculum.sections.length > 0) {
           console.log("Loading curriculum from API:", courseData.curriculum);
           
           // Debug: Log seqNo BEFORE sorting
@@ -878,7 +1006,7 @@ export function CourseCarriculam({ onSubmit }: any) {
               console.log(`Section ${idx + 1} (${section.name}): seqNo=${section.seqNo}`);
               if (section.items) {
                 section.items.forEach((item: any, itemIdx: number) => {
-                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}`);
+                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}, type=${item.type}`);
                 });
               }
             });
@@ -888,41 +1016,73 @@ export function CourseCarriculam({ onSubmit }: any) {
           const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
           console.log("AFTER sorting (before normalization):", sortedCurriculum);
           
-          // Normalize seqNo to match array indices
+          // Normalize seqNo and transform API data to form structure
           const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
           
-          console.log("AFTER normalization:");
+          console.log("AFTER normalization and transformation:");
           if (normalizedCurriculum.sections) {
             normalizedCurriculum.sections.forEach((section: any, idx: number) => {
               console.log(`Section ${idx + 1} (${section.name}): seqNo=${section.seqNo}`);
               if (section.items) {
                 section.items.forEach((item: any, itemIdx: number) => {
-                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}`);
+                  console.log(`  Item ${itemIdx + 1} (${item.lectureName || item.quizTitle || item.title || 'Unnamed'}): seqNo=${item.seqNo}, type=${item.type}`);
+                  if (item.type === 'quiz' && item.questions) {
+                    console.log(`    Questions: ${item.questions.length}`);
+                  }
+                  if (item.type === 'assignment' && item.questions) {
+                    console.log(`    Questions: ${item.questions.length}`);
+                  }
+                  if (item.type === 'lecture' && item.contentFiles) {
+                    console.log(`    ContentFiles: ${item.contentFiles.length}`);
+                  }
                 });
               }
             });
           }
+          
+          // Save transformed curriculum to localStorage
+          const serializableCurriculum = stripFilesFromCurriculum(normalizedCurriculum);
+          localStorage.setItem(`curriculum_${courseData.id}`, JSON.stringify(serializableCurriculum));
+          console.log("Saved transformed curriculum to localStorage:", serializableCurriculum);
           
           setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
           setCurriculumKey(prev => prev + 1); // Force formik reinitialization
           // Initialize the last saved ref with current curriculum
           lastSavedCurriculumRef.current = JSON.stringify(normalizedCurriculum);
         } else {
-          console.log("No curriculum data from API or localStorage, checking Firebase fallback");
-          // Fallback to Firebase if no API data
-          if (draftId.current) {
-            const draft = await getCourseDraft(draftId.current);
-            if (draft && draft.curriculum) {
-              console.log("Loading curriculum from Firebase:", draft.curriculum);
-              
-              // Sort sections by seqNo and items within sections by seqNo
-              const sortedCurriculum = sortCurriculumBySeqNo(draft.curriculum);
-              // Normalize seqNo to match array indices
-              const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-              
-              console.log("Normalized curriculum from Firebase:", normalizedCurriculum);
-              setFormInitialValues(normalizedCurriculum);
-              setCurriculumKey(prev => prev + 1); // Force formik reinitialization
+          // Fallback to localStorage if no API data
+          const savedCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
+          
+          if (savedCurriculum) {
+            console.log("Loading curriculum from localStorage (no API data):", JSON.parse(savedCurriculum));
+            const curriculumData = JSON.parse(savedCurriculum);
+            
+            // Sort sections by seqNo and items within sections by seqNo
+            const sortedCurriculum = sortCurriculumBySeqNo(curriculumData);
+            // Normalize seqNo to match array indices
+            const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
+            
+            console.log("Normalized curriculum from localStorage:", normalizedCurriculum);
+            setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
+            setCurriculumKey(prev => prev + 1); // Force formik reinitialization
+            lastSavedCurriculumRef.current = JSON.stringify(normalizedCurriculum);
+          } else {
+            console.log("No curriculum data from API or localStorage, checking Firebase fallback");
+            // Fallback to Firebase if no API data
+            if (draftId.current) {
+              const draft = await getCourseDraft(draftId.current);
+              if (draft && draft.curriculum) {
+                console.log("Loading curriculum from Firebase:", draft.curriculum);
+                
+                // Sort sections by seqNo and items within sections by seqNo
+                const sortedCurriculum = sortCurriculumBySeqNo(draft.curriculum);
+                // Normalize seqNo to match array indices
+                const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
+                
+                console.log("Normalized curriculum from Firebase:", normalizedCurriculum);
+                setFormInitialValues(normalizedCurriculum);
+                setCurriculumKey(prev => prev + 1); // Force formik reinitialization
+              }
             }
           }
         }
@@ -1105,8 +1265,8 @@ export function CourseCarriculam({ onSubmit }: any) {
           return;
         }
 
-        // Serialize curriculum data properly
-        const serializableCurriculum = stripFilesFromCurriculum(values);
+        // Serialize curriculum data properly for API submission
+        const serializableCurriculum = stripFilesFromCurriculum(values, true);
         console.log('Serialized curriculum:', serializableCurriculum);
         
         // Debug: Log serialized curriculum data
@@ -1255,6 +1415,21 @@ export function CourseCarriculam({ onSubmit }: any) {
   const debouncedStoreData = useCallback(
     debounce((values: any) => {
       if (!loading && courseData?.id && values) {
+        // Don't save if it's the default "Introduction" section with empty lecture
+        // This prevents overwriting API data with default values
+        if (values.sections && values.sections.length === 1) {
+          const section = values.sections[0];
+          if (section.name === "Introduction" && 
+              section.items && section.items.length === 1 && 
+              section.items[0].type === "lecture" &&
+              section.items[0].lectureName === "Lecture 1" &&
+              (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
+              !section.items[0].contentUrl) {
+            console.log('Skipping debounced save of default curriculum values');
+            return;
+          }
+        }
+        
         // Only store if the data has actually changed
         const serializableCurriculum = stripFilesFromCurriculum(values);
         const currentCurriculum = courseData.curriculum;
@@ -1265,7 +1440,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         }
       }
     }, 2000), // 2 second debounce for global state updates
-    [loading, courseData]
+    [loading, courseData, storeCurriculumData]
   );
 
   useEffect(() => {

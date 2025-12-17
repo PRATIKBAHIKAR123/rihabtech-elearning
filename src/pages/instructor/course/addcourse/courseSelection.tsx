@@ -5,6 +5,8 @@ import { BookOpen, Edit3, MoreHorizontal } from "lucide-react";
 import { useAuth } from "../../../../context/AuthContext";
 import { courseApiService, CourseResponse } from "../../../../utils/courseApiService";
 import { COURSE_STATUS as STATUS_CONSTANTS } from "../../../../constants/courseStatus";
+import { transformApiCurriculumToForm, sortCurriculumBySeqNo, stripFilesFromCurriculumForStorage } from "../../../../utils/curriculumHelper";
+import { toast } from "sonner";
 
 // Helper function to strip HTML tags from description
 const stripHtmlTags = (html: string | null) => {
@@ -137,12 +139,46 @@ const CourseSelection = () => {
     window.location.hash = '#/instructor/course-title';
   };
 
-  const handleEditCourse = (course: any) => {
+  const handleEditCourse = async (course: any) => {
     console.log('Edit course:', course);
-    // Store the course ID in localStorage for the edit flow
-    localStorage.setItem('courseId', course.id.toString());
-    localStorage.removeItem('draftId');
-    window.location.hash = '#/instructor/course-title';
+    try {
+      // Fetch course data from API
+      const courseData = await courseApiService.getCourseById(course.id);
+      console.log('Fetched course data:', courseData);
+      
+      // Store the course ID in localStorage for the edit flow
+      localStorage.setItem('courseId', course.id.toString());
+      localStorage.removeItem('draftId');
+      
+      // Transform and save curriculum to localStorage if it exists
+      if (courseData.curriculum && courseData.curriculum.sections && courseData.curriculum.sections.length > 0) {
+        // Sort curriculum by seqNo
+        const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
+        
+        // Transform API curriculum to form structure
+        const transformedCurriculum = transformApiCurriculumToForm(sortedCurriculum);
+        
+        // Strip files and prepare for localStorage
+        const serializableCurriculum = stripFilesFromCurriculumForStorage(transformedCurriculum);
+        
+        // Save to localStorage
+        localStorage.setItem(`curriculum_${course.id}`, JSON.stringify(serializableCurriculum));
+        console.log('Saved curriculum to localStorage:', serializableCurriculum);
+      } else {
+        // Clear any existing curriculum data if course has no curriculum
+        localStorage.removeItem(`curriculum_${course.id}`);
+      }
+      
+      // Navigate to course title page
+      window.location.hash = '#/instructor/course-title';
+    } catch (error) {
+      console.error('Error fetching course data:', error);
+      toast.error('Failed to load course data. Please try again.');
+      // Still navigate even if fetch fails, but without curriculum data
+      localStorage.setItem('courseId', course.id.toString());
+      localStorage.removeItem('draftId');
+      window.location.hash = '#/instructor/course-title';
+    }
   };
 
   // Delete course function - temporarily disabled
