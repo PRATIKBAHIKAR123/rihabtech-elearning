@@ -3093,10 +3093,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                             <thead>
                                                                               <tr className="bg-gray-50 border-b">
                                                                                 <th className="text-left p-2 text-sm font-medium text-gray-600">File Name</th>
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th>
+                                                                                {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th> */}
                                                                                 <th className="text-left p-2 text-sm font-medium text-gray-600">Duration</th>
                                                                                 <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th>
+                                                                                {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th> */}
                                                                                 <th className="text-left p-2 text-sm font-medium text-gray-600">Actions</th>
                                                                               </tr>
                                                                             </thead>
@@ -3109,9 +3109,9 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       <span className="text-sm">{content.name}</span>
                                                                                     </div>
                                                                                   </td>
-                                                                                  <td className="p-2">
+                                                                                  {/* <td className="p-2">
                                                                                     <span className="text-sm">{content.file && content.file.type ? content.file.type : 'N/A'}</span>
-                                                                                  </td>
+                                                                                  </td> */}
                                                                                   <td className="p-2">
                                                                                     <span className="text-sm">{formatDuration(content.duration || 0)}</span>
                                                                                   </td>
@@ -3138,11 +3138,11 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       </span>
                                                                                     )}
                                                                                   </td>
-                                                                                  <td className="p-2">
+                                                                                  {/* <td className="p-2">
                                                                                     <span className="text-sm">
                                                                                       {content.uploadedAt ? new Date(content.uploadedAt).toLocaleDateString() : 'N/A'}
                                                                                     </span>
-                                                                                  </td>
+                                                                                  </td> */}
                                                                                   <td className="p-2">
                                                                                     <div className="flex items-center gap-2">
                                                                                       <Button
