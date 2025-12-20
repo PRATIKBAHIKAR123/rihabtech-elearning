@@ -9,7 +9,7 @@ import { ProfileMenu } from "../modals/profileHoverCard";
 import NotificationsDialog from "../modals/notifications";
 import { useAuth } from '../context/AuthContext';
 import { courseApiService, Category, SubCategory } from "../utils/courseApiService";
-import { LearnerCourse, learnerService } from "../utils/learnerService";
+// import { LearnerCourse, learnerService } from "../utils/learnerService"; // Removed Firebase call - will use custom API later
 import { getAllUserActiveSubscriptions, Subscription } from "../utils/subscriptionService";
 import { toast } from "sonner";
 import { instructorApiService } from "../utils/instructorApiService";
@@ -569,91 +569,89 @@ export const CoursesMenu: React.FC = () => {
 
 // My Learnings Navigation Menu Component
 export const MyLearningsMenu: React.FC = () => {
-  const [courses, setCourses] = useState<LearnerCourse[]>([]);
+  const [courses] = useState<any[]>([]); // Empty array - will be populated from custom API later
   const { user } = useAuth();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const isAuthenticated = !!user || !!token;
 
-  useEffect(() => {
-    const fetchLearnerData = async () => {
+  // Removed Firebase call - will use custom API later
+  // useEffect(() => {
+  //   const fetchLearnerData = async () => {
+  //     // Custom API call will be added here later
+  //   };
+  //   fetchLearnerData();
+  // }, [user]);
 
-      if (!user?.uid) {
-        console.log('❌ No user UID found, returning early');
-        return;
-      }
-
-      //setLoading(true);
-      try {
-        // Get email directly from localStorage since that's what the service expects
-        const userData = localStorage.getItem('key');
-        let userEmail = user.email || '';
-
-        if (userData) {
-          try {
-            const parsedUser = JSON.parse(userData);
-            userEmail = parsedUser.UserName || user.email || '';
-          } catch (e) {
-            console.log('Could not parse user data from localStorage');
-          }
-        }
-
-        if (!userEmail) {
-          console.error('❌ No valid email found');
-          return;
-        }
-
-        const learningCourses = await
-          learnerService.getMyLearnings(userEmail);
-
-        setCourses(learningCourses);
-      } catch (error) {
-        console.error('❌ Error fetching learner data:', error);
-      } finally {
-        //setLoading(false);
-      }
-    };
-
-    fetchLearnerData();
-  }, [user]);
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="p-0 bg-transparent font-medium text-base font-medium text-[#000927] font-['Barlow'] capitalize leading-relaxed text-[#000927] hover:text-primary hover:bg-transparent focus:bg-transparent">
         My Learnings
       </NavigationMenuTrigger>
 
-      {courses.length ? <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
-        {courses.map((course, idx) => (
-          <div
-            key={idx}
-            className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white cursor-pointer hover:opacity-50"
-            onClick={() => { window.location.hash = '#/learner/my-learnings' }}
-          >
-            <img
-              src={course.image}
-              alt={course.title}
-              className="w-24 h-16 object-cover rounded-md"
-            />
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-              <div className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }}>
-              </div>
-
-              <div className="mt-3">
-                <div className="relative h-2 bg-gray-200 rounded-full">
-                  <div
-                    className="absolute top-0 left-0 h-2 bg-primary rounded-full"
-                    style={{ width: `${course?.completionPercentage}%` }}
-                  >
-
-                  </div>
+      {!isAuthenticated ? (
+        <NavigationMenuContent className="bg-white rounded-lg shadow-xl p-6 w-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-gray-500 text-center text-sm">
+              Please sign in to view your enrolled courses
+            </div>
+            <Button 
+              className="rounded-none px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              onClick={() => window.location.href = '/#/login'}
+            >
+              Sign In
+            </Button>
+          </div>
+        </NavigationMenuContent>
+      ) : courses.length > 0 ? (
+        <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
+          {courses.map((course, idx) => (
+            <div
+              key={idx}
+              className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white cursor-pointer hover:opacity-50"
+              onClick={() => { window.location.hash = '#/learner/my-learnings' }}
+            >
+              <img
+                src={course.image}
+                alt={course.title}
+                className="w-24 h-16 object-cover rounded-md"
+              />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
+                <div className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }}>
                 </div>
-                <div className="text-right text-xs font-semibold text-primary mt-1">
-                  {course?.progress}% Completed
+
+                <div className="mt-3">
+                  <div className="relative h-2 bg-gray-200 rounded-full">
+                    <div
+                      className="absolute top-0 left-0 h-2 bg-primary rounded-full"
+                      style={{ width: `${course?.completionPercentage}%` }}
+                    >
+                    </div>
+                  </div>
+                  <div className="text-right text-xs font-semibold text-primary mt-1">
+                    {course?.progress}% Completed
+                  </div>
                 </div>
               </div>
             </div>
+          ))}
+        </NavigationMenuContent>
+      ) : (
+        <NavigationMenuContent className="bg-white rounded-lg shadow-xl p-6 w-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-full text-gray-500 text-center text-sm">
+              No Enrollments Found
+            </div>
+            <Button 
+              variant="link"
+              className="text-primary hover:text-primary"
+              onClick={() => window.location.hash = '#/courselist'}
+            >
+              Browse Courses
+            </Button>
           </div>
-        ))}
-      </NavigationMenuContent> : <NavigationMenuContent className="bg-white rounded-lg shadow-xl p-4"><div className="w-full text-gray-500 text-center">No Enrollments Found</div>
-        <Button variant={'link'}>Browse Courses</Button></NavigationMenuContent>}
+        </NavigationMenuContent>
+      )}
     </NavigationMenuItem>
   );
 };
