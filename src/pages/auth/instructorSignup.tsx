@@ -215,9 +215,24 @@ export default function InstructorSignupPage() {
 
           navigate('/instructor-signup-success');
         } else {
-          const errorMsg = typeof data === 'string'
-            ? data
-            : data.message || data.error || data.msg || 'Registration failed. Please try again.';
+          // Handle API validation errors
+          let errorMsg = 'Registration failed. Please try again.';
+          
+          if (typeof data === 'string') {
+            errorMsg = data;
+          } else if (data) {
+            // Check if there are specific validation errors
+            if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+              // Show all validation errors
+              data.errors.forEach((error: string) => {
+                toast.error(error);
+              });
+              return; // Don't show generic error message
+            } else {
+              errorMsg = data.message || data.error || data.msg || errorMsg;
+            }
+          }
+          
           toast.error(errorMsg);
         }
       } catch (error: any) {
@@ -278,9 +293,14 @@ export default function InstructorSignupPage() {
           <form onSubmit={signupSchema.handleSubmit} className="space-y-4" noValidate>
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
-                <label htmlFor="experties" className="text-sm text-gray-600 block mb-1">
-                  Area Of Expertise<span className="text-[#ff0000]"> *</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="experties" className="text-sm text-gray-600">
+                    Area Of Expertise<span className="text-[#ff0000]"> *</span>
+                  </label>
+                  <span className={`text-xs ${signupSchema.values.experties.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {signupSchema.values.experties.length}/250
+                  </span>
+                </div>
                 <Input
                   id="experties"
                   name="experties"
@@ -296,9 +316,14 @@ export default function InstructorSignupPage() {
                 )}
               </div>
               <div>
-                <label htmlFor="topic" className="text-sm text-gray-600 block mb-1">
-                  Teaching Topics<span className="text-[#ff0000]"> *</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="topic" className="text-sm text-gray-600">
+                    Teaching Topics<span className="text-[#ff0000]"> *</span>
+                  </label>
+                  <span className={`text-xs ${signupSchema.values.topic.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {signupSchema.values.topic.length}/250
+                  </span>
+                </div>
                 <Input
                   id="topic"
                   name="topic"
@@ -316,9 +341,14 @@ export default function InstructorSignupPage() {
             </div>
 
             <div>
-              <label htmlFor="bio" className="text-sm text-gray-600 block mb-1">
-                Bio
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="bio" className="text-sm text-gray-600">
+                  Bio
+                </label>
+                <span className={`text-xs ${signupSchema.values.bio.length >= 1000 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {signupSchema.values.bio.length}/1000
+                </span>
+              </div>
               <textarea
                 id="bio"
                 name="bio"
@@ -429,9 +459,14 @@ export default function InstructorSignupPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 items-center justify-between gap-2">
               <div>
-                <label htmlFor="adhaarnumber" className="text-sm text-gray-600 block mb-1">
-                  Enter Your Aadhaar Card Number<span className="text-[#ff0000]"> *</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="adhaarnumber" className="text-sm text-gray-600">
+                    Enter Your Aadhaar Card No<span className="text-[#ff0000]"> *</span>
+                  </label>
+                  <span className={`text-xs ${signupSchema.values.adhaarnumber.length >= 12 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {signupSchema.values.adhaarnumber.length}/12
+                  </span>
+                </div>
                 <Input
                   id="adhaarnumber"
                   name="adhaarnumber"
@@ -447,9 +482,14 @@ export default function InstructorSignupPage() {
                 )}
               </div>
               <div>
-                <label htmlFor="PANnumber" className="text-sm text-gray-600 block mb-1">
-                  Enter Your PAN Card Number<span className="text-[#ff0000]"> *</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="PANnumber" className="text-sm text-gray-600">
+                    Enter Your PAN Card No<span className="text-[#ff0000]"> *</span>
+                  </label>
+                  <span className={`text-xs ${signupSchema.values.PANnumber.length >= 10 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {signupSchema.values.PANnumber.length}/10
+                  </span>
+                </div>
                 <Input
                   id="PANnumber"
                   name="PANnumber"
