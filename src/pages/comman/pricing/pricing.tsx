@@ -141,6 +141,10 @@ export default function Pricing() {
     setIsPaymentModalOpen(false);
     setSelectedPlan(null);
     await refreshActiveSubscription();
+    
+    // Dispatch event to refresh header subscriptions
+    window.dispatchEvent(new CustomEvent('subscriptionUpdated'));
+    
     const redirectUrl = localStorage.getItem("redirectAfterSubscription");
     window.location.hash = redirectUrl || "#/learner/homepage";
   };
@@ -237,7 +241,7 @@ const filteredPlans = pricingPlans.filter((plan) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:-gap-8">
             {filteredPlans.map((plan) => {
               const breakdown = getPricingBreakdown(plan);
-              const isCurrentPlan = activeSubscription?.planId === plan.id;
+              const isCurrentPlan = activeSubscription?.planId?.toString() === plan.id?.toString();
 
               return (
                 <div

@@ -9,9 +9,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "../../../context/AuthContext";
 import { formatAmount } from "../../../lib/razorpay";
-import { db } from "../../../lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { selectSubscription } from "../../../utils/subscriptionService";
+import { subscriptionApiService } from "../../../utils/subscriptionApiService";
 
 interface SubscriptionData {
   id: string;
@@ -55,10 +53,8 @@ const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
     const handleSelectPlan = async (planId: string) => {
     setSelectedPlanId(planId);
-
-    const data = await selectSubscription(user?.email??"",planId);
-    
-
+    // Note: selectSubscription is deprecated - API automatically determines active subscriptions
+    // The selected plan UI state is maintained locally for display purposes only
     toast.success("Plan selected successfully!");
   };
 
@@ -66,57 +62,47 @@ const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     if (!user?.email) return;
 
     try {
-      const subscriptionsRef = collection(db, "subscriptions");
-      const q = query(subscriptionsRef, where("userId", "==", user.email));
+      // Fetch subscriptions from API
+      const apiSubscriptions = await subscriptionApiService.getUserSubscriptions(user.email);
 
-      const snapshot = await getDocs(q);
-      const subscriptionData: SubscriptionData[] = [];
-
-      snapshot.forEach((doc) => {
-        const data = doc.data() as any;
-
-        // Parse planDuration - handle both string and number formats
-        let planDuration = data.planDuration || 30;
-        if (typeof planDuration === "string" && planDuration.includes("Days")) {
-          // Extract number from string like "179 Days"
-          const match = planDuration.match(/(\d+)/);
-          planDuration = match ? parseInt(match[1]) : 30;
-        }
-
-        // Determine if subscription is active based on status and dates
+      // Transform API subscriptions to SubscriptionData format
+      const subscriptionData: SubscriptionData[] = apiSubscriptions.map((sub) => {
         const now = new Date();
-        const endDate = data.endDate?.toDate() || new Date();
-        const startDate = data.startDate?.toDate() || new Date();
-
-        // Determine actual status based on dates and Firebase status
-        let actualStatus = data.status || "cancelled";
-        if (actualStatus === "active" && endDate < now) {
-          actualStatus = "expired";
-        } else if (actualStatus === "active" && startDate > now) {
-          actualStatus = "pending";
+        const endDate = sub.endDate ? new Date(sub.endDate) : new Date();
+        const startDate = sub.startDate ? new Date(sub.startDate) : new Date();
+        
+        // Map API status to our status format
+        let status: "active" | "expired" | "cancelled" = "cancelled";
+        if (sub.status === "Active" && endDate > now && startDate <= now) {
+          status = "active";
+        } else if (sub.status === "Active" && endDate < now) {
+          status = "expired";
+        } else if (sub.status === "Cancelled") {
+          status = "cancelled";
+        } else if (sub.status === "Expired") {
+          status = "expired";
         }
 
-        const isActive =
-          actualStatus === "active" && endDate > now && startDate <= now;
+        const isActive = status === "active" && endDate > now && startDate <= now;
 
-        subscriptionData.push({
-          id: doc.id,
-          planName: data.planName || "Unknown Plan",
-          planDuration: planDuration,
-          startDate: data.startDate?.toDate() || new Date(),
+        return {
+          id: sub.subscriptionId || sub.id?.toString() || "",
+          planName: sub.planName || "Unknown Plan",
+          planDuration: sub.numberOfDays || 30,
+          startDate: startDate,
           endDate: endDate,
-          status: actualStatus,
-          amount: data.amount || 0,
-          currency: data.currency || "inr",
-          orderId: data.orderId || "",
-          planId: data.planId || "",
-          userEmail: data.userEmail || "",
-          userId: data.userId || user.email,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-          categoryName: data.categoryName,
+          status: status,
+          amount: sub.totalAmount || 0,
+          currency: sub.currency?.toLowerCase() || "inr",
+          orderId: sub.orderId || "",
+          planId: sub.planId?.toString() || "",
+          userEmail: sub.userEmail || "",
+          userId: sub.userId || user?.email || "",
+          createdAt: sub.createdAt ? new Date(sub.createdAt) : new Date(),
+          updatedAt: sub.updatedAt ? new Date(sub.updatedAt) : new Date(),
+          categoryName: sub.categoryName,
           isActive: isActive,
-        });
+        };
       });
 
       // Sort by createdAt in descending order (most recent first)

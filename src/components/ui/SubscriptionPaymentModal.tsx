@@ -9,6 +9,7 @@ import { PricingPlan } from '../../utils/pricingService';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { Coupon, couponService } from '../../utils/couponService';
+import { couponApiService, PreviewCouponRequest, ConfirmCouponRequest } from '../../utils/couponApiService';
 
 interface SubscriptionPaymentModalProps {
   isOpen: boolean;
@@ -115,17 +116,24 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
     setCouponMessage("");
 
     try {
-      const response = await couponService.validateCoupon(
-        code,
-        plan.totalAmount ?? 0,
-        userInfo.email,
-        [plan.categoryId ?? ""]
-      );
+      // Use custom API for coupon validation
+      const request: PreviewCouponRequest = {
+        couponCode: code,
+        planId: plan.id,
+        categoryId: plan.categoryId ? parseInt(plan.categoryId) : 0,
+        subCategoryId: 0, // Subscription plans may not have subcategories
+        orderAmount: plan.totalAmount ?? plan.basePrice ?? 0,
+        userId: user?.email || userInfo.email,
+        userEmail: userInfo.email
+      };
 
-      if (!response?.isValid) {
+      const response = await couponApiService.previewCoupon(request);
+
+      if (!response?.couponApplicable) {
         setCouponMessage(response?.message || "Invalid coupon code.");
         setCouponDiscount(0);
         setAppliedCouponCode("");
+        setCouponId("");
         return;
       }
 
@@ -133,13 +141,16 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
       
       setCouponDiscount(discountAmt);
       setAppliedCouponCode(code);
+      setCouponId(response.couponId?.toString() || "");
       setCouponMessage(`Coupon applied! You saved ₹${discountAmt.toFixed(2)}`);
       toast.success("Coupon applied successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error('Coupon validation error:', err);
-      setCouponMessage("Failed to apply coupon. Try again.");
+      const errorMessage = err?.message || "Failed to apply coupon. Try again.";
+      setCouponMessage(errorMessage);
       setCouponDiscount(0);
       setAppliedCouponCode("");
+      setCouponId("");
     } finally {
       setIsCouponValidating(false);
     }
@@ -209,10 +220,6 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
 
   const handlePayment = async () => {
     if (!validateUserInfo()) return;
-    if (!razorpayLoaded) {
-      toast.error('Payment gateway is not loaded yet');
-      return;
-    }
 
     setIsProcessing(true);
 
@@ -239,29 +246,91 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
         couponDiscount: couponDiscount || undefined
       };
 
+      // Check if it's a free plan (₹0)
+      if (pricing.totalAmount === 0) {
+        // Handle free subscription directly without Razorpay
+        const subscriptionId = await razorpayService.handleFreeSubscription(paymentData);
+        
+        toast.success('Subscription activated successfully!');
+        onSuccess();
+        onClose();
+
+        // Confirm coupon usage via custom API if coupon was applied
+        if (couponId && couponDiscount > 0) {
+          try {
+            const confirmRequest: ConfirmCouponRequest = {
+              couponId: parseInt(couponId),
+              planId: plan.id,
+              subscriptionId: subscriptionId,
+              userId: user?.email || userInfo.email,
+              userEmail: userInfo.email,
+              orderAmount: pricing.originalBaseAmount,
+              discountAmount: couponDiscount,
+              finalAmount: pricing.totalAmount
+            };
+            await couponApiService.confirmCoupon(confirmRequest);
+          } catch (err) {
+            console.error('Coupon confirmation error:', err);
+            // Don't show error to user as subscription is already activated
+          }
+        }
+
+        // Dispatch event to refresh header subscriptions
+        window.dispatchEvent(new CustomEvent('subscriptionUpdated'));
+
+        const redirectUrl = localStorage.getItem('redirectAfterSubscription');
+        if (redirectUrl) {
+          window.location.hash = redirectUrl;
+          localStorage.removeItem('redirectAfterSubscription');
+        } else {
+          window.location.hash = '#/learner/homepage';
+        }
+        return;
+      }
+
+      // For paid plans, proceed with Razorpay
+      if (!razorpayLoaded) {
+        toast.error('Payment gateway is not loaded yet');
+        setIsProcessing(false);
+        return;
+      }
+
       const transactionId = await razorpayService.createPaymentTransaction(paymentData);
       const { options } = await razorpayService.initiatePayment(transactionId, paymentData);
+
+      // Capture pricing for use in payment success handler
+      const finalPricing = pricing;
 
       const Razorpay = (window as any).Razorpay;
 
       options.handler = async function (response: any) {
         try {
-          await razorpayService.handlePaymentSuccess(transactionId, response);
+          console.log('Razorpay payment success response:', JSON.stringify(response, null, 2));
+          console.log('Response keys:', Object.keys(response));
+          const subscriptionId = await razorpayService.handlePaymentSuccess(transactionId, response);
           toast.success('Payment successful! Your subscription is now active.');
           onSuccess();
           onClose();
 
-          await couponService.applyCoupon(
-            couponId,
-            user?.email || userInfo.email,
-            userInfo.email,
-            pricing.totalAmount,
-            couponDiscount,
-            pricing.originalBaseAmount,
-            transactionId,
-            '',
-            plan.id
-          );
+          // Confirm coupon usage via custom API if coupon was applied
+          if (couponId && couponDiscount > 0) {
+            try {
+              const confirmRequest: ConfirmCouponRequest = {
+                couponId: parseInt(couponId),
+                planId: plan.id,
+                subscriptionId: subscriptionId,
+                userId: user?.email || userInfo.email,
+                userEmail: userInfo.email,
+                orderAmount: finalPricing.originalBaseAmount,
+                discountAmount: couponDiscount,
+                finalAmount: finalPricing.totalAmount
+              };
+              await couponApiService.confirmCoupon(confirmRequest);
+            } catch (err) {
+              console.error('Coupon confirmation error:', err);
+              // Don't show error to user as subscription is already activated
+            }
+          }
 
           const redirectUrl = localStorage.getItem('redirectAfterSubscription');
           if (redirectUrl) {
@@ -270,9 +339,12 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
           } else {
             window.location.hash = '#/learner/homepage';
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Payment success handling error:', error);
-          toast.error('Payment processed but error activating your subscription. Please contact support.');
+          const errorMessage = error?.message || error?.response?.data?.message || 'Unknown error';
+          console.error('Full error details:', error);
+          toast.error(`Payment processed but error activating subscription: ${errorMessage}. Please contact support.`);
+          setIsProcessing(false);
         }
       };
 
@@ -527,7 +599,7 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
             <Button
               onClick={handlePayment}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
-              disabled={isProcessing || !razorpayLoaded}
+              disabled={isProcessing || (pricing.totalAmount > 0 && !razorpayLoaded)}
             >
               {isProcessing ? (
                 <>
@@ -537,7 +609,7 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
               ) : (
                 <>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Pay {formatAmount(pricing.totalAmount)}
+                  {pricing.totalAmount === 0 ? 'Subscribe Free' : `Pay ${formatAmount(pricing.totalAmount)}`}
                 </>
               )}
             </Button>

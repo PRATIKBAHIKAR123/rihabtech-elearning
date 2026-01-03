@@ -1,36 +1,10 @@
-import { db } from '../lib/firebase';
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  query,
-  where,
-  getDocs,
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore';
+// This file now uses the API service instead of Firebase
+// Maintains backward compatibility with existing code
 
-export interface Subscription {
-  id: string;
-  userId: string;
-  userEmail: string;
-  planId: string;
-  planName: string;
-  planDuration: string;
-  amount: number;
-  currency: string;
-  status: 'active' | 'expired' | 'cancelled' | 'pending';
-  startDate: Date;
-  endDate: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  orderId?: string;
-  stripeSubscriptionId?: string;
-  isSelected?: boolean;
-  categoryId?: string;
-}
+import { subscriptionApiService, Subscription, Subscription as ApiSubscription } from './subscriptionApiService';
 
+// Re-export types for backward compatibility
+export type { Subscription };
 export interface SubscriptionOrder {
   id: string;
   userId: string;
@@ -48,7 +22,36 @@ export interface SubscriptionOrder {
   subscriptionId?: string;
 }
 
-// Create a subscription order
+// Helper function to convert API subscription to legacy format
+function convertToLegacyFormat(sub: ApiSubscription | null): Subscription | null {
+  if (!sub) return null;
+  
+  // Create a new object with the correct types for legacy compatibility
+  const legacySub: any = {
+    id: sub.subscriptionId || sub.id?.toString() || '',
+    subscriptionId: sub.subscriptionId,
+    userId: sub.userId,
+    userEmail: sub.userEmail,
+    userPhone: sub.userPhone,
+    planId: sub.planId?.toString() || '',
+    planName: sub.planName,
+    planDuration: sub.planDuration,
+    amount: sub.totalAmount,
+    currency: sub.currency.toLowerCase(),
+    status: sub.status.toLowerCase() as 'active' | 'expired' | 'cancelled' | 'pending',
+    startDate: sub.startDate ? new Date(sub.startDate) : new Date(),
+    endDate: sub.endDate ? new Date(sub.endDate) : new Date(),
+    createdAt: sub.createdAt ? new Date(sub.createdAt) : new Date(),
+    updatedAt: sub.updatedAt ? new Date(sub.updatedAt) : new Date(),
+    categoryId: sub.categoryId?.toString(),
+    orderId: sub.orderId,
+    isActive: sub.isActive
+  };
+  
+  return legacySub as Subscription;
+}
+
+// Create a subscription order (legacy function - no longer used, kept for compatibility)
 export const createSubscriptionOrder = async (
   userId: string,
   userEmail: string,
@@ -57,53 +60,21 @@ export const createSubscriptionOrder = async (
   planDuration: string,
   amount: number
 ): Promise<string> => {
-  try {
-    const orderData = {
-      userId,
-      userEmail,
-      planId,
-      planName,
-      planDuration,
-      amount,
-      currency: 'inr',
-      status: 'pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    const docRef = await addDoc(collection(db, 'subscriptionOrders'), orderData);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating subscription order:', error);
-    throw new Error('Failed to create subscription order');
-  }
+  console.warn('createSubscriptionOrder is deprecated. Subscription orders are now handled via API.');
+  // Return a dummy ID for backward compatibility
+  return `order_${Date.now()}`;
 };
 
-// Update subscription order status
+// Update subscription order status (legacy function - no longer used)
 export const updateSubscriptionOrderStatus = async (
   orderId: string,
   status: SubscriptionOrder['status'],
   stripeSessionId?: string
 ): Promise<void> => {
-  try {
-    const orderRef = doc(db, 'subscriptionOrders', orderId);
-    const updateData: any = {
-      status,
-      updatedAt: serverTimestamp(),
-    };
-
-    if (stripeSessionId) {
-      updateData.stripeSessionId = stripeSessionId;
-    }
-
-    await updateDoc(orderRef, updateData);
-  } catch (error) {
-    console.error('Error updating subscription order:', error);
-    throw new Error('Failed to update subscription order');
-  }
+  console.warn('updateSubscriptionOrderStatus is deprecated. Payment confirmation is now handled via API.');
 };
 
-// Create active subscription
+// Create active subscription (legacy function - no longer used)
 export const createSubscription = async (
   userId: string,
   userEmail: string,
@@ -113,97 +84,20 @@ export const createSubscription = async (
   amount: number,
   orderId?: string
 ): Promise<string> => {
-  try {
-    // Calculate end date based on duration
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-
-    if (planDuration.includes('1 Month')) {
-      endDate.setMonth(endDate.getMonth() + 1);
-    } else if (planDuration.includes('6 Month')) {
-      endDate.setMonth(endDate.getMonth() + 6);
-    } else if (planDuration.includes('12 Month')) {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    } else {
-      // Default to 1 month
-      endDate.setMonth(endDate.getMonth() + 1);
-    }
-
-    // Check if user already has an active subscription
-    const subscriptionsRef = collection(db, 'subscriptions');
-    const activeSubscriptionQuery = query(
-      subscriptionsRef,
-      where('userId', '==', userId),
-      where('status', '==', 'active')
-    );
-
-    const existingSubscriptions = await getDocs(activeSubscriptionQuery);
-
-    // Cancel existing active subscriptions
-    const cancelPromises = existingSubscriptions.docs.map(async (docSnapshot) => {
-      await updateDoc(doc(db, 'subscriptions', docSnapshot.id), {
-        status: 'cancelled',
-        updatedAt: serverTimestamp(),
-      });
-    });
-
-    await Promise.all(cancelPromises);
-
-    const subscriptionData = {
-      userId,
-      userEmail,
-      planId,
-      planName,
-      planDuration,
-      amount,
-      currency: 'inr',
-      status: 'active',
-      startDate: serverTimestamp(),
-      endDate: endDate,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      orderId,
-    };
-
-    const docRef = await addDoc(subscriptionsRef, subscriptionData);
-
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating subscription:', error);
-    throw error;
-  }
+  console.warn('createSubscription is deprecated. Subscriptions are now created via API.');
+  return `sub_${Date.now()}`;
 };
 
-// Get all user's active subscriptions
+// Get all user's active subscriptions (only Active status)
 export const getAllUserActiveSubscriptions = async (userId: string): Promise<Subscription[]> => {
   try {
-    const subscriptionsRef = collection(db, 'subscriptions');
-    const activeSubscriptionQuery = query(
-      subscriptionsRef,
-      where('userId', '==', userId),
-      where('status', '==', 'active')
+    const subscriptions = await subscriptionApiService.getUserSubscriptions(userId);
+    // Filter only Active subscriptions for header display
+    const activeSubscriptions = subscriptions.filter(sub => 
+      sub.status === 'Active' && 
+      (!sub.endDate || new Date(sub.endDate) > new Date())
     );
-
-    const querySnapshot = await getDocs(activeSubscriptionQuery);
-
-    if (querySnapshot.empty) {
-      return [];
-    }
-
-    const subscriptions: Subscription[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as any;
-      subscriptions.push({
-        id: doc.id,
-        ...data,
-        startDate: data?.startDate?.toDate() || new Date(),
-        endDate: data?.endDate?.toDate() || new Date(),
-        createdAt: data?.createdAt?.toDate() || new Date(),
-        updatedAt: data?.updatedAt?.toDate() || new Date(),
-      } as Subscription);
-    });
-
-    return subscriptions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return activeSubscriptions.map(sub => convertToLegacyFormat(sub)!).filter(Boolean) as Subscription[];
   } catch (error) {
     console.error('Error getting all active subscriptions:', error);
     return [];
@@ -213,89 +107,21 @@ export const getAllUserActiveSubscriptions = async (userId: string): Promise<Sub
 // Get user's active subscription
 export const getUserActiveSubscription = async (userId: string): Promise<Subscription | null> => {
   try {
-    const subscriptionsRef = collection(db, 'subscriptions');
-    const activeSubscriptionQuery = query(
-      subscriptionsRef,
-      where('userId', '==', userId),
-      // where('isSelected', '==', true),
-      where('status', '==', 'active'),
-      
-    );
-
-    const querySnapshot = await getDocs(activeSubscriptionQuery);
-
-    if (querySnapshot.empty) {
-      return null;
-    }
-
-    const doc = querySnapshot.docs;
-    if(doc.length > 1) {
-      for(const d of doc) {
-        const data = d.data() as any;
-        if(data.isSelected) {
-          return {
-            id: d.id,
-            ...data, 
-            startDate: data?.startDate?.toDate() || new Date(),
-            endDate: data?.endDate?.toDate() || new Date(),
-            createdAt: data?.createdAt?.toDate() || new Date(),
-            updatedAt: data?.updatedAt?.toDate() || new Date(),
-          } as Subscription;
-        }
-      }
-      // If none is selected, return the first one
-      const data = doc[0].data() as any;
-      return {
-        id: doc[0].id,
-        ...data,
-        startDate: data?.startDate?.toDate() || new Date(),
-        endDate: data?.endDate?.toDate() || new Date(),
-        createdAt: data?.createdAt?.toDate() || new Date(),
-        updatedAt: data?.updatedAt?.toDate() || new Date(),
-      } as Subscription;
-    }
-
-        const data = doc[0].data() as any;
-    return {
-      id: doc[0].id,
-      ...data,
-      startDate: data?.startDate?.toDate() || new Date(),
-      endDate: data?.endDate?.toDate() || new Date(),
-      createdAt: data?.createdAt?.toDate() || new Date(),
-      updatedAt: data?.updatedAt?.toDate() || new Date(),
-    } as Subscription;
+    const subscription = await subscriptionApiService.getActiveSubscription(userId);
+    return convertToLegacyFormat(subscription);
   } catch (error) {
     console.error('Error getting active subscription:', error);
     return null;
   }
 };
 
-// Get user's subscription orders
+// Get user's subscription orders (legacy function - returns empty array)
 export const getUserSubscriptionOrders = async (userId: string): Promise<SubscriptionOrder[]> => {
-  try {
-    const ordersRef = collection(db, 'subscriptionOrders');
-    const userOrdersQuery = query(ordersRef, where('userId', '==', userId));
-    const querySnapshot = await getDocs(userOrdersQuery);
-
-    const orders: SubscriptionOrder[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as any;
-      orders.push({
-        id: doc.id,
-        ...data,
-        createdAt: data?.createdAt?.toDate() || new Date(),
-        updatedAt: data?.updatedAt?.toDate() || new Date(),
-      } as SubscriptionOrder);
-    });
-
-    return orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  } catch (error) {
-    console.error('Error fetching subscription orders:', error);
-    return [];
-  }
+  console.warn('getUserSubscriptionOrders is deprecated. Orders are now handled via payment transactions in the API.');
+  return [];
 };
 
-// Process subscription purchase (simulate payment)
+// Process subscription purchase (legacy function - no longer used)
 export const processSubscriptionPurchase = async (
   userId: string,
   userEmail: string,
@@ -304,82 +130,21 @@ export const processSubscriptionPurchase = async (
   planDuration: string,
   amount: number
 ): Promise<string> => {
-  try {
-    // Create order
-    const orderId = await createSubscriptionOrder(
-      userId,
-      userEmail,
-      planId,
-      planName,
-      planDuration,
-      amount
-    );
-
-    // Simulate payment processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Update order status to completed
-    await updateSubscriptionOrderStatus(orderId, 'completed');
-
-    // Create active subscription
-    const subscriptionId = await createSubscription(
-      userId,
-      userEmail,
-      planId,
-      planName,
-      planDuration,
-      amount,
-      orderId
-    );
-
-    // Update order with subscription ID
-    const orderRef = doc(db, 'subscriptionOrders', orderId);
-    await updateDoc(orderRef, {
-      subscriptionId,
-      updatedAt: serverTimestamp(),
-    });
-
-    return subscriptionId;
-  } catch (error) {
-    console.error('Error processing subscription purchase:', error);
-    throw error;
-  }
+  console.warn('processSubscriptionPurchase is deprecated. Use razorpayService with API endpoints instead.');
+  throw new Error('processSubscriptionPurchase is deprecated. Use the new payment flow.');
 };
 
 // Check if user has access to courses (has active subscription)
 export const hasActiveSubscription = async (userId: string): Promise<boolean> => {
   try {
-    const subscription = await getUserActiveSubscription(userId);
-    if (!subscription) return false;
-
-    // Check if subscription is still valid (not expired)
-    const now = new Date();
-    return subscription.endDate > now;
+    return await subscriptionApiService.hasActiveSubscription(userId);
   } catch (error) {
     console.error('Error checking subscription status:', error);
     return false;
   }
 };
 
+// Select subscription (legacy function - no longer needed as API handles active subscriptions)
 export const selectSubscription = async (userId: string, subscriptionId: string): Promise<void> => {
-  try {
-    // Step 1: Get all active subscriptions of this user
-    const subscriptionsRef = collection(db, 'subscriptions');
-    const q = query(subscriptionsRef, where('userId', '==', userId), where('status', '==', 'active'));
-    const snapshot = await getDocs(q);
-
-    // Step 2: Unselect all
-    const batch = writeBatch(db);
-    snapshot.forEach((docSnap) => {
-      const subRef = doc(db, 'subscriptions', docSnap.id);
-      batch.update(subRef, { isSelected: docSnap.id === subscriptionId });
-    });
-
-    // Step 3: Commit
-    await batch.commit();
-    console.log('Subscription selection updated!');
-  } catch (error) {
-    console.error('Error selecting subscription:', error);
-    throw new Error('Failed to select subscription');
-  }
+  console.warn('selectSubscription is deprecated. Active subscriptions are automatically determined by the API.');
 };

@@ -16,14 +16,15 @@ import {
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingIcon from "../../../components/ui/LoadingIcon";
-import { razorpayService } from "../../../utils/razorpayService";
 import { formatAmount } from "../../../lib/razorpay";
+import { subscriptionApiService } from "../../../utils/subscriptionApiService";
 
 interface OverviewStats {
   enrolledCourses: number;
   avgProgress: number;
   watchMinutes: number;
   subscriptions: number;
+  activeSubscriptions: number;
   totalSpent: number;
   joinDate: Date;
   lastOnline: Date;
@@ -48,11 +49,22 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
     setError("");
 
     try {
-      // Load transactions to calculate total spent
-      const transactions = await razorpayService.getUserTransactions(user.uid);
-      const totalSpent = transactions
-        .filter((t) => t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
+      // Fetch subscriptions from API
+      const subscriptions = await subscriptionApiService.getUserSubscriptions(user.email || user.uid);
+      
+      // Calculate total spent from subscriptions (all paid subscriptions count)
+      const totalSpent = subscriptions
+        .filter((sub) => sub.status === "Active" || sub.status === "Pending")
+        .reduce((sum: number, sub) => sum + (sub.totalAmount || 0), 0);
+
+      // Calculate active subscriptions count (Active status and not expired)
+      const now = new Date();
+      const activeSubscriptionsCount = subscriptions.filter((sub) => {
+        if (sub.status !== "Active") return false;
+        const endDate = sub.endDate ? new Date(sub.endDate) : null;
+        const startDate = sub.startDate ? new Date(sub.startDate) : new Date();
+        return endDate ? (endDate > now && startDate <= now) : false;
+      }).length;
 
       // Use data from API response (studentProfile object)
       const studentProfile = profile?.studentProfile || {};
@@ -60,8 +72,9 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
         enrolledCourses: studentProfile.enrolledCourses || 0,
         avgProgress: studentProfile.averageProgress || 0,
         watchMinutes: studentProfile.watchMinutes || 0,
-        subscriptions: studentProfile.subscriptions || 0,
+        subscriptions: subscriptions.length, // Use actual count from API
         totalSpent: totalSpent || 0,
+        activeSubscriptions: activeSubscriptionsCount, // Add active subscriptions count
         joinDate: profile.createdDate ? new Date(profile.createdDate) : new Date(),
         lastOnline: profile.createdDate ? new Date(profile.createdDate) : new Date(),
         phone: profile.phoneNumber || "",
@@ -291,7 +304,7 @@ const Overview: React.FC<OverviewProps> = ({ profile }) => {
               Active Subscriptions
             </p>
             <p className="text-xl font-bold text-gray-900">
-              {stats.subscriptions}
+              {stats.activeSubscriptions || 0}
             </p>
           </div>
           <div className="text-center">

@@ -326,7 +326,7 @@ const getButtonConfig = () => {
   console.log('activePlan:', activePlan);
   const pricing = course?.pricing?.toLowerCase();
   const hasActivePlanForCourse =
-  activePlan && activePlan.categoryId && activePlan.categoryId === course?.category?.toString();
+  activePlan && activePlan.categoryId && activePlan.categoryId.toString() === course?.category?.toString();
 
   if (authLoading) {
     return {

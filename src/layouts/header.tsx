@@ -116,6 +116,25 @@ function Header({ onMenuClick }: HeaderProps) {
     getSubscriptions();
   }, [user]);
 
+  // Listen for subscription updates (e.g., after payment success)
+  useEffect(() => {
+    const handleSubscriptionUpdate = async () => {
+      if (user) {
+        try {
+          const subscriptions = await getAllUserActiveSubscriptions(user.email || user.uid);
+          setActivePlans(subscriptions);
+        } catch (error) {
+          console.error('Error refreshing subscriptions:', error);
+        }
+      }
+    };
+
+    window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+    return () => {
+      window.removeEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+    };
+  }, [user]);
+
   // Close plan details when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -270,11 +289,11 @@ function Header({ onMenuClick }: HeaderProps) {
                               <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-gray-500 text-xs font-medium">Valid till</span>
                                 <span className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-sm hover:shadow-md hover:shadow-orange-500/25 transition-all duration-200 transform hover:scale-105 animate-pulse">
-                                  {plan.endDate.toLocaleDateString('en-US', {
+                                  {plan.endDate ? new Date(plan.endDate).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
                                     year: 'numeric'
-                                  })}
+                                  }) : 'N/A'}
                                 </span>
                               </div>
                             </div>

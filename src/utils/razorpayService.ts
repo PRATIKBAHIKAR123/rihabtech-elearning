@@ -1,32 +1,12 @@
-import { db } from '../lib/firebase';
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit,
-  Timestamp
-} from 'firebase/firestore';
 import {
   RazorpayOptions,
   RazorpayResponse,
-  RazorpayOrder,
-  initializeRazorpay,
-  createRazorpayOrder,
-  verifyPaymentSignature,
-  formatAmountForRazorpay,
-  parseAmountFromRazorpay
+  formatAmountForRazorpay
 } from '../lib/razorpay';
-import { revenueSharingService } from './revenueSharingService';
-import { emailService } from './emailService';
 import type { RazorpayConfig as ConfigRazorpayConfig } from './configService';
 import { configService } from './configService';
-import type { RazorpayConfig } from './razorpayConfig';
+import { subscriptionApiService } from './subscriptionApiService';
+import { pricingService } from './pricingService';
 
 export interface SubscriptionPaymentData {
   userId: string;
@@ -108,11 +88,8 @@ export interface SubscriptionOrder {
 }
 
 class RazorpayService {
-  private readonly TRANSACTIONS_COLLECTION = 'paymentTransactions';
-  private readonly SUBSCRIPTION_ORDERS_COLLECTION = 'subscriptionOrders';
-  private readonly SUBSCRIPTIONS_COLLECTION = 'subscriptions';
-  private readonly RAZORPAY_CONFIG_COLLECTION = 'razorpayConfig';
   private razorpayConfig: ConfigRazorpayConfig | null = null;
+  private paymentDataCache: Map<string, { subscriptionId: string; paymentData: SubscriptionPaymentData; razorpayOrderId?: string }> = new Map(); // transactionId -> {subscriptionId, paymentData, razorpayOrderId}
 
   // Fetch Razorpay configuration from Firebase
   private async getRazorpayConfig(): Promise<ConfigRazorpayConfig> {
@@ -130,37 +107,40 @@ class RazorpayService {
     }
   }
 
-  // Create a new payment transaction
+  // Create a new payment transaction (now creates subscription via API)
   async createPaymentTransaction(data: SubscriptionPaymentData): Promise<string> {
     try {
-      const transactionData = {
+      // Get pricing plan to get the plan ID (numeric)
+      const pricingPlans = await pricingService.getPricingPlans();
+      const plan = pricingPlans.find(p => p.id === data.planId || p.id?.toString() === data.planId);
+      
+      if (!plan) {
+        throw new Error('Pricing plan not found');
+      }
+
+      // Create subscription via API (status will be "Pending")
+      const subscriptionResponse = await subscriptionApiService.createSubscription({
+        pricingId: parseInt(plan.id.toString()),
         userId: data.userId,
         userEmail: data.userEmail,
         userName: data.userName,
         userPhone: data.userPhone,
-        planId: data.planId,
-        planName: data.planName,
-        planDuration: data.planDuration,
-        amount: data.amount,
-        taxAmount: data.taxAmount,
-        platformFee: data.platformFee,
-        instructorShare: data.instructorShare,
-        totalAmount: data.totalAmount,
-        currency: data.currency,
-        categoryId: data.categoryId,
-        categoryName: data.categoryName,
-        razorpayOrderId: '',
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        receipt: `RCP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
+        paymentMethod: 'Razorpay'
+      });
 
-      const docRef = await addDoc(collection(db, this.TRANSACTIONS_COLLECTION), transactionData);
-      return docRef.id;
+      // Generate a transaction ID for tracking
+      const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Cache subscription ID and payment data for use in payment success handler
+      this.paymentDataCache.set(transactionId, {
+        subscriptionId: subscriptionResponse.subscriptionId,
+        paymentData: data
+      });
+
+      return transactionId;
     } catch (error) {
-      console.error('Error creating payment transaction:', error);
-      throw new Error('Failed to create payment transaction');
+      console.error('Error creating subscription:', error);
+      throw new Error('Failed to create subscription');
     }
   }
 
@@ -173,53 +153,19 @@ class RazorpayService {
       // Get Razorpay configuration
       const config = await this.getRazorpayConfig();
 
-      // Create timestamps for the configuration
-      const now = {
-        seconds: Math.floor(Date.now() / 1000),
-        nanoseconds: 0,
-        toDate: () => new Date(),
-      } as Timestamp;
+      // Note: We don't create orders client-side. Razorpay will create the order automatically
+      // when payment is initiated. The order_id will be returned in the payment response.
+      // If you need server-side order creation, implement it via your backend API.
 
-      // Transform config to match RazorpayConfig interface
-      const transformedConfig: RazorpayConfig = {
-        ...config,
-        createdAt: now,
-        updatedAt: now,
-        platform: 'Rihab Technologies',
-        source: 'admin_panel',
-        updatedBy: 'system',
-        prefill: {
-          name: config.prefill?.name || '',
-          email: config.prefill?.email || '',
-          contact: config.prefill?.contact || ''
-        },
-        webhookSecret: config.webhookSecret || '',
-        webhookUrl: config.webhookUrl || ''
-      };
-
-      // Create Razorpay order
-      const razorpayOrder = await createRazorpayOrder(
-        paymentData.totalAmount,
-        config.currency || paymentData.currency,
-        `sub_${paymentData.planId}_${Date.now()}`,
-        //transformedConfig
-      );
-
-      // Update transaction with Razorpay order ID
-      const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
-      await updateDoc(transactionRef, {
-        razorpayOrderId: razorpayOrder.id,
-        updatedAt: serverTimestamp()
-      });
-
-      // Prepare Razorpay options
+      // Prepare Razorpay options (without order_id - Razorpay creates it automatically)
       const options: RazorpayOptions = {
         key: config.isTestMode ? config.keyId : process.env.REACT_APP_RAZORPAY_KEY_ID || config.keyId,
         amount: formatAmountForRazorpay(paymentData.totalAmount),
         currency: config.currency || paymentData.currency,
         name: 'Rihab Technologies',
         description: config.description || `${paymentData.planName} - ${paymentData.planDuration}`,
-        //order_id: razorpayOrder.id,
+        // Don't pass order_id - let Razorpay create it automatically
+        // order_id will be in the response.razorpay_order_id after payment
         prefill: {
           name: paymentData.userName,
           email: paymentData.userEmail,
@@ -237,17 +183,16 @@ class RazorpayService {
         theme: {
           color: config.theme?.color || '#3B82F6'
         },
-        handler: async (response: RazorpayResponse) => {
-          await this.handlePaymentSuccess(transactionId, response);
-        },
+        // Handler and modal are set in the component (SubscriptionPaymentModal),
+        // not here, to avoid duplicate handler execution
+        handler: () => {}, // Placeholder - will be overridden in component
         modal: {
-          ondismiss: async () => {
-            await this.handlePaymentCancelled(transactionId);
-          }
+          ondismiss: () => {} // Placeholder - will be overridden in component
         }
       };
 
-      return { orderId: razorpayOrder.id, options };
+      // Return empty orderId - it will be available in the payment response
+      return { orderId: '', options };
     } catch (error) {
       console.error('Error initiating payment:', error);
       throw new Error('Failed to initiate payment');
@@ -258,104 +203,62 @@ class RazorpayService {
   async handlePaymentSuccess(
     transactionId: string,
     response: RazorpayResponse
-  ): Promise<void> {
+  ): Promise<string> {
     try {
-      // Get Razorpay configuration
-      const config = await this.getRazorpayConfig();
-
-      // Create timestamps for the configuration
-      const now = {
-        seconds: Math.floor(Date.now() / 1000),
-        nanoseconds: 0,
-        toDate: () => new Date(),
-      } as Timestamp;
-
-      // Transform config for signature verification
-      const transformedConfig: RazorpayConfig = {
-        ...config,
-        createdAt: now,
-        updatedAt: now,
-        platform: 'Rihab Technologies',
-        source: 'admin_panel',
-        updatedBy: 'system',
-        prefill: {
-          name: config.prefill?.name || '',
-          email: config.prefill?.email || '',
-          contact: config.prefill?.contact || ''
-        },
-        webhookSecret: config.webhookSecret || '',
-        webhookUrl: config.webhookUrl || ''
-      };
-
-      // Verify payment signature
-      const isValid = await verifyPaymentSignature(
-        response.razorpay_payment_id,
-        response.razorpay_order_id,
-        response.razorpay_signature,
-        //transformedConfig
-      );
-
-      if (!isValid) {
-        throw new Error('Invalid payment signature');
+      // Get cached payment data
+      const cached = this.paymentDataCache.get(transactionId);
+      if (!cached) {
+        throw new Error('Transaction data not found');
       }
 
-      // Update transaction status
-      const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
-      const updateData: any = {
-        status: 'completed',
-        updatedAt: serverTimestamp()
-      };
+      const { subscriptionId, paymentData, razorpayOrderId } = cached;
 
-      // Only add fields that are defined
-      if (response.razorpay_payment_id) {
-        updateData.razorpayPaymentId = response.razorpay_payment_id;
-      }
-      if (response.razorpay_signature) {
-        updateData.razorpaySignature = response.razorpay_signature;
-      }
+      // Note: Payment signature verification should be done on the server side for security
+      // The API endpoint will handle verification when confirming the payment
 
-      await updateDoc(transactionRef, updateData);
+      // Generate receipt ID
+      const receipt = `RCP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Get transaction data
-      const transactionDoc = await getDocs(
-        query(collection(db, this.TRANSACTIONS_COLLECTION), where('__name__', '==', transactionId))
-      );
+      // Use razorpay_order_id from response, fallback to cached value if response doesn't have it
+      // Razorpay response may contain razorpay_order_id or order_id
+      const finalRazorpayOrderId = response.razorpay_order_id || 
+                                    (response as any).order_id || 
+                                    razorpayOrderId ||
+                                    `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log('Razorpay response:', response);
+      console.log('Final Razorpay Order ID:', finalRazorpayOrderId);
 
-      if (transactionDoc.empty) {
-        throw new Error('Transaction not found');
-      }
-
-      const transactionData = transactionDoc.docs[0].data();
-
-      // Create subscription order
-      const subscriptionOrderId = await this.createSubscriptionOrder(transactionData);
-
-      // Create active subscription
-      const subscriptionId = await this.createActiveSubscription(transactionData, subscriptionOrderId);
-
-      // Update transaction with subscription details
-      await updateDoc(transactionRef, {
+      // Confirm payment via API (this will activate the subscription)
+      await subscriptionApiService.confirmPayment({
         subscriptionId: subscriptionId,
-        updatedAt: serverTimestamp()
+        orderId: orderId,
+        razorpayOrderId: finalRazorpayOrderId,
+        razorpayPaymentId: response.razorpay_payment_id,
+        receipt: receipt,
+        amount: paymentData.amount,
+        taxAmount: paymentData.taxAmount,
+        platformFee: paymentData.platformFee,
+        totalAmount: paymentData.totalAmount,
+        currency: paymentData.currency || 'INR',
+        paymentMethod: 'Razorpay',
+        status: 'completed',
+        userId: paymentData.userId,
+        userEmail: paymentData.userEmail,
+        userPhone: paymentData.userPhone
       });
 
-      // Record revenue sharing
-      await this.recordRevenueSharing(transactionData, subscriptionId);
+      // Clear cache
+      this.paymentDataCache.delete(transactionId);
 
-      // Send confirmation email (implement email service)
-      //await this.sendPaymentConfirmationEmail(transactionData);
+      // Return subscriptionId for coupon confirmation
+      return subscriptionId;
 
     } catch (error) {
       console.error('Error handling payment success:', error);
-
-      // Update transaction status to failed
-      const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
-      await updateDoc(transactionRef, {
-        status: 'failed',
-        updatedAt: serverTimestamp(),
-        notes: `Payment processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-
+      // Clear cache on error
+      this.paymentDataCache.delete(transactionId);
       throw error;
     }
   }
@@ -363,401 +266,68 @@ class RazorpayService {
   // Handle payment cancellation
   async handlePaymentCancelled(transactionId: string): Promise<void> {
     try {
-      const transactionRef = doc(db, this.TRANSACTIONS_COLLECTION, transactionId);
-      await updateDoc(transactionRef, {
-        status: 'cancelled',
-        updatedAt: serverTimestamp()
-      });
+      // Clear cache on cancellation
+      this.paymentDataCache.delete(transactionId);
+      console.log('Payment cancelled, subscription remains in Pending status');
     } catch (error) {
       console.error('Error handling payment cancellation:', error);
     }
   }
 
-  // Create subscription order
-  private async createSubscriptionOrder(transactionData: any): Promise<string> {
+  // Handle free subscription (₹0 plans) - no payment required
+  async handleFreeSubscription(data: SubscriptionPaymentData): Promise<string> {
     try {
-      const orderData: any = {
-        // Required fields
-        userId: transactionData.userId,
-        userEmail: transactionData.userEmail,
-        userName: transactionData.userName,
-        planId: transactionData.planId,
-        planName: transactionData.planName,
-        planDuration: transactionData.planDuration,
-        amount: transactionData.amount,
-        taxAmount: transactionData.taxAmount,
-        platformFee: transactionData.platformFee,
-        instructorShare: transactionData.instructorShare,
-        totalAmount: transactionData.totalAmount,
-        currency: transactionData.currency,
-        status: 'completed',
-        paymentMethod: 'razorpay',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      // Optional fields - only add if they exist
-      if (transactionData.userPhone) orderData.userPhone = transactionData.userPhone;
-      if (transactionData.categoryId) orderData.categoryId = transactionData.categoryId;
-      if (transactionData.categoryName) orderData.categoryName = transactionData.categoryName;
-      if (transactionData.razorpayOrderId) orderData.razorpayOrderId = transactionData.razorpayOrderId;
-      if (transactionData.razorpayPaymentId) orderData.razorpayPaymentId = transactionData.razorpayPaymentId;
-      if (transactionData.razorpaySignature) orderData.razorpaySignature = transactionData.razorpaySignature;
-      if (transactionData.receipt) orderData.receipt = transactionData.receipt;
-
-      // Add payment details only if we have at least one of the required fields
-      if (transactionData.razorpayPaymentId || transactionData.razorpayOrderId || transactionData.razorpaySignature) {
-        orderData.paymentDetails = {
-          ...(transactionData.razorpayPaymentId && { razorpay_payment_id: transactionData.razorpayPaymentId }),
-          ...(transactionData.razorpayOrderId && { razorpay_order_id: transactionData.razorpayOrderId }),
-          ...(transactionData.razorpaySignature && { razorpay_signature: transactionData.razorpaySignature })
-        };
+      // Get pricing plan to get the plan ID (numeric)
+      const pricingPlans = await pricingService.getPricingPlans();
+      const plan = pricingPlans.find(p => p.id === data.planId || p.id?.toString() === data.planId);
+      
+      if (!plan) {
+        throw new Error('Pricing plan not found');
       }
 
-      const docRef = await addDoc(collection(db, this.SUBSCRIPTION_ORDERS_COLLECTION), orderData);
-      return docRef.id;
-    } catch (error) {
-      console.error('Error creating subscription order:', error);
-      throw new Error('Failed to create subscription order');
-    }
-  }
+      // Create subscription via API (status will be "Pending")
+      const subscriptionResponse = await subscriptionApiService.createSubscription({
+        pricingId: parseInt(plan.id.toString()),
+        userId: data.userId,
+        userEmail: data.userEmail,
+        userName: data.userName,
+        userPhone: data.userPhone,
+        paymentMethod: 'FREE'
+      });
 
-  // Create active subscription
-  private async createActiveSubscription(transactionData: any, orderId: string): Promise<string> {
-    try {
-      const rawDuration = transactionData.planDuration || "";
-      const duration = rawDuration.trim().toLowerCase();
-      const startDate = new Date();
-      let endDate = new Date(startDate);
+      // Generate receipt ID and order ID for free subscription
+      const receipt = `RCP_FREE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const orderId = `ORD_FREE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Extract numeric value if present
-      const numberMatch = duration.match(/\d+/);
-      const num = numberMatch ? parseInt(numberMatch[0], 10) : 1;
-
-      if (duration.includes("month")) {
-        endDate.setMonth(endDate.getMonth() + num);
-      } else if (duration.includes("year")) {
-        endDate.setFullYear(endDate.getFullYear() + num);
-      } else if (duration.includes("day")) {
-        // handle "120 days"
-        endDate.setDate(endDate.getDate() + num);
-      } else if (/^\d+$/.test(duration)) {
-        // pure number = days
-        endDate.setDate(endDate.getDate() + num);
-      } else {
-        // fallback: default 1 month
-        endDate.setMonth(endDate.getMonth() + 1);
-      }
-
-      const subscriptionData = {
-        userId: transactionData.userId,
-        userEmail: transactionData.userEmail,
-        userName: transactionData.userName,
-        planId: transactionData.planId,
-        planName: transactionData.planName,
-        planDuration: transactionData.planDuration,
-        amount: transactionData.amount,
-        taxAmount: transactionData.taxAmount,
-        platformFee: transactionData.platformFee,
-        instructorShare: transactionData.instructorShare,
-        totalAmount: transactionData.totalAmount,
-        currency: transactionData.currency,
-        categoryId: transactionData.categoryId,
-        categoryName: transactionData.categoryName,
+      // Confirm payment via API with FREE payment method (no Razorpay IDs needed)
+      await subscriptionApiService.confirmPayment({
+        subscriptionId: subscriptionResponse.subscriptionId,
         orderId: orderId,
-        status: "active",
-        startDate,
-        endDate,
-        isActive: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
-
-      const docRef = await addDoc(collection(db, this.SUBSCRIPTIONS_COLLECTION), subscriptionData);
-      return docRef.id;
-    } catch (error) {
-      console.error('Error creating active subscription:', error);
-      throw new Error('Failed to create active subscription');
-    }
-  }
-
-  // Record revenue sharing for the transaction
-  private async recordRevenueSharing(transactionData: any, subscriptionId: string): Promise<void> {
-    try {
-      // For subscription revenue sharing, we need to determine which instructors benefit
-      // This is a simplified approach - in a real implementation, you'd need to:
-      // 1. Determine which courses are included in the subscription
-      // 2. Find instructors for those courses
-      // 3. Distribute revenue based on course access or other criteria
-
-      // For now, we'll create a general revenue sharing record
-      // In a real implementation, you might want to distribute this among multiple instructors
-      const breakdown = revenueSharingService.calculateSubscriptionRevenueSharing(
-        transactionData.amount,
-        (transactionData.taxAmount / transactionData.amount) * 100, // Calculate tax percentage
-        (transactionData.platformFee / transactionData.amount) * 100 // Calculate platform fee percentage
-      );
-
-      // Record the revenue sharing (you might need to modify this based on your instructor distribution logic)
-      await revenueSharingService.recordRevenueSharing(
-        transactionData.id || subscriptionId,
-        {
-          ...breakdown,
-          revenueType: 'subscription',
-          sourceId: subscriptionId,
-          sourceName: transactionData.planName
-        },
-        'general-instructor' // This should be replaced with actual instructor ID logic
-      );
-
-      console.log('Revenue sharing recorded for subscription:', subscriptionId);
-    } catch (error) {
-      console.error('Error recording revenue sharing:', error);
-      // Don't throw error here as it shouldn't fail the payment process
-    }
-  }
-
-  // Send payment confirmation email
-  private async sendPaymentConfirmationEmail(transactionData: any): Promise<void> {
-    try {
-      // Calculate subscription end date
-      const startDate = new Date();
-      const endDate = new Date();
-
-      // Calculate end date based on plan duration
-      const duration = transactionData.planDuration.toLowerCase();
-      if (duration.includes('month')) {
-        const months = parseInt(duration.match(/\d+/)?.[0] || '1');
-        endDate.setMonth(endDate.getMonth() + months);
-      } else if (duration.includes('year')) {
-        const years = parseInt(duration.match(/\d+/)?.[0] || '1');
-        endDate.setFullYear(endDate.getFullYear() + years);
-      }
-
-      const emailData = {
-        userName: transactionData.userName,
-        userEmail: transactionData.userEmail,
-        planName: transactionData.planName,
-        planDuration: transactionData.planDuration,
-        amount: transactionData.totalAmount,
-        currency: transactionData.currency,
-        receipt: transactionData.receipt,
-        paymentId: transactionData.razorpayPaymentId,
-        subscriptionId: transactionData.subscriptionId || '',
-        startDate: startDate,
-        endDate: endDate,
-        categoryName: transactionData.categoryName
-      };
-
-      await emailService.sendSubscriptionConfirmation(emailData);
-      console.log('Subscription confirmation email sent to:', transactionData.userEmail);
-    } catch (error) {
-      console.error('Error sending confirmation email:', error);
-      // Don't throw error here as it shouldn't fail the payment process
-    }
-  }
-
-  // Get user's payment transactions
-  async getUserTransactions(userId: string): Promise<PaymentTransaction[]> {
-    try {
-      const q = query(
-        collection(db, this.TRANSACTIONS_COLLECTION),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          ...data
-        } as PaymentTransaction;
+        razorpayOrderId: 'FREE', // Placeholder for free subscriptions
+        razorpayPaymentId: 'FREE', // Placeholder for free subscriptions
+        receipt: receipt,
+        amount: data.amount || 0,
+        taxAmount: data.taxAmount || 0,
+        platformFee: data.platformFee || 0,
+        totalAmount: data.totalAmount || 0,
+        currency: data.currency || 'INR',
+        paymentMethod: 'FREE',
+        status: 'completed',
+        userId: data.userId,
+        userEmail: data.userEmail,
+        userPhone: data.userPhone
       });
+
+      // Return subscriptionId for coupon confirmation
+      return subscriptionResponse.subscriptionId;
+
     } catch (error) {
-      console.error('Error fetching user transactions:', error);
-      return [];
+      console.error('Error handling free subscription:', error);
+      throw error;
     }
   }
 
-  // Get all transactions (admin)
-  async getAllTransactions(limitCount: number = 50): Promise<PaymentTransaction[]> {
-    try {
-      const q = query(
-        collection(db, this.TRANSACTIONS_COLLECTION),
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
-
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          ...data
-        } as PaymentTransaction;
-      });
-    } catch (error) {
-      console.error('Error fetching all transactions:', error);
-      return [];
-    }
-  }
-
-  // Get transaction by ID
-  async getTransactionById(transactionId: string): Promise<PaymentTransaction | null> {
-    try {
-      const q = query(
-        collection(db, this.TRANSACTIONS_COLLECTION),
-        where('__name__', '==', transactionId)
-      );
-
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
-        return null;
-      }
-
-      const doc = snapshot.docs[0];
-      const data = doc.data() as any;
-      return {
-        id: doc.id,
-        ...data
-      } as PaymentTransaction;
-    } catch (error) {
-      console.error('Error fetching transaction by ID:', error);
-      return null;
-    }
-  }
-
-  // Get subscription orders
-  async getSubscriptionOrders(userId?: string): Promise<SubscriptionOrder[]> {
-    try {
-      let q;
-      if (userId) {
-        q = query(
-          collection(db, this.SUBSCRIPTION_ORDERS_COLLECTION),
-          where('userId', '==', userId),
-          orderBy('createdAt', 'desc')
-        );
-      } else {
-        q = query(
-          collection(db, this.SUBSCRIPTION_ORDERS_COLLECTION),
-          orderBy('createdAt', 'desc')
-        );
-      }
-
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc: any) => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          ...data
-        } as SubscriptionOrder;
-      });
-    } catch (error) {
-      console.error('Error fetching subscription orders:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Process direct payment without opening Razorpay popup
-   * This method simulates a successful payment for testing/demo purposes
-   */
-  async processDirectPayment(paymentData: {
-    userId: string;
-    userName: string;
-    userEmail: string;
-    userPhone: string;
-    planId: string;
-    planName: string;
-    planDuration: number;
-    amount: number;
-    categoryName?: string;
-  }): Promise<{ success: boolean; transactionId?: string; receipt?: string; error?: string }> {
-    try {
-      // For demo purposes, we'll simulate a successful payment
-      // In production, this would integrate with Razorpay's server-side API
-
-      const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const receipt = `receipt_${Date.now()}`;
-
-      // Calculate pricing breakdown
-      const baseAmount = paymentData.amount;
-      const taxRate = 0.18; // 18% tax
-      const platformFeeRate = 0.40; // 40% platform fee
-
-      const taxAmount = Math.round(baseAmount * taxRate);
-      const platformFee = Math.round(baseAmount * platformFeeRate);
-      const instructorShare = baseAmount - taxAmount - platformFee;
-      const totalAmount = baseAmount;
-
-      // Create subscription
-      const subscriptionData = {
-        userId: paymentData.userId,
-        planId: paymentData.planId,
-        planName: paymentData.planName,
-        planDuration: paymentData.planDuration,
-        amount: totalAmount,
-        categoryName: paymentData.categoryName,
-        startDate: serverTimestamp(),
-        endDate: new Date(Date.now() + paymentData.planDuration * 24 * 60 * 60 * 1000),
-        status: 'active',
-        isActive: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      const subscriptionRef = await addDoc(collection(db, 'subscriptions'), subscriptionData);
-      const subscriptionId = subscriptionRef.id;
-
-      // Create payment transaction record
-      const transactionData = {
-        userId: paymentData.userId,
-        userEmail: paymentData.userEmail,
-        userName: paymentData.userName,
-        planId: paymentData.planId,
-        planName: paymentData.planName,
-        planDuration: paymentData.planDuration.toString(),
-        amount: baseAmount,
-        taxAmount: taxAmount,
-        platformFee: platformFee,
-        instructorShare: instructorShare,
-        totalAmount: totalAmount,
-        currency: 'INR',
-        razorpayOrderId: `order_${Date.now()}`,
-        razorpayPaymentId: transactionId,
-        razorpaySignature: `signature_${Date.now()}`,
-        status: 'success',
-        paymentMethod: 'direct',
-        receiptUrl: `https://rihabtech.com/receipts/${receipt}`,
-        categoryId: paymentData.categoryName ? `cat_${paymentData.categoryName.toLowerCase()}` : null,
-        categoryName: paymentData.categoryName,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      await addDoc(collection(db, this.TRANSACTIONS_COLLECTION), transactionData);
-
-      // Record revenue sharing
-      await this.recordRevenueSharing(transactionData, subscriptionId);
-
-      // Send confirmation email
-      await this.sendPaymentConfirmationEmail(transactionData);
-
-      return {
-        success: true,
-        transactionId: transactionId,
-        receipt: receipt
-      };
-
-    } catch (error) {
-      console.error('Direct payment processing error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Payment processing failed'
-      };
-    }
-  }
+  // All Firebase-related methods have been removed as they are now handled by the API
 }
 
 export const razorpayService = new RazorpayService();

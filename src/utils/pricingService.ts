@@ -1,5 +1,5 @@
-import { db } from '../lib/firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import apiClient from './axiosInterceptor';
+import { API_BASE_URL } from '../lib/api';
 
 export interface PricingPlan {
   id: string;
@@ -50,40 +50,35 @@ class PricingService {
   private pricingPlans: PricingPlan[] = [];
   private categories: PricingCategory[] = [];
 
-  // Fetch all pricing plans from Firebase
+  // Fetch all pricing plans from API
   async getPricingPlans(): Promise<PricingPlan[]> {
     try {
       if (this.pricingPlans.length > 0) {
         return this.pricingPlans;
       }
 
-      console.log('Fetching pricing plans from Firebase...');
-      const pricingRef = collection(db, 'pricingPlans');
-      
-      // Remove orderBy since duration is string, just get all active plans
-      const q = query(pricingRef, where('isActive', '==', true));
-      const snapshot = await getDocs(q);
+      console.log('Fetching pricing plans from API...');
+      const response = await apiClient.get(`${API_BASE_URL}Pricing/Get-All`);
+      const plansData = response.data || [];
 
-      console.log(`Found ${snapshot.docs.length} pricing plans in Firebase`);
+      console.log(`Found ${plansData.length} pricing plans from API`);
       
-      this.pricingPlans = snapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        console.log('Processing plan:', doc.id, data);
+      this.pricingPlans = plansData.map((data: any) => {
+        console.log('Processing plan:', data.id, data);
         
         return {
-          id: doc.id,
-          firebaseId: doc.id,
+          id: data.id?.toString() || '',
           name: data?.name || 'Untitled Plan',
           description: data?.description || '',
           longDescription: data?.longDescription || '',
-          duration: data?.duration || 1,
+          duration: data?.duration || data?.numberOfDays || 1,
           durationText: data?.durationText || '1 Month',
           basePrice: data?.basePrice || 0,
           totalAmount: data?.totalAmount || 0,
           taxPercentage: data?.taxPercentage || 18,
           platformFeePercentage: data?.platformFeePercentage || 40,
           isActive: data?.isActive !== false,
-          categoryId: data?.categoryId,
+          categoryId: data?.categoryId?.toString(),
           categoryName: data?.categoryName,
           isAllCategories: data?.isAllCategories !== false,
           generalFeatures: data?.generalFeatures || [],
@@ -92,8 +87,9 @@ class PricingService {
           exclusiveContent: data?.exclusiveContent || false,
           premiumFeatures: data?.premiumFeatures || false,
           earlyAccess: data?.earlyAccess || false,
-          createdAt: data?.createdAt?.toDate(),
-          updatedAt: data?.updatedAt?.toDate()
+          createdAt: data?.createdAt ? new Date(data.createdAt) : undefined,
+          updatedAt: data?.updatedAt ? new Date(data.updatedAt) : undefined,
+          gstRate: data?.taxPercentage || 18
         } as PricingPlan;
       });
 
@@ -107,9 +103,9 @@ class PricingService {
       console.log('Final pricing plans:', this.pricingPlans);
       return this.pricingPlans;
     } catch (error) {
-      console.error('Error fetching pricing plans:', error);
-      // Return default pricing plans if Firebase fails
-      return this.getDefaultPricingPlans();
+      console.error('Error fetching pricing plans from API:', error);
+      // Return default pricing plans if API fails
+      return [];
     }
   }
 
@@ -129,29 +125,11 @@ class PricingService {
   // Get categories with pricing
   async getCategoriesWithPricing(): Promise<PricingCategory[]> {
     try {
-      if (this.categories.length > 0) {
-        return this.categories;
-      }
-
-      const categoriesRef = collection(db, 'categories');
-      const snapshot = await getDocs(categoriesRef);
-
-      this.categories = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name || 'Unknown Category',
-          subCategories: data.subCategories || [],
-          pricingPlans: []
-        } as PricingCategory;
-      });
-
-      // Get pricing plans for each category
-      for (const category of this.categories) {
-        category.pricingPlans = await this.getPricingPlansByCategory(category.id);
-      }
-
-      return this.categories;
+      // Categories are now fetched separately via courseApiService
+      // This method is kept for backward compatibility but returns empty array
+      // Categories should be fetched from the course API instead
+      console.warn('getCategoriesWithPricing: Categories should be fetched from course API');
+      return [];
     } catch (error) {
       console.error('Error fetching categories with pricing:', error);
       return this.getDefaultCategories();
@@ -202,108 +180,6 @@ class PricingService {
     };
   }
 
-  // Get default pricing plans (fallback)
-  private getDefaultPricingPlans(): PricingPlan[] {
-    return [
-      {
-        id: 'default-monthly',
-        name: 'Monthly Plan',
-        description: 'Access to all courses for 1 month',
-        duration: 1,
-        durationText: '1 Month',
-        basePrice: 5000,
-        taxPercentage: 18,
-        platformFeePercentage: 40,
-        isActive: true,
-        isAllCategories: true,
-        generalFeatures: [
-          'Access to all courses in selected category',
-          'HD video quality',
-          'Mobile and desktop access',
-          'Certificate upon completion',
-          '24/7 customer support'
-        ],
-        keyFeatures: [
-          'Unlimited course access',
-          'Downloadable resources',
-          'Progress tracking',
-          'Community forum access',
-          'Regular content updates'
-        ],
-        prioritySupport: false,
-        exclusiveContent: false,
-        premiumFeatures: false,
-        earlyAccess: false
-      },
-      {
-        id: 'default-semiannual',
-        name: '6 Months Plan',
-        description: 'Access to all courses for 6 months',
-        duration: 6,
-        durationText: '6 Months',
-        basePrice: 10000,
-        taxPercentage: 18,
-        platformFeePercentage: 40,
-        isActive: true,
-        isAllCategories: true,
-        generalFeatures: [
-          'Access to all courses in selected category',
-          'HD video quality',
-          'Mobile and desktop access',
-          'Certificate upon completion',
-          '24/7 customer support',
-          'Priority customer support',
-          'Exclusive content access'
-        ],
-        keyFeatures: [
-          'Unlimited course access',
-          'Downloadable resources',
-          'Progress tracking',
-          'Community forum access',
-          'Regular content updates'
-        ],
-        prioritySupport: true,
-        exclusiveContent: true,
-        premiumFeatures: false,
-        earlyAccess: false
-      },
-      {
-        id: 'default-annual',
-        name: 'Annual Plan',
-        description: 'Access to all courses for 1 year',
-        duration: 12,
-        durationText: '1 Year',
-        basePrice: 15000,
-        taxPercentage: 18,
-        platformFeePercentage: 40,
-        isActive: true,
-        isAllCategories: true,
-        generalFeatures: [
-          'Access to all courses in selected category',
-          'HD video quality',
-          'Mobile and desktop access',
-          'Certificate upon completion',
-          '24/7 customer support',
-          'Priority customer support',
-          'Exclusive content access',
-          'All premium features included',
-          'Early access to new courses'
-        ],
-        keyFeatures: [
-          'Unlimited course access',
-          'Downloadable resources',
-          'Progress tracking',
-          'Community forum access',
-          'Regular content updates'
-        ],
-        prioritySupport: true,
-        exclusiveContent: true,
-        premiumFeatures: true,
-        earlyAccess: true
-      }
-    ];
-  }
-
   // Get default categories (fallback)
   private getDefaultCategories(): PricingCategory[] {
     return [
@@ -332,12 +208,12 @@ class PricingService {
   clearCache(): void {
     this.pricingPlans = [];
     this.categories = [];
-    console.log('Cache cleared, will fetch fresh data from Firebase');
+    console.log('Cache cleared, will fetch fresh data from API');
   }
 
-  // Force refresh from Firebase (ignores cache)
+  // Force refresh from API (ignores cache)
   async refreshPricingPlans(): Promise<PricingPlan[]> {
-    console.log('Forcing refresh from Firebase...');
+    console.log('Forcing refresh from API...');
     this.clearCache();
     return await this.getPricingPlans();
   }
