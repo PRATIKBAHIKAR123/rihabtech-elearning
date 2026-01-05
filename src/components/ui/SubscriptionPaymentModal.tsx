@@ -90,9 +90,11 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
 
   const loadAvailableCoupons = async () => {
     try {
+      const orderAmount = plan.totalAmount ?? plan.basePrice ?? 0;
       const coupons = await couponService.getAvailableCoupons(
         user?.email || user?.uid || "", 
-        [selectedCategory]
+        [selectedCategory],
+        orderAmount
       );
       setAvailableCoupons(coupons || []);
     } catch (err) {

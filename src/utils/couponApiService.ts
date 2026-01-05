@@ -104,3 +104,93 @@ class CouponApiService {
 // Export singleton instance
 export const couponApiService = new CouponApiService();
 
+// Instructor Coupon Service for creating/managing coupons
+export interface CreateInstructorCouponRequest {
+  couponCode: string;
+  couponName: string;
+  description?: string;
+  couponType: 'FreeAccess' | 'FixedAmount' | 'Percentage';
+  fixedAmount?: number;
+  percentageDiscount?: number;
+  minimumOrderAmount?: number;
+  maximumDiscount?: number;
+  maximumUses: number;
+  maxUsesPerUser: number;
+  validFrom: string; // ISO date string
+  validUntil: string; // ISO date string
+  applyToAllCategories: boolean;
+  applyToAllSubCategories: boolean;
+  categoryIds?: number[];
+  subCategoryIds?: number[];
+  priority: number;
+  isActive: boolean;
+  autoApply: boolean;
+  instructorId: number;
+}
+
+export interface InstructorCoupon {
+  id: number;
+  couponCode: string;
+  couponName: string;
+  description?: string;
+  couponType: string;
+  usage: number;
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+}
+
+class InstructorCouponApiService {
+  private readonly BASE_URL = `${API_BASE_URL}CouponIE`;
+
+  async createCoupon(data: CreateInstructorCouponRequest): Promise<number> {
+    try {
+      const response = await apiClient.post(`${this.BASE_URL}/create`, data);
+      return response.data.couponId;
+    } catch (error: any) {
+      console.error('Error creating instructor coupon:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to create coupon');
+    }
+  }
+
+  async updateCoupon(couponId: number, data: Partial<CreateInstructorCouponRequest>): Promise<void> {
+    try {
+      await apiClient.put(`${this.BASE_URL}/update/${couponId}`, data);
+    } catch (error: any) {
+      console.error('Error updating instructor coupon:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to update coupon');
+    }
+  }
+
+  async getCoupons(): Promise<InstructorCoupon[]> {
+    try {
+      const response = await apiClient.get(`${this.BASE_URL}/getall`);
+      return response.data || [];
+    } catch (error: any) {
+      console.error('Error getting instructor coupons:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to get coupons');
+    }
+  }
+
+  async getCouponById(couponId: number): Promise<any> {
+    try {
+      const response = await apiClient.get(`${this.BASE_URL}/get/${couponId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting instructor coupon:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to get coupon');
+    }
+  }
+
+  async deleteCoupon(couponId: number): Promise<void> {
+    try {
+      await apiClient.delete(`${this.BASE_URL}/delete/${couponId}`);
+    } catch (error: any) {
+      console.error('Error deleting instructor coupon:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to delete coupon');
+    }
+  }
+}
+
+export const instructorCouponApiService = new InstructorCouponApiService();
+

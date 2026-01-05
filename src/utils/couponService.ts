@@ -238,51 +238,43 @@ class CouponService {
   }
 
   // Get available coupons for user
-  async getAvailableCoupons(userId: string, categories?: string[]): Promise<Coupon[]> {
+  async getAvailableCoupons(userId: string, categories?: string[], orderAmount: number = 0): Promise<Coupon[]> {
     try {
-      const now = new Date();
+      const { couponApiService } = await import('./couponApiService');
+      const { API_BASE_URL } = await import('../lib/api');
+      const apiClient = (await import('./axiosInterceptor')).default;
 
-      // Get active coupons
-      const couponsQuery = query(
-        collection(db, 'coupons'),
-        where('isActive', '==', true)
-      );
-
-      const couponsSnapshot = await getDocs(couponsQuery);
-      const availableCoupons: Coupon[] = [];
-
-      for (const doc of couponsSnapshot.docs) {
-        const couponData = doc.data() as any;
-        const coupon: Coupon = {
-          id: doc.id,
-          ...couponData
-        } as Coupon;
-
-        // Check validity period
-        const validFrom = coupon.validFrom?.toDate ? coupon.validFrom.toDate() : new Date(coupon.validFrom);
-        const validUntil = coupon.validUntil?.toDate ? coupon.validUntil.toDate() : new Date(coupon.validUntil);
-
-        if (now >= validFrom && now <= validUntil) {
-          // Check usage limit
-          if (coupon.usedCount < coupon.maxUses) {
-            // Check if user already used this coupon
-            const alreadyUsed = await this.checkCouponUsage(coupon.id, userId);
-            if (!alreadyUsed) {
-              // Check category restrictions
-              if (
-                !coupon.categories ||
-                coupon.categories.length === 0 ||
-                !categories || categories.includes('all') ||
-                categories.some(cat => coupon.categories!.includes(cat))
-              ) {
-                availableCoupons.push(coupon);
-              }
-            }
-          }
+      const response = await apiClient.get(`${API_BASE_URL}Coupon/available`, {
+        params: {
+          userId,
+          categoryId: categories && categories.length > 0 && !categories.includes('all') ? categories[0] : null,
+          orderAmount
         }
-      }
+      });
 
-      return availableCoupons;
+      const apiCoupons = response.data || [];
+      
+      // Map API response to frontend Coupon interface
+      return apiCoupons.map((c: any) => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        description: c.description,
+        type: c.type,
+        value: c.value,
+        maxUses: c.maxUses,
+        usedCount: c.usedCount || 0,
+        minAmount: c.minAmount,
+        maxDiscount: c.maxDiscount,
+        validFrom: new Date(c.validFrom),
+        validUntil: new Date(c.validUntil),
+        isActive: c.isActive,
+        isGlobal: true, // API doesn't return this, assume true for available coupons
+        createdBy: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        categories: categories || []
+      } as Coupon));
     } catch (error) {
       console.error('Error getting available coupons:', error);
       return [];
