@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { getInstructorById, InstructorDetails } from "../../../utils/instructorService";
 
 interface InstructorProps {
-  instructorId?: string;
+  instructorId?: string | number;
   loading?: boolean;
 }
 

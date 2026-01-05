@@ -11,11 +11,11 @@ import React, { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import { enrollUserInCourse, isUserEnrolledInCourse } from "../../../utils/paymentService";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { getUserActiveSubscription, Subscription } from "../../../utils/subscriptionService";
 import { courseApiService, CourseGetAllResponse, CourseResponse } from "../../../utils/courseApiService";
+import { enrollmentApiService } from "../../../utils/enrollmentApiService";
 import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
 import { CourseCard } from "./courseList";
@@ -91,15 +91,23 @@ const [activePlan, setActivePlan] = useState<Subscription | null>(null);
   };
 
   // Check enrollment status
-  const checkEnrollmentStatus = async (courseId: string) => {
+  const checkEnrollmentStatus = async (courseId: number) => {
     if (!user) return;
 
     setCheckingEnrollment(true);
     try {
-      const enrolled = await isUserEnrolledInCourse(courseId, user.email??'');
-      setIsEnrolled(enrolled);
+      const result = await enrollmentApiService.checkEnrollment(courseId);
+      setIsEnrolled(result.isEnrolled);
+      
+      // If user has access but not enrolled, they can enroll
+      // If user is enrolled, show "View Course" button
+      // If user doesn't have access, show subscription message
+      if (!result.hasAccess && !result.isEnrolled) {
+        console.warn('User does not have access:', result.message);
+      }
     } catch (error) {
       console.error('Error checking enrollment:', error);
+      setIsEnrolled(false);
     } finally {
       setCheckingEnrollment(false);
     }
@@ -130,7 +138,7 @@ useEffect(() => {
       setCourse(courseData);
 
       if (user) {
-        await checkEnrollmentStatus(courseData.id.toString());
+        await checkEnrollmentStatus(courseData.id);
       }
     } catch (err) {
       console.error("Error fetching course:", err);
@@ -267,11 +275,16 @@ useEffect(() => {
     return "Duration not available";
   };
 
-  // Handle Buy Now click
+  // Handle Buy Now click (Enroll Now)
   const handleBuyNow = async () => {
     if (!user) {
-      toast.error('Please log in to purchase this course');
+      toast.error('Please log in to enroll in this course');
       window.location.hash = '#/login';
+      return;
+    }
+
+    if (!course) {
+      toast.error('Course information not available');
       return;
     }
 
@@ -280,26 +293,36 @@ useEffect(() => {
       window.location.hash = '#/learner/my-learnings';
       return;
     }
-if(!isEnrolled){
-      const courseEnrollmentResponse = await enrollUserInCourse(course!.id.toString(), user.email || user.uid, user.email || '', undefined, course?.pricing === 'free' ? 'free' : 'paid')
-      console.log('Course enrollment response:', courseEnrollmentResponse);
-      toast.success('Course Successfully Enrolled');
-      window.location.hash = `#/learner/current-course/?courseId=${course?.id}`;
-    }
-    else{
-if (course?.pricing === "paid") {
-      // Redirect to pricing page for subscription selection
-      // window.location.hash = '#/pricing';
-      setIsCheckoutModalOpen(true);
-      return;
-    }
-    }
-    // Check if this is a subscription-based course
-    
-    
 
-    // For direct purchase courses (Free or specific price)
-    
+    try {
+      // Check enrollment status first
+      const checkResult = await enrollmentApiService.checkEnrollment(course.id);
+      
+      if (!checkResult.hasAccess) {
+        toast.error(checkResult.message || 'You do not have access to enroll in this course. Please subscribe to the appropriate category.');
+        // Redirect to pricing if they need subscription
+        if (checkResult.message?.includes('subscribe')) {
+          localStorage.setItem('redirectAfterSubscription', window.location.hash);
+          window.location.hash = '#/pricing';
+        }
+        return;
+      }
+
+      // Enroll the user
+      const enrollmentResponse = await enrollmentApiService.enrollInCourse(course.id);
+      
+      if (enrollmentResponse.success) {
+        toast.success('Course Successfully Enrolled');
+        setIsEnrolled(true);
+        // Redirect to course
+        window.location.hash = `#/learner/current-course?courseId=${course.id}`;
+      } else {
+        toast.error(enrollmentResponse.message || 'Failed to enroll in course');
+      }
+    } catch (error: any) {
+      console.error('Error enrolling in course:', error);
+      toast.error(error.response?.data?.message || 'Failed to enroll in course. Please try again.');
+    }
   };
 
   // Handle Go to Course (for enrolled users)
@@ -359,14 +382,25 @@ const getButtonConfig = () => {
 
   if (isEnrolled) {
     return {
-      text: "Go to Course",
+      text: "View Course",
       action: handleGoToCourse,
       disabled: false,
       variant: "default" as const
     };
   }
 
-  if (!activePlan || activePlan.categoryId !== course?.category) {
+  // If course is free, allow enrollment
+  if (pricing === "free") {
+    return {
+      text: "Enroll Now",
+      action: handleBuyNow,
+      disabled: false,
+      variant: "default" as const,
+    };
+  }
+
+  // For paid courses, check subscription
+  if (!activePlan || (activePlan.categoryId && activePlan.categoryId.toString() !== course?.category?.toString())) {
     return {
       text: "Enroll Now",
       action: handleSubscribeNow,
@@ -375,13 +409,13 @@ const getButtonConfig = () => {
     };
   }
 
-// If activePlan exists and matches course category
-return {
-  text: "Enroll Now",
-  action: handleBuyNow,
-  disabled: false,
-  variant: "default" as const,
-};
+  // If activePlan exists and matches course category (or no category restriction)
+  return {
+    text: "Enroll Now",
+    action: handleBuyNow,
+    disabled: false,
+    variant: "default" as const,
+  };
 };
 
 

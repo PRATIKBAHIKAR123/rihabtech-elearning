@@ -1,7 +1,7 @@
 import { Play, Plus, Trash2, Edit3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CreateNoteDialog } from "./createNoteModal";
-import { firebaseNotesService, CourseNote } from "../../../utils/firebaseNotes";
+import { noteApiService, CourseNote } from "../../../utils/noteApiService";
 import { useAuth } from "../../../context/AuthContext";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
@@ -23,103 +23,75 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
 
   // Load notes when component mounts or courseId changes
   useEffect(() => {
-    console.log('Notes: User object from AuthContext:', user);
-    
-    // Get the actual user ID - prioritize email since that's what's stored in Firebase
-    const userId = user?.email || user?.UserName || user?.uid || 'unknown';
-    
-    if (!userId || !courseId) {
-      console.log('Notes: Missing user or courseId', { userId, courseId, user });
+    if (!courseId) {
+      console.log('Notes: Missing courseId', { courseId });
       return;
     }
 
-    console.log('Notes: Starting to load notes for', { userId, courseId, user });
-    setLoadingNotes(true);
-    setError(null);
-
-    // Subscribe to real-time updates
-    const unsubscribe = firebaseNotesService.subscribeToCourseNotes(
-      userId,
-      courseId,
-      (notes) => {
-        console.log('Notes: Received notes from Firebase', notes);
-        setNotes(notes);
-        setLoadingNotes(false);
-      }
-    );
-
-    // Fallback: Also try to fetch notes once in case subscription doesn't work
-    const fetchNotesOnce = async () => {
+    const loadNotes = async () => {
       try {
-        const notes = await firebaseNotesService.getCourseNotes(userId, courseId);
-        console.log('Notes: Fallback fetch result', notes);
-        if (notes.length > 0) {
-          setNotes(notes);
-          setLoadingNotes(false);
+        setLoadingNotes(true);
+        setError(null);
+        const courseIdNum = parseInt(courseId, 10);
+        if (isNaN(courseIdNum)) {
+          throw new Error('Invalid course ID');
         }
+        const fetchedNotes = await noteApiService.getCourseNotes(courseIdNum);
+        setNotes(fetchedNotes);
       } catch (err) {
-        console.error('Notes: Fallback fetch failed', err);
-        setError('Failed to load notes');
+        console.error('Error loading notes:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load notes');
+      } finally {
         setLoadingNotes(false);
       }
     };
 
-    // Run fallback after a short delay
-    const fallbackTimeout = setTimeout(fetchNotesOnce, 2000);
-
-    return () => {
-      console.log('Notes: Cleaning up subscription');
-      clearTimeout(fallbackTimeout);
-      unsubscribe();
-    };
-  }, [user?.uid, user?.email, user?.UserName, courseId]);
+    loadNotes();
+  }, [courseId]);
 
   const handleCreateNote = async (note: { heading: string; content: string }) => {
-    // Use the same logic as the useEffect to ensure consistency
-    const userId = user?.email || user?.UserName || user?.uid;
-    if (!userId) {
-      setError("User not authenticated");
-      return;
-    }
-
     try {
       setError(null);
-      console.log('Creating note with data:', {
-        userId,
-        courseId,
-        heading: note.heading,
-        content: note.content,
-        user: user
-      });
+      const courseIdNum = parseInt(courseId, 10);
+      if (isNaN(courseIdNum)) {
+        throw new Error('Invalid course ID');
+      }
       
-      const noteId = await firebaseNotesService.createNote({
-        studentId: userId,
-        courseId,
+      const createdNote = await noteApiService.createNote({
+        courseId: courseIdNum,
         heading: note.heading,
         content: note.content
-        // moduleId and timestamp are optional and will be handled by the service
       });
       
-      console.log('Note created successfully with ID:', noteId);
+      // Refresh notes list
+      const updatedNotes = await noteApiService.getCourseNotes(courseIdNum);
+      setNotes(updatedNotes);
     } catch (err) {
       console.error("Error creating note:", err);
-      console.error("Error details:", {
-        message: (err as any)?.message,
-        code: (err as any)?.code,
-        stack: (err as any)?.stack
-      });
-      setError(`Failed to create note: ${(err as any)?.message || 'Unknown error'}`);
+      setError(err instanceof Error ? err.message : 'Failed to create note');
     }
   };
 
   const handleUpdateNote = async (noteId: string, updates: { heading: string; content: string }) => {
     try {
       setError(null);
-      await firebaseNotesService.updateNote(noteId, updates);
+      const noteIdNum = parseInt(noteId, 10);
+      if (isNaN(noteIdNum)) {
+        throw new Error('Invalid note ID');
+      }
+      
+      await noteApiService.updateNote(noteIdNum, updates);
       setEditingNote(null);
+      
+      // Refresh notes list
+      const courseIdNum = parseInt(courseId, 10);
+      if (!isNaN(courseIdNum)) {
+        const updatedNotes = await noteApiService.getCourseNotes(courseIdNum);
+        setNotes(updatedNotes);
+      }
     } catch (err) {
       console.error("Error updating note:", err);
-      setError("Failed to update note");
+      setError(err instanceof Error ? err.message : 'Failed to update note');
     }
   };
 
@@ -133,12 +105,24 @@ export default function Notes({ courseId, loading = false }: NotesProps) {
 
     try {
       setError(null);
-      await firebaseNotesService.deleteNote(noteToDelete.id);
+      const noteIdNum = parseInt(noteToDelete.id, 10);
+      if (isNaN(noteIdNum)) {
+        throw new Error('Invalid note ID');
+      }
+      
+      await noteApiService.deleteNote(noteIdNum);
       setDeleteConfirmOpen(false);
       setNoteToDelete(null);
+      
+      // Refresh notes list
+      const courseIdNum = parseInt(courseId, 10);
+      if (!isNaN(courseIdNum)) {
+        const updatedNotes = await noteApiService.getCourseNotes(courseIdNum);
+        setNotes(updatedNotes);
+      }
     } catch (err) {
       console.error("Error deleting note:", err);
-      setError("Failed to delete note");
+      setError(err instanceof Error ? err.message : 'Failed to delete note');
     }
   };
 

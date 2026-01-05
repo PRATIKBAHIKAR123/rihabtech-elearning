@@ -1231,7 +1231,7 @@ const renderPreview = (file: any) => {
         );
       case 'Reviews':
         return (
-          <CourseReviews/>
+          <CourseReviews courseId={courseId ?? undefined} loading={loading} />
         );
       case 'Learning Tools':
         return (
