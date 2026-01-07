@@ -200,7 +200,7 @@ function Header({ onMenuClick }: HeaderProps) {
         <nav className="hidden md:flex items-center space-x-6 text-base font-semibold font-['Barlow'] capitalize leading-relaxed">
           <MainNavigationMenu />
           <a href="#/pricing" className="font-medium text-[#000927] hover:text-blue-600">Pricing Plan</a>
-          {(isAuthenticated&& user?.Role!=5) && (
+          {(isAuthenticated && user?.Role !== 5) && (
             <button onClick={handleTeachWithUsClick} className="font-medium text-[#000927] hover:text-blue-600 bg-transparent border-none cursor-pointer">Teach With Us</button>
           )}
         </nav>
@@ -316,7 +316,7 @@ function Header({ onMenuClick }: HeaderProps) {
               </div>
             )}
             <div className="flex items-center space-x-2">
-              {(user?.Role==5)&&<Button
+              {(user?.Role === 5) && <Button
                 variant="outline"
                 className="hidden border-primary text-primary rounded-none md:block px-4 py-2 text-sm font-medium hover:bg-blue-50"
                 onClick={() => handleTeachWithUsClick()}
@@ -588,18 +588,74 @@ export const CoursesMenu: React.FC = () => {
 
 // My Learnings Navigation Menu Component
 export const MyLearningsMenu: React.FC = () => {
-  const [courses] = useState<any[]>([]); // Empty array - will be populated from custom API later
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const isAuthenticated = !!user || !!token;
 
-  // Removed Firebase call - will use custom API later
-  // useEffect(() => {
-  //   const fetchLearnerData = async () => {
-  //     // Custom API call will be added here later
-  //   };
-  //   fetchLearnerData();
-  // }, [user]);
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      if (!isAuthenticated) {
+        setCourses([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Import enrollmentApiService dynamically to avoid circular dependencies
+        const { enrollmentApiService } = await import('../utils/enrollmentApiService');
+        const { courseApiService } = await import('../utils/courseApiService');
+        
+        const enrollments = await enrollmentApiService.getMyEnrollments();
+        
+        // Transform enrollments to match the expected format
+        const transformedCourses = await Promise.all(
+          enrollments.map(async (enrollment: any) => {
+            try {
+              // Fetch course details for thumbnail and other info
+              const courseDetails = await courseApiService.getCourseDetails(enrollment.courseId);
+              
+              return {
+                id: enrollment.courseId,
+                courseId: enrollment.courseId,
+                title: courseDetails?.title || enrollment.courseTitle || 'Untitled Course',
+                description: courseDetails?.description || '',
+                image: (courseDetails as any)?.thumbnailUrl || 'Images/Banners/Person.jpg',
+                progress: enrollment.progress || 0,
+                completionPercentage: enrollment.progress || 0,
+                enrolledAt: enrollment.enrolledDate ? new Date(enrollment.enrolledDate) : new Date(),
+                lastAccessed: enrollment.lastAccessedAt ? new Date(enrollment.lastAccessedAt) : new Date()
+              };
+            } catch (error) {
+              console.error(`Error fetching course details for ${enrollment.courseId}:`, error);
+              // Return a basic course object even if details fail
+              return {
+                id: enrollment.courseId,
+                courseId: enrollment.courseId,
+                title: enrollment.courseTitle || 'Untitled Course',
+                description: '',
+                image: 'Images/Banners/Person.jpg',
+                progress: enrollment.progress || 0,
+                completionPercentage: enrollment.progress || 0,
+                enrolledAt: enrollment.enrolledDate ? new Date(enrollment.enrolledDate) : new Date(),
+                lastAccessed: enrollment.lastAccessedAt ? new Date(enrollment.lastAccessedAt) : new Date()
+              };
+            }
+          })
+        );
+        
+        setCourses(transformedCourses.filter(c => c !== null));
+      } catch (error) {
+        console.error('Error fetching enrolled courses:', error);
+        setCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, [isAuthenticated, user]);
 
   return (
     <NavigationMenuItem>
@@ -621,39 +677,66 @@ export const MyLearningsMenu: React.FC = () => {
             </Button>
           </div>
         </NavigationMenuContent>
+      ) : loading ? (
+        <NavigationMenuContent className="bg-white rounded-lg shadow-xl p-6 w-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-gray-500 text-center text-sm">
+              Loading your courses...
+            </div>
+          </div>
+        </NavigationMenuContent>
       ) : courses.length > 0 ? (
-        <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl p-4">
+        <NavigationMenuContent className="grid w-[400px] gap-2 p-4 md:w-[4] md:grid-cols-1 bg-white rounded-lg shadow-xl max-h-[500px] overflow-y-auto">
           {courses.map((course, idx) => (
             <div
-              key={idx}
-              className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white cursor-pointer hover:opacity-50"
-              onClick={() => { window.location.hash = '#/learner/my-learnings' }}
+              key={course.id || idx}
+              className="flex items-start gap-4 p-4 border-b border-gray-200 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => { 
+                const courseId = course.courseId || course.id;
+                window.location.hash = `#/learner/current-course?courseId=${courseId}`;
+              }}
             >
               <img
-                src={course.image}
-                alt={course.title}
-                className="w-24 h-16 object-cover rounded-md"
+                src={course.image || 'Images/Banners/Person.jpg'}
+                alt={course.title || 'Course'}
+                className="w-24 h-16 object-cover rounded-md flex-shrink-0"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'Images/Banners/Person.jpg';
+                }}
               />
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-gray-900">{course.title}</h3>
-                <div className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }}>
-                </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{course.title || 'Untitled Course'}</h3>
+                {course.description && (
+                  <div className="text-[#1e1e1e] text-xs font-medium font-['Nunito'] mt-1 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }}>
+                  </div>
+                )}
 
                 <div className="mt-3">
                   <div className="relative h-2 bg-gray-200 rounded-full">
                     <div
-                      className="absolute top-0 left-0 h-2 bg-primary rounded-full"
-                      style={{ width: `${course?.completionPercentage}%` }}
+                      className="absolute top-0 left-0 h-2 bg-primary rounded-full transition-all"
+                      style={{ width: `${course?.completionPercentage || course?.progress || 0}%` }}
                     >
                     </div>
                   </div>
                   <div className="text-right text-xs font-semibold text-primary mt-1">
-                    {course?.progress}% Completed
+                    {Math.round(course?.completionPercentage || course?.progress || 0)}% Completed
                   </div>
                 </div>
               </div>
             </div>
           ))}
+          {courses.length > 3 && (
+            <div className="p-4 text-center border-t border-gray-200">
+              <Button 
+                variant="link"
+                className="text-primary hover:text-primary"
+                onClick={() => window.location.hash = '#/learner/my-learnings'}
+              >
+                View All Courses
+              </Button>
+            </div>
+          )}
         </NavigationMenuContent>
       ) : (
         <NavigationMenuContent className="bg-white rounded-lg shadow-xl p-6 w-[400px]">

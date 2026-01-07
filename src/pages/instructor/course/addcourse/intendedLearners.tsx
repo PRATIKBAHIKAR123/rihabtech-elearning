@@ -6,7 +6,7 @@ import * as Yup from "yup";
 import { useEffect, useState } from "react";
 import { courseApiService, UpdateCourseMessageResponse, CourseUpdateRequest } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
-import { useCourseData } from "../../../../hooks/useCourseData";
+import { useCourseData, transformCurriculumForUpdate } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 
 export function IntendentLearners({ onSubmit }: any) {
@@ -26,7 +26,7 @@ export function IntendentLearners({ onSubmit }: any) {
   const getExistingCurriculum = (): CourseUpdateRequest["curriculum"] | undefined => {
     // Prefer the in-memory course data
     if (courseData?.curriculum && courseData.curriculum.sections?.length) {
-      return courseData.curriculum as CourseUpdateRequest["curriculum"];
+      return transformCurriculumForUpdate(courseData.curriculum);
     }
 
     // Fallback to any curriculum saved locally (unsaved changes)
@@ -36,7 +36,7 @@ export function IntendentLearners({ onSubmit }: any) {
         try {
           const parsed = JSON.parse(localCurriculum);
           if (parsed?.sections?.length) {
-            return parsed as CourseUpdateRequest["curriculum"];
+            return transformCurriculumForUpdate(parsed);
           }
         } catch (err) {
           console.warn("Failed to parse local curriculum", err);

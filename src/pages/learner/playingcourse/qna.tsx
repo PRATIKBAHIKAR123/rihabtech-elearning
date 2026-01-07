@@ -1,97 +1,222 @@
-
-import { User } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../../context/AuthContext";
 import { Input } from "../../../components/ui/input";
 import { Button } from "../../../components/ui/button";
+import { qnaApiService, QNA as QNAItem } from "../../../utils/qnaApiService";
 
-export default function QNA() {
+interface QNAProps {
+  courseId?: string;
+}
 
-          const [instructor] = useState({
-        name: "Edward Narton",
-        role: "Developer and Teacher",
-        students: 20,
-        ratings: 720,
-        ratingValue: 5,
-        location: "North Helenavile, FV77 8WS",
-        email: "info@edublink.com",
-        phone: "+01123564"
+// Helper function to format time ago
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} ${Math.floor(diffInSeconds / 60) === 1 ? 'Minute' : 'Minutes'} Ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ${Math.floor(diffInSeconds / 3600) === 1 ? 'Hour' : 'Hours'} Ago`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ${Math.floor(diffInSeconds / 86400) === 1 ? 'Day' : 'Days'} Ago`;
+  if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} ${Math.floor(diffInSeconds / 2592000) === 1 ? 'Month' : 'Months'} Ago`;
+  return `${Math.floor(diffInSeconds / 31536000)} ${Math.floor(diffInSeconds / 31536000) === 1 ? 'Year' : 'Years'} Ago`;
+};
+
+// Helper function to get initial from name
+const getInitial = (name?: string): string => {
+  if (!name) return "?";
+  return name.charAt(0).toUpperCase();
+};
+
+export default function QNA({ courseId }: QNAProps) {
+  const { user } = useAuth();
+  const [qnas, setQnas] = useState<QNAItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!courseId) {
+      setLoading(false);
+      return;
+    }
+
+    const loadQNA = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const courseIdNum = parseInt(courseId, 10);
+        if (isNaN(courseIdNum)) {
+          throw new Error('Invalid course ID');
+        }
+        
+        const qnaData = await qnaApiService.getCourseQNA(courseIdNum);
+        setQnas(qnaData);
+      } catch (err) {
+        console.error('Error loading QNA:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load Q&A');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadQNA();
+  }, [courseId]);
+
+  const handleSubmitQuestion = async () => {
+    if (!courseId || !newQuestion.trim() || !user) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const courseIdNum = parseInt(courseId, 10);
+      if (isNaN(courseIdNum)) {
+        throw new Error('Invalid course ID');
+      }
+
+      await qnaApiService.createQNA({
+        courseId: courseIdNum,
+        question: newQuestion.trim()
       });
 
-  const [reviews] = useState([
-    {
-      id: 1,
-      name: "Armen Sargsyan",
-      initial: "A",
-      rating: 5,
-      timeAgo: "2 Months Ago",
-      comment: "Great, your Doing Nice"
-    },
-    {
-      id: 2,
-      name: "Armen Sargsyan",
-      initial: "A",
-      rating: 5,
-      timeAgo: "2 Months Ago",
-      comment: "Great"
-    },
-    {
-      id: 3,
-      name: "Armen Sargsyan",
-      initial: "A",
-      rating: 5,
-      timeAgo: "2 Months Ago",
-      comment: "Great"
+      setNewQuestion("");
+      // Reload QNA
+      const qnaData = await qnaApiService.getCourseQNA(courseIdNum);
+      setQnas(qnaData);
+    } catch (err) {
+      console.error('Error submitting question:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit question');
+    } finally {
+      setSubmitting(false);
     }
-  ]);
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full mx-auto">
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-gray-500">Loading Q&A...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && qnas.length === 0) {
+    return (
+      <div className="w-full mx-auto">
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <p className="text-red-500 text-center">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full mx-auto">
-       <div className="mb-12">
-      
-      <h1 className="text-xl font-semibold text-primary mt-4 hover:underline cursor-pointer" onClick={()=>{window.location.href = '/#/instructorDetails'}}>{instructor.name}</h1>
-      <p className="text-[#808080] text-[15px] font-normal font-['Poppins'] leading-relaxed mb-4">posted an announcement : 5 years ago</p>
-      <h2 className="details-title mb-4">Why practical project based online courses are gold?</h2>
-      <p className="details-description mb-4">
-  You know I am bursting out with positive energy so I decided why not share this with all the great people out there. So I wrote a Medium Post titled Why we should take practical project based online courses?
-      </p>
-      <p className="details-description">
-        ... you know what you should do. Repeat that course 3 times. No kidding. Programming tutorials are not like movies, you watch it once you got the story. It’s different. You do it the second time, it becomes so much clearer and easier to understand. You do it the third time, you are confident enough to try things a bit differently on your own. Afterwards, you will build a completely different project while keeping the source code aside and taking only the bits you want. You will write the rest on your own ...
-      </p>
-    </div>
-    <div className="flex justify-between items-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-blue-800 text-white flex items-center justify-center text-3xl mb-1 font-normal mr-4">
-                  B
-                </div>
-        <Input placeholder="Please Enter Your Comment" className="w-[80%]"/>
-        <Button className="ml-4">Submit</Button>
-    </div>
-      <div className="space-y-5">
-        {reviews.map((review) => (
-          <div key={review.id} className="border-b pb-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center">
-                <div className="w-16 h-16 rounded-full bg-blue-800 text-white flex items-center justify-center text-3xl mb-1 font-normal mr-4">
-                  {review.initial}
-                </div>
-                <div>
-                  <h3 className="text-black text-[15px] font-medium font-['Poppins'] mb-2">{review.name}</h3>
-                  {/* <div className="flex">
-                    {[...Array(review.rating)].map((_, i) => (
-                      <img src="Images/icons/Container (6).png" className="h-4 w-4" alt="Star" key={i} />
-                       
-                    ))}
-                  </div> */}
-                </div>
-              </div>
-              <span className="text-[#676767] text-xs font-medium font-['Poppins']">{review.timeAgo}</span>
-            </div>
-            
-            <p className="text-[#3d3d3d] text-sm font-normal font-['Poppins'] mt-3">
-              {review.comment}
-            </p>
+      {user && (
+        <div className="flex justify-between items-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-blue-800 text-white flex items-center justify-center text-3xl mb-1 font-normal mr-4">
+            {getInitial((user as any)?.name || (user as any)?.UserName || (user as any)?.email || undefined)}
           </div>
-        ))}
-      </div>
+          <Input 
+            placeholder="Please Enter Your Question" 
+            className="w-[80%]"
+            value={newQuestion}
+            onChange={(e) => setNewQuestion(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !submitting) {
+                handleSubmitQuestion();
+              }
+            }}
+          />
+          <Button 
+            className="ml-4"
+            onClick={handleSubmitQuestion}
+            disabled={submitting || !newQuestion.trim()}
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {qnas.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-4 py-12">
+          <p className="text-gray-500 text-center">No questions yet. Be the first to ask a question!</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {qnas.map((qna) => (
+            <div key={qna.id} className="border-b pb-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-800 text-white flex items-center justify-center text-3xl mb-1 font-normal mr-4">
+                    {getInitial(qna.userName)}
+                  </div>
+                  <div>
+                    <h3 className="text-black text-[15px] font-medium font-['Poppins'] mb-2">
+                      {qna.userName || qna.userEmail || 'Anonymous'}
+                    </h3>
+                  </div>
+                </div>
+                <span className="text-[#676767] text-xs font-medium font-['Poppins']">
+                  {formatTimeAgo(qna.createdAt)}
+                </span>
+              </div>
+              
+              <p className="text-[#3d3d3d] text-sm font-normal font-['Poppins'] mt-3 mb-3">
+                {qna.question}
+              </p>
+
+              {qna.answer && (
+                <div className="ml-20 mt-3 p-3 bg-gray-50 rounded-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold text-gray-700">
+                      {qna.answeredByName || 'Instructor'}
+                    </span>
+                    {qna.answeredAt && (
+                      <span className="text-xs text-gray-500">
+                        {formatTimeAgo(qna.answeredAt)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[#3d3d3d] text-sm font-normal font-['Poppins']">
+                    {qna.answer}
+                  </p>
+                </div>
+              )}
+
+              {qna.replies && qna.replies.length > 0 && (
+                <div className="ml-20 mt-3 space-y-3">
+                  {qna.replies.map((reply) => (
+                    <div key={reply.id} className="p-3 bg-gray-50 rounded-md">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {reply.userName || reply.userEmail || 'Anonymous'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatTimeAgo(reply.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-[#3d3d3d] text-sm font-normal font-['Poppins']">
+                        {reply.question}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

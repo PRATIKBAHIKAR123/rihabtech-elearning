@@ -7,7 +7,7 @@ import * as Yup from "yup";
 import { useAuth } from "../../../../context/AuthContext";
 import { courseApiService, CourseResponse, UpdateCourseMessageResponse, CourseUpdateRequest } from "../../../../utils/courseApiService";
 import { ReviewFeedbackDialog } from "../../../../components/ui/reviewFeedbackDialog";
-import { useCourseData, clearCourseData } from "../../../../hooks/useCourseData";
+import { useCourseData, clearCourseData, transformCurriculumForUpdate } from "../../../../hooks/useCourseData";
 import { toast } from "sonner";
 
 const CourseTitle = () => {
@@ -36,7 +36,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
   // Reuse the last known curriculum so title updates don't wipe it
   const getExistingCurriculum = (): CourseUpdateRequest["curriculum"] | undefined => {
     if (courseData?.curriculum && courseData.curriculum.sections?.length) {
-      return courseData.curriculum as CourseUpdateRequest["curriculum"];
+      return transformCurriculumForUpdate(courseData.curriculum);
     }
     if (courseData?.id) {
       const localCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
@@ -44,7 +44,7 @@ const [rejectionInfo, setRejectionInfo] = useState<RejectionInfo | null>(null);
         try {
           const parsed = JSON.parse(localCurriculum);
           if (parsed?.sections?.length) {
-            return parsed as CourseUpdateRequest["curriculum"];
+            return transformCurriculumForUpdate(parsed);
           }
         } catch (err) {
           console.warn("Failed to parse local curriculum", err);

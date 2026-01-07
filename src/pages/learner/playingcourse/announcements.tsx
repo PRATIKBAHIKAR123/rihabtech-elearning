@@ -1,7 +1,7 @@
 import { Bell, Calendar, User, BookOpen, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import { firebaseAnnouncementsService, Announcement } from "../../../utils/firebaseAnnouncements";
+import { announcementApiService, Announcement } from "../../../utils/announcementApiService";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
 
@@ -26,44 +26,29 @@ export default function Announcements({ courseId, loading = false }: Announcemen
       return;
     }
 
-    console.log('Announcements: Loading announcements for course:', courseId);
-    setLoadingAnnouncements(true);
-    setError(null);
-
-    // Subscribe to real-time updates
-    const unsubscribe = firebaseAnnouncementsService.subscribeToCourseAnnouncements(
-      courseId,
-      (announcements) => {
-        console.log('Announcements: Received announcements from Firebase', announcements);
-        setAnnouncements(announcements);
-        setLoadingAnnouncements(false);
-      }
-    );
-
-    // Fallback: Also try to fetch announcements once in case subscription doesn't work
-    const fetchAnnouncementsOnce = async () => {
+    const loadAnnouncements = async () => {
       try {
-        const announcements = await firebaseAnnouncementsService.getCourseAnnouncements(courseId);
-        console.log('Announcements: Fallback fetch result', announcements);
-        if (announcements.length > 0) {
-          setAnnouncements(announcements);
+        console.log('Announcements: Loading announcements for course:', courseId);
+        setLoadingAnnouncements(true);
+        setError(null);
+        
+        const courseIdNum = parseInt(courseId, 10);
+        if (isNaN(courseIdNum)) {
+          throw new Error('Invalid course ID');
         }
-        setLoadingAnnouncements(false);
+        
+        const announcements = await announcementApiService.getCourseAnnouncements(courseIdNum);
+        console.log('Announcements: Loaded announcements', announcements);
+        setAnnouncements(announcements);
       } catch (err) {
-        console.error('Announcements: Fallback fetch failed', err);
-        setError('Failed to load announcements');
+        console.error('Announcements: Failed to load', err);
+        setError(err instanceof Error ? err.message : 'Failed to load announcements');
+      } finally {
         setLoadingAnnouncements(false);
       }
     };
 
-    // Run fallback after a short delay
-    const fallbackTimeout = setTimeout(fetchAnnouncementsOnce, 2000);
-
-    return () => {
-      console.log('Announcements: Cleaning up subscription');
-      clearTimeout(fallbackTimeout);
-      unsubscribe();
-    };
+    loadAnnouncements();
   }, [courseId]);
 
   const handleViewAnnouncement = (announcement: Announcement) => {
@@ -71,7 +56,8 @@ export default function Announcements({ courseId, loading = false }: Announcemen
     setViewDialogOpen(true);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',

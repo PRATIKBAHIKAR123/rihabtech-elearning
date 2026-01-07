@@ -23,6 +23,9 @@ export interface UserEnrollment {
   courseThumbnail?: string;
   enrolledDate: string;
   instructorName?: string;
+  progress?: number; // Progress percentage (0-100)
+  totalWatchTime?: number; // Total watch time in seconds
+  lastAccessedAt?: string; // Last accessed date
 }
 
 class EnrollmentApiService {

@@ -912,6 +912,8 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [durationError, setDurationError] = useState<{ [key: string]: boolean }>({});
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewContent, setPreviewContent] = useState<{ url: string; name: string; type: string } | null>(null);
+  // Ref map to track file inputs for each lecture item
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const initialValues: CurriculumFormValues = {
     sections: [
@@ -2479,6 +2481,15 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       {item.articleSource === 'upload' && (
                                                                         <div className="flex flex-col gap-2 mb-2">
                                                                           <Input
+                                                                            ref={(el) => {
+                                                                              const key = `document-${sectionIdx}-${itemIdx}`;
+                                                                              if (el) {
+                                                                                fileInputRefs.current[key] = el;
+                                                                              } else {
+                                                                                delete fileInputRefs.current[key];
+                                                                              }
+                                                                            }}
+                                                                            key={`document-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
                                                                             className="ins-control-border"
                                                                             type="file"
                                                                             accept=".pdf,.doc,.docx,.txt,.md"
@@ -2486,8 +2497,20 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               const files = Array.from(e.target.files || []);
                                                                               if (files.length === 0) return;
 
+                                                                              // Store files array before async operations
+                                                                              const selectedFiles = files;
+
+                                                                              // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
+                                                                              setTimeout(() => {
+                                                                                const key = `document-${sectionIdx}-${itemIdx}`;
+                                                                                const input = fileInputRefs.current[key];
+                                                                                if (input) {
+                                                                                  input.value = '';
+                                                                                }
+                                                                              }, 0);
+
                                                                               const newFiles = await Promise.all(
-                                                                                Array.from(files).map(async (file) => {
+                                                                                Array.from(selectedFiles).map(async (file) => {
                                                                                   // Upload to Cloudinary
                                                                                   let cloudinaryUrl = '';
                                                                                   let cloudinaryPublicId = '';
@@ -2522,7 +2545,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                               }));
 
                                                                               // Set lecture name to the first file's name (without extension)
-                                                                              const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
+                                                                              const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
                                                                               formik.setFieldValue(
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
                                                                                 fileNameWithoutExt
@@ -2531,9 +2554,6 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
                                                                                 fileObjects
                                                                               );
-                                                                              
-                                                                              // Reset file input to allow re-selection of the same file
-                                                                              e.target.value = '';
                                                                             }}
                                                                           />
 
@@ -2672,6 +2692,15 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                       {(!item.videoSource || item.videoSource === 'upload') && (
                                                                         <div className="flex items-center justify-between mb-2">
                                                                           <Input
+                                                                            ref={(el) => {
+                                                                              const key = `video-${sectionIdx}-${itemIdx}`;
+                                                                              if (el) {
+                                                                                fileInputRefs.current[key] = el;
+                                                                              } else {
+                                                                                delete fileInputRefs.current[key];
+                                                                              }
+                                                                            }}
+                                                                            key={`video-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
                                                                             className="ins-control-border flex-1 mr-2"
                                                                             type="file"
                                                                             accept="video/*"
@@ -2691,6 +2720,14 @@ export function CourseCarriculam({ onSubmit }: any) {
         `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
         `${file.name} is should below than 100 MB`
       );
+      // Reset input after error
+      setTimeout(() => {
+        const key = `video-${sectionIdx}-${itemIdx}`;
+        const input = fileInputRefs.current[key];
+        if (input) {
+          input.value = '';
+        }
+      }, 0);
       return; // stop upload
     }
   }
@@ -2701,11 +2738,11 @@ export function CourseCarriculam({ onSubmit }: any) {
     ""
   );
                                                                               
-                                                                              // Don't clear the input value to allow re-selection
-                                                                              // e.target.value = '';
+                                                                              // Store files array before async operations
+                                                                              const selectedFiles = files;
 
                                                                               // Insert placeholder entries with 'uploading' status so UI shows progress
-                                                                              const placeholders = files.map((file) => ({
+                                                                              const placeholders = selectedFiles.map((file) => ({
                                                                                 file,
                                                                                 name: file.name,
                                                                                 url: '',
@@ -2724,9 +2761,18 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 newFilesWithPlaceholders
                                                                               );
 
+                                                                              // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
+                                                                              setTimeout(() => {
+                                                                                const key = `video-${sectionIdx}-${itemIdx}`;
+                                                                                const input = fileInputRefs.current[key];
+                                                                                if (input) {
+                                                                                  input.value = '';
+                                                                                }
+                                                                              }, 0);
+
                                                                               // Upload sequentially to allow progress updates per-file
-                                                                              for (let i = 0; i < files.length; i++) {
-                                                                                const file = files[i];
+                                                                              for (let i = 0; i < selectedFiles.length; i++) {
+                                                                                const file = selectedFiles[i];
                                                                                 const placeholderIndex = currentFiles.length + i;
                                                                                 const fileKey = `${sectionIdx}-${itemIdx}-${placeholderIndex}`;
 
@@ -2802,19 +2848,16 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                     );
                                                                                   }
                                                                                   // Optionally notify the user
-                                                                                  alert(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                                                                  toast.error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
                                                                                 }
                                                                               }
 
                                                                               // Set lecture name to the first file's name (without extension)
-                                                                              const fileNameWithoutExt = files[0].name.replace(/\.[^/.]+$/, "");
+                                                                              const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
                                                                               formik.setFieldValue(
                                                                                 `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
                                                                                 fileNameWithoutExt
                                                                               );
-                                                                              
-                                                                              // Reset file input to allow re-selection of the same file
-                                                                              e.target.value = '';
                                                                             }}
                                                                           />
                                                                           

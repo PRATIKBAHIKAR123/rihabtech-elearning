@@ -75,8 +75,20 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
     if (isOpen) {
       loadRazorpay();
       loadAvailableCoupons();
+      // Reset coupon state when modal opens
+      setCouponCode("");
+      setCouponMessage("");
+      setCouponDiscount(0);
+      setAppliedCouponCode("");
+      setCouponId("");
     }
   }, [isOpen]);
+  
+  // Recalculate pricing when discount changes
+  useEffect(() => {
+    // This will trigger a re-render with updated pricing
+    // The calculatePricingBreakdown is called in render, so it will use the latest couponDiscount
+  }, [couponDiscount]);
 
   const loadRazorpay = async () => {
     try {
@@ -118,13 +130,17 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
     setCouponMessage("");
 
     try {
+      // Calculate base amount (before tax) for coupon validation
+      const totalAmount = plan.totalAmount ?? plan.basePrice ?? 0;
+      const basePrice = plan.basePrice || (totalAmount > 0 ? totalAmount / (1 + plan.taxPercentage / 100) : 0);
+      
       // Use custom API for coupon validation
       const request: PreviewCouponRequest = {
         couponCode: code,
         planId: plan.id,
         categoryId: plan.categoryId ? parseInt(plan.categoryId) : 0,
         subCategoryId: 0, // Subscription plans may not have subcategories
-        orderAmount: plan.totalAmount ?? plan.basePrice ?? 0,
+        orderAmount: basePrice, // Use base price (before tax) for coupon calculation
         userId: user?.email || userInfo.email,
         userEmail: userInfo.email
       };
@@ -258,7 +274,7 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
         onClose();
 
         // Confirm coupon usage via custom API if coupon was applied
-        if (couponId && couponDiscount > 0) {
+        if (couponId && appliedCouponCode) {
           try {
             const confirmRequest: ConfirmCouponRequest = {
               couponId: parseInt(couponId),
@@ -266,14 +282,17 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
               subscriptionId: subscriptionId,
               userId: user?.email || userInfo.email,
               userEmail: userInfo.email,
-              orderAmount: pricing.originalBaseAmount,
-              discountAmount: couponDiscount,
-              finalAmount: pricing.totalAmount
+              orderAmount: pricing.originalBaseAmount, // Original base amount before discount
+              discountAmount: couponDiscount, // Discount amount applied
+              finalAmount: pricing.totalAmount // Final amount after discount and tax
             };
+            console.log('Confirming coupon usage (free plan):', confirmRequest);
             await couponApiService.confirmCoupon(confirmRequest);
+            console.log('Coupon usage confirmed successfully');
           } catch (err) {
             console.error('Coupon confirmation error:', err);
             // Don't show error to user as subscription is already activated
+            // But log it for debugging
           }
         }
 
@@ -315,7 +334,7 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
           onClose();
 
           // Confirm coupon usage via custom API if coupon was applied
-          if (couponId && couponDiscount > 0) {
+          if (couponId && appliedCouponCode) {
             try {
               const confirmRequest: ConfirmCouponRequest = {
                 couponId: parseInt(couponId),
@@ -323,14 +342,17 @@ export const SubscriptionPaymentModal: React.FC<SubscriptionPaymentModalProps> =
                 subscriptionId: subscriptionId,
                 userId: user?.email || userInfo.email,
                 userEmail: userInfo.email,
-                orderAmount: finalPricing.originalBaseAmount,
-                discountAmount: couponDiscount,
-                finalAmount: finalPricing.totalAmount
+                orderAmount: finalPricing.originalBaseAmount, // Original base amount before discount
+                discountAmount: couponDiscount, // Discount amount applied
+                finalAmount: finalPricing.totalAmount // Final amount after discount and tax
               };
+              console.log('Confirming coupon usage:', confirmRequest);
               await couponApiService.confirmCoupon(confirmRequest);
+              console.log('Coupon usage confirmed successfully');
             } catch (err) {
               console.error('Coupon confirmation error:', err);
               // Don't show error to user as subscription is already activated
+              // But log it for debugging
             }
           }
 

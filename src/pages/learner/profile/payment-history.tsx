@@ -14,9 +14,9 @@ import {
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import {
-  razorpayService,
   PaymentTransaction,
 } from "../../../utils/razorpayService";
+import apiClient from "../../../utils/axiosInterceptor";
 import { formatAmount } from "../../../lib/razorpay";
 import LoadingIcon from "../../../components/ui/LoadingIcon";
 // import { Banknote } from ;
@@ -32,12 +32,9 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
   const [error, setError] = useState("");
 
   const loadPaymentHistory = useCallback(async () => {
-    // Use user email or user ID from profile
-    // Check user.UserName, user.email, profile.emailId, or user.uid
-    const userId = user?.UserName || user?.email || profile?.emailId || user?.uid;
-    if (!userId) {
+    if (!user) {
       setLoading(false);
-      setError("User information not available");
+      setError("User not authenticated");
       return;
     }
 
@@ -45,22 +42,52 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ profile }) => {
     setError("");
 
     try {
-      // Load real transactions from Razorpay service
-      // Note: razorpayService might expect email or userId - adjust based on API
-      const userTransactions: PaymentTransaction[] = [];
-      // = await razorpayService.getUserTransactions(
-      //   userId
-      // );
+      // Load real transactions from backend API using public endpoint
+      // This endpoint uses CurrentUser.id automatically
+      const response = await apiClient.get(
+        `/Subscription/my-payment-transactions`
+      );
+      const apiTransactions = (response.data || []) as any[];
 
-      // If no transactions from service, use real data from Firebase export
-      if (userTransactions.length === 0) {
-        // Complete real data from Firebase export - all 15 transactions for abdulquader152@gmail.com
-        const realTransactions: PaymentTransaction[] = [];
+      const userTransactions: PaymentTransaction[] = apiTransactions.map(
+        (t: any) => ({
+          id: t.id?.toString() || "",
+          userId: t.userId || "",
+          userEmail: t.userEmail || "",
+          userName: t.userName || "",
+          userPhone: t.userPhone || "",
+          planId: t.planId?.toString() || "",
+          planName: t.planName || "",
+          planDuration: t.planDuration || "",
+          amount: t.amount || 0,
+          taxAmount: t.taxAmount || 0,
+          platformFee: t.platformFee || 0,
+          instructorShare: 0,
+          totalAmount: t.totalAmount || 0,
+          currency: t.currency || "INR",
+          categoryId: t.categoryId?.toString(),
+          categoryName: t.categoryName,
+          razorpayOrderId: t.razorpayOrderId || "",
+          razorpayPaymentId: t.razorpayPaymentId,
+          razorpaySignature: undefined,
+          status:
+            (t.status || "pending").toLowerCase() as
+              | "pending"
+              | "completed"
+              | "failed"
+              | "cancelled",
+          paymentMethod: t.paymentMethod || "Razorpay",
+          paymentDetails: {
+            bank: t.paymentMethod || "N/A", // Use payment method as fallback since bank is not in API response
+          },
+          createdAt: t.createdAt ? new Date(t.createdAt) : new Date(),
+          updatedAt: t.createdAt ? new Date(t.createdAt) : new Date(),
+          receipt: t.receipt,
+          notes: undefined, // Notes field not in API response
+        })
+      );
 
-        setTransactions(realTransactions);
-      } else {
-        setTransactions(userTransactions);
-      }
+      setTransactions(userTransactions);
     } catch (err) {
       console.error("Error loading payment history:", err);
       setError("Failed to load payment history");

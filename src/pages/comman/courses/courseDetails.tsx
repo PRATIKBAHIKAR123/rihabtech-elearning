@@ -20,6 +20,16 @@ import { getLanguageLabel } from "../../../utils/languages";
 import { getLevelLabel } from "../../../utils/levels";
 import { CourseCard } from "./courseList";
 import instructorApiService from "../../../utils/instructorApiService";
+import { reviewApiService, ReviewStats, CourseReview } from "../../../utils/reviewApiService";
+import { API_BASE_URL_IMG } from "../../../lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../../../components/ui/dialog";
 
 // Use CourseResponse interface from API service
 type ExtendedCourse = CourseResponse;
@@ -34,6 +44,7 @@ interface InstructorData {
   areaOfExpertise: string;
   teachingTopics: string;
   publishedCourseCount: number;
+  profileImage?: string;
 }
 
 export default function CourseDetails() {
@@ -48,18 +59,25 @@ export default function CourseDetails() {
   const [checkingEnrollment, setCheckingEnrollment] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const [instructor, setInstructor] = useState<InstructorData | null>(null);
-const [activePlan, setActivePlan] = useState<Subscription | null>(null);
+  const [activePlan, setActivePlan] = useState<Subscription | null>(null);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
+  const [reviews, setReviews] = useState<CourseReview[]>([]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [myReview, setMyReview] = useState<CourseReview | null>(null);
   const location = useLocation();
 
   // Get course ID from multiple sources
-   const { courseId } = useParams();
-   const [sectionIndex, setsectionIndex] = useState<number | null>(null);
+  const { courseId } = useParams();
+  const [sectionIndex, setsectionIndex] = useState<number | null>(null);
 
   // Function to extract course ID from URL hash or query parameters
   const getCourseIdFromURL = (): string | null => {
     // First try useParams
     if (courseId) return courseId;
-  
+
     // Try to get from URL hash (e.g., #/courseDetails?courseId=123)
     const hash = window.location.hash;
     if (hash.includes('?')) {
@@ -98,7 +116,7 @@ const [activePlan, setActivePlan] = useState<Subscription | null>(null);
     try {
       const result = await enrollmentApiService.checkEnrollment(courseId);
       setIsEnrolled(result.isEnrolled);
-      
+
       // If user has access but not enrolled, they can enroll
       // If user is enrolled, show "View Course" button
       // If user doesn't have access, show subscription message
@@ -113,43 +131,73 @@ const [activePlan, setActivePlan] = useState<Subscription | null>(null);
     }
   };
 
-useEffect(() => {
-  const run = async () => {
-    try {
-      if (user) {
-        const sub = await getUserActiveSubscription(user.email || user.uid);
-        setActivePlan(sub);
-      }
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (user) {
+          const sub = await getUserActiveSubscription(user.email || user.uid);
+          setActivePlan(sub);
+        }
 
-      // remove redirect key (optional: only if we're on the right page)
-      localStorage.removeItem("redirectAfterSubscription");
+        // remove redirect key (optional: only if we're on the right page)
+        localStorage.removeItem("redirectAfterSubscription");
 
-      const extractedCourseId = getCourseIdFromURL();
-      if (!extractedCourseId) {
+        const extractedCourseId = getCourseIdFromURL();
+        if (!extractedCourseId) {
+          await fetchAvailableCourses();
+          setLoading(false);
+          return;
+        }
         await fetchAvailableCourses();
+
+        setLoading(true);
+        // Use API service to fetch course by ID
+        const courseData = await courseApiService.getCourseByIdPublic(parseInt(extractedCourseId));
+        setCourse(courseData);
+
+      // Fetch review stats and reviews for the course
+      try {
+        const [stats, reviewsData] = await Promise.all([
+          reviewApiService.getReviewStats(courseData.id),
+          reviewApiService.getCourseReviews(courseData.id, true)
+        ]);
+        setReviewStats(stats);
+        setReviews(reviewsData);
+
+        // Check if user has already reviewed this course
+        if (user) {
+          try {
+            const existingReview = await reviewApiService.getMyReview(courseData.id);
+            setMyReview(existingReview);
+            if (existingReview) {
+              setReviewRating(existingReview.rating || 0);
+              setReviewComment(existingReview.comment || "");
+            }
+          } catch (error) {
+            // User hasn't reviewed yet, which is fine
+            setMyReview(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching review stats:", error);
+        // Set default stats if fetch fails
+        setReviewStats({ averageRating: 0, totalReviews: 0, ratingDistribution: {} });
+        setReviews([]);
+      }
+
+        if (user) {
+          await checkEnrollmentStatus(courseData.id);
+        }
+      } catch (err) {
+        console.error("Error fetching course:", err);
+        setError("Failed to load course");
+      } finally {
         setLoading(false);
-        return;
       }
-      await fetchAvailableCourses();
+    };
 
-      setLoading(true);
-      // Use API service to fetch course by ID
-      const courseData = await courseApiService.getCourseByIdPublic(parseInt(extractedCourseId));
-      setCourse(courseData);
-
-      if (user) {
-        await checkEnrollmentStatus(courseData.id);
-      }
-    } catch (err) {
-      console.error("Error fetching course:", err);
-      setError("Failed to load course");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  run();
-}, [location, user]); // only depend on location + user
+    run();
+  }, [location, user]); // only depend on location + user
 
 
   // Function to count students - using enrollment count from API
@@ -181,10 +229,11 @@ useEffect(() => {
         name: (instructorData as any)?.instructorName || "Unknown Instructor",
         email: (instructorData as any)?.instructorEmail || "",
         role: "Instructor",
-        bio: "Experienced instructor with expertise in the subject matter.",
+        bio: (instructorData as any)?.bio || "",
         areaOfExpertise: (instructorData as any)?.areaOfExpertise || "N/A",
         teachingTopics: (instructorData as any)?.teachingTopics || "N/A",
         publishedCourseCount: (instructorData as any)?.publishedCourseCount || 0,
+        profileImage: (instructorData as any)?.profileImage || "",
       });
     }
   };
@@ -208,26 +257,26 @@ useEffect(() => {
 
     console.log('getCourseDuration called with course:', course);
     console.log('Course curriculum:', course.curriculum);
-    
+
     // Calculate duration directly from curriculum items
     if (course.curriculum?.sections) {
       console.log('Calculating duration from curriculum items');
       let totalSeconds = 0;
-      
+
       course.curriculum.sections.forEach((section, sectionIndex) => {
         console.log(`Section ${sectionIndex}: ${section.name} with ${section.items?.length || 0} items`);
-        
+
         if (section.items) {
           section.items.forEach((item, itemIndex) => {
             console.log(`Item ${itemIndex}: ${item.lectureName}, contentType: ${item.contentType}`);
-            
+
             if (item.contentFiles && item.contentFiles.length > 0) {
               console.log(`Item ${itemIndex} has ${item.contentFiles.length} content files:`, item.contentFiles);
-              
+
               item.contentFiles.forEach((file, fileIndex) => {
                 if (file.duration !== undefined && file.duration !== null) {
                   let durationValue: number;
-                  
+
                   // Handle both integer and decimal duration values
                   if (typeof file.duration === 'string') {
                     // Check if it's already formatted as "MM:SS" or "HH:MM:SS"
@@ -250,7 +299,7 @@ useEffect(() => {
                   } else {
                     durationValue = file.duration as number;
                   }
-                  
+
                   if (!isNaN(durationValue) && durationValue > 0) {
                     totalSeconds += durationValue; // Don't round, keep decimal precision
                     console.log(`Duration: Adding ${durationValue} seconds from file: ${file.name}`);
@@ -297,7 +346,7 @@ useEffect(() => {
     try {
       // Check enrollment status first
       const checkResult = await enrollmentApiService.checkEnrollment(course.id);
-      
+
       if (!checkResult.hasAccess) {
         toast.error(checkResult.message || 'You do not have access to enroll in this course. Please subscribe to the appropriate category.');
         // Redirect to pricing if they need subscription
@@ -310,7 +359,7 @@ useEffect(() => {
 
       // Enroll the user
       const enrollmentResponse = await enrollmentApiService.enrollInCourse(course.id);
-      
+
       if (enrollmentResponse.success) {
         toast.success('Course Successfully Enrolled');
         setIsEnrolled(true);
@@ -334,89 +383,89 @@ useEffect(() => {
 
     window.location.hash = `#/learner/current-course?courseId=${course?.id}`;
   };
-    const handleSubscribeNow = async () => {
+  const handleSubscribeNow = async () => {
     if (!user) {
       toast.error('Please log in to subscribe');
       window.location.hash = '#/login';
       return;
     }
-    localStorage.setItem('redirectAfterSubscription', window.location.hash?? `#/courseDetails?courseId=${course?.id}`);
+    localStorage.setItem('redirectAfterSubscription', window.location.hash ?? `#/courseDetails?courseId=${course?.id}`);
     window.location.hash = '#/pricing';
   };
 
   // Get button text and action
-const getButtonConfig = () => {
-  console.log('activePlan:', activePlan);
-  const pricing = course?.pricing?.toLowerCase();
-  const hasActivePlanForCourse =
-  activePlan && activePlan.categoryId && activePlan.categoryId.toString() === course?.category?.toString();
+  const getButtonConfig = () => {
+    console.log('activePlan:', activePlan);
+    const pricing = course?.pricing?.toLowerCase();
+    const hasActivePlanForCourse =
+      activePlan && activePlan.categoryId && activePlan.categoryId.toString() === course?.category?.toString();
 
-  if (authLoading) {
-    return {
-      text: "Loading...",
-      action: () => {},
-      disabled: true,
-      variant: "default" as const
-    };
-  }
+    if (authLoading) {
+      return {
+        text: "Loading...",
+        action: () => { },
+        disabled: true,
+        variant: "default" as const
+      };
+    }
 
-  if (!user) {
-    return {
-      text: pricing === "free" ? "Login to Enroll" : "Login to Buy",
-      action: () => {
-        window.location.hash = '#/login';
-      },
-      disabled: false,
-      variant: "default" as const
-    };
-  }
+    if (!user) {
+      return {
+        text: pricing === "free" ? "Login to Enroll" : "Login to Buy",
+        action: () => {
+          window.location.hash = '#/login';
+        },
+        disabled: false,
+        variant: "default" as const
+      };
+    }
 
-  if (checkingEnrollment) {
-    return {
-      text: "Checking...",
-      action: () => {},
-      disabled: true,
-      variant: "default" as const
-    };
-  }
+    if (checkingEnrollment) {
+      return {
+        text: "Checking...",
+        action: () => { },
+        disabled: true,
+        variant: "default" as const
+      };
+    }
 
-  if (isEnrolled) {
-    return {
-      text: "View Course",
-      action: handleGoToCourse,
-      disabled: false,
-      variant: "default" as const
-    };
-  }
+    if (isEnrolled) {
+      return {
+        text: "View Course",
+        action: handleGoToCourse,
+        disabled: false,
+        variant: "default" as const
+      };
+    }
 
-  // If course is free, allow enrollment
-  if (pricing === "free") {
+    // If course is free, allow enrollment
+    if (pricing === "free") {
+      return {
+        text: "Enroll Now",
+        action: handleBuyNow,
+        disabled: false,
+        variant: "default" as const,
+      };
+    }
+
+    // For paid courses, check subscription
+    if (!activePlan || (activePlan.categoryId && activePlan.categoryId.toString() !== course?.category?.toString())) {
+      return {
+        text: "Enroll Now",
+        action: handleSubscribeNow,
+        disabled: false,
+        variant: "default" as const,
+      };
+    }
+
+    // If activePlan exists and matches course category (or no category restriction)
     return {
       text: "Enroll Now",
       action: handleBuyNow,
       disabled: false,
       variant: "default" as const,
     };
-  }
-
-  // For paid courses, check subscription
-  if (!activePlan || (activePlan.categoryId && activePlan.categoryId.toString() !== course?.category?.toString())) {
-    return {
-      text: "Enroll Now",
-      action: handleSubscribeNow,
-      disabled: false,
-      variant: "default" as const,
-    };
-  }
-
-  // If activePlan exists and matches course category (or no category restriction)
-  return {
-    text: "Enroll Now",
-    action: handleBuyNow,
-    disabled: false,
-    variant: "default" as const,
   };
-};
 
 
 
@@ -547,7 +596,9 @@ const getButtonConfig = () => {
                   <img key={i} src="Images/icons/Container (6).png" alt="Star" className="w-4 h-4" />
                 ))}
               </div>
-              <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">(2 Reviews)</div>
+              <div className="text-white text-[15px] font-medium font-['Poppins'] leading-relaxed">
+                ({reviewStats?.totalReviews || 0} {reviewStats?.totalReviews === 1 ? 'Review' : 'Reviews'})
+              </div>
             </div>
           </div>
         </div>
@@ -559,7 +610,7 @@ const getButtonConfig = () => {
 
           {/* Left: Tabs Section */}
           <div className="w-full lg:w-2/3">
-            <Tabs defaultValue={sectionIndex?"curriculum":"overview"} className="w-full custom-tabs">
+            <Tabs defaultValue={sectionIndex ? "curriculum" : "overview"} className="w-full custom-tabs">
               <TabsList className="custom-tabs-list overflow-x-scroll overflow-y-hidden md:overflow-x-auto">
                 <TabsTrigger value="overview" className="custom-tab-trigger">Overview</TabsTrigger>
                 <TabsTrigger value="curriculum" className="custom-tab-trigger">Curriculum</TabsTrigger>
@@ -653,7 +704,7 @@ const getButtonConfig = () => {
               </TabsContent>
 
               <TabsContent value="curriculum" className="py-4">
-                <Curriculum course={course as any} lectureIndex={sectionIndex??undefined} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
+                <Curriculum course={course as any} lectureIndex={sectionIndex ?? undefined} onPreviewCourse={() => setIsPreviewModalOpen(true)} />
               </TabsContent>
 
               <TabsContent value="instructor" className="py-4">
@@ -665,9 +716,13 @@ const getButtonConfig = () => {
                       {/* Instructor Image */}
                       <div className="flex-shrink-0">
                         <img
-                          src="Images/users/team-18.jpg.jpg"
+                          src={instructor?.profileImage ? `${API_BASE_URL_IMG}${instructor.profileImage}` : "Images/users/team-18.jpg.jpg"}
                           alt={getInstructorName()}
                           className="w-32 h-32 rounded-full object-cover border-4 border-gray-100"
+                          onError={(e) => {
+                            // Fallback to default image if profile image fails to load
+                            (e.target as HTMLImageElement).src = "Images/users/team-18.jpg.jpg";
+                          }}
                         />
                       </div>
 
@@ -681,19 +736,19 @@ const getButtonConfig = () => {
                         {/* Stats Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">{countStudents()}</div>
+                            <div className="text-2xl font-bold text-primary">{course?.enrollment || 0}</div>
                             <div className="text-sm text-gray-600">Students</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">4.7</div>
+                            <div className="text-2xl font-bold text-primary">{course?.rating ? course.rating.toFixed(1) : '0.0'}</div>
                             <div className="text-sm text-gray-600">Rating</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">7</div>
+                            <div className="text-2xl font-bold text-primary">{instructor?.publishedCourseCount || 0}</div>
                             <div className="text-sm text-gray-600">Courses</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">958</div>
+                            <div className="text-2xl font-bold text-primary">{reviewStats?.totalReviews || 0}</div>
                             <div className="text-sm text-gray-600">Reviews</div>
                           </div>
                         </div>
@@ -712,39 +767,17 @@ const getButtonConfig = () => {
                     </div>
                   </div>
 
-                  {/* Bio Sections */}
+                  {/* Bio Section */}
                   <div className="space-y-6">
-                    {/* Short Bio */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Short Bio</h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        I'm {getInstructorName()}, a developer with a passion for teaching.
-                        I'm the lead instructor for this course and have helped hundreds of students learn
-                        to code and change their lives by becoming developers.
-                      </p>
-                    </div>
-
-                    {/* Full Bio */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Full Biography</h3>
-                      <div className="text-gray-700 leading-relaxed space-y-4">
-                        <p>
-                          I'm {getInstructorName()}, a developer with a passion for teaching.
-                          I'm the lead instructor for this course. I've helped hundreds of thousands of
-                          students learn to code and change their lives by becoming a developer.
-                        </p>
-                        <p>
-                          I've been invited by companies such as Twitter, Facebook and Google to teach
-                          their employees. My first foray into programming was when I was just 12 years old,
-                          wanting to build my own Space Invader game.
-                        </p>
-                        <p>
-                          Since then, I've made hundreds of websites, apps and games. But most importantly,
-                          I realised that my greatest passion is teaching. I believe that everyone can learn
-                          to code, and I'm here to make that journey as smooth and enjoyable as possible.
+                    {/* Bio */}
+                    {instructor?.bio && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Bio</h3>
+                        <p className="text-gray-700 leading-relaxed">
+                          {instructor.bio}
                         </p>
                       </div>
-                    </div>
+                    )}
 
                     {/* Expertise */}
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -769,128 +802,168 @@ const getButtonConfig = () => {
                   <h2 className="details-title mb-6">Student Reviews</h2>
 
                   {/* Reviews Summary */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                      {/* Overall Rating */}
-                      <div className="text-center">
-                        <div className="text-4xl font-bold text-primary mb-2">4.7</div>
-                        <div className="flex items-center justify-center gap-1 mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className={`w-5 h-5 ${i < 4 ? 'text-yellow-400' : 'text-gray-300'}`}
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
+                  {reviewStats && reviewStats.totalReviews > 0 && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                      <div className="flex flex-col md:flex-row items-center gap-6">
+                        {/* Overall Rating */}
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-primary mb-2">
+                            {reviewStats.averageRating.toFixed(1)}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mb-2">
+                            {[...Array(5)].map((_, i) => {
+                              const fullStars = Math.floor(reviewStats.averageRating);
+                              const hasHalfStar = reviewStats.averageRating % 1 >= 0.5;
+                              return (
+                                <svg
+                                  key={i}
+                                  className={`w-5 h-5 ${
+                                    i < fullStars
+                                      ? 'text-yellow-400'
+                                      : i === fullStars && hasHalfStar
+                                      ? 'text-yellow-400'
+                                      : 'text-gray-300'
+                                  }`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              );
+                            })}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Based on {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600">Based on 2 reviews</p>
-                      </div>
 
-                      {/* Rating Breakdown */}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 mb-3">Rating Breakdown</h3>
-                        <div className="space-y-2">
-                          {[5, 4, 3, 2, 1].map((rating) => (
-                            <div key={rating} className="flex items-center gap-3">
-                              <span className="text-sm text-gray-600 w-8">{rating} stars</span>
-                              <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-yellow-400 h-2 rounded-full"
-                                  style={{
-                                    width: `${rating === 5 ? 100 : rating === 4 ? 0 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-gray-600 w-12">
-                                {rating === 5 ? '2' : rating === 4 ? '0' : '0'}
-                              </span>
-                            </div>
-                          ))}
+                        {/* Rating Breakdown */}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-800 mb-3">Rating Breakdown</h3>
+                          <div className="space-y-2">
+                            {[5, 4, 3, 2, 1].map((rating) => {
+                              const count = reviewStats.ratingDistribution[rating] || 0;
+                              const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0;
+                              return (
+                                <div key={rating} className="flex items-center gap-3">
+                                  <span className="text-sm text-gray-600 w-8">{rating} stars</span>
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-yellow-400 h-2 rounded-full"
+                                      style={{
+                                        width: `${percentage}%`
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm text-gray-600 w-12">{count}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Reviews List */}
-                  <div className="space-y-4">
-                    {/* Sample Review 1 */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center font-semibold">
-                          JD
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-800">John Doe</h4>
-                            <div className="flex items-center gap-1">
-                              {[...Array(5)].map((_, i) => (
-                                <svg
-                                  key={i}
-                                  className="w-4 h-4 text-yellow-400"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-gray-700 mb-2">
-                            Excellent course! The instructor explains complex concepts in a very clear and understandable way.
-                            The practical examples and hands-on projects really helped me grasp the material.
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>2 weeks ago</span>
-                            <span>Course: {course.title}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  {reviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {reviews.map((review) => {
+                        // Format time ago
+                        const formatTimeAgo = (date: Date): string => {
+                          const now = new Date();
+                          const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+                          
+                          if (diffInSeconds < 60) return "Just now";
+                          if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} ${Math.floor(diffInSeconds / 60) === 1 ? 'Minute' : 'Minutes'} Ago`;
+                          if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ${Math.floor(diffInSeconds / 3600) === 1 ? 'Hour' : 'Hours'} Ago`;
+                          if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ${Math.floor(diffInSeconds / 86400) === 1 ? 'Day' : 'Days'} Ago`;
+                          if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} ${Math.floor(diffInSeconds / 2592000) === 1 ? 'Month' : 'Months'} Ago`;
+                          return `${Math.floor(diffInSeconds / 31536000)} ${Math.floor(diffInSeconds / 31536000) === 1 ? 'Year' : 'Years'} Ago`;
+                        };
 
-                    {/* Sample Review 2 */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center font-semibold">
-                          JS
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-800">Jane Smith</h4>
-                            <div className="flex items-center gap-1">
-                              {[...Array(5)].map((_, i) => (
-                                <svg
-                                  key={i}
-                                  className="w-4 h-4 text-yellow-400"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                              ))}
+                        // Get initial from name
+                        const getInitial = (name?: string): string => {
+                          if (!name) return "?";
+                          const parts = name.trim().split(' ');
+                          if (parts.length >= 2) {
+                            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                          }
+                          return name.charAt(0).toUpperCase();
+                        };
+
+                        // Get color for avatar
+                        const getAvatarColor = (name?: string): string => {
+                          if (!name) return 'bg-gray-500';
+                          const colors = ['bg-primary', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500'];
+                          const index = name.charCodeAt(0) % colors.length;
+                          return colors[index];
+                        };
+
+                        return (
+                          <div key={review.id} className="bg-white rounded-lg border border-gray-200 p-6">
+                            <div className="flex items-start gap-4">
+                              {review.userProfileImage ? (
+                                <img
+                                  src={`${API_BASE_URL_IMG}${review.userProfileImage}`}
+                                  alt={review.userName || 'User'}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <div className={`w-12 h-12 ${getAvatarColor(review.userName)} text-white rounded-full flex items-center justify-center font-semibold ${review.userProfileImage ? 'hidden' : ''}`}>
+                                {getInitial(review.userName)}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="font-semibold text-gray-800">
+                                    {review.userName || 'Anonymous User'}
+                                  </h4>
+                                  <div className="flex items-center gap-1">
+                                    {[...Array(5)].map((_, i) => (
+                                      <svg
+                                        key={i}
+                                        className={`w-4 h-4 ${
+                                          i < review.rating ? 'text-yellow-400' : 'text-gray-300'
+                                        }`}
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      </svg>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-gray-700 mb-2">{review.comment}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                  <span>{formatTimeAgo(review.createdAt)}</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          <p className="text-gray-700 mb-2">
-                            Great learning experience! The course structure is well-organized and the content is up-to-date.
-                            I especially appreciated the real-world examples and the instructor's responsiveness to questions.
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>1 month ago</span>
-                            <span>Course: {course.title}</span>
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+                      <p className="text-gray-500">No reviews yet. Be the first to review this course!</p>
+                    </div>
+                  )}
 
                   {/* Write Review Button */}
-                  <div className="text-center mt-8">
-                    <button className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
-                      Write a Review
-                    </button>
-                  </div>
+                  {user && (
+                    <div className="text-center mt-8">
+                      <button 
+                        onClick={() => setIsReviewModalOpen(true)}
+                        className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                      >
+                        {(myReview && myReview.id) ? "Edit Your Review" : "Write a Review"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -1049,6 +1122,151 @@ const getButtonConfig = () => {
           course={course as any}
         />
       )}
+
+      {/* Write Review Modal */}
+      <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{(myReview && myReview.id) ? "Edit Your Review" : "Write a Review"}</DialogTitle>
+            <DialogDescription>
+              Share your experience with this course. Your review will help other students make informed decisions.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Rating Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rating *
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    onClick={() => setReviewRating(rating)}
+                    className={`p-2 rounded transition-colors ${
+                      rating <= reviewRating
+                        ? 'text-yellow-400'
+                        : 'text-gray-300 hover:text-yellow-300'
+                    }`}
+                  >
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </button>
+                ))}
+                {reviewRating > 0 && (
+                  <span className="text-sm text-gray-600 ml-2">
+                    {reviewRating} {reviewRating === 1 ? 'star' : 'stars'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Comment Textarea */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Review *
+              </label>
+              <textarea
+                value={reviewComment || ""}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Share your thoughts about this course..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary resize-none"
+                rows={6}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {reviewComment?.length || 0} characters
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsReviewModalOpen(false);
+                if (!myReview || !myReview.id) {
+                  setReviewRating(0);
+                  setReviewComment("");
+                }
+              }}
+              disabled={isSubmittingReview}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!course || !reviewRating || !reviewComment || !reviewComment.trim()) {
+                  toast.error("Please provide both a rating and a review comment");
+                  return;
+                }
+
+                setIsSubmittingReview(true);
+                try {
+                  if (myReview && myReview.id) {
+                    // Update existing review
+                    await reviewApiService.updateReview(myReview.id, {
+                      rating: reviewRating,
+                      comment: (reviewComment || "").trim(),
+                    });
+                    toast.success("Review updated successfully!");
+                  } else {
+                    // Create new review
+                    const newReview = await reviewApiService.createReview({
+                      courseId: course.id,
+                      rating: reviewRating,
+                      comment: (reviewComment || "").trim(),
+                    });
+                    toast.success("Review submitted successfully!");
+                    // Set the newly created review
+                    setMyReview(newReview);
+                  }
+
+                  // Refresh reviews and stats
+                  const [stats, reviewsData] = await Promise.all([
+                    reviewApiService.getReviewStats(course.id),
+                    reviewApiService.getCourseReviews(course.id, true)
+                  ]);
+                  setReviewStats(stats);
+                  setReviews(reviewsData);
+
+                  // Refresh my review to ensure we have the latest data
+                  if (user) {
+                    try {
+                      const updatedReview = await reviewApiService.getMyReview(course.id);
+                      if (updatedReview) {
+                        setMyReview(updatedReview);
+                        setReviewRating(updatedReview.rating || 0);
+                        setReviewComment(updatedReview.comment || "");
+                      }
+                    } catch (error) {
+                      // Review might not exist yet, which is fine
+                      console.log("Could not fetch updated review:", error);
+                    }
+                  }
+
+                  setIsReviewModalOpen(false);
+                } catch (error: any) {
+                  console.error("Error submitting review:", error);
+                  toast.error(error.message || "Failed to submit review. Please try again.");
+                } finally {
+                  setIsSubmittingReview(false);
+                }
+              }}
+              disabled={isSubmittingReview || !reviewRating || !reviewComment || !reviewComment.trim()}
+            >
+              {isSubmittingReview ? "Submitting..." : (myReview && myReview.id) ? "Update Review" : "Submit Review"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

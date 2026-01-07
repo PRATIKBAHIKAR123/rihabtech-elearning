@@ -6,20 +6,25 @@ import { useAuth } from '../../context/AuthContext';
 import { useEffect, useRef, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import {
-  getLearnerHomeData,
-  // getMockEnrolledCourses,
-  // getMockRecommendedCourses,
-  HomepageCourse
-} from '../../utils/learnerHomeService';
-import { toast } from 'sonner';
+import { enrollmentApiService, UserEnrollment } from '../../utils/enrollmentApiService';
+import { progressApiService } from '../../utils/progressApiService';
 import courseApiService, { Category, CourseGetAllResponse, SearchCourseResponse } from "../../utils/courseApiService";
+import { toast } from 'sonner';
 import { htmlToText } from "../../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<{ Name?: string } | null>(null);
+  interface HomepageCourse {
+    id: string;
+    title: string;
+    thumbnail: string;
+    instructor: string;
+    progress: number;
+    enrolledAt: Date;
+    lastAccessed: Date;
+  }
   const [enrolledCourses, setEnrolledCourses] = useState<HomepageCourse[]>([]);
   const [recommendedCourses, setRecommendedCourses] = useState<CourseGetAllResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,9 +65,6 @@ export default function HomePage() {
   useEffect(() => {
     const loadHomeData = async () => {
       if (!user?.email) {
-        // If no user, use mock data
-        // setEnrolledCourses(getMockEnrolledCourses());
-        // setRecommendedCourses(getMockRecommendedCourses());
         setLoading(false);
         return;
       }
@@ -71,28 +73,58 @@ export default function HomePage() {
         setLoading(true);
         setError(null);
 
-        console.log('Loading home data for user:', user.email);
-        const homeData = await getLearnerHomeData(user.email);
-        console.log('Home data loaded:', homeData);
+        console.log('Loading enrolled courses for user:', user.email);
+        // Get enrolled courses from API
+        const enrollments = await enrollmentApiService.getMyEnrollments();
+        console.log('Found enrollments:', enrollments);
 
-        if (homeData.error) {
-          
-          // setEnrolledCourses(getMockEnrolledCourses());
-          // setRecommendedCourses(getMockRecommendedCourses());
-          setError(homeData.error);
-          toast.warning('Using sample data. Some features may be limited.');
-        } else {
-          setEnrolledCourses(homeData.enrolledCourses);
-          // setRecommendedCourses(homeData.recommendedCourses);
-          setError(null);
-        }
+        // Transform enrollments to homepage format
+        const enrolledCoursesData = await Promise.all(
+          enrollments.slice(0, 4).map(async (enrollment: UserEnrollment) => {
+            try {
+              // Use progress from enrollment API (already includes progress data)
+              let progressValue = enrollment.progress || 0;
+              let lastAccessedDate = enrollment.lastAccessedAt 
+                ? new Date(enrollment.lastAccessedAt) 
+                : new Date(enrollment.enrolledDate);
+              
+              // If progress is 0, try to fetch from progress API
+              if (progressValue === 0) {
+                try {
+                  const progress = await progressApiService.getProgress(enrollment.courseId);
+                  if (progress) {
+                    progressValue = progress.progress || 0;
+                    lastAccessedDate = progress.lastAccessedAt 
+                      ? new Date(progress.lastAccessedAt) 
+                      : lastAccessedDate;
+                  }
+                } catch (err) {
+                  console.warn(`Could not fetch progress for course ${enrollment.courseId}:`, err);
+                }
+              }
+              
+              return {
+                id: enrollment.courseId.toString(),
+                title: enrollment.courseTitle,
+                thumbnail: enrollment.courseThumbnail || "/Images/courses/default-course.jpg",
+                instructor: enrollment.instructorName || "Unknown Instructor",
+                progress: progressValue,
+                enrolledAt: new Date(enrollment.enrolledDate),
+                lastAccessed: lastAccessedDate,
+              };
+            } catch (err) {
+              console.error(`Error loading course ${enrollment.courseId}:`, err);
+              return null;
+            }
+          })
+        );
+
+        setEnrolledCourses(enrolledCoursesData.filter(c => c !== null) as HomepageCourse[]);
+        setError(null);
       } catch (error) {
         console.error('Error loading home data:', error);
-        // Fall back to mock data
-        // setEnrolledCourses(getMockEnrolledCourses());
-        // setRecommendedCourses(getMockRecommendedCourses());
         setError('Failed to load data');
-        toast.error('Failed to load data');
+        toast.error('Failed to load enrolled courses');
       } finally {
         setLoading(false);
       }
@@ -126,19 +158,32 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
 
-      const homeData = await getLearnerHomeData(user.email);
-
-      if (homeData.error) {
-        // setEnrolledCourses(getMockEnrolledCourses());
-        // setRecommendedCourses(getMockRecommendedCourses());
-        setError(homeData.error);
-        toast.warning('Failed to load data');
-      } else {
-        setEnrolledCourses(homeData.enrolledCourses);
-        // setRecommendedCourses(homeData.recommendedCourses);
-        setError(null);
-        toast.success('Data refreshed successfully!');
-      }
+      // Reload enrolled courses
+      const enrollments = await enrollmentApiService.getMyEnrollments();
+      const enrolledCoursesData = await Promise.all(
+        enrollments.slice(0, 4).map(async (enrollment: UserEnrollment) => {
+          try {
+            const courseDetails = await courseApiService.getCourseDetails(enrollment.courseId);
+            const progress = await progressApiService.getProgress(enrollment.courseId);
+            
+            return {
+              id: enrollment.courseId.toString(),
+              title: enrollment.courseTitle,
+              thumbnail: enrollment.courseThumbnail || "/Images/courses/default-course.jpg",
+              instructor: enrollment.instructorName || "Unknown Instructor",
+              progress: progress?.progress || 0,
+              enrolledAt: new Date(enrollment.enrolledDate),
+              lastAccessed: progress?.lastAccessedAt ? new Date(progress.lastAccessedAt) : new Date(enrollment.enrolledDate),
+            };
+          } catch (err) {
+            console.error(`Error loading course ${enrollment.courseId}:`, err);
+            return null;
+          }
+        })
+      );
+      setEnrolledCourses(enrolledCoursesData.filter(c => c !== null) as HomepageCourse[]);
+      setError(null);
+      toast.success('Data refreshed successfully!');
     } catch (error) {
       console.error('Error refreshing data:', error);
       // setEnrolledCourses(getMockEnrolledCourses());
@@ -375,9 +420,37 @@ export default function HomePage() {
             </div>
           ) : enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* {enrolledCourses.map((course, index) => (
-                <CourseCard key={course.id || index} course={course} progress />
-              ))} */}
+              {enrolledCourses.map((course, index) => (
+                <div
+                  key={course.id || index}
+                  className="course-card overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    if (course.progress && course.progress > 0) {
+                      window.location.href = `/#/learner/current-course?courseId=${course.id}`;
+                    } else {
+                      window.location.href = `/#/courseDetails?courseId=${course.id}`;
+                    }
+                  }}
+                >
+                  <div className="relative">
+                    {course.thumbnail ? (
+                      <img src={course.thumbnail} alt={course.title} />
+                    ) : (
+                      <img src="/Logos/brand-icon.png" alt={course.title} />
+                    )}
+                  </div>
+                  <div className="course-details-section">
+                    <div className="course-content">
+                      <div className="course-students">
+                        <div className="py-0.5 flex gap-2 items-center">
+                          <span>{course.progress?.toFixed(0) ?? 0}% complete</span>
+                        </div>
+                      </div>
+                      <h3 className="course-title line-clamp-2">{course.title}</h3>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-12">

@@ -180,7 +180,7 @@ export default function Courses() {
                     </div>
 
                     <div className="course-pricing">
-                      {course.pricing === null || course.pricing === "" ? (
+                      {course.pricing === null || course.pricing === "" || course.pricing?.toLowerCase() === "free" ? (
                         <div className="course-free">
                           <div className="flex items-center gap-2">
                             <span className="badge-free">Free</span>

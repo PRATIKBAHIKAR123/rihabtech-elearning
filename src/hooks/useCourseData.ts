@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { courseApiService, CourseResponse } from '../utils/courseApiService';
+import { courseApiService, CourseResponse, CourseUpdateRequest } from '../utils/courseApiService';
 import { toast } from 'sonner';
 import { transformApiCurriculumToForm, sortCurriculumBySeqNo, stripFilesFromCurriculumForStorage } from '../utils/curriculumHelper';
 
@@ -191,4 +191,63 @@ export const clearCourseData = () => {
 // Helper function to trigger course data refresh when course ID changes
 export const triggerCourseDataRefresh = () => {
   window.dispatchEvent(new CustomEvent('courseIdChanged'));
+};
+
+// Helper function to transform curriculum data to match CourseUpdateRequest type
+export const transformCurriculumForUpdate = (curriculum: any): CourseUpdateRequest["curriculum"] | undefined => {
+  if (!curriculum || !curriculum.sections) return undefined;
+  
+  return {
+    sections: curriculum.sections.map((section: any) => ({
+      ...(section.id !== undefined && { id: section.id }),
+      name: section.name,
+      published: section.published !== undefined ? section.published : true,
+      seqNo: section.seqNo || 1,
+      items: section.items?.map((item: any) => {
+        const transformedItem: any = {
+          ...(item.id !== undefined && { id: item.id }),
+          type: item.type,
+          published: item.published !== undefined ? item.published : true,
+          ...(item.seqNo !== undefined && { seqNo: item.seqNo }),
+        };
+
+        // Copy common fields
+        if (item.lectureName !== undefined) transformedItem.lectureName = item.lectureName;
+        if (item.description !== undefined) transformedItem.description = item.description;
+        if (item.contentType !== undefined) transformedItem.contentType = item.contentType;
+        if (item.videoSource !== undefined) transformedItem.videoSource = item.videoSource;
+        if (item.contentUrl !== undefined) transformedItem.contentUrl = item.contentUrl;
+        if (item.contentText !== undefined) transformedItem.contentText = item.contentText;
+        if (item.articleSource !== undefined) transformedItem.articleSource = item.articleSource;
+        if (item.isPromotional !== undefined) transformedItem.isPromotional = item.isPromotional;
+        if (item.duration !== undefined) transformedItem.duration = item.duration;
+        if (item.contentFiles !== undefined) transformedItem.contentFiles = item.contentFiles;
+        if (item.resources !== undefined) transformedItem.resources = item.resources;
+
+        // Quiz specific fields
+        if (item.type === 'quiz') {
+          if (item.quizTitle !== undefined) transformedItem.quizTitle = item.quizTitle;
+          if (item.quizDescription !== undefined) transformedItem.quizDescription = item.quizDescription;
+          if (item.questions !== undefined) transformedItem.questions = item.questions;
+        }
+
+        // Assignment specific fields
+        if (item.type === 'assignment') {
+          if (item.title !== undefined) transformedItem.title = item.title;
+          if (item.totalMarks !== undefined) transformedItem.totalMarks = item.totalMarks;
+          if (item.assignmentQuestions !== undefined) {
+            transformedItem.assignmentQuestions = item.assignmentQuestions.map((q: any) => ({
+              ...(q.id !== undefined && { id: q.id }),
+              question: q.question,
+              marks: q.marks,
+              answer: q.answer || '', // Ensure answer is always a string
+              ...(q.maxWordLimit !== undefined && { maxWordLimit: q.maxWordLimit }),
+            }));
+          }
+        }
+
+        return transformedItem;
+      }) || [],
+    })),
+  };
 };

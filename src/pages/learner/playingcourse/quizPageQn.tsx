@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Clock, CheckCircle, XCircle, ArrowLeft, ArrowRight, Flag, AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Checkbox } from '../../../components/ui/checkbox';
+import { quizProgressApiService } from '../../../utils/quizProgressApiService';
+import { assignmentProgressApiService } from '../../../utils/assignmentProgressApiService';
 
 interface QuizQuestion {
+  id?: number | string;
   question: string;
   options?: string[];
   correctOption?: number[];
@@ -25,10 +28,36 @@ interface QuizData {
 interface QuizPageProps {
   quizData?: QuizData | null;
   loading?: boolean;
+  courseId?: number | null;
+  sectionId?: number | null;
+  quizId?: number | null;
+  assignmentId?: number | null;
+  lectureId?: number | null;
 }
 
-const QuizPage: React.FC<QuizPageProps> = ({ quizData: propQuizData, loading = false }) => {
-  console.log('QuizPage received props:', { propQuizData, loading });
+const QuizPage: React.FC<QuizPageProps> = ({ 
+  quizData: propQuizData, 
+  loading = false,
+  courseId,
+  sectionId,
+  quizId,
+  assignmentId,
+  lectureId
+}) => {
+  console.log('QuizPage received props:', { propQuizData, loading, courseId, sectionId, quizId, assignmentId, lectureId });
+  
+  // Determine if this is an assignment
+  // Check multiple sources: prop data, assignmentId presence, or if quizId is actually an assignment
+  const isAssignment = propQuizData?.isAssignment || 
+                       assignmentId !== null || 
+                       (quizId !== null && propQuizData?.isAssignment === true);
+  
+  // If we have assignmentId but quizId was passed, use assignmentId
+  const finalAssignmentId = assignmentId || (isAssignment && quizId ? quizId : null);
+  const finalQuizId = !isAssignment ? quizId : null;
+  
+  const quizStartTime = useRef<number | null>(null);
+  const saveProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Default quiz data for fallback
   const defaultQuizData: QuizData = {
@@ -104,19 +133,90 @@ const QuizPage: React.FC<QuizPageProps> = ({ quizData: propQuizData, loading = f
         ? currentAnswers.filter((idx) => idx !== optionIndex)
         : [...currentAnswers, optionIndex];
       
-      return {
+      const updated = {
         ...prev,
         [questionIndex]: newAnswers
       };
+      
+      // Save progress incrementally (debounced)
+      saveProgress(updated, essayAnswers);
+      
+      return updated;
     });
   };
 
   // Handle essay answer input
   const handleEssayAnswer = (questionIndex: number, answer: string) => {
-    setEssayAnswers((prev) => ({
-      ...prev,
-      [questionIndex]: answer
-    }));
+    setEssayAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [questionIndex]: answer
+      };
+      
+      // Save progress incrementally (debounced)
+      saveProgress(selectedAnswers, updated);
+      
+      return updated;
+    });
+  };
+  
+  // Save progress incrementally (debounced to avoid too many API calls)
+  const saveProgress = async (answers: Record<number, number[]>, essayAnswers: Record<number, string>) => {
+    // For assignments, we don't save incrementally - only on submit
+    if (isAssignment) {
+      return;
+    }
+    
+    // Only save if we have the required IDs (skip for assignments)
+    if (!courseId || !sectionId || !finalQuizId) {
+      console.log('Missing required IDs for saving quiz progress:', { courseId, sectionId, finalQuizId });
+      return;
+    }
+    
+    // Clear existing timeout
+    if (saveProgressTimeoutRef.current) {
+      clearTimeout(saveProgressTimeoutRef.current);
+    }
+    
+    // Debounce: save after 2 seconds of no changes
+    saveProgressTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Convert answers to the format expected by the API
+        const answerArray: Array<{ questionId: number; selectedOptions: number[] }> = [];
+        
+        // Get question IDs from quiz data
+        quizData.questions.forEach((question, index) => {
+          if (question.type === 'multiple_choice') {
+            const selectedOptions = answers[index] || [];
+            // Use index as questionId if question doesn't have an id property
+            const questionId = (question as any).id || index;
+            answerArray.push({
+              questionId: typeof questionId === 'string' ? parseInt(questionId, 10) : questionId,
+              selectedOptions: selectedOptions
+            });
+          }
+        });
+        
+        const answersJson = JSON.stringify(answerArray);
+        const timeSpent = quizStartTime.current 
+          ? Math.floor((Date.now() - quizStartTime.current) / 1000)
+          : 0;
+        
+        // Save progress (this will create/update QuizProgress but not mark as completed)
+        await quizProgressApiService.submitQuiz({
+          courseId: courseId,
+          sectionId: sectionId,
+          lectureId: lectureId || undefined,
+          quizId: finalQuizId!,
+          answers: answersJson,
+          timeSpent: timeSpent
+        });
+        
+        console.log('Quiz progress saved incrementally');
+      } catch (error) {
+        console.error('Error saving quiz progress:', error);
+      }
+    }, 2000); // 2 second debounce
   };
 
   // Navigate questions
@@ -149,8 +249,104 @@ const QuizPage: React.FC<QuizPageProps> = ({ quizData: propQuizData, loading = f
     });
   };
 
-  // Submit quiz
-  const submitQuiz = () => {
+  // Submit quiz or assignment
+  const submitQuiz = async () => {
+    // Clear any pending progress saves
+    if (saveProgressTimeoutRef.current) {
+      clearTimeout(saveProgressTimeoutRef.current);
+      saveProgressTimeoutRef.current = null;
+    }
+    
+    const timeSpent = quizStartTime.current 
+      ? Math.floor((Date.now() - quizStartTime.current) / 1000)
+      : 0;
+    
+    // Handle assignment submission
+    if (isAssignment && finalAssignmentId) {
+      if (!courseId || !sectionId) {
+        console.log('Missing required IDs for submitting assignment:', { courseId, sectionId, finalAssignmentId });
+        setQuizCompleted(true);
+        setShowResults(true);
+        return;
+      }
+      
+      try {
+        // Convert essay answers to assignment submission format
+        const submissionArray: Array<{ questionId: number; answer: string }> = [];
+        
+        quizData.questions.forEach((question, index) => {
+          const questionId = (question as any).id || index;
+          const answer = essayAnswers[index] || '';
+          submissionArray.push({
+            questionId: typeof questionId === 'string' ? parseInt(questionId, 10) : questionId,
+            answer: answer
+          });
+        });
+        
+        const submissionJson = JSON.stringify(submissionArray);
+        
+        console.log('Submitting assignment:', { courseId, sectionId, assignmentId: finalAssignmentId, submission: submissionJson });
+        
+        // Submit assignment to API
+        const result = await assignmentProgressApiService.submitAssignment({
+          courseId: courseId,
+          sectionId: sectionId,
+          assignmentId: finalAssignmentId,
+          submission: submissionJson,
+          timeSpent: timeSpent
+        });
+        
+        console.log('Assignment submitted successfully:', result);
+      } catch (error) {
+        console.error('Error submitting assignment:', error);
+        // Still show results even if API call fails
+      }
+    }
+    // Handle quiz submission
+    else if (!isAssignment && finalQuizId) {
+      if (!courseId || !sectionId) {
+        console.log('Missing required IDs for submitting quiz:', { courseId, sectionId, finalQuizId });
+        setQuizCompleted(true);
+        setShowResults(true);
+        return;
+      }
+      
+      try {
+        // Convert answers to the format expected by the API
+        const answerArray: Array<{ questionId: number; selectedOptions: number[] }> = [];
+        
+        quizData.questions.forEach((question, index) => {
+          if (question.type === 'multiple_choice') {
+            const selectedOptions = selectedAnswers[index] || [];
+            const questionId = (question as any).id || index;
+            answerArray.push({
+              questionId: typeof questionId === 'string' ? parseInt(questionId, 10) : questionId,
+              selectedOptions: selectedOptions
+            });
+          }
+        });
+        
+        const answersJson = JSON.stringify(answerArray);
+        
+        // Submit quiz to API
+        const result = await quizProgressApiService.submitQuiz({
+          courseId: courseId,
+          sectionId: sectionId,
+          lectureId: lectureId || undefined,
+          quizId: finalQuizId,
+          answers: answersJson,
+          timeSpent: timeSpent
+        });
+        
+        console.log('Quiz submitted successfully:', result);
+      } catch (error) {
+        console.error('Error submitting quiz:', error);
+        // Still show results even if API call fails
+      }
+    } else {
+      console.log('Missing required IDs or invalid type:', { isAssignment, finalQuizId, finalAssignmentId, quizId, assignmentId });
+    }
+    
     setQuizCompleted(true);
     setShowResults(true);
   };
@@ -292,7 +488,10 @@ const QuizPage: React.FC<QuizPageProps> = ({ quizData: propQuizData, loading = f
           </div>
 
           <button
-            onClick={() => setQuizStarted(true)}
+            onClick={() => {
+              quizStartTime.current = Date.now();
+              setQuizStarted(true);
+            }}
             className="w-full bg-primary text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Start {quizData.isAssignment ? 'Assignment' : 'Quiz'}

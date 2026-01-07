@@ -99,6 +99,49 @@ export interface CourseUpdateRequest {
   };
 }
 
+// CourseDetailsResponse matches the API response from /course/details/{id}
+export interface CourseDetailsResponse {
+  id: number;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  category?: number | null;
+  subCategory?: number | null;
+  level?: string | null;
+  language?: string | null;
+  pricing?: string | null;
+  thumbnailUrl?: string | null;
+  promoVideoUrl?: string | null;
+  welcomeMessage?: string | null;
+  congratulationsMessage?: string | null;
+  instructorId?: number | null;
+  InstructorId?: number | null; // Backward compatibility
+  instructorName?: string | null;
+  InstructorName?: string | null; // Backward compatibility
+  status?: number;
+  isPublished?: boolean;
+  hasUnpublishedChanges?: boolean;
+  is_featured?: boolean;
+  IsFeatured?: boolean;
+  submittedAt?: string | null;
+  createdDate?: string;
+  modifiedDate?: string;
+  learn?: string[];
+  requirements?: string[];
+  target?: string[];
+  curriculum?: {
+    sections: Array<{
+      id?: number;
+      name: string;
+      published: boolean;
+      seqNo?: number;
+      items: Array<any>;
+    }>;
+  };
+  enrollment?: number;
+  rating?: number;
+}
+
 export interface CourseResponse {
   id: number;
   title: string;
@@ -144,9 +187,12 @@ export interface CourseResponse {
   createdDate?: string;
   curriculum?: {
     sections: Array<{
+      id?: number;
       name: string;
       published: boolean;
+      seqNo?: number;
       items: Array<{
+        id?: number;
         type: 'lecture' | 'quiz' | 'assignment';
         lectureName?: string;
         description?: string;
@@ -156,6 +202,7 @@ export interface CourseResponse {
         contentText?: string;
         articleSource?: 'upload' | 'link' | 'write';
         contentFiles?: Array<{
+          id?: number;
           name: string;
           url: string;
           cloudinaryUrl?: string;
@@ -165,6 +212,7 @@ export interface CourseResponse {
           uploadedAt: string;
         }>;
         resources?: Array<{
+          id?: number;
           name: string;
           url?: string;
           cloudinaryUrl?: string;
@@ -172,6 +220,7 @@ export interface CourseResponse {
           type: string;
         }>;
         published: boolean;
+        seqNo?: number;
         isPromotional?: boolean;
         duration?: number;
         // Quiz specific fields
@@ -188,7 +237,7 @@ export interface CourseResponse {
         assignmentQuestions?: Array<{
           question: string;
           marks: number;
-          answer: string;
+          answer?: string;
           maxWordLimit?: number;
         }>;
       }>;
@@ -283,8 +332,8 @@ class CourseApiService {
     return apiService.get<CourseResponse>(`/course/get-by-id-public/${id}`);
   }
 
-    async getCourseDetails(id: number): Promise<CourseResponse> {
-    return apiService.get<CourseResponse>(`/course/details/${id}`);
+    async getCourseDetails(id: number): Promise<CourseDetailsResponse> {
+    return apiService.get<CourseDetailsResponse>(`/course/details/${id}`);
   }
 
   // Get all courses for instructor

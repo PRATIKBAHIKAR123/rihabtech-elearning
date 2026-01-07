@@ -1,5 +1,5 @@
 import React from 'react';
-import { CourseDetails } from '../../../utils/firebaseCoursePreview';
+import { CourseDetails } from '../../../utils/courseDetailsInterface';
 import { AlertCircle, Clock, Edit3 } from 'lucide-react';
 
 interface OverviewProps {

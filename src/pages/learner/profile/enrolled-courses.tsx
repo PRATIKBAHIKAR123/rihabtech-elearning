@@ -12,12 +12,9 @@ import {
 import { Button } from "../../../components/ui/button";
 import { useAuth } from "../../../context/AuthContext";
 import LoadingIcon from "../../../components/ui/LoadingIcon";
-import { getEnrolledCourses } from "../../../utils/firebaseEnrolledCourses";
-import {
-  Course,
-  calculateCourseDuration,
-} from "../../../utils/firebaseCourses";
-import { StudentEnrollment } from "../../../utils/firebaseStudentProgress";
+import { enrollmentApiService, UserEnrollment } from "../../../utils/enrollmentApiService";
+import { progressApiService } from "../../../utils/progressApiService";
+import { courseApiService } from "../../../utils/courseApiService";
 
 interface EnrolledCourseDisplay {
   id: string;
@@ -54,61 +51,110 @@ const EnrolledCourses: React.FC<EnrolledCoursesProps> = ({ profile }) => {
     setError("");
 
     try {
-      // Get enrolled courses from Firebase using email as studentId
+      // Get enrolled courses from API
       console.log("Loading enrolled courses for user:", user.email);
-      const enrolledCourses = await getEnrolledCourses(user.email);
-      console.log("Found enrolled courses:", enrolledCourses);
+      const enrollments = await enrollmentApiService.getMyEnrollments();
+      console.log("Found enrollments:", enrollments);
 
-      // Transform the data to match the display interface
-      const transformedCourses: EnrolledCourseDisplay[] = enrolledCourses.map(
-        (enrolledCourse) => {
-          const course = enrolledCourse as Course;
-          const enrollment = enrolledCourse.enrollment as StudentEnrollment;
-
-          // Convert Firestore timestamps to JavaScript Date objects
-          const convertTimestamp = (timestamp: any): Date => {
-            if (timestamp instanceof Date) {
-              return timestamp;
+      // Fetch progress and course details for each enrollment
+      const transformedCourses: EnrolledCourseDisplay[] = await Promise.all(
+        enrollments.map(async (enrollment: UserEnrollment) => {
+          try {
+            // Fetch course details for duration and other info
+            const courseDetails = await courseApiService.getCourseDetails(enrollment.courseId);
+            
+            // Use progress from enrollment API (already includes progress data)
+            // Fallback to fetching progress if not available in enrollment
+            let progressPercentage = enrollment.progress || 0;
+            let completedLessons = 0;
+            let lastAccessed = enrollment.lastAccessedAt 
+              ? new Date(enrollment.lastAccessedAt) 
+              : new Date(enrollment.enrolledDate);
+            
+            // If progress is 0, try to fetch from progress API
+            if (progressPercentage === 0) {
+              try {
+                const progress = await progressApiService.getProgress(enrollment.courseId);
+                if (progress) {
+                  progressPercentage = progress.progress || 0;
+                  completedLessons = progress.completedLecturesCount || 0;
+                  lastAccessed = progress.lastAccessedAt 
+                    ? new Date(progress.lastAccessedAt) 
+                    : lastAccessed;
+                }
+              } catch (err) {
+                console.warn(`Could not fetch progress for course ${enrollment.courseId}:`, err);
+              }
             }
-            if (timestamp && typeof timestamp.toDate === "function") {
-              return timestamp.toDate();
+            
+            // Calculate total lessons from course curriculum
+            const totalLessons = courseDetails?.curriculum?.sections?.reduce(
+              (count, section) => count + (section.items?.length || 0),
+              0
+            ) || 0;
+            
+            // If we don't have completedLessons from progress API, estimate from progress percentage
+            if (completedLessons === 0 && totalLessons > 0 && progressPercentage > 0) {
+              completedLessons = Math.round((progressPercentage / 100) * totalLessons);
             }
-            return new Date(timestamp);
-          };
 
-          const enrolledAt = convertTimestamp(enrollment.enrolledAt);
-          const lastAccessed = convertTimestamp(enrollment.lastAccessedAt);
+            // Calculate duration from course
+            const totalDuration = courseDetails?.curriculum?.sections?.reduce(
+              (sum, section) => sum + (section.items?.reduce(
+                (itemSum, item) => itemSum + (item.duration || 0),
+                0
+              ) || 0),
+              0
+            ) || 0;
+            const durationHours = Math.floor(totalDuration / 3600);
+            const durationMinutes = Math.floor((totalDuration % 3600) / 60);
+            const durationText = durationHours > 0 
+              ? `${durationHours}h ${durationMinutes}m`
+              : `${durationMinutes}m`;
 
-          // Calculate course duration in hours
-          const courseDurationHours = calculateCourseDuration(course);
-          const durationText =
-            courseDurationHours > 0
-              ? `${courseDurationHours} hours`
-              : `${enrolledCourse.courseProgress.estimatedTimeRemaining} minutes`;
-
-          return {
-            id: course.id,
-            courseId: course.id,
-            courseName: course.title,
-            instructorName: course.members?.[0]?.email || "Unknown Instructor",
-            thumbnail:
-              course.thumbnailUrl || "/Images/courses/default-course.jpg",
-            category: course.category || "General",
-            enrolledAt: enrolledAt,
-            progress: enrollment.progress,
-            totalLessons: enrolledCourse.courseProgress.totalModules,
-            completedLessons: enrolledCourse.courseProgress.completedModules,
-            lastAccessed: lastAccessed,
-            status: enrollment.isActive
-              ? enrollment.progress === 100
-                ? "completed"
-                : "active"
-              : "paused",
-            duration: durationText,
-            rating: 4.5, // Default rating - you can add this to your course data
-            totalStudents: 100, // Default - you can add this to your course data
-          };
-        }
+            return {
+              id: enrollment.courseId.toString(),
+              courseId: enrollment.courseId.toString(),
+              courseName: enrollment.courseTitle,
+              instructorName: enrollment.instructorName || "Unknown Instructor",
+              thumbnail: enrollment.courseThumbnail || "/Images/courses/default-course.jpg",
+              category: courseDetails?.category ? (typeof courseDetails.category === 'string' ? courseDetails.category : String(courseDetails.category)) : "General",
+              enrolledAt: new Date(enrollment.enrolledDate),
+              progress: progressPercentage,
+              totalLessons: totalLessons,
+              completedLessons: completedLessons,
+              lastAccessed: lastAccessed,
+              status: progressPercentage >= 100 
+                ? "completed" 
+                : progressPercentage > 0 
+                ? "active" 
+                : "paused",
+              duration: durationText,
+              rating: courseDetails?.rating || 0,
+              totalStudents: courseDetails?.enrollment || 0,
+            };
+          } catch (err) {
+            console.error(`Error loading course ${enrollment.courseId}:`, err);
+            // Return a basic entry even if details fail
+            return {
+              id: enrollment.courseId.toString(),
+              courseId: enrollment.courseId.toString(),
+              courseName: enrollment.courseTitle,
+              instructorName: enrollment.instructorName || "Unknown Instructor",
+              thumbnail: enrollment.courseThumbnail || "/Images/courses/default-course.jpg",
+              category: "General",
+              enrolledAt: new Date(enrollment.enrolledDate),
+              progress: 0,
+              totalLessons: 0,
+              completedLessons: 0,
+              lastAccessed: new Date(enrollment.enrolledDate),
+              status: "paused" as const,
+              duration: "0m",
+              rating: 0,
+              totalStudents: 0,
+            };
+          }
+        })
       );
 
       setCourses(transformedCourses);
@@ -355,15 +401,35 @@ const EnrolledCourses: React.FC<EnrolledCoursesProps> = ({ profile }) => {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-2">
-                    <Button className="bg-[#ff7700] hover:bg-[#e55e00] text-white text-sm">
+                    <Button
+                      className="bg-[#ff7700] hover:bg-[#e55e00] text-white text-sm"
+                      onClick={() => {
+                        // Navigate to current course player
+                        window.location.href = `/#/learner/current-course?courseId=${course.courseId}`;
+                      }}
+                    >
                       <Play className="w-4 h-4 mr-2" />
                       Continue Learning
                     </Button>
-                    <Button variant="outline" className="text-sm">
+                    <Button
+                      variant="outline"
+                      className="text-sm"
+                      onClick={() => {
+                        // Navigate to course details page
+                        window.location.href = `/#/courseDetails?courseId=${course.courseId}`;
+                      }}
+                    >
                       View Details
                     </Button>
                     {course.status === "completed" && (
-                      <Button variant="outline" className="text-sm">
+                      <Button
+                        variant="outline"
+                        className="text-sm"
+                        onClick={() => {
+                          // TODO: Navigate to certificate page when implemented
+                          window.location.href = `/#/learner/certificates?courseId=${course.courseId}`;
+                        }}
+                      >
                         <Award className="w-4 h-4 mr-2" />
                         View Certificate
                       </Button>

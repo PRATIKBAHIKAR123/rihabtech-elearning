@@ -1,27 +1,25 @@
-import { db } from "../lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-
+// Interface for course details from API (replaces Firebase interface)
 export interface CourseDetails {
   id: string;
   title: string;
-  subtitle: string;
-  description: string;
-  thumbnailUrl: string;
+  subtitle?: string;
+  description?: string;
+  thumbnailUrl?: string;
   promoVideoUrl?: string;
-  featured: boolean;
-  isPublished: boolean;
-  status: number;
-  category: string;
-  subcategory?: string;
-  level: string;
-  language: string;
+  featured?: boolean;
+  isPublished?: boolean;
+  status?: number;
+  category?: string | number;
+  subCategory?: string | number;
+  level?: string;
+  language?: string;
   progress?: number;
-  pricing: string;
-  submittedAt: string;
+  pricing?: string;
+  submittedAt?: string;
   approvedAt?: string;
   createdAt?: string;
-  instructorId: string;
-  instructorName: string;
+  instructorId?: string | number;
+  instructorName?: string;
   learn?: string[];
   requirements?: string[];
   target?: string[];
@@ -35,20 +33,25 @@ export interface CourseDetails {
   };
   curriculum?: {
     sections: Array<{
-      id?: string;
+      id?: string | number;
+      sectionId?: number;
       name: string;
       published: boolean;
+      seqNo?: number;
       items: Array<{
-        id?: string;
-        contentType: string;
-        lectureName: string;
-        description: string;
-        published: boolean;
+        id?: string | number;
+        sectionId?: number;
+        contentType?: string;
+        lectureName?: string;
+        description?: string;
+        published?: boolean;
         isPromotional?: boolean;
         contentFiles?: Array<{
           duration?: number | string;
           name: string;
           url: string;
+          status?: string;
+          id?: number;
         }>;
         contentText?: string;
         articleSource?: string;
@@ -59,6 +62,19 @@ export interface CourseDetails {
           cloudinaryPublicId?: string;
           type: string;
         }>;
+        type?: string;
+        videoSource?: string;
+        contentUrl?: string;
+        duration?: number;
+        quizTitle?: string;
+        quizDescription?: string;
+        title?: string;
+        questions?: Array<any>;
+        totalMarks?: number;
+        marks?: number;
+        maxWordLimit?: number;
+        answer?: string;
+        seqNo?: number;
       }>;
     }>;
   };
@@ -67,37 +83,15 @@ export interface CourseDetails {
     email: string;
     role: string;
   }>;
-  
-  // New fields for tracking edited vs published content
-  hasUnpublishedChanges?: boolean; // Flag to indicate if there are changes not yet published
+  hasUnpublishedChanges?: boolean;
   editSummary?: {
-    newContent: string[]; // List of new content added
-    editedContent: string[]; // List of content that was edited
-    removedContent: string[]; // List of content that was removed
+    newContent: string[];
+    editedContent: string[];
+    removedContent: string[];
   };
+  enrollment?: number;
+  rating?: number;
 }
-
-export const getFullCourseData = async (courseId: string): Promise<CourseDetails | null> => {
-  if (!courseId) {
-    return null;
-  }
-  try {
-    const draftRef = doc(db, "courseDrafts", courseId);
-    const docSnap = await getDoc(draftRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as any;
-      return {
-        id: docSnap.id,
-        ...data
-      } as CourseDetails;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching course data:", error);
-    return null;
-  }
-};
 
 // Helper function to extract quiz data from course module
 export const extractQuizData = (module: any) => {
@@ -123,6 +117,7 @@ export const extractQuizData = (module: any) => {
     if (q.options && q.correctOption) {
       console.log(`Question ${index + 1} is already in quiz format`);
       return {
+        id: q.id || index, // Include question ID
         question: q.question,
         options: q.options,
         correctOption: q.correctOption,
@@ -134,6 +129,7 @@ export const extractQuizData = (module: any) => {
     if (q.question && q.answer) {
       console.log(`Question ${index + 1} is assignment format, keeping as essay`);
       return {
+        id: q.id || index, // Include question ID
         question: q.question,
         answer: q.answer,
         marks: q.marks || 100,
@@ -145,6 +141,7 @@ export const extractQuizData = (module: any) => {
     // Fallback for any other format
     console.log(`Question ${index + 1} using fallback format`);
     return {
+      id: q.id || index, // Include question ID
       question: q.question || `Question ${index + 1}`,
       options: ["Option 1", "Option 2", "Option 3", "Option 4"],
       correctOption: [0],
@@ -164,3 +161,4 @@ export const extractQuizData = (module: any) => {
   console.log('Final quiz data result:', result);
   return result;
 };
+

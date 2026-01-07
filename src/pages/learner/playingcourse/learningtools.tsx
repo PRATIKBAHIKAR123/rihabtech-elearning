@@ -2,7 +2,7 @@ import { Play, Plus, Clock, Calendar, Trash2, Edit3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import LearningReminderDialog from "./learningReminderDialog";
-import { firebaseLearningRemindersService, LearningReminder } from "../../../utils/firebaseLearningReminders";
+import { learningReminderApiService, LearningReminder } from "../../../utils/learningReminderApiService";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
 
@@ -21,59 +21,36 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [reminderToDelete, setReminderToDelete] = useState<LearningReminder | null>(null);
 
-  // Get user ID - prioritize email since that's what's stored in Firebase
-  const userId = user?.email || user?.UserName || user?.uid;
-
   // Load reminders when component mounts
   useEffect(() => {
-    if (!userId) {
-      console.log('Learning Tools: No user ID available');
+    if (!user) {
+      console.log('Learning Tools: No user available');
       setLoading(false);
       return;
     }
 
-    console.log('Learning Tools: Loading reminders for user:', userId);
-    setLoading(true);
-    setError(null);
-
-    // Subscribe to real-time updates
-    const unsubscribe = firebaseLearningRemindersService.subscribeToUserReminders(
-      userId,
-      (reminders) => {
-        console.log('Learning Tools: Received reminders from Firebase', reminders);
-        setReminders(reminders);
-        setLoading(false);
-      }
-    );
-
-    // Fallback: Also try to fetch reminders once in case subscription doesn't work
-    const fetchRemindersOnce = async () => {
+    const loadReminders = async () => {
       try {
-        const reminders = await firebaseLearningRemindersService.getUserReminders(userId);
-        console.log('Learning Tools: Fallback fetch result', reminders);
-        if (reminders.length > 0) {
-          setReminders(reminders);
-        }
-        setLoading(false);
+        console.log('Learning Tools: Loading reminders');
+        setLoading(true);
+        setError(null);
+        
+        const reminders = await learningReminderApiService.getUserReminders();
+        console.log('Learning Tools: Loaded reminders', reminders);
+        setReminders(reminders);
       } catch (err) {
-        console.error('Learning Tools: Fallback fetch failed', err);
-        setError('Failed to load reminders');
+        console.error('Learning Tools: Failed to load', err);
+        setError(err instanceof Error ? err.message : 'Failed to load reminders');
+      } finally {
         setLoading(false);
       }
     };
 
-    // Run fallback after a short delay
-    const fallbackTimeout = setTimeout(fetchRemindersOnce, 2000);
-
-    return () => {
-      console.log('Learning Tools: Cleaning up subscription');
-      clearTimeout(fallbackTimeout);
-      unsubscribe();
-    };
-  }, [userId]);
+    loadReminders();
+  }, [user]);
 
   const handleCreateReminder = async (reminderData: any) => {
-    if (!userId) {
+    if (!user) {
       setError("User not authenticated");
       return;
     }
@@ -83,17 +60,24 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
       console.log('Creating/updating reminder with data:', reminderData);
       
       // Extract course ID from the selected content
-      let selectedCourseId = undefined;
+      let selectedCourseId: number | undefined = undefined;
       if (reminderData.attachedContent !== 'none' && reminderData.attachedContent.startsWith('course-')) {
-        selectedCourseId = reminderData.attachedContent.replace('course-', '');
+        const courseIdStr = reminderData.attachedContent.replace('course-', '');
+        selectedCourseId = parseInt(courseIdStr, 10);
+        if (isNaN(selectedCourseId)) {
+          selectedCourseId = undefined;
+        }
       } else if (courseId) {
-        selectedCourseId = courseId;
+        selectedCourseId = parseInt(courseId, 10);
+        if (isNaN(selectedCourseId)) {
+          selectedCourseId = undefined;
+        }
       }
 
       if (editingReminder) {
         // Update existing reminder
         console.log('Updating existing reminder:', editingReminder.id);
-        await firebaseLearningRemindersService.updateReminder(editingReminder.id, {
+        await learningReminderApiService.updateReminder(editingReminder.id, {
           courseId: selectedCourseId,
           name: reminderData.name,
           frequency: reminderData.frequency,
@@ -102,10 +86,15 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
           isActive: true
         });
         console.log('Reminder updated successfully');
+        
+        // Reload reminders
+        const reminders = await learningReminderApiService.getUserReminders();
+        setReminders(reminders);
+        setEditingReminder(null);
+        setIsOpenAddDialog(false);
       } else {
         // Create new reminder
-        const reminderId = await firebaseLearningRemindersService.createReminder({
-          userId,
+        await learningReminderApiService.createReminder({
           courseId: selectedCourseId,
           name: reminderData.name,
           frequency: reminderData.frequency,
@@ -113,7 +102,12 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
           selectedDays: reminderData.selectedDays,
           isActive: true
         });
-        console.log('Reminder created successfully with ID:', reminderId);
+        console.log('Reminder created successfully');
+        
+        // Reload reminders
+        const reminders = await learningReminderApiService.getUserReminders();
+        setReminders(reminders);
+        setIsOpenAddDialog(false);
       }
     } catch (err) {
       console.error("Error creating/updating reminder:", err);
@@ -131,10 +125,14 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
 
     try {
       setError(null);
-      await firebaseLearningRemindersService.deleteReminder(reminderToDelete.id);
+      await learningReminderApiService.deleteReminder(reminderToDelete.id);
       setDeleteConfirmOpen(false);
       setReminderToDelete(null);
       console.log('Reminder deleted successfully');
+      
+      // Reload reminders
+      const reminders = await learningReminderApiService.getUserReminders();
+      setReminders(reminders);
     } catch (err) {
       console.error("Error deleting reminder:", err);
       setError(`Failed to delete reminder: ${(err as any)?.message || 'Unknown error'}`);
@@ -162,7 +160,7 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
     return `${frequencyText} at ${reminder.time}`;
   };
 
-  if (!userId) {
+  if (!user) {
     return (
       <div className="container mx-auto px-2 py-2">
         <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -241,7 +239,7 @@ export default function LearningTools({ courseId, instructorId }: LearningToolsP
                       </p>
                     )}
                     <p className="text-xs text-gray-500">
-                      Created: {reminder.createdAt.toLocaleDateString()} at {reminder.createdAt.toLocaleTimeString()}
+                      Created: {new Date(reminder.createdAt).toLocaleDateString()} at {new Date(reminder.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
