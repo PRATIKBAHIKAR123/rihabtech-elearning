@@ -17,6 +17,7 @@ import { courseApiService, CourseResponse, CourseDetailsResponse } from '../../.
 import { getLevelLabel } from '../../../utils/levels';
 import { reviewApiService, ReviewStats } from '../../../utils/reviewApiService';
 import { certificateApiService, Certificate } from '../../../utils/certificateApiService';
+import { instructorPayoutApiService } from '../../../utils/instructorPayoutApiService';
 
 // Helper function to extract YouTube video ID from URL
 const extractYouTubeVideoId = (url: string): string => {
@@ -295,6 +296,7 @@ const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoCompletedRef = useRef<boolean>(false);
   const lastReportTimeRef = useRef(0);
   const lastUpdateTimeRef = useRef(0); // Separate ref for tracking last update time
+  const lastPayoutWatchTimeRef = useRef<number>(0); // Track last recorded watch time for payout
   const [playbackRate, setPlaybackRate] = useState(1);
   
   // Use a ref to track if progress is being loaded to prevent infinite loops
@@ -841,6 +843,7 @@ useEffect(() => {
     
     const startTime = playerRef.current?.getCurrentTime() || currentTime || 0;
     lastPlayTimeRef.current = startTime;
+    lastPayoutWatchTimeRef.current = 0; // Reset payout watch time tracking when starting new session
     
     try {
       const courseIdNum = parseInt(courseId);
@@ -891,10 +894,11 @@ useEffect(() => {
       }
       lastPlayTimeRef.current = currentPosition;
       
-      // Update lecture progress every 30 seconds (throttle to prevent too many calls)
+      // Update lecture progress every 10 seconds (reduced from 30 for short videos)
+      // This ensures watch time is recorded even for videos shorter than 30 seconds
       const now = Date.now();
       const lastUpdate = lastUpdateTimeRef.current;
-      if (now - lastUpdate >= 30000) {
+      if (now - lastUpdate >= 10000) { // Changed from 30000 to 10000 (10 seconds)
         lastUpdateTimeRef.current = now;
         try {
           const courseIdNum = parseInt(courseId);
@@ -906,16 +910,57 @@ useEffect(() => {
             : activeModule.sectionId;
           
           if (!isNaN(courseIdNum) && sectionId && !isNaN(lectureId)) {
-            const watchTime = Math.floor(currentPosition - startTime);
+            // Calculate incremental watch time since last payout recording
+            const incrementalWatchTime = Math.floor(totalWatched - lastPayoutWatchTimeRef.current);
+            
             try {
               await progressApiService.updateLectureProgress({
                 courseId: courseIdNum,
                 sectionId: sectionId,
                 lectureId: lectureId,
                 currentPosition: currentPosition,
-                watchTime: watchTime,
+                watchTime: totalWatched,
                 isCompleted: false
               });
+              
+              // Record incremental watch time for instructor payout (only for paid courses)
+              // Record any watch time > 0 seconds (removed 30-second threshold to capture all watch time, including short videos)
+              const isPaidCourse = courseData?.pricing && courseData.pricing.toLowerCase() !== 'free';
+              
+              console.log('🔍 Watch Time Recording Check:', {
+                incrementalWatchTime,
+                coursePricing: courseData?.pricing,
+                isFree: courseData?.pricing?.toLowerCase() === 'free',
+                isPaidCourse,
+                courseId: courseIdNum,
+                lectureId: lectureId,
+                totalWatched,
+                lastPayoutWatchTime: lastPayoutWatchTimeRef.current,
+                shouldRecord: incrementalWatchTime > 0 && isPaidCourse
+              });
+              
+              // Record watch time if there's any incremental watch time and course is paid
+              if (incrementalWatchTime > 0 && isPaidCourse) {
+                try {
+                  console.log('✅ Recording watch time for payout:', {
+                    courseId: courseIdNum,
+                    lectureId: lectureId,
+                    watchTimeSeconds: incrementalWatchTime
+                  });
+                  await instructorPayoutApiService.recordWatchTime(courseIdNum, lectureId, incrementalWatchTime);
+                  lastPayoutWatchTimeRef.current = totalWatched; // Update last recorded watch time for payout
+                  console.log('✅ Watch time recorded successfully');
+                } catch (watchTimeError) {
+                  // Don't fail the progress update if watch time recording fails
+                  console.error('❌ Error recording watch time for payout:', watchTimeError);
+                }
+              } else {
+                console.log('⏭️ Skipping watch time recording:', {
+                  reason: incrementalWatchTime <= 0 ? 'No incremental watch time' : 
+                          !courseData?.pricing ? 'No pricing data' : 
+                          courseData.pricing.toLowerCase() === 'free' ? 'Course is free' : 'Unknown reason'
+                });
+              }
               
               // After updating lecture progress, refresh overall progress to ensure it's up to date
               // This ensures progress percentage is recalculated based on watch time
@@ -1010,8 +1055,18 @@ useEffect(() => {
   };
 
   const handleEnded = async () => {
+    console.log('🎬 Video ended - handleEnded called', {
+      totalWatched,
+      courseData: courseData?.pricing,
+      activeModule: activeModule?.id,
+      courseId
+    });
+    
     // Prevent multiple calls
-    if (videoCompletedRef.current) return;
+    if (videoCompletedRef.current) {
+      console.log('⏭️ Video already marked as completed, skipping');
+      return;
+    }
     videoCompletedRef.current = true;
     
     setIsPlaying(false);
@@ -1038,6 +1093,61 @@ useEffect(() => {
             watchTime: totalWatched,
             isCompleted: true
           });
+
+          // Record final incremental watch time for instructor payout (only for paid courses)
+          // Always record any remaining watch time when video ends, even if less than 30 seconds
+          // Use the actual video duration or totalWatched, whichever is higher
+          const finalWatchTime = Math.max(totalWatched, duration || 0);
+          const finalIncrementalWatchTime = Math.floor(finalWatchTime - lastPayoutWatchTimeRef.current);
+          
+          // Get course pricing from courseData or enrichedCourseData
+          const currentCourseData = courseData || enrichedCourseData;
+          const coursePricing = currentCourseData?.pricing;
+          const isPaidCourse = coursePricing && coursePricing.toLowerCase() !== 'free';
+          
+          console.log('🔍 Final Watch Time Recording Check (on video end):', {
+            finalIncrementalWatchTime,
+            totalWatched,
+            duration,
+            finalWatchTime,
+            coursePricing: coursePricing,
+            isFree: coursePricing?.toLowerCase() === 'free',
+            isPaidCourse,
+            courseId: courseIdNum,
+            lectureId: lectureId,
+            lastPayoutWatchTime: lastPayoutWatchTimeRef.current,
+            shouldRecord: finalIncrementalWatchTime > 0 && isPaidCourse,
+            courseDataExists: !!courseData,
+            enrichedCourseDataExists: !!enrichedCourseData
+          });
+          
+          // Record any remaining watch time when video ends (no minimum threshold)
+          // For very short videos, record the full duration if no incremental time was recorded
+          const watchTimeToRecord = finalIncrementalWatchTime > 0 ? finalIncrementalWatchTime : Math.floor(finalWatchTime);
+          
+          if (watchTimeToRecord > 0 && isPaidCourse) {
+            try {
+              console.log('✅ Recording final watch time for payout:', {
+                courseId: courseIdNum,
+                lectureId: lectureId,
+                watchTimeSeconds: watchTimeToRecord,
+                source: finalIncrementalWatchTime > 0 ? 'incremental' : 'full duration'
+              });
+              await instructorPayoutApiService.recordWatchTime(courseIdNum, lectureId, watchTimeToRecord);
+              lastPayoutWatchTimeRef.current = finalWatchTime; // Update last recorded watch time
+              console.log('✅ Final watch time recorded successfully');
+            } catch (watchTimeError) {
+              console.error('❌ Error recording final watch time for payout:', watchTimeError);
+            }
+          } else {
+            console.log('⏭️ Skipping final watch time recording:', {
+              reason: watchTimeToRecord <= 0 ? 'No watch time to record' : 
+                      !coursePricing ? 'No pricing data' : 
+                      coursePricing.toLowerCase() === 'free' ? 'Course is free' : 'Unknown reason',
+              watchTimeToRecord,
+              isPaidCourse
+            });
+          }
 
           // Get section and item seqNo for progress update
           const section = enrichedCourseData?.curriculum?.sections?.[activeModule.sectionIndex || 0];
@@ -2161,12 +2271,19 @@ const renderPreview = (file: any) => {
       {/* Course Completion Message Modal */}
       {showCompletionMessage && progress && progress.progress >= 100 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+          <div className="bg-white rounded-lg p-8 max-w-2xl mx-4 text-center max-h-[90vh] overflow-y-auto">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Congratulations!</h2>
-            <p className="text-lg text-gray-600 mb-6">
-              You've successfully completed <strong>{courseData?.title}</strong>
-            </p>
+            {courseData?.congratulationsMessage ? (
+              <div 
+                className="text-lg text-gray-700 mb-6 prose prose-lg max-w-none"
+                dangerouslySetInnerHTML={{ __html: courseData.congratulationsMessage }}
+              />
+            ) : (
+              <p className="text-lg text-gray-600 mb-6">
+                You've successfully completed <strong>{courseData?.title}</strong>
+              </p>
+            )}
             {certificateLoading ? (
               <div className="text-gray-500">Generating certificate...</div>
             ) : (

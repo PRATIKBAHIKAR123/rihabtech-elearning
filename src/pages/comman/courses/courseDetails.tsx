@@ -67,6 +67,7 @@ export default function CourseDetails() {
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [myReview, setMyReview] = useState<CourseReview | null>(null);
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const location = useLocation();
 
   // Get course ID from multiple sources
@@ -361,10 +362,16 @@ export default function CourseDetails() {
       const enrollmentResponse = await enrollmentApiService.enrollInCourse(course.id);
 
       if (enrollmentResponse.success) {
-        toast.success('Course Successfully Enrolled');
         setIsEnrolled(true);
-        // Redirect to course
-        window.location.hash = `#/learner/current-course?courseId=${course.id}`;
+        
+        // Show welcome message popup if available
+        if (course.welcomeMessage) {
+          setShowWelcomeMessage(true);
+        } else {
+          // If no welcome message, just show toast and redirect
+          toast.success('Course Successfully Enrolled');
+          window.location.hash = `#/learner/current-course?courseId=${course.id}`;
+        }
       } else {
         toast.error(enrollmentResponse.message || 'Failed to enroll in course');
       }
@@ -566,6 +573,41 @@ export default function CourseDetails() {
   };
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Welcome Message Modal */}
+      <Dialog open={showWelcomeMessage} onOpenChange={setShowWelcomeMessage}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <span className="text-4xl">👋</span>
+              Welcome to the Course!
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            {course?.welcomeMessage ? (
+              <div 
+                className="text-gray-700 prose prose-lg max-w-none mt-4"
+                dangerouslySetInnerHTML={{ __html: course.welcomeMessage }}
+              />
+            ) : (
+              <p className="text-gray-600 mt-4">
+                You've successfully enrolled in <strong>{course?.title}</strong>. Let's get started!
+              </p>
+            )}
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowWelcomeMessage(false);
+                // Redirect to course after closing modal
+                window.location.hash = `#/learner/current-course?courseId=${course?.id}`;
+              }}
+              className="bg-primary text-white hover:bg-primary/90"
+            >
+              Start Learning
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section className="gradient-header">
         <div className="container mx-auto">
@@ -695,12 +737,12 @@ export default function CourseDetails() {
                   </div>
                 </div>
 
-                <h2 className="details-title mb-4">Certification</h2>
+                {/* <h2 className="details-title mb-4">Certification</h2>
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="details-description text-green-800">
                     No any Certifications available for this course.
                   </div>
-                </div>
+                </div> */}
               </TabsContent>
 
               <TabsContent value="curriculum" className="py-4">
@@ -1092,7 +1134,7 @@ export default function CourseDetails() {
 
         </div>
       </section>
-      <SuggestedCourses courses={availableCourses as any} currentCourseId={course.id.toString()} />
+      <SuggestedCourses currentCourseId={course.id} />
       <CartModal
         isOpen={isCartModalOpen}
         setIsOpen={setIsCartModalOpen}

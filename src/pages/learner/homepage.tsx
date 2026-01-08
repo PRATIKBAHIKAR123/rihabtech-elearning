@@ -121,6 +121,51 @@ export default function HomePage() {
 
         setEnrolledCourses(enrolledCoursesData.filter(c => c !== null) as HomepageCourse[]);
         setError(null);
+
+        // Fetch recommended courses after enrollments are loaded
+        const fetchRecommendedCourses = async () => {
+          try {
+            // Get user ID from token if available
+            let userId: number | undefined = undefined;
+            try {
+              const token = localStorage.getItem('token');
+              if (token) {
+                const tokenData = JSON.parse(token);
+                userId = tokenData?.id || tokenData?.Id || undefined;
+              }
+            } catch (e) {
+              console.warn('Could not parse user ID from token:', e);
+            }
+            
+            // Fetch recommended courses (excludes enrolled courses)
+            const apiCourses = await courseApiService.getRecommendedCourses(userId, 12);
+            console.log('Fetched recommended courses:', apiCourses);
+            
+            // Additional filter on frontend to ensure no enrolled courses slip through
+            const enrolledCourseIds = enrollments.map(e => e.courseId.toString());
+            const filteredCourses = apiCourses.filter(course => 
+              !enrolledCourseIds.includes(course.id.toString())
+            );
+            
+            setRecommendedCourses(filteredCourses);
+          } catch (error) {
+            console.error("Error fetching recommended courses:", error);
+            // Fallback to all public courses if recommended endpoint fails
+            try {
+              const apiCourses = await courseApiService.getAllPublicCourses();
+              const enrolledCourseIds = enrollments.map(e => e.courseId.toString());
+              const filteredCourses = apiCourses.filter(course => 
+                !enrolledCourseIds.includes(course.id.toString())
+              );
+              setRecommendedCourses(filteredCourses);
+            } catch (fallbackError) {
+              console.error("Error fetching fallback courses:", fallbackError);
+              setRecommendedCourses([]);
+            }
+          }
+        };
+    
+        await fetchRecommendedCourses();
       } catch (error) {
         console.error('Error loading home data:', error);
         setError('Failed to load data');
@@ -129,24 +174,6 @@ export default function HomePage() {
         setLoading(false);
       }
     };
-
-        const fetchCourses = async () => {
-          try {
-            setLoading(true);
-            const apiCourses = await courseApiService.getAllPublicCourses();
-            console.log('Fetched API courses:', apiCourses);
-            
-            
-            setRecommendedCourses(apiCourses);
-          } catch (error) {
-            console.error("Error fetching courses:", error);
-            setRecommendedCourses([]);
-          } finally {
-            setLoading(false);
-          }
-        };
-    
-        fetchCourses();
 
     loadHomeData();
   }, [user]);

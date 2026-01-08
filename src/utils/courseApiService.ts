@@ -404,6 +404,19 @@ class CourseApiService {
     return apiService.get<CourseGetAllResponse[]>('/course/featured-Course');
   }
 
+  // Get recommended courses (excludes enrolled courses)
+  async getRecommendedCourses(userId?: number, limit: number = 12, excludeCourseId?: number): Promise<CourseGetAllResponse[]> {
+    const params = new URLSearchParams();
+    if (userId) {
+      params.append('userId', userId.toString());
+    }
+    if (excludeCourseId) {
+      params.append('excludeCourseId', excludeCourseId.toString());
+    }
+    params.append('limit', limit.toString());
+    return apiService.get<CourseGetAllResponse[]>(`/course/recommended?${params.toString()}`);
+  }
+
   // Search courses (public endpoint)
   async searchCourses(searchRequest: SearchCourseRequest = {}): Promise<SearchCourseResponse[]> {
     return apiService.post<SearchCourseResponse[]>('/course/search', searchRequest);

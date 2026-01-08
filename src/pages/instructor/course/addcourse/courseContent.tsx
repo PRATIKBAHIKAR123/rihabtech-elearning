@@ -57,7 +57,7 @@ const CourseContent = () => {
                 { id: "practice-test", icon: <Users size={18} />, label: "Practise Test" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
-                { id: "coupens", icon: <Type size={18} />, label: "Coupens" },
+                // { id: "coupons", icon: <Type size={18} />, label: "Coupens" },
                 // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
@@ -73,7 +73,7 @@ const CourseContent = () => {
                 // { id: "accessibility", icon: <Users size={18} />, label: "Accessibility" },
                 { id: "course-landing-page", icon: <Layout size={18} />, label: "Course landing page" },
                 { id: "pricing", icon: <DollarSign size={18} />, label: "Pricing" },
-                { id: "coupens", icon: <Type size={18} />, label: "Coupens" },
+                // { id: "coupons", icon: <Type size={18} />, label: "Coupens" },
                 // { id: "promotions", icon: <Megaphone size={18} />, label: "Promotions" },
                 { id: "course-messages", icon: <MessageSquare size={18} />, label: "Course messages" }
               ]) ;
@@ -149,10 +149,11 @@ const CourseContent = () => {
             {selectedItem === "pricing"&&(
                 <Pricing 
                   draftId={localStorage.getItem('draftId') || 'test-draft-id'}
-                  onSubmit={()=>{setSelectedItem('coupens')}}
+                  //onSubmit={()=>{setSelectedItem('coupons')}}
+                  onSubmit={()=>{setSelectedItem('course-messages')}}
                 />
             )}
-            {selectedItem === "coupens"&&(
+            {selectedItem === "coupons"&&(
                 <CourseCouponsPage  onSubmit={()=>{setSelectedItem('course-messages')}}
                 />
             )}

@@ -58,7 +58,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       ...prev,
       [accessType]: checked
     }));
-    
+
     // Clear members if private access is disabled
     if (accessType === 'private' && !checked) {
       setMembers([]);
@@ -70,24 +70,24 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       setEmailError("Email is required");
       return;
     }
-    
+
     if (!validateEmail(email)) {
       setEmailError("Please enter a valid email address");
       return;
     }
-    
+
     // Check if email already exists
     if (members.some(member => member.email === email)) {
       setEmailError("This email is already added");
       return;
     }
-    
+
     const newMember: Member = {
       id: Date.now().toString(),
       email: email,
       role: role
     };
-    
+
     setMembers(prev => [...prev, newMember]);
     setEmail("");
     setEmailError("");
@@ -130,16 +130,16 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       alert("Please select at least one access option");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     // Check if user is logged in
     if (!user) {
       toast.error("Please login to update course");
       setIsSubmitting(false);
       return;
     }
-    
+
     try {
       if (isNewCourse || !courseData?.id) {
         // For new courses, we need to create the course first
@@ -151,7 +151,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       // Comparison logic: Only call update API if pricing has changed
       const currentPricing = courseData.pricing || "";
       const newPricing = pricing === 'free' ? "free" : "paid"; // Convert to API format
-      
+
       if (currentPricing === newPricing) {
         //toast.info("No changes detected in pricing. Moving to next step.");
         setIsSubmitting(false);
@@ -179,9 +179,9 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
         target: courseData.target ?? [],
         curriculum: courseData.curriculum as CourseUpdateRequest['curriculum'] ?? undefined // Include curriculum data
       });
-      
+
       // After a successful update, update the shared courseData state with the new pricing
-      updateCourseData({ 
+      updateCourseData({
         title: courseData.title,
         subtitle: courseData.subtitle ?? null,
         description: courseData.description ?? null,
@@ -199,17 +199,17 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
         target: courseData.target ?? [],
         curriculum: courseData.curriculum ?? undefined // Include curriculum data
       });
-      
+
       toast.success(updateResponse.message || "Course pricing updated successfully!");
-      
+
       // Refresh course data from API to ensure all pages have the latest data
       await refreshCourseData();
-      
+
       setIsSubmitting(false);
       if (onSubmit) onSubmit();
     } catch (error: any) {
       console.error("Failed to save course pricing:", error);
-      
+
       // Handle specific error messages
       if (error.message?.includes('Authentication failed')) {
         toast.error("Authentication failed. Please login again.");
@@ -220,7 +220,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
       } else {
         toast.error("Failed to save course pricing. Please try again.");
       }
-      
+
       setIsSubmitting(false);
     }
   };
@@ -282,7 +282,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
 
       {/* Access Options */}
       <div className="mb-6">
-        <h4 className="font-medium text-gray-700 mb-4">Access Platforms</h4>
+        {/* <h4 className="font-medium text-gray-700 mb-4">Access Platforms</h4> */}
         <div className="space-y-3">
           {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox 
@@ -295,7 +295,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
               <p className="text-sm text-gray-500">Access through web browser</p>
             </div>
           </div> */}
-          
+
           {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox 
               checked={access.app}
@@ -307,8 +307,8 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
               <p className="text-sm text-gray-500">Access through mobile application</p>
             </div>
           </div> */}
-          
-          <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+
+          {/* <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <Checkbox
               checked={access.private}
               onCheckedChange={(checked:any) => handleAccessChange('private', checked as boolean)}
@@ -318,7 +318,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
               <label className="font-medium text-gray-700 cursor-pointer">Private Access</label>
               <p className="text-sm text-gray-500">Restrict access to specific members only</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -329,7 +329,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
             <UserPlus className="h-5 w-5 text-purple-600" />
             <h4 className="font-medium text-gray-800">Manage Private Access</h4>
           </div>
-          
+
           {/* Add Member Form */}
           <div className="space-y-3 mb-4">
             <div className="flex gap-2">
@@ -338,7 +338,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
                   type="email"
                   placeholder="Enter member's email address"
                   value={email}
-                  onChange={(e:any) => {
+                  onChange={(e: any) => {
                     setEmail(e.target.value);
                     setEmailError("");
                   }}
@@ -349,7 +349,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
                   <p className="text-red-500 text-xs mt-1">{emailError}</p>
                 )}
               </div>
-              
+
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Role" />
@@ -360,8 +360,8 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              
-              <Button 
+
+              <Button
                 onClick={addMember}
                 className="px-4"
                 disabled={!email.trim()}
@@ -415,7 +415,7 @@ export default function Pricing({ draftId, onSubmit }: { draftId: string, onSubm
 
       {/* Submit Button */}
       <div className="flex justify-end">
-        <Button 
+        <Button
           onClick={handleSubmit}
           disabled={isSubmitting || loading || (!access.website && !access.app && !access.private)}
           className="px-8"

@@ -92,13 +92,27 @@ class InstructorPayoutApiService {
   // Record watch time (usually called from lecture progress tracking)
   async recordWatchTime(courseId: number, lectureId: number, watchTime: number): Promise<void> {
     try {
-      await apiClient.post(`${this.BASE_URL}/watch-time/record`, {
+      console.log('📤 API Call - Recording watch time:', {
+        url: `${this.BASE_URL}/watch-time/record`,
+        payload: { courseId, lectureId, watchTime }
+      });
+      
+      const response = await apiClient.post(`${this.BASE_URL}/watch-time/record`, {
         courseId,
         lectureId,
         watchTime // in seconds
       });
+      
+      console.log('✅ API Response - Watch time recorded:', response.data);
     } catch (error: any) {
-      console.error('Error recording watch time:', error);
+      console.error('❌ API Error recording watch time:', {
+        error,
+        message: error?.response?.data || error?.message,
+        status: error?.response?.status,
+        courseId,
+        lectureId,
+        watchTime
+      });
       // Don't throw - watch time recording is not critical
     }
   }

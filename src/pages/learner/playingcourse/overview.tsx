@@ -1,6 +1,8 @@
 import React from 'react';
 import { CourseDetails } from '../../../utils/courseDetailsInterface';
 import { AlertCircle, Clock, Edit3 } from 'lucide-react';
+import { getLevelLabel } from '../../../utils/levels';
+import { getLanguageLabel } from '../../../utils/languages';
 
 interface OverviewProps {
   courseData?: CourseDetails | null;
@@ -124,14 +126,14 @@ export default function Overview({ courseData, loading = false }: OverviewProps)
           {courseData.level && (
             <div>
               <h3 className="details-title text-lg">Course Level</h3>
-              <p className="details-description capitalize">{courseData.level}</p>
+              <p className="details-description">{getLevelLabel(courseData.level)}</p>
             </div>
           )}
           
           {courseData.language && (
             <div>
               <h3 className="details-title text-lg">Language</h3>
-              <p className="details-description capitalize">{courseData.language}</p>
+              <p className="details-description">{getLanguageLabel(courseData.language)}</p>
             </div>
           )}
         </div>
@@ -141,24 +143,8 @@ export default function Overview({ courseData, loading = false }: OverviewProps)
           <div>
             <h3 className="details-title text-lg">Pricing</h3>
             <p className="details-description capitalize font-medium">
-              {courseData.pricing === 'free' ? 'Free Course' : `$${courseData.pricing}`}
+              {courseData.pricing === 'free' ? 'Free Course' : `${courseData.pricing}`}
             </p>
-          </div>
-        )}
-
-        {/* Welcome Message */}
-        {courseData.welcomeMessage && (
-          <div>
-            <h1 className="details-title">Welcome Message</h1>
-            <div className="details-description" dangerouslySetInnerHTML={{ __html: courseData.welcomeMessage }}></div>
-          </div>
-        )}
-
-        {/* Certification */}
-        {courseData.congratulationsMessage && (
-          <div>
-            <h1 className="details-title">Certification</h1>
-            <div className="details-description" dangerouslySetInnerHTML={{ __html: courseData.congratulationsMessage }}></div>
           </div>
         )}
 
