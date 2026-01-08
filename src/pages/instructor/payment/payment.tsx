@@ -19,10 +19,14 @@ import {
   CreditCard
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { payoutService, PayoutRequest, EarningsSummary, PayoutBreakdown, CourseEarnings } from "../../../utils/payoutService";
+import { 
+  instructorPayoutApiService, 
+  PayoutRequest, 
+  EarningsSummary, 
+  PayoutBreakdown, 
+  CourseEarnings 
+} from "../../../utils/instructorPayoutApiService";
 import { toast } from "sonner";
-import { db } from "../../../lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import { File } from "lucide-react";
 
 export default function InstructorPayment() {
@@ -76,16 +80,14 @@ export default function InstructorPayment() {
       
       try {
         console.log('Updating month breakdown for:', selectedMonth, selectedYear);
-        const breakdown = await payoutService.calculateEarnings(
-          user.UserName, 
+        const breakdown = await instructorPayoutApiService.calculateEarnings(
           selectedMonth, 
           selectedYear
         );
         setCurrentMonthBreakdown(breakdown);
 
         // Load course earnings for the selected month
-        const courseEarningsData = await payoutService.getCourseEarnings(
-          user.UserName,
+        const courseEarningsData = await instructorPayoutApiService.getCourseEarnings(
           selectedMonth,
           selectedYear
         );
@@ -104,7 +106,7 @@ export default function InstructorPayment() {
       if (!user?.UserName) return;
       
       try {
-        const monthlyData = await payoutService.getMonthlyEarnings(user.UserName, selectedYear);
+        const monthlyData = await instructorPayoutApiService.getMonthlyEarnings(selectedYear);
         setMonthlyEarnings(monthlyData);
       } catch (error) {
         console.error('Error loading monthly earnings:', error);
@@ -164,39 +166,21 @@ export default function InstructorPayment() {
         return;
       }
 
-      // Test Firebase connection
-      console.log('Testing Firebase connection...');
-      try {
-        const testQuery = query(collection(db, 'users'), where('email', '==', user.UserName));
-        const testSnapshot = await getDocs(testQuery);
-        console.log('Firebase connection test successful, found users:', testSnapshot.docs.length);
-      } catch (firebaseError) {
-        console.error('Firebase connection test failed:', firebaseError);
-        setError('Firebase connection failed. Using mock data.');
-        // Use mock data as fallback
-        setEarningsSummary(payoutService.getMockEarningsSummary());
-        setPayoutHistory(payoutService.getMockPayoutHistory());
-        setCourseEarnings(payoutService.getMockCourseEarnings());
-        setLoading(false);
-        return;
-      }
-
       console.log('Loading earnings summary...');
       // Load earnings summary
-      const summary = await payoutService.getEarningsSummary(user.UserName);
+      const summary = await instructorPayoutApiService.getEarningsSummary(selectedYear);
       console.log('Earnings summary loaded:', summary);
       setEarningsSummary(summary);
 
       console.log('Loading payout history...');
       // Load payout history
-      const history = await payoutService.getPayoutHistory(user.UserName);
+      const history = await instructorPayoutApiService.getPayoutHistory();
       console.log('Payout history loaded:', history);
       setPayoutHistory(history);
 
       console.log('Calculating current month breakdown...');
       // Calculate current month breakdown
-      const breakdown = await payoutService.calculateEarnings(
-        user.UserName, 
+      const breakdown = await instructorPayoutApiService.calculateEarnings(
         selectedMonth, 
         selectedYear
       );
@@ -205,8 +189,7 @@ export default function InstructorPayment() {
 
       console.log('Loading course earnings...');
       // Load course earnings
-      const courseEarningsData = await payoutService.getCourseEarnings(
-        user.UserName,
+      const courseEarningsData = await instructorPayoutApiService.getCourseEarnings(
         selectedMonth,
         selectedYear
       );
@@ -215,7 +198,7 @@ export default function InstructorPayment() {
 
       console.log('Loading monthly earnings...');
       // Load monthly earnings for analytics
-      const monthlyData = await payoutService.getMonthlyEarnings(user.UserName, selectedYear);
+      const monthlyData = await instructorPayoutApiService.getMonthlyEarnings(selectedYear);
       console.log('Monthly earnings loaded:', monthlyData);
       setMonthlyEarnings(monthlyData);
 
@@ -228,9 +211,9 @@ export default function InstructorPayment() {
       
       // Use mock data as fallback
       console.log('Loading mock data as fallback...');
-      setEarningsSummary(payoutService.getMockEarningsSummary());
-      setPayoutHistory(payoutService.getMockPayoutHistory());
-      setCourseEarnings(payoutService.getMockCourseEarnings());
+      setEarningsSummary(instructorPayoutApiService.getMockEarningsSummary());
+      setPayoutHistory(instructorPayoutApiService.getMockPayoutHistory());
+      setCourseEarnings(instructorPayoutApiService.getMockCourseEarnings());
       
       // Also set monthly earnings
       setMonthlyEarnings([
@@ -244,8 +227,13 @@ export default function InstructorPayment() {
     }
   };
 
+  const normalizeStatus = (status: string): string => {
+    return status.toLowerCase();
+  };
+
   const getStatusIcon = (status: string) => {
-    switch (status) {
+    const normalizedStatus = normalizeStatus(status);
+    switch (normalizedStatus) {
       case 'pending':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case 'approved':
@@ -253,6 +241,7 @@ export default function InstructorPayment() {
       case 'rejected':
         return <XCircle className="h-5 w-5 text-red-500" />;
       case 'processed':
+      case 'processing':
         return <CheckCircle className="h-5 w-5 text-blue-500" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-500" />;
@@ -260,7 +249,8 @@ export default function InstructorPayment() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalizedStatus = normalizeStatus(status);
+    switch (normalizedStatus) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'approved':
@@ -268,6 +258,7 @@ export default function InstructorPayment() {
       case 'rejected':
         return 'bg-red-100 text-red-800';
       case 'processed':
+      case 'processing':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -275,7 +266,8 @@ export default function InstructorPayment() {
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
+    const normalizedStatus = normalizeStatus(status);
+    switch (normalizedStatus) {
       case 'pending':
         return 'Pending Review';
       case 'approved':
@@ -284,8 +276,10 @@ export default function InstructorPayment() {
         return 'Rejected';
       case 'processed':
         return 'Processed';
+      case 'processing':
+        return 'Processing';
       default:
-        return 'Unknown';
+        return status || 'Unknown';
     }
   };
 
@@ -321,7 +315,7 @@ export default function InstructorPayment() {
     try {
       setRequestingPayout(true);
       
-      const payoutId = await payoutService.requestPayout(user.UserName, selectedMonth, selectedYear);
+      await instructorPayoutApiService.requestPayout(selectedMonth, selectedYear);
       
       toast.success('Payout request submitted successfully!');
       
@@ -330,7 +324,8 @@ export default function InstructorPayment() {
       
     } catch (error) {
       console.error('Error requesting payout:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to request payout');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to request payout';
+      toast.error(errorMessage);
     } finally {
       setRequestingPayout(false);
     }
