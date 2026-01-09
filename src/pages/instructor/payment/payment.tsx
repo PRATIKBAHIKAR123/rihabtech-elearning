@@ -307,8 +307,8 @@ export default function InstructorPayment() {
       return;
     }
 
-    if (!currentMonthBreakdown || currentMonthBreakdown.instructorShare < 1000) {
-      toast.error('Minimum payout amount is ₹1000');
+    if (!currentMonthBreakdown || currentMonthBreakdown.instructorShare < 100) {
+      toast.error('Minimum payout amount is ₹100');
       return;
     }
 
@@ -519,7 +519,7 @@ export default function InstructorPayment() {
               <div className="flex flex-wrap gap-4">
                 <Button
                   onClick={handleRequestPayout}
-                  disabled={requestingPayout || !currentMonthBreakdown || currentMonthBreakdown.instructorShare < 1000}
+                  disabled={requestingPayout || !currentMonthBreakdown || currentMonthBreakdown.instructorShare < 100}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
                   {requestingPayout ? (
@@ -553,7 +553,7 @@ export default function InstructorPayment() {
                 <ul className="space-y-2 text-sm text-blue-800">
                   <li>• Payouts are processed monthly based on watch time</li>
                   <li>• Platform fee is deducted from your earnings</li>
-                  <li>• Minimum payout amount: ₹1000</li>
+                  <li>• Minimum payout amount: ₹100</li>
                   <li>• Payouts are processed within 5-7 business days</li>
                 </ul>
               </div>

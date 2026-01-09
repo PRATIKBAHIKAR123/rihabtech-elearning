@@ -266,7 +266,7 @@ class PayoutService {
       const breakdown = await this.calculateEarnings(instructorId, month, year);
       
       if (breakdown.instructorShare < 1000) {
-        throw new Error('Minimum payout amount is ₹1000');
+        throw new Error('Minimum payout amount is ₹100');
       }
 
       // Check if there's already a pending payout for this month
