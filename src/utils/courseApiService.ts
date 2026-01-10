@@ -319,7 +319,8 @@ class CourseApiService {
 
   // Update an existing course
   async updateCourse(courseData: CourseUpdateRequest): Promise<UpdateCourseMessageResponse> {
-    return apiService.post<UpdateCourseMessageResponse>('/instructor/course/update/draft', courseData);
+    // Use longer timeout for draft updates as they involve multiple database operations
+    return apiService.post<UpdateCourseMessageResponse>('/instructor/course/update/draft', courseData, { timeout: 60000 }); // 60 seconds
   }
 
   // Get course by ID
@@ -435,6 +436,17 @@ class CourseApiService {
   // Unpublish a course
   async unpublishCourse(courseId: number): Promise<CourseUnpublishResponse> {
     return apiService.post<CourseUnpublishResponse>('/instructor/course/unpublish', { courseId });
+  }
+
+  // Get pending changes for a course
+  async getCoursePendingChanges(courseId: number): Promise<any[]> {
+    try {
+      const response = await apiService.get<any[]>(`/course/pending-changes/${courseId}`);
+      return response || [];
+    } catch (error) {
+      console.error('Error fetching pending changes:', error);
+      return [];
+    }
   }
 }
 

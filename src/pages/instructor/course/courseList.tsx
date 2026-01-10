@@ -707,7 +707,7 @@ export default function CourseList() {
 
                     {/* Actions */}
                     <div className="p-4 flex items-center justify-center gap-1">
-                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
+                      {!isRevisionLocked(course) && (
                         <button
                           onClick={() => handleEditCourse(course)}
                           className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
@@ -747,7 +747,7 @@ export default function CourseList() {
                         </button>
                       )}
 
-                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
+                      {!isRevisionLocked(course) && (
                         <div className="relative">
                           <button
                             onClick={() => setOpenDropdownCourseId(openDropdownCourseId === course.id ? null : course.id)}
@@ -759,7 +759,7 @@ export default function CourseList() {
 
                           {openDropdownCourseId === course.id && (
                             <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                              {course.status !== COURSE_STATUS.PUBLISHED && (
+                              {!isRevisionLocked(course) && (
                                 <button
                                   onClick={() => {
                                     handleEditCourse(course);
@@ -936,7 +936,7 @@ export default function CourseList() {
                     </div>
 
                     <div className="flex items-center justify-center gap-2">
-                      {course.status !== COURSE_STATUS.PUBLISHED && !isRevisionLocked(course) && (
+                      {!isRevisionLocked(course) && (
                         <button
                           onClick={() => handleEditCourse(course)}
                           className="p-2 text-gray-600 hover:text-primary hover:bg-purple-50 rounded-lg transition-colors"
@@ -988,7 +988,7 @@ export default function CourseList() {
 
                           {openDropdownCourseId === course.id && (
                             <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-400 py-1 z-20">
-                              {course.status !== COURSE_STATUS.PUBLISHED && (
+                              {!isRevisionLocked(course) && (
                                 <button
                                   onClick={() => {
                                     handleEditCourse(course);

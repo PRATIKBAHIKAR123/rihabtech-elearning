@@ -6,7 +6,8 @@ class ApiService {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE', 
     endpoint: string, 
     data?: any,
-    params?: any
+    params?: any,
+    options?: { timeout?: number }
   ): Promise<T> {
     try {
       const url = `${endpoint}`;
@@ -17,6 +18,7 @@ class ApiService {
         url,
         data,
         params,
+        timeout: options?.timeout, // Allow per-request timeout override
       });
       
       console.log(`✅ API Success: ${method} ${url}`, response.data);
@@ -90,20 +92,20 @@ class ApiService {
   }
 
   // Generic CRUD methods
-  async get<T>(endpoint: string, params?: any): Promise<T> {
-    return this.makeRequest<T>('GET', endpoint, undefined, params);
+  async get<T>(endpoint: string, params?: any, options?: { timeout?: number }): Promise<T> {
+    return this.makeRequest<T>('GET', endpoint, undefined, params, options);
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.makeRequest<T>('POST', endpoint, data);
+  async post<T>(endpoint: string, data?: any, options?: { timeout?: number }): Promise<T> {
+    return this.makeRequest<T>('POST', endpoint, data, undefined, options);
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<T> {
-    return this.makeRequest<T>('PUT', endpoint, data);
+  async put<T>(endpoint: string, data?: any, options?: { timeout?: number }): Promise<T> {
+    return this.makeRequest<T>('PUT', endpoint, data, undefined, options);
   }
 
-  async delete<T>(endpoint: string, data?: any): Promise<T> {
-    return this.makeRequest<T>('DELETE', endpoint, data);
+  async delete<T>(endpoint: string, data?: any, options?: { timeout?: number }): Promise<T> {
+    return this.makeRequest<T>('DELETE', endpoint, data, undefined, options);
   }
 }
 

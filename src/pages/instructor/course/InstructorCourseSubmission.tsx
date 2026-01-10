@@ -101,6 +101,22 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
             </button>
           </div>
         );
+      case COURSE_STATUS.DRAFT_UPDATE:
+        return (
+          <div className="flex items-center space-x-2">
+            <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
+              Published
+            </span>
+            <span className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
+              ⏳ Pending Review
+            </span>
+            {course.hasUnpublishedChanges && (
+              <span className="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                Changes Awaiting Approval
+              </span>
+            )}
+          </div>
+        );
       case COURSE_STATUS.NEEDS_REVISION:
         return (
           <div className="flex items-center space-x-2">
@@ -123,6 +139,11 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
             <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
               Published
             </span>
+            {course.hasUnpublishedChanges && (
+              <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                ⚠️ Has Pending Changes
+              </span>
+            )}
             <a
               href={`/course/${course.id}`}
               target="_blank"
@@ -131,6 +152,12 @@ export const InstructorCourseSubmission: React.FC<InstructorCourseSubmissionProp
             >
               View Live
             </a>
+            <button
+              onClick={() => window.location.href = `/instructor/courses/${course.id}/edit`}
+              className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Edit
+            </button>
           </div>
         );
       default:

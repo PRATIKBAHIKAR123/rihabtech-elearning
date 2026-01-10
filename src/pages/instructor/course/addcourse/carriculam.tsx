@@ -176,6 +176,9 @@ export interface QuizItem {
   duration: number; // in minutes
   seqNo: number;
   published?: boolean; // Add published property
+  isNew?: boolean; // Pending change indicator - new content
+  isEdited?: boolean; // Pending change indicator - edited content
+  pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -222,6 +225,9 @@ export interface Assignment {
   questions: AssignmentQuestion[];
   seqNo: number;
   published?: boolean; // Add published property
+  isNew?: boolean; // Pending change indicator - new content
+  isEdited?: boolean; // Pending change indicator - edited content
+  pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -257,6 +263,9 @@ interface LectureItem {
   isPromotional?: boolean; // Add promotional property for free videos
   duration?: number; // Duration in seconds for external videos
   seqNo: number;
+  isNew?: boolean; // Pending change indicator - new content
+  isEdited?: boolean; // Pending change indicator - edited content
+  pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
 }
 
 export interface Section {
@@ -265,6 +274,9 @@ export interface Section {
   items: (LectureItem | QuizItem | Assignment)[];
   published: boolean; // Add published property
   seqNo: number;
+  isNew?: boolean; // Pending change indicator - new section
+  isEdited?: boolean; // Pending change indicator - edited section
+  pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
 }
 
 export interface CurriculumFormValues {
@@ -419,6 +431,49 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
   // Deep clone to avoid mutating original
   const clone = JSON.parse(JSON.stringify(curriculum));
   
+  // Helper to recursively remove pending change properties and audit fields for API submission
+  function removePendingChangeProperties(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(removePendingChangeProperties);
+    } else if (obj && typeof obj === 'object') {
+      const cleaned: any = {};
+      const itemType = obj.type; // Check if this is a quiz or assignment item
+      for (const key in obj) {
+        // Skip pending change indicators and audit fields
+        if (key !== 'isNew' && 
+            key !== 'isEdited' && 
+            key !== 'pendingChangeType' &&
+            key !== 'courseId' &&
+            key !== 'createdDate' &&
+            key !== 'modifiedDate' &&
+            key !== 'createdBy' &&
+            key !== 'modifiedBy' &&
+            key !== 'isDeleted' &&
+            key !== 'cloudinaryPublicId' &&
+            key !== 'uploadedAt') {
+          // For quiz and assignment items, also skip lecture-specific properties
+          if ((itemType === 'quiz' || itemType === 'assignment') && (
+            key === 'contentType' ||
+            key === 'lectureName' ||
+            key === 'contentFiles' ||
+            key === 'resources' ||
+            key === 'contentUrl' ||
+            key === 'contentText' ||
+            key === 'articleSource' ||
+            key === 'videoSource' ||
+            key === 'IsPromotional' ||
+            key === 'Duration'
+          )) {
+            continue; // Skip these properties for quiz/assignment items
+          }
+          cleaned[key] = removePendingChangeProperties(obj[key]);
+        }
+      }
+      return cleaned;
+    }
+    return obj;
+  }
+  
   function clean(obj: any): any {
     if (Array.isArray(obj)) {
       return obj.map(clean).filter(v => v !== undefined);
@@ -431,14 +486,27 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
             newObj[key] = obj[key].map((section: any, sectionIndex: number) => {
               if (!section) return null;
               
-              const { id, name, published, seqNo, items } = section;
+              const { id, name, published, seqNo, items, isNew, isEdited, pendingChangeType } = section;
               
               const result: any = {};
               if (id !== undefined) result.id = id; // Preserve the section ID from API response
               if (name !== undefined) result.name = name;
               if (published !== undefined) result.published = published;
               result.seqNo = sectionIndex + 1; // Always set sequence number based on position
+              // Only preserve pending change indicators for localStorage, not for API submission
+              if (!forApiSubmission) {
+                if (isNew !== undefined) result.isNew = isNew;
+                if (isEdited !== undefined) result.isEdited = isEdited;
+                if (pendingChangeType !== undefined) result.pendingChangeType = pendingChangeType;
+              }
               if (items !== undefined) result.items = clean(items); // Recursively clean items
+              
+              // Explicitly remove pending change properties for API submission
+              if (forApiSubmission) {
+                delete result.isNew;
+                delete result.isEdited;
+                delete result.pendingChangeType;
+              }
               
               return result;
             }).filter(Boolean);
@@ -448,42 +516,59 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
             newObj[key] = obj[key].map((item: any, itemIndex: number) => {
               if (!item) return null;
               
-              const { id, type, lectureName, description, contentType, contentUrl, articleSource, videoSource, isPromotional, duration, published, seqNo, contentFiles, resources } = item;
+              const { id, type, lectureName, description, contentType, contentUrl, contentText, articleSource, videoSource, isPromotional, duration, published, seqNo, contentFiles, resources, sectionId, quizTitle, quizDescription, title: assignmentTitle, totalMarks, questions, isNew, isEdited, pendingChangeType } = item;
               
               const result: any = {};
-              if (id !== undefined) result.id = id; // Preserve the item ID from API response
+              
+              // Common properties for all item types
+              if (id !== undefined) result.id = id;
               if (type !== undefined) result.type = type;
-              if (lectureName !== undefined) result.lectureName = lectureName;
-              if (description !== undefined) result.description = description;
-              if (contentType !== undefined) result.contentType = contentType;
-              if (contentUrl !== undefined) result.contentUrl = contentUrl;
-              if (articleSource !== undefined) result.articleSource = articleSource;
-              if (videoSource !== undefined) result.videoSource = videoSource;
-              if (isPromotional !== undefined) result.isPromotional = isPromotional;
-              if (duration !== undefined) result.duration = duration;
+              if (sectionId !== undefined) result.sectionId = sectionId;
               if (published !== undefined) result.published = published;
               result.seqNo = itemIndex + 1; // Always set sequence number based on position
-              if (contentFiles !== undefined) result.contentFiles = clean(contentFiles); // Recursively clean contentFiles
-              if (resources !== undefined) result.resources = clean(resources); // Recursively clean resources
               
+              // Handle lecture-specific fields
+              if (type === 'lecture') {
+                if (lectureName !== undefined) result.lectureName = lectureName;
+                if (description !== undefined) result.description = description;
+                if (contentType !== undefined) result.contentType = contentType;
+                if (contentUrl !== undefined) result.contentUrl = contentUrl;
+                if (contentText !== undefined) result.contentText = contentText;
+                if (articleSource !== undefined) result.articleSource = articleSource;
+                if (videoSource !== undefined) result.videoSource = videoSource;
+                // Note: API expects IsPromotional (capital I) and Duration (capital D) for lectures
+                if (isPromotional !== undefined) result.IsPromotional = isPromotional;
+                if (duration !== undefined) result.Duration = duration;
+                if (contentFiles !== undefined) result.contentFiles = clean(contentFiles);
+                if (resources !== undefined) result.resources = clean(resources);
+              }
               // Handle quiz-specific fields
-              if (type === 'quiz') {
-                const { quizTitle, quizDescription, questions, duration: quizDuration } = item;
+              else if (type === 'quiz') {
                 if (quizTitle !== undefined) result.quizTitle = quizTitle;
                 if (quizDescription !== undefined) result.quizDescription = quizDescription;
-                if (questions !== undefined) result.questions = questions;
-                if (quizDuration !== undefined) result.duration = quizDuration;
-                // REQUIRED: Set contentType and lectureName for quiz
-                result.contentType = "quiz";
-                result.lectureName = quizTitle || "Quiz";
+                if (duration !== undefined) result.duration = duration;
+                if (questions !== undefined) {
+                  // Clean quiz questions - remove id if not needed (API may handle it)
+                  result.questions = questions.map((q: any) => {
+                    const cleanQ: any = {
+                      question: q.question,
+                      options: q.options,
+                      correctOption: q.correctOption
+                    };
+                    // Include id only if present (for updates)
+                    if (q.id !== undefined && q.id !== null) {
+                      cleanQ.id = q.id;
+                    }
+                    return cleanQ;
+                  });
+                }
+                // Explicitly DO NOT include contentType, lectureName, contentFiles, or resources for quizzes
               }
-              
               // Handle assignment-specific fields
-              if (type === 'assignment') {
-                const { title, description: assignmentDescription, duration: assignmentDuration, totalMarks, questions } = item;
-                if (title !== undefined) result.title = title;
-                if (assignmentDescription !== undefined) result.description = assignmentDescription;
-                if (assignmentDuration !== undefined) result.duration = assignmentDuration;
+              else if (type === 'assignment') {
+                if (assignmentTitle !== undefined) result.title = assignmentTitle;
+                if (description !== undefined) result.description = description;
+                if (duration !== undefined) result.duration = duration;
                 if (totalMarks !== undefined) result.totalMarks = totalMarks;
                 
                 // For API submission, convert questions to assignmentQuestions
@@ -492,20 +577,18 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                   if (forApiSubmission) {
                     // API expects assignmentQuestions, not questions for assignments
                     result.assignmentQuestions = questions.map((q: any) => ({
-                      id: q.id, // Preserve question ID if present
+                      id: q.id !== undefined && q.id !== null ? q.id : undefined, // Preserve question ID if present
                       question: q.question,
-                      marks: typeof q.marks === 'string' ? parseFloat(q.marks) : q.marks, // Convert string marks to number
+                      marks: typeof q.marks === 'string' ? parseFloat(q.marks) : q.marks,
                       answer: q.answer,
                       maxWordLimit: q.maxWordLimit
-                    }));
+                    })).filter((q: any) => q.id !== undefined || q.question); // Remove invalid entries
                   } else {
                     // Keep questions for localStorage (form structure)
                     result.questions = questions;
                   }
                 }
-                // REQUIRED: Set contentType and lectureName for assignment
-                result.contentType = "assignment";
-                result.lectureName = title || "Assignment";
+                // Explicitly DO NOT include contentType, lectureName, contentFiles, or resources for assignments
               }
               
               // Ensure type is always set for all items
@@ -516,7 +599,43 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
               // Ensure we have at least a type field - don't filter out items without IDs
               if (!result.type) {
                 console.warn('Item missing type field:', item);
-                return null; // Only filter out if type is missing
+                return null;
+              }
+              
+              // Only preserve pending change indicators for localStorage, not for API submission
+              if (!forApiSubmission) {
+                if (isNew !== undefined) result.isNew = isNew;
+                if (isEdited !== undefined) result.isEdited = isEdited;
+                if (pendingChangeType !== undefined) result.pendingChangeType = pendingChangeType;
+              }
+              
+              // Explicitly remove unwanted properties for API submission
+              if (forApiSubmission) {
+                // Remove pending change indicators
+                delete result.isNew;
+                delete result.isEdited;
+                delete result.pendingChangeType;
+                // Remove audit fields
+                delete result.courseId;
+                delete result.createdDate;
+                delete result.modifiedDate;
+                delete result.createdBy;
+                delete result.modifiedBy;
+                delete result.isDeleted;
+                // Remove contentType and lectureName from quizzes and assignments (not part of their models)
+                // Also remove contentFiles and resources which are only for lectures
+                if (type === 'quiz' || type === 'assignment') {
+                  delete result.contentType;
+                  delete result.lectureName;
+                  delete result.contentFiles;
+                  delete result.resources;
+                  delete result.contentUrl;
+                  delete result.contentText;
+                  delete result.articleSource;
+                  delete result.videoSource;
+                  delete result.IsPromotional;
+                  delete result.Duration; // duration is lowercase for quiz/assignment
+                }
               }
               
               return result;
@@ -529,27 +648,36 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
               
               const { 
                 id,
+                lectureId,
                 name, 
                 url, 
                 cloudinaryUrl, 
                 cloudinaryPublicId,
                 duration, 
-                status, 
-                uploadedAt,
-                type
+                status
               } = cf;
               
-              // Only add defined fields, prioritizing Cloudinary URLs
+              // Only include properties expected by LectureFileCreateDraftVM
               const result: any = {};
-              if (id !== undefined) result.id = id; // Preserve the ID from API response
+              if (id !== undefined) result.id = id;
+              if (lectureId !== undefined) result.lectureId = lectureId;
               if (name !== undefined) result.name = name;
-              if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl; // Use Cloudinary URL as primary URL
+              // Use Cloudinary URL as primary URL if available
+              if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl;
               else if (url !== undefined) result.url = url;
-              if (cloudinaryPublicId !== undefined) result.cloudinaryPublicId = cloudinaryPublicId;
               if (duration !== undefined) result.duration = duration;
               if (status !== undefined) result.status = status;
-              if (uploadedAt !== undefined) result.uploadedAt = uploadedAt;
-              if (type !== undefined) result.type = type;
+              
+              // Remove audit fields and cloudinaryPublicId for API submission
+              if (forApiSubmission) {
+                delete result.cloudinaryPublicId;
+                delete result.createdDate;
+                delete result.modifiedDate;
+                delete result.createdBy;
+                delete result.modifiedBy;
+                delete result.isDeleted;
+                delete result.uploadedAt;
+              }
               
               return result;
             }).filter(Boolean); // Remove null entries
@@ -559,6 +687,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
               
               const { 
                 id,
+                lectureId,
                 name, 
                 url, 
                 cloudinaryUrl, 
@@ -566,13 +695,25 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 type 
               } = res;
               
+              // Only include properties expected by LectureResourceCreateDraftVM
               const result: any = {};
-              if (id !== undefined) result.id = id; // Preserve the ID from API response
+              if (id !== undefined) result.id = id;
+              if (lectureId !== undefined) result.lectureId = lectureId;
+              if (type !== undefined) result.type = type;
               if (name !== undefined) result.name = name;
+              // Use Cloudinary URL as primary URL if available
               if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl;
               else if (url !== undefined) result.url = url;
-              if (cloudinaryPublicId !== undefined) result.cloudinaryPublicId = cloudinaryPublicId;
-              if (type !== undefined) result.type = type;
+              
+              // Remove audit fields and cloudinaryPublicId for API submission
+              if (forApiSubmission) {
+                delete result.cloudinaryPublicId;
+                delete result.createdDate;
+                delete result.modifiedDate;
+                delete result.createdBy;
+                delete result.modifiedBy;
+                delete result.isDeleted;
+              }
               
               return result;
             }).filter(Boolean);
@@ -599,6 +740,12 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
       }
     });
   }
+  
+  // Final pass: Remove pending change properties if for API submission
+  if (forApiSubmission) {
+    return removePendingChangeProperties(cleaned);
+  }
+  
   return cleaned;
 }
 
@@ -701,12 +848,20 @@ const transformApiCurriculumToForm = (curriculum: any) => {
       ...section,
       seqNo: section.seqNo != null ? section.seqNo : (sectionIndex + 1),
       published: section.published !== undefined ? section.published : true,
+      // Preserve pending change indicators for sections
+      isNew: section.isNew,
+      isEdited: section.isEdited,
+      pendingChangeType: section.pendingChangeType,
       items: section.items ? section.items.map((item: any, itemIndex: number) => {
         // Transform based on item type
         const transformedItem: any = {
           ...item,
           seqNo: item.seqNo != null ? item.seqNo : (itemIndex + 1),
           published: item.published !== undefined ? item.published : true,
+          // Preserve pending change indicators for all items
+          isNew: item.isNew,
+          isEdited: item.isEdited,
+          pendingChangeType: item.pendingChangeType,
         };
 
         // Transform quiz items
@@ -890,6 +1045,10 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
+  
+  // Check if course is published (status = 5) or has pending changes (status = 7)
+  const isPublishedCourse = courseData?.status === 5 || courseData?.status === 7;
+  const hasPendingChanges = courseData?.hasUnpublishedChanges || courseData?.status === 7;
   const isUpdatingRef = useRef(false);
 
   const [showContentType, setShowContentType] = useState<ViewItemState | null>(null);
@@ -2119,6 +2278,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                           onChange={formik.handleChange}
                                           onBlur={formik.handleBlur}
                                         />
+                                        {/* Pending Change Badges for Section */}
+                                        {section.isNew && (
+                                          <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New section - pending approval">
+                                            New
+                                          </span>
+                                        )}
+                                        {section.isEdited && !section.isNew && (
+                                          <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited section - pending approval">
+                                            Edited
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="flex items-center gap-2">
                                         {/* <Button
@@ -2248,6 +2418,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                 ) : (
                                                                   <div className="flex gap-2 items-center">
                                                                     <span className="font-semibold">{item.lectureName}</span>
+                                                                    {/* Pending Change Badges */}
+                                                                    {item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                        New
+                                                                      </span>
+                                                                    )}
+                                                                    {item.isEdited && !item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                        Edited
+                                                                      </span>
+                                                                    )}
                                                                     <Button
                                                                       type="button"
                                                                       variant="outline"
@@ -3491,6 +3672,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <span className="font-semibold">
                                                                     {item.quizTitle || "New Quiz"}
                                                                   </span>
+                                                                  {/* Pending Change Badges */}
+                                                                  {item.isNew && (
+                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                      New
+                                                                    </span>
+                                                                  )}
+                                                                  {item.isEdited && !item.isNew && (
+                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                      Edited
+                                                                    </span>
+                                                                  )}
                                                                   {/* Quiz Duration Display */}
                                                                   <div className="flex items-center gap-2 ml-2">
                                                                     <Clock size={16} className="text-primary" />
@@ -3820,6 +4012,17 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                   <span className="font-semibold">
                                                                     {item.title || "New Assignment"}
                                                                   </span>
+                                                                  {/* Pending Change Badges */}
+                                                                  {item.isNew && (
+                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                      New
+                                                                    </span>
+                                                                  )}
+                                                                  {item.isEdited && !item.isNew && (
+                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                      Edited
+                                                                    </span>
+                                                                  )}
                                                                   {/* Assignment Duration Display */}
                                                                   <div className="flex items-center gap-2 ml-2">
                                                                     <Clock size={16} className="text-primary" />

@@ -50,6 +50,10 @@ export function CourseLandingPage({ onSubmit }: any) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
+  
+  // Check if course is published (status = 5) or has pending changes (status = 7)
+  const isPublishedCourse = courseData?.status === 5 || courseData?.status === 7;
+  const hasPendingChanges = courseData?.hasUnpublishedChanges || courseData?.status === 7;
 
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
