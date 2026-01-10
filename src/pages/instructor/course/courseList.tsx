@@ -23,6 +23,7 @@ export interface ApiCourseDisplayData extends CourseResponse {
   status: number; // Ensure status is a number
   isFeatured?: number; // 0 or 1
   is_featured?: boolean; // boolean flag
+  pendingChangesCount?: number; // Number of pending changes awaiting review
 }
 
 // Flexible interface for backward compatibility (supports both Firebase and API courses)
@@ -347,17 +348,33 @@ export default function CourseList() {
   // };
 
   const handleSubmitForReview = async (course: ApiCourseDisplayData) => {
-    if (window.confirm(`Are you sure you want to submit "${course.title}" for review?`)) {
+    // Build context-specific confirmation message
+    let confirmMessage = `Are you sure you want to submit "${course.title}" for review?`;
+    
+    if (course.status === COURSE_STATUS.DRAFT_UPDATE) {
+      confirmMessage = `Are you sure you want to submit the changes to "${course.title}" for review? The course will remain published while your changes are being reviewed.`;
+    } else if (course.status === COURSE_STATUS.NEEDS_REVISION) {
+      confirmMessage = `Are you sure you want to resubmit "${course.title}" for review after making revisions?`;
+    }
+    
+    if (window.confirm(confirmMessage)) {
       try {
         const response = await courseApiService.submitCourseForReview(course.id);
         console.log('Course submitted for review:', response);
 
         // Refresh the courses list
         await fetchCourses();
-        alert("Course submitted for review successfully!");
-      } catch (err) {
+        
+        // Show context-specific success message
+        if (course.status === COURSE_STATUS.DRAFT_UPDATE) {
+          toast.success("Course changes submitted for review successfully! The course remains published while changes are reviewed.");
+        } else {
+          toast.success("Course submitted for review successfully!");
+        }
+      } catch (err: any) {
         console.error("Error submitting course for review:", err);
-        alert("Failed to submit course for review. Please try again.");
+        const errorMessage = err?.response?.data?.message || err?.message || "Failed to submit course for review. Please try again.";
+        toast.error(errorMessage);
       }
     }
   };
@@ -367,7 +384,31 @@ export default function CourseList() {
   };
 
   const canSubmitForReview = (course: ApiCourseDisplayData) => {
-    return course.status === COURSE_STATUS.DRAFT && course.progress === 100;
+    // Allow submission for Draft status (new course) - check progress
+    if (course.status === COURSE_STATUS.DRAFT) {
+      return course.progress === 100;
+    }
+    
+    // Allow submission for DraftUpdate status (published/approved course that was edited)
+    // This means the course has pending changes that need review
+    if (course.status === COURSE_STATUS.DRAFT_UPDATE) {
+      return true; // If it's in DraftUpdate, it means there are pending changes
+    }
+    
+    // Allow submission for APPROVED courses if they have pending changes (edited after approval)
+    // The backend will check for pending changes and update status to DraftUpdate if needed
+    if (course.status === COURSE_STATUS.APPROVED) {
+      // Show submit button if course has unpublished changes or has pending changes
+      // The backend will validate if there are actual pending changes and create them if needed
+      return course.hasUnpublishedChanges === true || (course.pendingChangesCount !== undefined && course.pendingChangesCount > 0);
+    }
+    
+    // Allow resubmission for NeedsRevision status if allowResubmission is true
+    if (course.status === COURSE_STATUS.NEEDS_REVISION) {
+      return course.allowResubmission === true;
+    }
+    
+    return false;
   };
 
   return (
