@@ -28,14 +28,13 @@ export const Students = () =>{
             try {
                 setLoading(true);
                 const [studentsData, coursesData] = await Promise.all([
-                    dashboardService.getStudentsData(user.UserName),
+                    dashboardService.getStudentsData(user.UserName, selectedCourse === "all" ? null : selectedCourse),
                     dashboardService.getCoursesData(user.UserName)
                 ]);
                 setStudents(studentsData);
                 setCourses(coursesData);
             } catch (error) {
                 console.error('Error loading data:', error);
-                // Fallback to mock data
                 setStudents([]);
                 setCourses([]);
             } finally {
@@ -44,7 +43,7 @@ export const Students = () =>{
         };
 
         loadStudentsData();
-    }, [user?.UserName]);
+    }, [user?.UserName, selectedCourse]);
 
     // Filter students based on selected course
     const filteredStudents = selectedCourse === "all" 

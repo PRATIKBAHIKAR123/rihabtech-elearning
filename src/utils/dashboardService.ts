@@ -1,5 +1,7 @@
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from 'firebase/firestore';
+import apiService from './apiService';
+import { API_BASE_URL } from '../lib/api';
 
 export interface DashboardStats {
   totalRevenue: number;
@@ -92,191 +94,84 @@ class DashboardService {
   // Get overview statistics
   async getDashboardStats(instructorId: string, selectedCourse: string | null): Promise<DashboardStats> {
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const currentYear = new Date().getFullYear();
+      console.log(`Getting dashboard stats for instructor: ${instructorId}`);
 
-      console.log(`Getting dashboard stats for instructor: ${instructorId}, current month: ${currentMonth}`);
-
-      // Get total revenue from payouts
-      let conditions = [
-  where("instructorId", "==", instructorId),
-  where("status", "==", "processed"),
-];
-
-      if (selectedCourse && selectedCourse !== "all-courses") {
-  conditions.push(where("courseId", "==", selectedCourse));
-}
-
-const payoutQuery = query(
-  collection(db, this.PAYOUT_REQUESTS_COLLECTION),
-  ...conditions
-);
-      const payoutSnapshot = await getDocs(payoutQuery);
-      console.log(`Found ${payoutSnapshot.size} payout documents`);
-      
-      let totalRevenue = 0;
-      let totalWatchtime = 0;
-      let currentMonthRevenue = 0;
-
-      payoutSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        console.log("Payout data:", data);
-        const amount = data.amount || 0;
-        totalRevenue += amount;
-        totalWatchtime += data.watchTimeMinutes || 0;
-
-        if (data.month === currentMonth && data.year === currentYear) {
-          currentMonthRevenue += amount;
-        }
-      });
-
-      // Also get watch time from watchTimeData collection
-      const watchTimeQuery = query(
-        collection(db, this.WATCH_TIME_COLLECTION),
-        where('instructorId', '==', instructorId)
+      // Call the new API endpoint
+      const courseIdParam = selectedCourse && selectedCourse !== "all-courses" ? parseInt(selectedCourse) : null;
+      const response = await apiService.get<{
+        totalRevenue: number;
+        totalEnrollments: number;
+        totalStudents: number;
+        totalCourses: number;
+        currentMonthRevenue: number;
+        totalWatchtime: number;
+        currentMonthEnrollments: number;
+      }>(
+        `${API_BASE_URL}instructor/dashboard/stats`,
+        courseIdParam ? { courseId: courseIdParam } : undefined
       );
-      const watchTimeSnapshot = await getDocs(watchTimeQuery);
-      
-      let watchTimeFromData = 0;
-      watchTimeSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        watchTimeFromData += data.watchMinutes || 0;
-      });
-
-      // Use the higher value between payout data and watch time data
-      totalWatchtime = Math.max(totalWatchtime, watchTimeFromData);
-
-      // Get instructor's courses first
-      const instructorCoursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
-      );
-      const instructorCoursesSnapshot = await getDocs(instructorCoursesQuery);
-      const instructorCourseIds = instructorCoursesSnapshot.docs.map(doc => doc.id);
-
-      // Get total enrollments and students for instructor's courses
-      const enrollmentQuery = query(
-        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
-      );
-      const enrollmentSnapshot = await getDocs(enrollmentQuery);
-      let totalEnrollments = 0;
-      const uniqueStudents = new Set();
-      let currentMonthEnrollments = 0;
-
-      enrollmentSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        if (data.courseId && instructorCourseIds.includes(data.courseId)) {
-          totalEnrollments++;
-          uniqueStudents.add(data.studentId);
-
-          const enrolledDate = data.enrolledAt?.toDate() || new Date();
-          if (enrolledDate.toISOString().slice(0, 7) === currentMonth) {
-            currentMonthEnrollments++;
-          }
-        }
-      });
-
-      let courseConditions = [
-  where('instructorId', '==', instructorId)
-];
-
-if (selectedCourse && selectedCourse !== "all-courses") {
-  courseConditions.push(where("id", "==", selectedCourse));
-}
-      // Get total courses
-      const coursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        ...courseConditions
-      );
-      const coursesSnapshot = await getDocs(coursesQuery);
-      const totalCourses = coursesSnapshot.size;
 
       return {
-        totalRevenue,
-        totalEnrollments,
-        totalStudents: uniqueStudents.size,
-        totalCourses,
-        totalWatchtime,
-        currentMonthRevenue,
-        currentMonthEnrollments
+        totalRevenue: response.totalRevenue || 0,
+        totalEnrollments: response.totalEnrollments || 0,
+        totalStudents: response.totalStudents || 0,
+        totalCourses: response.totalCourses || 0,
+        totalWatchtime: response.totalWatchtime || 0,
+        currentMonthRevenue: response.currentMonthRevenue || 0,
+        currentMonthEnrollments: response.currentMonthEnrollments || 0
       };
     } catch (error) {
       console.error('Error getting dashboard stats:', error);
-      throw new Error('Failed to get dashboard statistics');
+      // Fallback to mock data on error
+      return this.getMockDashboardStats();
     }
   }
 
   // Get students data
-  async getStudentsData(instructorId: string): Promise<StudentData[]> {
+  async getStudentsData(instructorId: string, courseId?: string | null): Promise<StudentData[]> {
     try {
-      // Get student enrollments for instructor's courses
-      const enrollmentsQuery = query(
-        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
-      );
-      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-
-      // Get instructor's courses first
-      const coursesQuery = query(
-        collection(db, this.COURSES_COLLECTION)
-      );
-      const coursesSnapshot = await getDocs(coursesQuery);
-      const instructorCourseIds = coursesSnapshot.docs.map(doc => doc.id);
-
-      // Filter enrollments for instructor's courses
-      const relevantEnrollments = enrollmentsSnapshot.docs
-        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
-        .filter((enrollment: any) => instructorCourseIds.includes(enrollment.courseId));
-
-      if (relevantEnrollments.length === 0) {
-        return [];
-      }
-
-      // Get unique student IDs
-      const studentIds = Array.from(new Set(relevantEnrollments.map((e: any) => e.studentId)));
-
-      // Get student data from users collection
-      const students: StudentData[] = [];
+      console.log(`Getting students data for instructor: ${instructorId}, courseId: ${courseId}`);
       
-      for (const studentId of studentIds) {
-        const studentQuery = query(
-          collection(db, 'users'),
-          where('email', '==', studentId)
-        );
-        const studentSnapshot = await getDocs(studentQuery);
+      // Call the new API endpoint
+      const courseIdParam = courseId && courseId !== "all" ? parseInt(courseId) : null;
+      const response = await apiService.get<Array<{
+        id: number;
+        name: string;
+        email: string;
+        location?: string;
+        phone?: string;
+        education?: string;
+        enrolledDate: string;
+        numberOfCourses: number;
+        status: string;
+        lastAccessedAt?: string;
+        progress: number;
+        course: string;
+        courseId: number;
+      }>>(
+        `${API_BASE_URL}instructor/dashboard/students`,
+        courseIdParam ? { courseId: courseIdParam } : undefined
+      );
 
-        studentSnapshot.forEach(doc => {
-          const data = doc.data() as any;
-          if (data.role === 'learner') {
-            // Get enrollments for this student
-            const studentEnrollments = relevantEnrollments.filter((e: any) => e.studentId === studentId);
-            
-            students.push({
-              id: doc.id,
-              name: `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown Student',
-              email: data.email || 'unknown@email.com',
-              location: data.address || 'Unknown Location',
-              phone: data.phone || undefined,
-              education: data.education || undefined,
-              enrolledDate: studentEnrollments[0]?.enrolledAt?.toDate() || new Date(),
-              enrollmentDate: studentEnrollments[0]?.enrolledAt?.toDate() || new Date(),
-              numberOfCourses: studentEnrollments.length,
-              status: data.status || 'active',
-              progress: studentEnrollments.reduce((sum: number, e: any) => sum + (e.progress || 0), 0) / studentEnrollments.length || 0,
-              lastAccessedAt: studentEnrollments[0]?.lastAccessedAt?.toDate() || new Date(),
-              lastActive: studentEnrollments[0]?.lastAccessedAt?.toDate() || new Date(),
-              course: studentEnrollments[0]?.courseTitle || 'Unknown Course',
-              courseId: studentEnrollments[0]?.courseId || 'unknown-course'
-            });
-          }
-        });
-      }
-
-      // Sort by last accessed date (most recent first)
-      return students.sort((a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime());
-
+      return response.map(item => ({
+        id: item.id.toString(),
+        name: item.name || 'Unknown Student',
+        email: item.email || '',
+        location: item.location,
+        phone: item.phone,
+        education: item.education,
+        enrolledDate: new Date(item.enrolledDate),
+        enrollmentDate: new Date(item.enrolledDate),
+        numberOfCourses: item.numberOfCourses || 0,
+        status: (item.status?.toLowerCase() || 'active') as 'active' | 'inactive' | 'completed' | 'dropped',
+        lastAccessedAt: item.lastAccessedAt ? new Date(item.lastAccessedAt) : new Date(item.enrolledDate),
+        lastActive: item.lastAccessedAt ? new Date(item.lastAccessedAt) : new Date(item.enrolledDate),
+        progress: item.progress || 0,
+        course: item.course || '',
+        courseId: item.courseId.toString()
+      }));
     } catch (error) {
       console.error('Error getting students data:', error);
-      // Return empty array if no data found
       return [];
     }
   }
@@ -605,104 +500,56 @@ if (selectedCourse && selectedCourse !== "all-courses") {
   // Get revenue statistics for charts
   async getRevenueStatistics(instructorId: string, year: number): Promise<RevenueData[]> {
     try {
-      const months = [];
-      for (let i = 1; i <= 12; i++) {
-        const month = `${year}-${i.toString().padStart(2, '0')}`;
-        months.push(month);
-      }
-
-      // Get payout data for the year
-      const payoutQuery = query(
-        collection(db, this.PAYOUT_REQUESTS_COLLECTION),
-        where('instructorId', '==', instructorId),
-        where('year', '==', year)
+      // Call the new API endpoint
+      const response = await apiService.get<Array<{
+        month: string;
+        revenue: number;
+        enrollments: number;
+        percentage: number;
+      }>>(
+        `${API_BASE_URL}instructor/dashboard/revenue-statistics`,
+        { year }
       );
-      const payoutSnapshot = await getDocs(payoutQuery);
 
-      const monthlyRevenue = new Map<string, number>();
-      const monthlyEnrollments = new Map<string, number>();
-      months.forEach(month => {
-        monthlyRevenue.set(month, 0);
-        monthlyEnrollments.set(month, 0);
-      });
-
-      payoutSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        const month = data.month;
-        const amount = data.amount || 0;
-
-        if (monthlyRevenue.has(month)) {
-          monthlyRevenue.set(month, monthlyRevenue.get(month)! + amount);
-        }
-      });
-
-      // Get enrollment data for the year
-      const instructorCoursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
-      );
-      const instructorCoursesSnapshot = await getDocs(instructorCoursesQuery);
-      const instructorCourseIds = instructorCoursesSnapshot.docs.map(doc => doc.id);
-
-      const enrollmentQuery = query(
-        collection(db, this.STUDENT_ENROLLMENTS_COLLECTION)
-      );
-      const enrollmentSnapshot = await getDocs(enrollmentQuery);
-
-      enrollmentSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        if (data.courseId && instructorCourseIds.includes(data.courseId)) {
-          const enrolledDate = data.enrolledAt?.toDate() || new Date();
-          const month = enrolledDate.toISOString().slice(0, 7);
-          
-          if (monthlyEnrollments.has(month)) {
-            monthlyEnrollments.set(month, monthlyEnrollments.get(month)! + 1);
-          }
-        }
-      });
-
-      // Calculate percentages
-      const maxRevenue = Math.max(...Array.from(monthlyRevenue.values()));
-
-      return months.map(month => ({
-        month: month.slice(-2), // Just the month number
-        revenue: monthlyRevenue.get(month) || 0,
-        enrollments: monthlyEnrollments.get(month) || 0,
-        percentage: maxRevenue > 0 ? ((monthlyRevenue.get(month) || 0) / maxRevenue) * 100 : 0
+      return response.map(item => ({
+        month: item.month,
+        revenue: item.revenue || 0,
+        enrollments: item.enrollments || 0,
+        percentage: item.percentage || 0
       }));
     } catch (error) {
       console.error('Error getting revenue statistics:', error);
-      throw new Error('Failed to get revenue statistics');
+      // Return empty data for all 12 months on error
+      return Array.from({ length: 12 }, (_, i) => ({
+        month: (i + 1).toString().padStart(2, '0'),
+        revenue: 0,
+        enrollments: 0,
+        percentage: 0
+      }));
     }
   }
 
   // Get courses data for dropdown
   async getCoursesData(instructorId: string): Promise<CourseData[]> {
     try {
-      const coursesQuery = query(
-        collection(db, this.COURSES_COLLECTION),
-        where('instructorId', '==', instructorId)
-      );
-      const coursesSnapshot = await getDocs(coursesQuery);
+      console.log(`Getting courses data for instructor: ${instructorId}`);
+      
+      // Call the new API endpoint
+      const response = await apiService.get<Array<{
+        id: number;
+        title: string;
+        category: string;
+        subCategory: string;
+        isActive: boolean;
+      }>>(`${API_BASE_URL}instructor/dashboard/courses`);
 
-      if (coursesSnapshot.empty) {
-        return [];
-      }
-
-      const courses: CourseData[] = [];
-      coursesSnapshot.forEach(doc => {
-        const data = doc.data() as any;
-        courses.push({
-          id: doc.id,
-          title: data.title || data.courseTitle || 'Unknown Course',
-          category: data.category || 'Development',
-          subcategory: data.subcategory || 'Web Development',
-          isActive: data.isActive !== false
-        });
-      });
-
-      return courses.sort((a, b) => a.title.localeCompare(b.title));
-
+      return response.map(item => ({
+        id: item.id.toString(),
+        title: item.title || 'Unknown Course',
+        category: item.category || '',
+        subcategory: item.subCategory || '',
+        isActive: item.isActive !== false
+      })).sort((a, b) => a.title.localeCompare(b.title));
     } catch (error) {
       console.error('Error getting courses data:', error);
       return [];

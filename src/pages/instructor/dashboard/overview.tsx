@@ -17,9 +17,27 @@ import { dashboardService, DashboardStats, RevenueData } from "../../../utils/da
 import { CourseDisplayData } from "../course/courseList";
 import { getInstructorCourses } from "../../../utils/firebaseInstructorCourses";
 import { format } from "date-fns";
-import revenueSharingService, { MonthlyRevenueSummary } from "../../../utils/revenueSharingService";
+import apiService from "../../../utils/apiService";
+import { API_BASE_URL } from "../../../lib/api";
 import courseWatchTimeService, { CourseWatchTimeData } from "../../../utils/courseWatchTimeService";
 import { useNavigate } from "react-router-dom";
+
+// Monthly Revenue Summary interface matching API response
+interface MonthlyRevenueSummary {
+  month: string;
+  year: number;
+  totalRevenue: number;
+  totalTax: number;
+  totalPlatformFee: number;
+  totalInstructorShare: number;
+  subscriptionRevenue: number;
+  courseRevenue: number;
+  withoutHoldingTax: number;
+  processedDate: Date | null;
+  breakdown: any[];
+  watchMinutes: number;
+  totalWatchTime: number;
+}
 
 export const Overview = () =>{
     const navigate = useNavigate();
@@ -135,89 +153,74 @@ export const Overview = () =>{
             };
 
             const loadMonthlyRevenueData = async () => {
-            const instructorId = user?.UserName || user?.email || 'abdulquader152@gmail.com'; // Fallback for testing
-            if (!instructorId) return;
-            
             try {
                 setLoading(true);
-                console.log("Loading monthly revenue data for instructor:", instructorId);
-                const monthlyrevenueData = await 
-                    revenueSharingService.getInstructorRevenueSummary(instructorId,2025)
+                const currentYear = new Date().getFullYear();
+                console.log("Loading monthly revenue data for year:", currentYear);
                 
-                     console.log("Monthly Revenue Data:", monthlyrevenueData);
-                console.log("Monthly Breakdown:", monthlyrevenueData.monthlyBreakdown);
+                // Call the new API endpoint
+                const monthlyRevenueData = await apiService.get<Array<{
+                    month: string;
+                    year: number;
+                    totalRevenue: number;
+                    totalTax: number;
+                    totalPlatformFee: number;
+                    totalInstructorShare: number;
+                    totalWatchTime: number;
+                    processedDate: string | null;
+                }>>(
+                    `${API_BASE_URL}instructor/dashboard/monthly-revenue`,
+                    { year: currentYear }
+                );
                 
-                if (monthlyrevenueData.monthlyBreakdown && monthlyrevenueData.monthlyBreakdown.length > 0) {
-                    console.log("Setting revenue monthly data:", monthlyrevenueData.monthlyBreakdown);
-                    console.log("Number of months in breakdown:", monthlyrevenueData.monthlyBreakdown.length);
-                    console.log("Months in breakdown:", monthlyrevenueData.monthlyBreakdown.map(m => m.month));
-                    
-                    // Ensure we have exactly 12 months
-                    const allMonths = [];
-                    for (let i = 1; i <= 12; i++) {
-                        const monthKey = `2025-${i.toString().padStart(2, '0')}`;
-                        const existingMonth = monthlyrevenueData.monthlyBreakdown.find(m => m.month === monthKey);
-                        if (existingMonth) {
-                            allMonths.push(existingMonth);
-                        } else {
-                            // Create empty month data
-                            // Calculate expected payout date for empty months
-                            const [year, monthNum] = monthKey.split("-");
-                            const nextMonth = parseInt(monthNum) === 12 ? 1 : parseInt(monthNum) + 1;
-                            const nextYear = parseInt(monthNum) === 12 ? parseInt(year) + 1 : parseInt(year);
-                            const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
-                            
-                            allMonths.push({
-                                month: monthKey,
-                                year: 2025,
-                                totalRevenue: 0,
-                                totalTax: 0,
-                                totalPlatformFee: 0,
-                                totalInstructorShare: 0,
-                                subscriptionRevenue: 0,
-                                courseRevenue: 0,
-                                withoutHoldingTax: 0,
-                                processedDate: expectedPayoutDate,
-                                breakdown: [],
-                                watchMinutes: 0,
-                                totalWatchTime: 0
-                            });
-                        }
-                    }
-                    
-                    console.log("Final months data (12 months):", allMonths.length);
-                    setRevenueMonthly(allMonths);
-                } else {
-                    console.log("No monthly breakdown data found, creating empty 12 months");
-                    // Create empty 12 months
-                    const emptyMonths = [];
-                    for (let i = 1; i <= 12; i++) {
-                        // Calculate expected payout date for empty months
-                        const nextMonth = i === 12 ? 1 : i + 1;
-                        const nextYear = i === 12 ? 2026 : 2025;
-                        const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
-                        
-                        emptyMonths.push({
-                            month: `2025-${i.toString().padStart(2, '0')}`,
-                            year: 2025,
-                            totalRevenue: 0,
-                            totalTax: 0,
-                            totalPlatformFee: 0,
-                            totalInstructorShare: 0,
-                            subscriptionRevenue: 0,
-                            courseRevenue: 0,
-                            withoutHoldingTax: 0,
-                            processedDate: expectedPayoutDate,
-                            breakdown: [],
-                            watchMinutes: 0,
-                            totalWatchTime: 0
-                        });
-                    }
-                    setRevenueMonthly(emptyMonths);
-                }
+                console.log("Monthly Revenue Data from API:", monthlyRevenueData);
+                
+                // Transform API data to match the expected format
+                const transformedData = monthlyRevenueData.map(item => ({
+                    month: item.month,
+                    year: item.year,
+                    totalRevenue: item.totalRevenue || 0,
+                    totalTax: item.totalTax || 0,
+                    totalPlatformFee: item.totalPlatformFee || 0,
+                    totalInstructorShare: item.totalInstructorShare || 0,
+                    subscriptionRevenue: 0,
+                    courseRevenue: 0,
+                    withoutHoldingTax: item.totalInstructorShare || 0,
+                    processedDate: item.processedDate ? new Date(item.processedDate) : null,
+                    breakdown: [],
+                    watchMinutes: item.totalWatchTime || 0,
+                    totalWatchTime: item.totalWatchTime || 0
+                }));
+                
+                console.log("Transformed monthly revenue data:", transformedData);
+                setRevenueMonthly(transformedData);
             } catch (error) {
                 console.error("Error loading monthly revenue data:", error);
-                setRevenueMonthly([]);
+                // Create empty 12 months on error
+                const currentYear = new Date().getFullYear();
+                const emptyMonths = [];
+                for (let i = 1; i <= 12; i++) {
+                    const nextMonth = i === 12 ? 1 : i + 1;
+                    const nextYear = i === 12 ? currentYear + 1 : currentYear;
+                    const expectedPayoutDate = new Date(nextYear, nextMonth - 1, 15);
+                    
+                    emptyMonths.push({
+                        month: `${currentYear}-${i.toString().padStart(2, '0')}`,
+                        year: currentYear,
+                        totalRevenue: 0,
+                        totalTax: 0,
+                        totalPlatformFee: 0,
+                        totalInstructorShare: 0,
+                        subscriptionRevenue: 0,
+                        courseRevenue: 0,
+                        withoutHoldingTax: 0,
+                        processedDate: expectedPayoutDate,
+                        breakdown: [],
+                        watchMinutes: 0,
+                        totalWatchTime: 0
+                    });
+                }
+                setRevenueMonthly(emptyMonths);
             } finally {
                 setLoading(false);
             }

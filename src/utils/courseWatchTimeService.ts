@@ -1,5 +1,7 @@
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import apiService from './apiService';
+import { API_BASE_URL } from '../lib/api';
 
 export interface CourseWatchTimeData {
   courseId: string;
@@ -30,6 +32,38 @@ class CourseWatchTimeService {
 
   // Get course-wise watch time data for an instructor
   async getCourseWatchTimeData(instructorId: string): Promise<CourseWatchTimeData[]> {
+    try {
+      console.log(`Fetching course watch time data for instructor: ${instructorId}`);
+
+      // Call the new API endpoint
+      const response = await apiService.get<Array<{
+        courseId: number;
+        courseTitle: string;
+        totalWatchTime: number;
+        totalStudents: number;
+        averageWatchTime: number;
+        completionRate: number;
+        lastAccessed: string;
+      }>>(`${API_BASE_URL}instructor/dashboard/course-watch-time`);
+
+      return response.map(item => ({
+        courseId: item.courseId.toString(),
+        courseTitle: item.courseTitle,
+        totalWatchTime: item.totalWatchTime || 0,
+        totalStudents: item.totalStudents || 0,
+        averageWatchTime: item.averageWatchTime || 0,
+        completionRate: item.completionRate || 0,
+        lastAccessed: new Date(item.lastAccessed),
+        watchTimeByMonth: {} // Can be populated if needed
+      }));
+    } catch (error) {
+      console.error('Error getting course watch time data:', error);
+      return [];
+    }
+  }
+
+  // Legacy method - kept for backward compatibility but uses new API
+  async getCourseWatchTimeDataLegacy(instructorId: string): Promise<CourseWatchTimeData[]> {
     try {
       console.log(`Fetching course watch time data for instructor: ${instructorId}`);
 
