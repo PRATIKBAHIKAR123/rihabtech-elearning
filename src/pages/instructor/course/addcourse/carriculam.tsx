@@ -179,6 +179,7 @@ export interface QuizItem {
   isNew?: boolean; // Pending change indicator - new content
   isEdited?: boolean; // Pending change indicator - edited content
   pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
+  isDeleted?: boolean; // Indicates if the item is deleted
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -228,6 +229,7 @@ export interface Assignment {
   isNew?: boolean; // Pending change indicator - new content
   isEdited?: boolean; // Pending change indicator - edited content
   pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
+  isDeleted?: boolean; // Indicates if the item is deleted
   resources?: {
     id?: number; // Add ID field from API response
     name: string;
@@ -266,6 +268,7 @@ interface LectureItem {
   isNew?: boolean; // Pending change indicator - new content
   isEdited?: boolean; // Pending change indicator - edited content
   pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
+  isDeleted?: boolean; // Indicates if the item is deleted
 }
 
 export interface Section {
@@ -2374,7 +2377,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                         id={`section-${sectionIdx}-item-${itemIdx}`}
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
-                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''}`}
+                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''} ${item.isDeleted ? 'opacity-60 bg-red-50 border-red-300 border-2' : ''}`}
                                                       >
                                                         {/* Drag Handle for all item types */}
                                                         <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded" {...provided.dragHandleProps}>
@@ -2422,13 +2425,19 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                 ) : (
                                                                   <div className="flex gap-2 items-center">
                                                                     <span className="font-semibold">{item.lectureName}</span>
+                                                                    {/* Deleted Badge */}
+                                                                    {item.isDeleted && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800" title="Deleted content - pending approval">
+                                                                        <Trash2 size={12} className="inline-block mr-1" />Deleted
+                                                                      </span>
+                                                                    )}
                                                                     {/* Pending Change Badges */}
-                                                                    {item.isNew && (
+                                                                    {item.isNew && !item.isDeleted && (
                                                                       <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
                                                                         New
                                                                       </span>
                                                                     )}
-                                                                    {item.isEdited && !item.isNew && (
+                                                                    {item.isEdited && !item.isNew && !item.isDeleted && (
                                                                       <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
                                                                         Edited
                                                                       </span>
