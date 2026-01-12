@@ -277,6 +277,7 @@ export interface Section {
   isNew?: boolean; // Pending change indicator - new section
   isEdited?: boolean; // Pending change indicator - edited section
   pendingChangeType?: string; // Pending change type: "CREATE", "UPDATE", "DELETE"
+  isDeleted?: boolean; // Indicates if the section is deleted
 }
 
 export interface CurriculumFormValues {
@@ -486,7 +487,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
             newObj[key] = obj[key].map((section: any, sectionIndex: number) => {
               if (!section) return null;
               
-              const { id, name, published, seqNo, items, isNew, isEdited, pendingChangeType } = section;
+              const { id, name, published, seqNo, items, isNew, isEdited, pendingChangeType, isDeleted } = section;
               
               const result: any = {};
               if (id !== undefined) result.id = id; // Preserve the section ID from API response
@@ -498,6 +499,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 if (isNew !== undefined) result.isNew = isNew;
                 if (isEdited !== undefined) result.isEdited = isEdited;
                 if (pendingChangeType !== undefined) result.pendingChangeType = pendingChangeType;
+                if (isDeleted !== undefined) result.isDeleted = isDeleted; // Preserve isDeleted property
               }
               if (items !== undefined) result.items = clean(items); // Recursively clean items
               
@@ -506,6 +508,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 delete result.isNew;
                 delete result.isEdited;
                 delete result.pendingChangeType;
+                delete result.isDeleted; // Remove isDeleted for API submission
               }
               
               return result;
@@ -852,6 +855,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
       isNew: section.isNew,
       isEdited: section.isEdited,
       pendingChangeType: section.pendingChangeType,
+      isDeleted: section.isDeleted, // Preserve isDeleted property
       items: section.items ? section.items.map((item: any, itemIndex: number) => {
         // Transform based on item type
         const transformedItem: any = {
@@ -2238,7 +2242,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
-                                  className={`mb-8 border rounded p-4 bg-white ${snapshot.isDragging ? 'shadow-lg rotate-2' : ''}`}
+                                  className={`mb-8 border rounded p-4 bg-white ${snapshot.isDragging ? 'shadow-lg rotate-2' : ''} ${section.isDeleted ? 'opacity-60 bg-red-50 border-red-300 border-2' : ''}`}
                                 >
                                   <div>
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
