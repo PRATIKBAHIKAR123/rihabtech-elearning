@@ -10,69 +10,73 @@ import { GoogleAuth } from '../../lib/googleAuth';
 
 
 export default function LoginPage() {
-    const [loading, setLoading] = useState(false);
-    const [googleLoading, setGoogleLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-    // Initialize Google OAuth and handle callback
-    useEffect(() => {
-      console.log('🔵 LoginPage useEffect running');
-      console.log('Current URL:', window.location.href);
-      console.log('Pathname:', window.location.pathname);
-      console.log('Search:', window.location.search);
-      console.log('Hash:', window.location.hash);
-      
-      // Handle path-based redirect from Google (/login?code=...)
-      // Convert to hash route if needed for HashRouter compatibility
-      if (window.location.pathname === '/login' && window.location.search) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const error = urlParams.get('error');
-        
-        if (code || error) {
-          console.log('✅ OAuth callback detected on /login path');
-          // Convert to hash route and preserve query params
-          window.location.hash = `/login${window.location.search}`;
-          // The useEffect will run again with the hash route
-          return;
-        }
-      }
-      
-      // Initialize Google OAuth
-      GoogleAuth.init().then(() => {
-        console.log('Google OAuth initialized');
-      });
-      
-      // Handle OAuth 2.0 callback from hash route or after redirect
+  // Initialize Google OAuth and handle callback
+  useEffect(() => {
+    console.log('🔵 LoginPage useEffect running');
+    console.log('Current URL:', window.location.href);
+    console.log('Pathname:', window.location.pathname);
+    console.log('Search:', window.location.search);
+    console.log('Hash:', window.location.hash);
+
+    // Handle path-based redirect from Google (/login?code=...)
+    // Convert to hash route if needed for HashRouter compatibility
+    if (window.location.pathname === '/login' && window.location.search) {
       const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
-      
-      const code = urlParams.get('code') || hashParams.get('code');
-      const error = urlParams.get('error') || hashParams.get('error');
-      
-      console.log('Checking for OAuth callback...');
-      console.log('Code from search:', urlParams.get('code'));
-      console.log('Code from hash:', hashParams.get('code'));
-      console.log('Final code:', code);
-      console.log('Final error:', error);
-      
-      if (code) {
-        console.log('✅ OAuth callback detected, processing...');
-        GoogleAuth.handleOAuth2Callback().catch((err) => {
-          console.error('❌ Error in OAuth callback handler:', err);
-        });
-      } else if (error) {
-        console.error('❌ OAuth error detected:', error);
-        toast.error('Google authentication failed. Please try again.');
-        // Clean up URL
-        const url = new URL(window.location.href);
-        url.search = '';
-        url.hash = '/login';
-        window.history.replaceState({}, '', url.toString());
-      } else {
-        console.log('No OAuth callback detected');
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+
+      if (code || error) {
+        console.log('✅ OAuth callback detected on /login path');
+        // Convert to hash route and preserve query params
+        window.location.hash = `/login${window.location.search}`;
+        // Continue execution to handle the callback immediately
+        // remove return
       }
-    }, []);
-    const loginSchema = useFormik({
+    }
+
+    // Initialize Google OAuth
+    GoogleAuth.init().then(() => {
+      console.log('Google OAuth initialized');
+    });
+
+    // Handle OAuth 2.0 callback from hash route or after redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+
+    const code = urlParams.get('code') || hashParams.get('code');
+    const error = urlParams.get('error') || hashParams.get('error');
+
+    console.log('Checking for OAuth callback...');
+    console.log('Code from search:', urlParams.get('code'));
+    console.log('Code from hash:', hashParams.get('code'));
+    console.log('Final code:', code);
+    console.log('Final error:', error);
+
+    if (code) {
+      console.log('✅ OAuth callback detected, processing...');
+      // Set loading state
+      setGoogleLoading(true);
+
+      GoogleAuth.handleOAuth2Callback().catch((err) => {
+        console.error('❌ Error in OAuth callback handler:', err);
+        setGoogleLoading(false);
+      });
+    } else if (error) {
+      console.error('❌ OAuth error detected:', error);
+      toast.error('Google authentication failed. Please try again.');
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.search = '';
+      url.hash = '/login';
+      window.history.replaceState({}, '', url.toString());
+    } else {
+      console.log('No OAuth callback detected');
+    }
+  }, []);
+  const loginSchema = useFormik({
     initialValues: {
       email: '',
       password: '',
@@ -154,7 +158,7 @@ export default function LoginPage() {
         <div className="text-center mt-8 text-white">
           <h2 className="text-white text-[31.25px] font-bold font-['Zen_Kaku_Gothic_Antique'] leading-[37.50px] mb-2">An Online Learning Community for Curious Minds?</h2>
           <p className="text-neutral-100 text-base font-normal font-['Zen_Kaku_Gothic_Antique'] leading-7">
-          Explore engaging online courses led by expert instructors — no certificates, just pure learning.
+            Explore engaging online courses led by expert instructors — no certificates, just pure learning.
           </p>
         </div>
       </div>
@@ -187,10 +191,10 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
               ) : (
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
               )}
               {googleLoading ? 'Signing in...' : 'Continue with Google'}
@@ -220,13 +224,13 @@ export default function LoginPage() {
                 Email
               </label>
               <Input id="email" type="email"
-              value={loginSchema.values.email}
-          onChange={loginSchema.handleChange}
-          onBlur={loginSchema.handleBlur}
-               placeholder="johndoe@email.com" />
-               {loginSchema.touched.email && loginSchema.errors.email && (
-          <p className="text-red-500 text-sm mt-1">{loginSchema.errors.email}</p>
-        )}
+                value={loginSchema.values.email}
+                onChange={loginSchema.handleChange}
+                onBlur={loginSchema.handleBlur}
+                placeholder="johndoe@email.com" />
+              {loginSchema.touched.email && loginSchema.errors.email && (
+                <p className="text-red-500 text-sm mt-1">{loginSchema.errors.email}</p>
+              )}
             </div>
 
 
@@ -235,16 +239,16 @@ export default function LoginPage() {
                 Password
               </label>
               <div className="relative">
-                <Input 
+                <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={loginSchema.values.password}
-          onChange={loginSchema.handleChange}
+                  onChange={loginSchema.handleChange}
                   placeholder="••••••••••••"
                 />
-                 {loginSchema.touched.password && loginSchema.errors.password && (
-          <p className="text-red-500 text-sm mt-1">{loginSchema.errors.password}</p>
-        )}
+                {loginSchema.touched.password && loginSchema.errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{loginSchema.errors.password}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -259,21 +263,21 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="flex items-center justify-end space-x-2 mt-4">
-            {/* <div className="flex items-center space-x-2 mt-4">
+              {/* <div className="flex items-center space-x-2 mt-4">
               <Checkbox id="terms" className="data-[state=checked]:bg-orange-500 border-gray-300" />
               <label htmlFor="terms" className="text-xs text-gray-600">
                 I accept the terms & conditions
               </label>
             </div> */}
 
-            <Button type="submit" className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log In'}
-            </Button>
+              <Button type="submit" className="px-8 btn-rouded bg-primary hover:bg-orange-600 mt-4" disabled={loading}>
+                {loading ? 'Logging in...' : 'Log In'}
+              </Button>
             </div>
 
             <div className="text-center text-sm flex mt-6 justify-between">
-            <span>Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a></span>
-            <a href="#/forgot-password" className="text-primary font-bold">Forgot Password</a>
+              <span>Don’t Own an Account? <a href="/#/sign-up" className="text-blue-600 font-medium">Sign Up</a></span>
+              <a href="#/forgot-password" className="text-primary font-bold">Forgot Password</a>
             </div>
           </form>
         </div>

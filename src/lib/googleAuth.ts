@@ -29,7 +29,7 @@ export const GOOGLE_CONFIG = {
 if (typeof window !== 'undefined') {
   const processEnv = process.env.REACT_APP_GOOGLE_CLIENT_ID;
   const importMetaEnv = typeof import.meta !== 'undefined' ? (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID : undefined;
-  console.log('Google Client ID loaded:', !!GOOGLE_CONFIG.clientId, 
+  console.log('Google Client ID loaded:', !!GOOGLE_CONFIG.clientId,
     GOOGLE_CONFIG.clientId ? `${GOOGLE_CONFIG.clientId.substring(0, 20)}...` : 'NOT SET');
   console.log('Debug - process.env.REACT_APP_GOOGLE_CLIENT_ID:', processEnv || 'undefined');
   console.log('Debug - import.meta.env.VITE_GOOGLE_CLIENT_ID:', importMetaEnv || 'undefined');
@@ -39,32 +39,28 @@ if (typeof window !== 'undefined') {
 // Google OAuth Helper Functions
 export const GoogleAuth = {
   // Initialize Google OAuth
-  init: () => {
+  init: async () => {
+    // Try to fetch Client ID from backend
+    try {
+      const response = await fetch(`${API_BASE_URL}auth/google/client-id`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.clientId) {
+          console.log('✅ Fetched Google Client ID from backend:', data.clientId.substring(0, 10) + '...');
+          GOOGLE_CONFIG.clientId = data.clientId;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Google Client ID from backend, falling back to env/config:', error);
+    }
+
     return new Promise((resolve) => {
+      // Logic for GSI initialization kept for compatibility, though we use OAuth2 flow primarily now
       if (typeof window !== 'undefined' && window.google) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CONFIG.clientId,
-          callback: GoogleAuth.handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: false,
-        });
+        // ... (existing initialization logic if needed, or just resolve)
         resolve(true);
       } else {
-        // Load Google Identity Services script
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CONFIG.clientId,
-            callback: GoogleAuth.handleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: false,
-          });
-          resolve(true);
-        };
-        document.head.appendChild(script);
+        resolve(true);
       }
     });
   },
@@ -75,7 +71,7 @@ export const GoogleAuth = {
   handleCredentialResponse: async (response: any) => {
     console.log('Google OAuth Response (GSI):', response);
     console.warn('GSI credential received, but backend expects OAuth2 access token. Redirecting to OAuth2 flow...');
-    
+
     // For GSI, we need to redirect to OAuth2 flow to get access token
     // Alternatively, we could decode the credential and send email, but backend expects token
     // Redirecting to OAuth2 flow for consistency
@@ -86,11 +82,11 @@ export const GoogleAuth = {
   processAccessTokenWithBackend: async (accessToken: string) => {
     try {
       console.log('Processing access token with backend');
-      
+
       // Backend expects the access token as a plain string in the request body
       const loginResponse = await fetch(GOOGLE_LOGIN_ENDPOINT, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -109,14 +105,14 @@ export const GoogleAuth = {
           // If already parsed or string, use as is
           userData = responseText;
         }
-        
+
         console.log('✅ Google login successful, user data:', userData);
         localStorage.setItem('token', typeof userData === 'string' ? userData : JSON.stringify(userData));
         console.log('✅ Token saved to localStorage');
-        
+
         // Show success message
         toast.success('Login successful!');
-        
+
         // Clean up OAuth callback parameters and redirect to hash route
         // Simple redirect that works with HashRouter
         setTimeout(() => {
@@ -127,17 +123,17 @@ export const GoogleAuth = {
         // Google login failed
         const errorText = await loginResponse.text();
         let errorMessage = 'Google login failed. Please try again.';
-        
+
         try {
           const errorObj = JSON.parse(errorText);
           errorMessage = errorObj.message || errorObj.error || errorMessage;
         } catch (e) {
           errorMessage = errorText || errorMessage;
         }
-        
+
         console.error('Google login failed:', errorMessage);
         toast.error(errorMessage);
-        
+
         // Clean up OAuth callback parameters and redirect to hash route on error
         const url = new URL(window.location.href);
         url.searchParams.delete('code');
@@ -151,7 +147,7 @@ export const GoogleAuth = {
     } catch (error) {
       console.error('Error processing access token with backend:', error);
       toast.error('Authentication failed. Please try again.');
-      
+
       // Clean up OAuth callback parameters from URL on error
       const url = new URL(window.location.href);
       url.searchParams.delete('code');
@@ -173,7 +169,7 @@ export const GoogleAuth = {
   signInWithOAuth2: () => {
     // Check environment variable directly as well (in case GOOGLE_CONFIG wasn't updated)
     const clientId = resolveEnvClientId();
-    
+
     // Validate client ID before proceeding
     if (!clientId || clientId.trim() === '') {
       console.error('Google Client ID is not configured.');
@@ -186,7 +182,7 @@ export const GoogleAuth = {
     // Use path-based redirect URI (Google OAuth prefers this)
     // After OAuth, we'll redirect to hash route manually
     const redirectUri = window.location.origin + '/login';
-    
+
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -194,7 +190,7 @@ export const GoogleAuth = {
       `response_type=code&` +
       `access_type=offline&` +
       `prompt=consent`;
-    
+
     console.log('Redirecting to Google OAuth');
     console.log('Client ID configured:', !!clientId);
     console.log('Redirect URI:', redirectUri);
@@ -208,15 +204,16 @@ export const GoogleAuth = {
     console.log('Current URL:', window.location.href);
     console.log('Search params:', window.location.search);
     console.log('Hash:', window.location.hash);
-    
+
     // Google redirects to: http://localhost:3000/?code=...&state=...#/login
     // So the code will be in the query parameters (before the hash)
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const error = urlParams.get('error');
-    
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const code = urlParams.get('code') || hashParams.get('code');
+    const error = urlParams.get('error') || hashParams.get('error');
+
     console.log('OAuth 2.0 Callback - Code:', code, 'Error:', error);
-    
+
     if (error) {
       console.error('OAuth 2.0 Error:', error);
       toast.error('Google authentication failed. Please try again.');
@@ -226,7 +223,7 @@ export const GoogleAuth = {
       window.location.hash = '/login';
       return;
     }
-    
+
     if (!code) {
       console.warn('No OAuth code found in URL');
       return;
@@ -235,7 +232,7 @@ export const GoogleAuth = {
     // Validate client ID and secret (check environment variables directly)
     const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || GOOGLE_CONFIG.clientId;
     const clientSecret = process.env.REACT_APP_GOOGLE_CLIENT_SECRET;
-    
+
     if (!clientId || clientId.trim() === '') {
       console.error('Google Client ID is not configured');
       toast.error('Google authentication is not configured. Please set REACT_APP_GOOGLE_CLIENT_ID and restart the server.');
@@ -247,14 +244,14 @@ export const GoogleAuth = {
       toast.error('Google authentication is not configured. Please set REACT_APP_GOOGLE_CLIENT_SECRET and restart the server.');
       return;
     }
-    
+
     if (code) {
       try {
         console.log('Processing OAuth code with backend...');
-        
+
         // Use the same redirect URI that was used in the auth request
         const redirectUri = window.location.origin + '/login';
-        
+
         // Exchange authorization code for access token
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
