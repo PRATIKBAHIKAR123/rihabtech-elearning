@@ -23,6 +23,19 @@ const convertYouTubeUrl = (url: string): string => {
   return url;
 };
 
+// Helper function to get the correct video URL (handles both YouTube and Bunny Stream)
+const getVideoUrl = (url: string): string => {
+  if (!url) return url;
+
+  // If it's a YouTube URL, convert it
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return convertYouTubeUrl(url);
+  }
+
+  // For Bunny Stream or other URLs, return as is (assumed correct format)
+  return url;
+};
+
 interface PreviewVideo {
   id: string;
   title: string;
@@ -49,21 +62,21 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
     if (course?.curriculum?.sections) {
       console.log('Processing curriculum for preview videos:', course.curriculum);
       const videos: PreviewVideo[] = [];
-      
+
       course.curriculum.sections.forEach(section => {
         console.log('Processing section:', section.name, section);
         if (section.items) {
-                     section.items.forEach(item => {
-             console.log('Processing item:', item);
-             console.log('Item isPromotional value:', item.isPromotional);
-             console.log('Item isPromotional type:', typeof item.isPromotional);
+          section.items.forEach(item => {
+            console.log('Processing item:', item);
+            console.log('Item isPromotional value:', item.isPromotional);
+            console.log('Item isPromotional type:', typeof item.isPromotional);
             // Check if this is a video item that should be available for preview
             // For free preview, we show videos that are either promotional or published
             if (item.contentType === 'video') {
               // Include videos that are marked as promotional/preview OR published
               if (item.isPromotional === true || item.published === true) {
                 console.log('Item is available for preview (promotional or published):', item.lectureName, { isPromotional: item.isPromotional, published: item.published });
-                
+
                 // Handle uploaded videos (with contentFiles)
                 if (item.contentFiles && item.contentFiles.length > 0) {
                   console.log('Content files found:', item.contentFiles);
@@ -73,14 +86,14 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                       file.url.toLowerCase().includes('.mp4') ||
                       file.url.toLowerCase().includes('.mov') ||
                       file.url.toLowerCase().includes('.avi') ||
-                      file.name?.toLowerCase().includes('.mp4') || 
+                      file.name?.toLowerCase().includes('.mp4') ||
                       file.name?.toLowerCase().includes('.mov') ||
                       file.name?.toLowerCase().includes('.avi')
                     );
                     console.log('Checking file:', file, 'isVideo:', isVideo);
                     return isVideo;
                   });
-                  
+
                   if (videoFile) {
                     videos.push({
                       id: item.id || `${section.name}-${item.lectureName}`,
@@ -96,7 +109,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                     });
                   }
                 }
-                
+
                 // Handle YouTube videos (with contentUrl)
                 else if ((item as any).videoSource === 'link' && (item as any).contentUrl) {
                   console.log('YouTube video found:', item.lectureName, (item as any).contentUrl);
@@ -116,7 +129,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
               } else {
                 console.log('Item is NOT available for preview (not promotional and not published), skipping:', item.lectureName);
               }
-              
+
 
             }
           });
@@ -145,10 +158,10 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
         });
       }
 
-             console.log('Final preview videos array:', videos);
-       console.log('Total promotional videos found:', videos.length);
-       setPreviewVideos(videos);
-      
+      console.log('Final preview videos array:', videos);
+      console.log('Total promotional videos found:', videos.length);
+      setPreviewVideos(videos);
+
       // Set first video as selected by default
       if (videos.length > 0 && !selectedVideo) {
         console.log('Setting first video as selected:', videos[0]);
@@ -184,7 +197,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
     console.error('Video error:', error);
     console.error('Selected video:', selectedVideo);
     console.error('Video URL:', selectedVideo?.videoUrl);
-    
+
     // Check if it's a YouTube video
     const isYouTube = selectedVideo?.videoUrl?.includes('youtube.com') || selectedVideo?.videoUrl?.includes('youtu.be');
     if (isYouTube) {
@@ -218,11 +231,11 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -239,7 +252,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="flex h-[calc(95vh-120px)]">
           {/* Left: Main Video Player */}
           <div className="flex-1 p-6">
@@ -255,7 +268,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                       </div>
                     </div>
                   )}
-                  
+
                   {videoError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
                       <div className="text-center text-white">
@@ -264,7 +277,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                         </div>
                         <p className="mb-2 text-lg">Error loading video</p>
                         <p className="text-sm mb-4 text-gray-300">{videoError}</p>
-                        <button 
+                        <button
                           onClick={handleRetry}
                           className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
                         >
@@ -273,9 +286,9 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                       </div>
                     </div>
                   )}
-                  
+
                   <ReactPlayer
-                    url={convertYouTubeUrl(selectedVideo.videoUrl)}
+                    url={getVideoUrl(selectedVideo.videoUrl)}
                     controls={true}
                     width="100%"
                     height="100%"
@@ -299,7 +312,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                     }}
                   />
                 </div>
-                
+
                 {/* Video Info */}
                 <div className="mt-4">
                   <h3 className="text-xl font-semibold text-gray-800">{selectedVideo.title}</h3>
@@ -334,36 +347,32 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
               {/* Free Sample Videos */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Free Sample Videos</h3>
-                
+
                 {previewVideos.length > 0 ? (
                   <div className="space-y-3">
                     {previewVideos.map((video) => (
-                      <div 
+                      <div
                         key={video.id}
-                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                          selectedVideo?.id === video.id 
-                            ? 'bg-primary text-white shadow-md' 
-                            : 'bg-white hover:bg-gray-100 border border-gray-200'
-                        }`}
+                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${selectedVideo?.id === video.id
+                          ? 'bg-primary text-white shadow-md'
+                          : 'bg-white hover:bg-gray-100 border border-gray-200'
+                          }`}
                         onClick={() => handleVideoSelect(video)}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                            selectedVideo?.id === video.id 
-                              ? 'bg-white/20' 
-                              : 'bg-primary/10'
-                          }`}>
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${selectedVideo?.id === video.id
+                            ? 'bg-white/20'
+                            : 'bg-primary/10'
+                            }`}>
                             <Play size={16} className={selectedVideo?.id === video.id ? 'text-white' : 'text-primary'} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className={`font-medium text-sm line-clamp-2 ${
-                              selectedVideo?.id === video.id ? 'text-white' : 'text-gray-800'
-                            }`}>
+                            <h4 className={`font-medium text-sm line-clamp-2 ${selectedVideo?.id === video.id ? 'text-white' : 'text-gray-800'
+                              }`}>
                               {video.title}
                             </h4>
-                            <p className={`text-xs mt-1 ${
-                              selectedVideo?.id === video.id ? 'text-white/80' : 'text-gray-500'
-                            }`}>
+                            <p className={`text-xs mt-1 ${selectedVideo?.id === video.id ? 'text-white/80' : 'text-gray-500'
+                              }`}>
                               {video.duration}
                             </p>
                           </div>
@@ -380,7 +389,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                   </div>
                 )}
               </div>
-              
+
               {/* Course Information */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-3">Course Information</h4>
@@ -396,8 +405,8 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-primary" />
                     <span>Duration: <span className="font-medium">
-                      {course.curriculum?.sections ? 
-                        `${course.curriculum.sections.length} sections` : 
+                      {course.curriculum?.sections ?
+                        `${course.curriculum.sections.length} sections` :
                         'Not specified'
                       }
                     </span></span>
@@ -409,7 +418,7 @@ export default function CoursePreviewModal({ isOpen, onClose, course }: CoursePr
                     </span></span>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={() => {
                     onClose();

@@ -156,35 +156,35 @@ export default function CourseDetails() {
         const courseData = await courseApiService.getCourseByIdPublic(parseInt(extractedCourseId));
         setCourse(courseData);
 
-      // Fetch review stats and reviews for the course
-      try {
-        const [stats, reviewsData] = await Promise.all([
-          reviewApiService.getReviewStats(courseData.id),
-          reviewApiService.getCourseReviews(courseData.id, true)
-        ]);
-        setReviewStats(stats);
-        setReviews(reviewsData);
+        // Fetch review stats and reviews for the course
+        try {
+          const [stats, reviewsData] = await Promise.all([
+            reviewApiService.getReviewStats(courseData.id),
+            reviewApiService.getCourseReviews(courseData.id, true)
+          ]);
+          setReviewStats(stats);
+          setReviews(reviewsData);
 
-        // Check if user has already reviewed this course
-        if (user) {
-          try {
-            const existingReview = await reviewApiService.getMyReview(courseData.id);
-            setMyReview(existingReview);
-            if (existingReview) {
-              setReviewRating(existingReview.rating || 0);
-              setReviewComment(existingReview.comment || "");
+          // Check if user has already reviewed this course
+          if (user) {
+            try {
+              const existingReview = await reviewApiService.getMyReview(courseData.id);
+              setMyReview(existingReview);
+              if (existingReview) {
+                setReviewRating(existingReview.rating || 0);
+                setReviewComment(existingReview.comment || "");
+              }
+            } catch (error) {
+              // User hasn't reviewed yet, which is fine
+              setMyReview(null);
             }
-          } catch (error) {
-            // User hasn't reviewed yet, which is fine
-            setMyReview(null);
           }
+        } catch (error) {
+          console.error("Error fetching review stats:", error);
+          // Set default stats if fetch fails
+          setReviewStats({ averageRating: 0, totalReviews: 0, ratingDistribution: {} });
+          setReviews([]);
         }
-      } catch (error) {
-        console.error("Error fetching review stats:", error);
-        // Set default stats if fetch fails
-        setReviewStats({ averageRating: 0, totalReviews: 0, ratingDistribution: {} });
-        setReviews([]);
-      }
 
         if (user) {
           await checkEnrollmentStatus(courseData.id);
@@ -363,7 +363,7 @@ export default function CourseDetails() {
 
       if (enrollmentResponse.success) {
         setIsEnrolled(true);
-        
+
         // Show welcome message popup if available
         if (course.welcomeMessage) {
           setShowWelcomeMessage(true);
@@ -584,7 +584,7 @@ export default function CourseDetails() {
           </DialogHeader>
           <DialogDescription>
             {course?.welcomeMessage ? (
-              <div 
+              <div
                 className="text-gray-700 prose prose-lg max-w-none mt-4"
                 dangerouslySetInnerHTML={{ __html: course.welcomeMessage }}
               />
@@ -859,13 +859,12 @@ export default function CourseDetails() {
                               return (
                                 <svg
                                   key={i}
-                                  className={`w-5 h-5 ${
-                                    i < fullStars
-                                      ? 'text-yellow-400'
-                                      : i === fullStars && hasHalfStar
+                                  className={`w-5 h-5 ${i < fullStars
+                                    ? 'text-yellow-400'
+                                    : i === fullStars && hasHalfStar
                                       ? 'text-yellow-400'
                                       : 'text-gray-300'
-                                  }`}
+                                    }`}
                                   fill="currentColor"
                                   viewBox="0 0 20 20"
                                 >
@@ -915,7 +914,7 @@ export default function CourseDetails() {
                         const formatTimeAgo = (date: Date): string => {
                           const now = new Date();
                           const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-                          
+
                           if (diffInSeconds < 60) return "Just now";
                           if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} ${Math.floor(diffInSeconds / 60) === 1 ? 'Minute' : 'Minutes'} Ago`;
                           if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ${Math.floor(diffInSeconds / 3600) === 1 ? 'Hour' : 'Hours'} Ago`;
@@ -968,9 +967,8 @@ export default function CourseDetails() {
                                     {[...Array(5)].map((_, i) => (
                                       <svg
                                         key={i}
-                                        className={`w-4 h-4 ${
-                                          i < review.rating ? 'text-yellow-400' : 'text-gray-300'
-                                        }`}
+                                        className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'
+                                          }`}
                                         fill="currentColor"
                                         viewBox="0 0 20 20"
                                       >
@@ -998,7 +996,7 @@ export default function CourseDetails() {
                   {/* Write Review Button */}
                   {user && (
                     <div className="text-center mt-8">
-                      <button 
+                      <button
                         onClick={() => setIsReviewModalOpen(true)}
                         className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                       >
@@ -1174,7 +1172,7 @@ export default function CourseDetails() {
               Share your experience with this course. Your review will help other students make informed decisions.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Rating Selection */}
             <div>
@@ -1187,11 +1185,10 @@ export default function CourseDetails() {
                     key={rating}
                     type="button"
                     onClick={() => setReviewRating(rating)}
-                    className={`p-2 rounded transition-colors ${
-                      rating <= reviewRating
-                        ? 'text-yellow-400'
-                        : 'text-gray-300 hover:text-yellow-300'
-                    }`}
+                    className={`p-2 rounded transition-colors ${rating <= reviewRating
+                      ? 'text-yellow-400'
+                      : 'text-gray-300 hover:text-yellow-300'
+                      }`}
                   >
                     <svg
                       className="w-8 h-8"

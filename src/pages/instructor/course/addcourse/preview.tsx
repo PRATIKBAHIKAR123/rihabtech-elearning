@@ -12,7 +12,7 @@ import {
   getCourseStructure
 } from '../../../../utils/firebaseCoursePreviewHelpers';
 import { courseApiService, Category, SubCategory, CourseSubmitForReviewResponse } from '../../../../utils/courseApiService';
-import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye } from 'lucide-react';
+import { BookOpen, Users, Info, DollarSign, MessageSquare, Eye, Loader2 } from 'lucide-react';
 import { SubmitRequirementsDialog } from '../../../../components/ui/submitrequiremntdialog';
 import { COURSE_STATUS } from '../../../../utils/firebaseCourses';
 import { CourseWorkflowService } from '../../../../utils/courseWorkflowService';
@@ -21,6 +21,7 @@ import { useCourseData } from '../../../../hooks/useCourseData';
 import { toast } from 'sonner';
 import { getLanguageLabel } from '../../../../utils/languages';
 import { getLevelLabel } from '../../../../utils/levels';
+import ReactPlayer from 'react-player';
 
 // Helper function to extract YouTube video ID from URL
 const extractYouTubeVideoId = (url: string): string => {
@@ -31,6 +32,7 @@ const extractYouTubeVideoId = (url: string): string => {
 
 const PreviewCourse = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<any>(null);
   const [curriculum, setCurriculum] = useState<any[]>([]);
@@ -49,23 +51,23 @@ const PreviewCourse = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      
+
       // Use courseData from useCourseData hook if available, otherwise fallback to Firebase
       if (courseData) {
         setCourse(courseData);
-        
+
         // Fetch category and subcategory names for API data
         if (courseData.category || courseData.subCategory) {
           const [categories, subcategories] = await Promise.all([
             courseApiService.getAllCategories(),
             courseApiService.getAllSubCategories()
           ]);
-          
+
           if (courseData.category) {
             const category = categories.find((cat: any) => cat.id === courseData.category);
             setCategoryName((category as any)?.title || courseData.category);
           }
-          
+
           if (courseData.subCategory) {
             const subcategory = subcategories.find((sub: any) => sub.id === courseData.subCategory);
             setSubcategoryName((subcategory as any)?.name || (subcategory as any)?.title || (subcategory as any)?.subCategoryName || courseData.subCategory);
@@ -79,29 +81,29 @@ const PreviewCourse = () => {
         setLandingPage(await getCourseLandingPage(draftId.current));
         setIntendedLearners(await getCourseIntendedLearners(draftId.current));
         setStructure(await getCourseStructure(draftId.current));
-        
+
         // Fetch category and subcategory names for Firebase data
         if (data && (data.category || data.subcategory)) {
           const [categories, subcategories] = await Promise.all([
             courseApiService.getAllCategories(),
             courseApiService.getAllSubCategories()
           ]);
-          
+
           if (data.category) {
             const category = categories.find((cat: any) => cat.id === data.category);
             setCategoryName((category as any)?.title || data.category);
           }
-          
+
           if (data.subcategory) {
             const subcategory = subcategories.find((sub: any) => sub.id === data.subcategory);
             setSubcategoryName((subcategory as any)?.name || data.subcategory);
           }
         }
       }
-      
+
       setLoading(false);
     };
-    
+
     if (!courseDataLoading) {
       fetchData();
     }
@@ -116,7 +118,7 @@ const PreviewCourse = () => {
   const handleSubmitForReview = async () => {
     // Use courseData from API if available, otherwise fallback to Firebase
     const courseId = courseData?.id || draftId.current;
-    
+
     if (!courseId) {
       alert('Course ID not found. Please try again.');
       return;
@@ -130,6 +132,7 @@ const PreviewCourse = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       console.log('Submitting course for review...', {
         courseId: courseId,
@@ -151,11 +154,11 @@ const PreviewCourse = () => {
           user?.displayName || user?.UserName || '',
           user?.email || ''
         );
-        
+
         // Update progress to 100%
         const draftRef = doc(db, 'courseDrafts', draftId.current);
         await updateDoc(draftRef, { progress: 100 });
-        
+
         console.log('Course submitted successfully via Firebase');
         setSubmitted(true);
       }
@@ -163,10 +166,10 @@ const PreviewCourse = () => {
       console.error('Error submitting course for review:', error);
       console.error('Error response:', error?.response);
       console.error('Error response data:', error?.response?.data);
-      
+
       // Extract the actual error message from the API response
       let errorMessage = 'Failed to submit course for review. Please try again.';
-      
+
       if (error?.response?.data?.message) {
         // API returned a specific error message
         errorMessage = error.response.data.message;
@@ -182,8 +185,10 @@ const PreviewCourse = () => {
         // Generic error message
         errorMessage = error.message;
       }
-      
+
       toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -223,24 +228,24 @@ const PreviewCourse = () => {
       missing['Curriculum'].push('Have content for all lectures');
       // add small summary
       lecturesWithoutContent.slice(0, 6).forEach((t) => missing['Curriculum']!.push(`Missing content: ${t}`));
-    }     
+    }
     // Landing page checks
     const landing = course.landingPage || course || {};
     const landingMissing: string[] = [];
     const description = course.description || landing.description || '';
     const desc = description.replace(/<[^>]*>/g, '').trim();
     const wordCount = desc ? desc.split(/\s+/).filter(Boolean).length : 0;
-    console.log('wordCount',wordCount)
-        if (course.learn.length == 0) landingMissing.push('Have a course `What will students learn in your course` with at least 1 item');
-        if (course.requirements.length == 0) landingMissing.push('Have a course `Are there any course requirements or prerequisites` with at least 1 item');
-        if (course.target.length == 0) landingMissing.push('Have a course `Who is this course for` with at least 1 item');
+    console.log('wordCount', wordCount)
+    if (course.learn.length == 0) landingMissing.push('Have a course `What will students learn in your course` with at least 1 item');
+    if (course.requirements.length == 0) landingMissing.push('Have a course `Are there any course requirements or prerequisites` with at least 1 item');
+    if (course.target.length == 0) landingMissing.push('Have a course `Who is this course for` with at least 1 item');
     if (wordCount < 50) landingMissing.push('Have a course description with at least 50 words');
     if (!landing.subtitle && !course.subtitle) landingMissing.push('Have a course subtitle');
     // if (!course.instructorDescription && !(landing.instructorDescription)) landingMissing.push('Have an instructor description with at least 50 words');
     if (!course.category && !landing.category) landingMissing.push('Select the category of your course');
     if (!course.level && !landing.level) landingMissing.push('Select the level of your course');
     if (!course.subCategory && !landing.subCategory) landingMissing.push('Select the subcategory of your course');
-    if (!course.learn && course.learn.length<=0) landingMissing.push('Select what is primarily taught in your course');
+    if (!course.learn && course.learn.length <= 0) landingMissing.push('Select what is primarily taught in your course');
     if (!course.thumbnailUrl && !landing.thumbnailUrl) landingMissing.push('Upload a course image');
     if (landingMissing.length > 0) missing['Course landing page'] = landingMissing;
 
@@ -263,18 +268,18 @@ const PreviewCourse = () => {
 
   if (submitted) {
     // Check if this is a re-approval (course was previously published/approved)
-    const isReApproval = course.status === COURSE_STATUS.DRAFT_UPDATE || 
-                        (course.isPublished && course.status === COURSE_STATUS.PENDING_REVIEW);
-    
+    const isReApproval = course.status === COURSE_STATUS.DRAFT_UPDATE ||
+      (course.isPublished && course.status === COURSE_STATUS.PENDING_REVIEW);
+
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white">
         <div className="bg-gradient-to-br from-green-200 via-green-100 to-white border border-green-400 text-green-800 px-8 py-8 rounded-2xl shadow-lg mt-16 mb-8 w-full max-w-xl text-center animate-fade-in">
-          <svg className="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2l4-4"/></svg>
+          <svg className="mx-auto mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2l4-4" /></svg>
           <h2 className="text-2xl font-bold mb-2">
             {isReApproval ? 'Course Resubmitted for Re-approval!' : 'Course Submitted for Review!'}
           </h2>
           <p className="mb-4 text-lg">
-            {isReApproval 
+            {isReApproval
               ? 'Thank you for resubmitting your course with modifications. Our admin team will review the changes and re-approve your course soon.'
               : 'Thank you for submitting your course. Our admin team will review your course soon.'
             }
@@ -406,16 +411,22 @@ const PreviewCourse = () => {
                                     {item.contentFiles.map((f: any, i: number) => (
                                       <li key={i} className="mb-2">
                                         {f.contentType === 'video' || item.contentType === 'video' ? (
-                                          <video controls width={320} src={f.url || item.url} poster={item.thumbnailUrl || ''} style={{ maxWidth: 320, maxHeight: 180 }}>
-                                            Your browser does not support the video tag.
-                                          </video>
+                                          <div className="rounded overflow-hidden mt-2" style={{ maxWidth: 320 }}>
+                                            <ReactPlayer
+                                              url={f.url || item.url}
+                                              controls={true}
+                                              width="320px"
+                                              height="180px"
+                                              light={item.thumbnailUrl || false}
+                                            />
+                                          </div>
                                         ) : null}
                                         {f.contentType === 'article' || item.contentType === 'article' || f.name?.toLowerCase().endsWith('.pdf') ? (
                                           <div>
-                                          <a href={f.url || item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-2">
-                                            <span role="img" aria-label="document">📄</span> {f.name || 'Document'}
-                                          </a>
-                                          
+                                            <a href={f.url || item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-2">
+                                              <span role="img" aria-label="document">📄</span> {f.name || 'Document'}
+                                            </a>
+
                                           </div>
                                         ) : null}
                                         {!f.contentType && !f.name?.toLowerCase().endsWith('.pdf') && !f.url?.endsWith('.pdf') && !f.url?.endsWith('.mp4') && (
@@ -445,10 +456,10 @@ const PreviewCourse = () => {
                                       style={{ maxWidth: 320, maxHeight: 180 }}
                                     ></iframe>
                                     <div className="mt-1 text-sm text-gray-600">
-                                      <a 
-                                        href={item.contentUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
+                                      <a
+                                        href={item.contentUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="text-blue-600 hover:text-blue-800 underline"
                                       >
                                         View on YouTube
@@ -458,11 +469,11 @@ const PreviewCourse = () => {
                                 </div>
                               )}
 
-                              {(item.contentType === 'article' && item.contentText)&&<div dangerouslySetInnerHTML={{ __html: item.contentText }}>
-                   
-                                          </div>}
+                              {(item.contentType === 'article' && item.contentText) && <div dangerouslySetInnerHTML={{ __html: item.contentText }}>
 
-                                          {item.contentType === 'article' && item.articleSource === 'link' && item.contentUrl && (
+                              </div>}
+
+                              {item.contentType === 'article' && item.articleSource === 'link' && item.contentUrl && (
                                 <div className="mt-2">
                                   <div className="font-semibold">Article Link:</div>
                                   <a className='text-blue-600 underline' target='_blank' href={item.contentUrl}>{item.contentUrl}</a>
@@ -551,9 +562,14 @@ const PreviewCourse = () => {
               {course.promoVideoUrl && (
                 <div className="mb-2">
                   <span className="font-semibold">Promotional Video:</span><br />
-                  <video controls width={320} src={course.promoVideoUrl} style={{ maxWidth: 320, maxHeight: 180, marginTop: 4 }}>
-                    Your browser does not support the video tag.
-                  </video>
+                  <div className="rounded overflow-hidden mt-2" style={{ maxWidth: 320 }}>
+                    <ReactPlayer
+                      url={course.promoVideoUrl}
+                      controls={true}
+                      width="320px"
+                      height="180px"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -617,10 +633,12 @@ const PreviewCourse = () => {
         )}
         <div className="flex items-center gap-3">
           <Button
-            className="bg-primary text-white px-6 py-2 rounded shadow-lg"
+            className="bg-primary text-white px-6 py-2 rounded shadow-lg flex items-center gap-2"
             onClick={handleSubmitForReview}
+            disabled={submitting}
           >
-            Submit for Review
+            {submitting && <Loader2 className="animate-spin w-4 h-4" />}
+            {submitting ? 'Submitting...' : 'Submit for Review'}
           </Button>
         </div>
       </div>

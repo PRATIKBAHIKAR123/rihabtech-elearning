@@ -12,31 +12,18 @@ import { toast } from "sonner";
 import { LANGUAGES } from "../../../../utils/languages";
 import { LEVELS } from "../../../../utils/levels";
 
-// NOTE: Set your Cloudinary credentials here:
-const CLOUDINARY_CLOUD_NAME = 'dg9yh82rf'; // <-- Replace with your Cloudinary cloud name
-const CLOUDINARY_UPLOAD_PRESET = 'rihaab'; // <-- Replace with your unsigned upload preset
+import { uploadToBunny } from '../../../../lib/bunny';
 
-// Helper to upload image to Cloudinary
+// Helper to upload image to Bunny Storage
 async function uploadToCloudinaryImage(file: File) {
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  const res = await fetch(url, { method: 'POST', body: formData });
-  const data = await res.json();
-  if (!data.secure_url) throw new Error(data.error?.message || 'Image upload failed');
-  return data.secure_url;
+  const result = await uploadToBunny(file, 'image');
+  return result.url;
 }
-// Helper to upload video to Cloudinary
+
+// Helper to upload video to Bunny Stream
 async function uploadToCloudinaryVideo(file: File) {
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  const res = await fetch(url, { method: 'POST', body: formData });
-  const data = await res.json();
-  if (!data.secure_url) throw new Error(data.error?.message || 'Video upload failed');
-  return data.secure_url;
+  const result = await uploadToBunny(file, 'video');
+  return result.url;
 }
 
 export function CourseLandingPage({ onSubmit }: any) {
@@ -50,7 +37,7 @@ export function CourseLandingPage({ onSubmit }: any) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
-  
+
   // Check if course is published (status = 5) or has pending changes (status = 7)
   const isPublishedCourse = courseData?.status === 5 || courseData?.status === 7;
   const hasPendingChanges = courseData?.hasUnpublishedChanges || courseData?.status === 7;
@@ -70,7 +57,7 @@ export function CourseLandingPage({ onSubmit }: any) {
     subtitle: Yup.string().required("Course subtitle is required"),
     description: Yup.string()
       .required("Course description is required")
-      .test('min-words', 'Description should have minimum 200 words', function(value) {
+      .test('min-words', 'Description should have minimum 200 words', function (value) {
         if (!value) return false;
         const plainText = stripHtmlTags(value);
         const wordCount = plainText.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -82,36 +69,36 @@ export function CourseLandingPage({ onSubmit }: any) {
     subcategory: Yup.string().required("Subcategory is required"),
     primaryTopic: Yup.string(),
     thumbnail: Yup.mixed().nullable()
-    .test('thumbnail-required', 'Course image is required', function (value) {
-      // if thumbnailUrl exists, treat as valid
-      if (this.parent && this.parent.thumbnailUrl) return true;
-      // otherwise require a file
-      return !!value;
-    })
-    .test('thumbnail-size', 'File size must be less than 5 MB', function (value) {
-      if (!value) return true; // no file -> handled by required test
-      // value may be a File (browser) or something else. Protect with instanceof.
-      if (!(value instanceof File)) {
-        // if it's a string (url), allow it (handled by thumbnailUrl check), otherwise fail
-        return typeof value === 'string' ? true : false;
-      }
-      return value.size <= 5 * 1024 * 1024;
-    })
-    .test('thumbnail-type', 'Unsupported file type', function (value) {
-      if (!value) return true;
-      if (!(value instanceof File)) return true;
-      return /^(image\/jpeg|image\/jpg|image\/png|image\/gif)$/.test(value.type);
-    }),
+      .test('thumbnail-required', 'Course image is required', function (value) {
+        // if thumbnailUrl exists, treat as valid
+        if (this.parent && this.parent.thumbnailUrl) return true;
+        // otherwise require a file
+        return !!value;
+      })
+      .test('thumbnail-size', 'File size must be less than 5 MB', function (value) {
+        if (!value) return true; // no file -> handled by required test
+        // value may be a File (browser) or something else. Protect with instanceof.
+        if (!(value instanceof File)) {
+          // if it's a string (url), allow it (handled by thumbnailUrl check), otherwise fail
+          return typeof value === 'string' ? true : false;
+        }
+        return value.size <= 5 * 1024 * 1024;
+      })
+      .test('thumbnail-type', 'Unsupported file type', function (value) {
+        if (!value) return true;
+        if (!(value instanceof File)) return true;
+        return /^(image\/jpeg|image\/jpg|image\/png|image\/gif)$/.test(value.type);
+      }),
     promoVideo: Yup.mixed().nullable()
-    .test("fileSize", "Video must be less than 100 MB", function (value) {
-    if (!value) return true; // ⬅️ IMPORTANT: do NOT trigger required error
+      .test("fileSize", "Video must be less than 100 MB", function (value) {
+        if (!value) return true; // ⬅️ IMPORTANT: do NOT trigger required error
 
-    // Narrow type
-    const file = value as File;
-    if (!(file instanceof File)) return true;
+        // Narrow type
+        const file = value as File;
+        if (!(file instanceof File)) return true;
 
-    return file.size <= 100 * 1024 * 1024;
-  }),
+        return file.size <= 100 * 1024 * 1024;
+      }),
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -162,14 +149,14 @@ export function CourseLandingPage({ onSubmit }: any) {
     onSubmit: async (values) => {
       setLoading(true);
       setUploadError(null);
-      
+
       // Check if user is logged in
       if (!user) {
         toast.error("Please login to update course");
         setLoading(false);
         return;
       }
-      
+
       try {
         if (isNewCourse || !courseData?.id) {
           // For new courses, we need to create the course first
@@ -185,7 +172,7 @@ export function CourseLandingPage({ onSubmit }: any) {
           thumbnailUrl = await uploadToCloudinaryImage(thumbnailFile);
           setUploading(false);
         }
-        
+
         // Upload promo video to Cloudinary
         let promoVideoUrl = promoVideo;
         if (promoVideoFile) {
@@ -215,9 +202,9 @@ export function CourseLandingPage({ onSubmit }: any) {
         const thumbnailChanged = currentThumbnailUrl !== thumbnailUrl;
         const promoVideoChanged = currentPromoVideoUrl !== promoVideoUrl;
 
-        if (!titleChanged && !subtitleChanged && !descriptionChanged && 
-            !languageChanged && !levelChanged && !categoryChanged && 
-            !subCategoryChanged && !thumbnailChanged && !promoVideoChanged) {
+        if (!titleChanged && !subtitleChanged && !descriptionChanged &&
+          !languageChanged && !levelChanged && !categoryChanged &&
+          !subCategoryChanged && !thumbnailChanged && !promoVideoChanged) {
           //toast.info("No changes detected in course landing page. Moving to next step.");
           setLoading(false);
           onSubmit && onSubmit();
@@ -244,9 +231,9 @@ export function CourseLandingPage({ onSubmit }: any) {
           target: courseData.target ?? [],
           curriculum: courseData.curriculum as CourseUpdateRequest['curriculum'] ?? undefined // Include curriculum data
         });
-        
+
         // After a successful update, update the shared courseData state with the new data
-        updateCourseData({ 
+        updateCourseData({
           title: values.title,
           subtitle: values.subtitle,
           description: values.description,
@@ -264,17 +251,17 @@ export function CourseLandingPage({ onSubmit }: any) {
           target: courseData.target ?? [],
           curriculum: courseData.curriculum ?? undefined // Include curriculum data
         });
-        
+
         toast.success(updateResponse.message || "Course landing page updated successfully!");
-        
+
         // Refresh course data from API to ensure all pages have the latest data
         await refreshCourseData();
-        
+
         setLoading(false);
         onSubmit && onSubmit();
       } catch (error: any) {
         console.error("Failed to save course landing page:", error);
-        
+
         // Handle specific error messages
         if (error.message?.includes('Authentication failed')) {
           toast.error("Authentication failed. Please login again.");
@@ -296,7 +283,7 @@ export function CourseLandingPage({ onSubmit }: any) {
             toast.error("Failed to save course landing page. Please try again.");
           }
         }
-        
+
         setLoading(false);
         setUploading(false);
       }
@@ -312,7 +299,7 @@ export function CourseLandingPage({ onSubmit }: any) {
       if (courseData.description) formik.setFieldValue('description', courseData.description);
       if (courseData.language) formik.setFieldValue('language', courseData.language);
       if (courseData.level) formik.setFieldValue('level', courseData.level);
-      
+
       // Set images and videos
       if (courseData.thumbnailUrl) {
         setThumbnailImage(courseData.thumbnailUrl);
@@ -320,7 +307,7 @@ export function CourseLandingPage({ onSubmit }: any) {
       } else {
         setThumbnailImage('/Images/icons/image_3748512.png');
       }
-      
+
       if (courseData.promoVideoUrl) {
         setPromoVideo(courseData.promoVideoUrl);
         formik.setFieldValue('promoVideo', courseData.promoVideoUrl);
@@ -343,52 +330,52 @@ export function CourseLandingPage({ onSubmit }: any) {
   }, [courseData, categories]);
 
   // Handlers for file/image/video
-const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0] ?? null;
-  if (!file) {
-    // no file chosen
-    formik.setFieldValue('thumbnail', null);
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      // no file chosen
+      formik.setFieldValue('thumbnail', null);
+      formik.setFieldError('thumbnail', undefined);
+      setThumbnailImage(null);
+      return;
+    }
+
+    // QUICK FRONT-END GUARD: reject >5MB early and show error immediately
+    const MAX_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      formik.setFieldValue('thumbnail', null);
+      formik.setFieldError('thumbnail', 'File size must be less than 5 MB');
+      setThumbnailImage(null);
+      e.target.value = ''; // reset input so user can re-select
+      return;
+    }
+
+    // Accept file: clear previous form error and set value
     formik.setFieldError('thumbnail', undefined);
-    setThumbnailImage(null);
-    return;
-  }
+    formik.setFieldValue('thumbnail', file);
+    setThumbnailFile(file);
+    setThumbnailImage(URL.createObjectURL(file));
 
-  // QUICK FRONT-END GUARD: reject >5MB early and show error immediately
-  const MAX_BYTES = 5 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    formik.setFieldValue('thumbnail', null);
-    formik.setFieldError('thumbnail', 'File size must be less than 5 MB');
-    setThumbnailImage(null);
-    e.target.value = ''; // reset input so user can re-select
-    return;
-  }
+    // Trigger validation if you need immediate validation run:
+    // formik.validateField('thumbnail');
+  };
 
-  // Accept file: clear previous form error and set value
-  formik.setFieldError('thumbnail', undefined);
-  formik.setFieldValue('thumbnail', file);
-  setThumbnailFile(file);
-  setThumbnailImage(URL.createObjectURL(file));
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
 
-  // Trigger validation if you need immediate validation run:
-  // formik.validateField('thumbnail');
-};
+    formik.setFieldTouched("promoVideo", true, true);
 
-const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  
-  formik.setFieldTouched("promoVideo", true, true);
+    if (!file) {
+      formik.setFieldValue("promoVideo", null);
+      return;
+    }
 
-  if (!file) {
-    formik.setFieldValue("promoVideo", null);
-    return;
-  }
+    formik.setFieldValue("promoVideo", file);
 
-  formik.setFieldValue("promoVideo", file);
-
-  // Preview
-  setPromoVideo(URL.createObjectURL(file));
-  setPromoVideoFile(file);
-};
+    // Preview
+    setPromoVideo(URL.createObjectURL(file));
+    setPromoVideoFile(file);
+  };
 
   // Don't render the form while loading course data
   if (isLoading) {
@@ -521,7 +508,7 @@ const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                   const filteredSubs = subCategories.filter(sub => {
                     return sub.categoryId.toString() === formik.values.category;
                   });
-                  
+
                   return filteredSubs.map(sub => {
                     // Try different property names in case the API uses a different structure
                     const displayName = sub.name || sub.title || sub.subCategoryName || 'Unknown';
@@ -580,16 +567,16 @@ const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               />
             )}
             <div className="text-primary text-sm text-center font-medium font-['Nunito']">
-  Upload your course image here. It must meet our{' '}
-  <button
-    type="button"
-    onClick={() => setShowImageGuidelines(true)}
-    className="text-blue-500 underline"
-  >
-    course image quality standards
-  </button>{' '}
-  to be accepted. Important guidelines: Below 5MB 750x422 pixels; .jpg, .jpeg, .gif, or .png. No text on the image.
-</div>
+              Upload your course image here. It must meet our{' '}
+              <button
+                type="button"
+                onClick={() => setShowImageGuidelines(true)}
+                className="text-blue-500 underline"
+              >
+                course image quality standards
+              </button>{' '}
+              to be accepted. Important guidelines: Below 5MB 750x422 pixels; .jpg, .jpeg, .gif, or .png. No text on the image.
+            </div>
             <input
               type="file"
               accept="image/*"
@@ -639,10 +626,10 @@ const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               Upload File
             </label>
             {formik.touched.promoVideo && formik.errors.promoVideo && (
-  <div className="text-red-500 text-xs mt-1">
-    {formik.errors.promoVideo as string}
-  </div>
-)}
+              <div className="text-red-500 text-xs mt-1">
+                {formik.errors.promoVideo as string}
+              </div>
+            )}
           </div>
         </div>
 
@@ -654,27 +641,27 @@ const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         {uploadError && <div className="text-red-500 text-xs mt-2">{uploadError}</div>}
       </div>
       {showImageGuidelines && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]">
-    <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-xl relative">
-      <h2 className="text-lg font-semibold mb-3">Course Image Quality Standards</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-xl relative">
+            <h2 className="text-lg font-semibold mb-3">Course Image Quality Standards</h2>
 
-      <ul className="list-disc pl-5 text-sm space-y-2">
-        <li>File size must be below <strong>5MB</strong></li>
-        <li>Resolution should be <strong>750 × 422 px</strong> (This resolution is best fit for your thumbnail Image)</li>
-        <li>Accepted formats: <strong>.jpg, .jpeg, .gif, .png</strong></li>
-        <li>No text, watermarks, or logos on the image</li>
-        <li>Use high-contrast, clean, and professional visuals</li>
-      </ul>
+            <ul className="list-disc pl-5 text-sm space-y-2">
+              <li>File size must be below <strong>5MB</strong></li>
+              <li>Resolution should be <strong>750 × 422 px</strong> (This resolution is best fit for your thumbnail Image)</li>
+              <li>Accepted formats: <strong>.jpg, .jpeg, .gif, .png</strong></li>
+              <li>No text, watermarks, or logos on the image</li>
+              <li>Use high-contrast, clean, and professional visuals</li>
+            </ul>
 
-      <button
-        onClick={() => setShowImageGuidelines(false)}
-        className="mt-6 bg-primary text-white px-4 py-2 rounded hover:opacity-90 w-full"
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
+            <button
+              onClick={() => setShowImageGuidelines(false)}
+              className="mt-6 bg-primary text-white px-4 py-2 rounded hover:opacity-90 w-full"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

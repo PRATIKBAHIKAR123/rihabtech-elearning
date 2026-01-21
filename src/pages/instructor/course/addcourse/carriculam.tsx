@@ -16,7 +16,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "../../../../compo
 import * as XLSX from 'xlsx';
 
 import { getCourseDraft } from "../../../../fakeAPI/course";
-import { uploadToCloudinary, deleteFromCloudinary } from "../../../../lib/cloudinary";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../../../lib/bunny";
 import { courseApiService, UpdateCourseMessageResponse } from "../../../../utils/courseApiService";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCourseData } from "../../../../hooks/useCourseData";
@@ -42,7 +42,7 @@ const debounce = (func: Function, wait: number) => {
 // File type detection and icon mapping
 const getFileIcon = (fileName: string) => {
   const extension = fileName.split('.').pop()?.toLowerCase();
-  
+
   if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension || '')) {
     return <FileVideo size={16} className="text-blue-600" />;
   } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
@@ -80,13 +80,13 @@ const getMimeTypeFromName = (fileName: string): string => {
 // File preview component
 const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) => {
   const [showPreview, setShowPreview] = useState(false);
-  
+
   const isVideo = file.type?.startsWith('video/') || file.name?.match(/\.(mp4|avi|mov|wmv|flv|webm)$/i);
   const isImage = file.type?.startsWith('image/') || file.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
   const isPDF = file.type === 'application/pdf' || file.name?.endsWith('.pdf');
   const isDocument = file.type?.includes('document') || file.name?.match(/\.(doc|docx)$/i);
   const isSpreadsheet = file.type?.includes('spreadsheet') || file.name?.match(/\.(xls|xlsx)$/i);
-  
+
   const handlePreview = () => {
     if (isVideo || isImage || isPDF) {
       setShowPreview(true);
@@ -95,7 +95,7 @@ const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) =>
       window.open(file.url, '_blank');
     }
   };
-  
+
   return (
     <>
       <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
@@ -122,7 +122,7 @@ const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) =>
           <Trash2 size={14} />
         </Button>
       </div>
-      
+
       {/* Preview Modal */}
       {showPreview && (
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
@@ -130,7 +130,7 @@ const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) =>
             <DialogHeader>
               <DialogTitle>{file.name}</DialogTitle>
             </DialogHeader>
-            
+
             <div className="mt-4">
               {isVideo && (
                 <video controls className="w-full max-h-[70vh]">
@@ -138,11 +138,11 @@ const FilePreview = ({ file, onRemove }: { file: any; onRemove: () => void }) =>
                   Your browser does not support the video tag.
                 </video>
               )}
-              
+
               {isImage && (
                 <img src={file.url} alt={file.name} className="w-full max-h-[70vh] object-contain" />
               )}
-              
+
               {isPDF && (
                 <iframe
                   src={file.url}
@@ -429,12 +429,12 @@ const downloadQuizSampleExcel = () => {
 // Helper to recursively remove File objects and undefined values from curriculum data
 function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = false): any {
   if (!curriculum) return curriculum;
-  
+
   console.log('Original curriculum before stripping:', curriculum);
-  
+
   // Deep clone to avoid mutating original
   const clone = JSON.parse(JSON.stringify(curriculum));
-  
+
   // Helper to recursively remove pending change properties and audit fields for API submission
   function removePendingChangeProperties(obj: any): any {
     if (Array.isArray(obj)) {
@@ -444,17 +444,17 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
       const itemType = obj.type; // Check if this is a quiz or assignment item
       for (const key in obj) {
         // Skip pending change indicators and audit fields
-        if (key !== 'isNew' && 
-            key !== 'isEdited' && 
-            key !== 'pendingChangeType' &&
-            key !== 'courseId' &&
-            key !== 'createdDate' &&
-            key !== 'modifiedDate' &&
-            key !== 'createdBy' &&
-            key !== 'modifiedBy' &&
-            key !== 'isDeleted' &&
-            key !== 'cloudinaryPublicId' &&
-            key !== 'uploadedAt') {
+        if (key !== 'isNew' &&
+          key !== 'isEdited' &&
+          key !== 'pendingChangeType' &&
+          key !== 'courseId' &&
+          key !== 'createdDate' &&
+          key !== 'modifiedDate' &&
+          key !== 'createdBy' &&
+          key !== 'modifiedBy' &&
+          key !== 'isDeleted' &&
+          key !== 'cloudinaryPublicId' &&
+          key !== 'uploadedAt') {
           // For quiz and assignment items, also skip lecture-specific properties
           if ((itemType === 'quiz' || itemType === 'assignment') && (
             key === 'contentType' ||
@@ -477,7 +477,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
     }
     return obj;
   }
-  
+
   function clean(obj: any): any {
     if (Array.isArray(obj)) {
       return obj.map(clean).filter(v => v !== undefined);
@@ -489,9 +489,9 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
           if (key === 'sections' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((section: any, sectionIndex: number) => {
               if (!section) return null;
-              
+
               const { id, name, published, seqNo, items, isNew, isEdited, pendingChangeType, isDeleted } = section;
-              
+
               const result: any = {};
               if (id !== undefined) result.id = id; // Preserve the section ID from API response
               if (name !== undefined) result.name = name;
@@ -505,7 +505,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 if (isDeleted !== undefined) result.isDeleted = isDeleted; // Preserve isDeleted property
               }
               if (items !== undefined) result.items = clean(items); // Recursively clean items
-              
+
               // Explicitly remove pending change properties for API submission
               if (forApiSubmission) {
                 delete result.isNew;
@@ -513,7 +513,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 delete result.pendingChangeType;
                 delete result.isDeleted; // Remove isDeleted for API submission
               }
-              
+
               return result;
             }).filter(Boolean);
           }
@@ -521,18 +521,18 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
           else if (key === 'items' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((item: any, itemIndex: number) => {
               if (!item) return null;
-              
+
               const { id, type, lectureName, description, contentType, contentUrl, contentText, articleSource, videoSource, isPromotional, duration, published, seqNo, contentFiles, resources, sectionId, quizTitle, quizDescription, title: assignmentTitle, totalMarks, questions, isNew, isEdited, pendingChangeType } = item;
-              
+
               const result: any = {};
-              
+
               // Common properties for all item types
               if (id !== undefined) result.id = id;
               if (type !== undefined) result.type = type;
               if (sectionId !== undefined) result.sectionId = sectionId;
               if (published !== undefined) result.published = published;
               result.seqNo = itemIndex + 1; // Always set sequence number based on position
-              
+
               // Handle lecture-specific fields
               if (type === 'lecture') {
                 if (lectureName !== undefined) result.lectureName = lectureName;
@@ -576,7 +576,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 if (description !== undefined) result.description = description;
                 if (duration !== undefined) result.duration = duration;
                 if (totalMarks !== undefined) result.totalMarks = totalMarks;
-                
+
                 // For API submission, convert questions to assignmentQuestions
                 // For localStorage, keep questions as-is (form structure)
                 if (questions !== undefined) {
@@ -596,25 +596,25 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 }
                 // Explicitly DO NOT include contentType, lectureName, contentFiles, or resources for assignments
               }
-              
+
               // Ensure type is always set for all items
               if (!result.type && type) {
                 result.type = type;
               }
-              
+
               // Ensure we have at least a type field - don't filter out items without IDs
               if (!result.type) {
                 console.warn('Item missing type field:', item);
                 return null;
               }
-              
+
               // Only preserve pending change indicators for localStorage, not for API submission
               if (!forApiSubmission) {
                 if (isNew !== undefined) result.isNew = isNew;
                 if (isEdited !== undefined) result.isEdited = isEdited;
                 if (pendingChangeType !== undefined) result.pendingChangeType = pendingChangeType;
               }
-              
+
               // Explicitly remove unwanted properties for API submission
               if (forApiSubmission) {
                 // Remove pending change indicators
@@ -643,7 +643,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                   delete result.Duration; // duration is lowercase for quiz/assignment
                 }
               }
-              
+
               return result;
             }).filter(Boolean);
           }
@@ -651,18 +651,18 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
           else if (key === 'contentFiles' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((cf: any) => {
               if (!cf) return null;
-              
-              const { 
+
+              const {
                 id,
                 lectureId,
-                name, 
-                url, 
-                cloudinaryUrl, 
+                name,
+                url,
+                cloudinaryUrl,
                 cloudinaryPublicId,
-                duration, 
+                duration,
                 status
               } = cf;
-              
+
               // Only include properties expected by LectureFileCreateDraftVM
               const result: any = {};
               if (id !== undefined) result.id = id;
@@ -673,7 +673,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
               else if (url !== undefined) result.url = url;
               if (duration !== undefined) result.duration = duration;
               if (status !== undefined) result.status = status;
-              
+
               // Remove audit fields and cloudinaryPublicId for API submission
               if (forApiSubmission) {
                 delete result.cloudinaryPublicId;
@@ -684,23 +684,23 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 delete result.isDeleted;
                 delete result.uploadedAt;
               }
-              
+
               return result;
             }).filter(Boolean); // Remove null entries
           } else if (key === 'resources' && Array.isArray(obj[key])) {
             newObj[key] = obj[key].map((res: any) => {
               if (!res) return null;
-              
-              const { 
+
+              const {
                 id,
                 lectureId,
-                name, 
-                url, 
-                cloudinaryUrl, 
+                name,
+                url,
+                cloudinaryUrl,
                 cloudinaryPublicId,
-                type 
+                type
               } = res;
-              
+
               // Only include properties expected by LectureResourceCreateDraftVM
               const result: any = {};
               if (id !== undefined) result.id = id;
@@ -710,7 +710,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
               // Use Cloudinary URL as primary URL if available
               if (cloudinaryUrl !== undefined) result.url = cloudinaryUrl;
               else if (url !== undefined) result.url = url;
-              
+
               // Remove audit fields and cloudinaryPublicId for API submission
               if (forApiSubmission) {
                 delete result.cloudinaryPublicId;
@@ -720,7 +720,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
                 delete result.modifiedBy;
                 delete result.isDeleted;
               }
-              
+
               return result;
             }).filter(Boolean);
           } else {
@@ -732,7 +732,7 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
     }
     return obj;
   }
-  
+
   const cleaned = clean(clone);
   console.log('Cleaned curriculum after stripping:', cleaned);
   console.log('Sections with seqNo:', cleaned.sections?.map((s: any) => ({ name: s.name, seqNo: s.seqNo, itemsCount: s.items?.length })));
@@ -746,32 +746,32 @@ function stripFilesFromCurriculum(curriculum: any, forApiSubmission: boolean = f
       }
     });
   }
-  
+
   // Final pass: Remove pending change properties if for API submission
   if (forApiSubmission) {
     return removePendingChangeProperties(cleaned);
   }
-  
+
   return cleaned;
 }
 
 // Validation function to check if curriculum is ready for submission
 const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!curriculum.sections || curriculum.sections.length === 0) {
     errors.push('At least one section is required');
   }
-  
+
   curriculum.sections.forEach((section, sectionIndex) => {
     if (!section.name || section.name.trim() === '') {
       errors.push(`Section ${section.seqNo || sectionIndex + 1} must have a name`);
     }
-    
+
     if (!section.items || section.items.length === 0) {
       errors.push(`Section "${section.name}" must have at least one item`);
     }
-    
+
     section.items.forEach((item, itemIndex) => {
       if (item.type === 'lecture') {
         const lecture = item as LectureItem;
@@ -780,21 +780,21 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
         }
 
         if (lecture.contentType === "video") {
-  const hasFile = lecture.contentFiles && lecture.contentFiles.length > 0;
-  const hasUrl = lecture.contentUrl && lecture.contentUrl.trim() !== "";
+          const hasFile = lecture.contentFiles && lecture.contentFiles.length > 0;
+          const hasUrl = lecture.contentUrl && lecture.contentUrl.trim() !== "";
 
-  if (!hasFile && !hasUrl) {
-    errors.push(`Video lecture "${lecture.lectureName}" must have a video file or a valid URL`);
-  }
-}
-        
+          if (!hasFile && !hasUrl) {
+            errors.push(`Video lecture "${lecture.lectureName}" must have a video file or a valid URL`);
+          }
+        }
+
         // Check for failed uploads
         if (lecture.contentFiles) {
           const failedUploads = lecture.contentFiles.filter(file => file.status === 'failed');
           if (failedUploads.length > 0) {
             errors.push(`Video "${lecture.lectureName}" has failed uploads. Please retry or remove them.`);
           }
-          
+
           const uploadingFiles = lecture.contentFiles.filter(file => file.status === 'uploading');
           if (uploadingFiles.length > 0) {
             errors.push(`Video "${lecture.lectureName}" is still uploading. Please wait for upload to complete.`);
@@ -805,7 +805,7 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
         if (!quiz.quizTitle || quiz.quizTitle.trim() === '') {
           errors.push(`Quiz ${itemIndex + 1} in section "${section.name}" must have a title`);
         }
-        
+
         if (!quiz.questions || quiz.questions.length === 0) {
           errors.push(`Quiz "${quiz.quizTitle}" must have at least one question`);
         }
@@ -814,14 +814,14 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
         if (!assignment.title || assignment.title.trim() === '') {
           errors.push(`Assignment ${itemIndex + 1} in section "${section.name}" must have a title`);
         }
-        
+
         if (!assignment.questions || assignment.questions.length === 0) {
           errors.push(`Assignment "${assignment.title}" must have at least one question`);
         }
       }
     });
   });
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -831,7 +831,7 @@ const validateCurriculumForSubmission = (curriculum: CurriculumFormValues): { is
 // Helper function to sort curriculum by seqNo
 const sortCurriculumBySeqNo = (curriculum: any) => {
   if (!curriculum || !curriculum.sections) return curriculum;
-  
+
   return {
     ...curriculum,
     sections: curriculum.sections
@@ -847,7 +847,7 @@ const sortCurriculumBySeqNo = (curriculum: any) => {
 // Helper function to transform API curriculum data to form structure
 const transformApiCurriculumToForm = (curriculum: any) => {
   if (!curriculum || !curriculum.sections) return curriculum;
-  
+
   return {
     ...curriculum,
     sections: curriculum.sections.map((section: any, sectionIndex: number) => ({
@@ -879,7 +879,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           transformedItem.duration = item.duration || 0;
           transformedItem.contentType = item.contentType || 'quiz';
           transformedItem.lectureName = item.quizTitle || 'Quiz';
-          
+
           // Transform questions - ensure correctOption is an array
           if (item.questions && Array.isArray(item.questions)) {
             transformedItem.questions = item.questions.map((q: any) => ({
@@ -891,7 +891,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           } else {
             transformedItem.questions = [];
           }
-          
+
           // Preserve resources if they exist
           if (item.resources) {
             transformedItem.resources = item.resources;
@@ -906,7 +906,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           transformedItem.totalMarks = item.totalMarks || 0;
           transformedItem.contentType = item.contentType || 'assignment';
           transformedItem.lectureName = item.title || 'Assignment';
-          
+
           // Transform questions - API returns questions, form uses questions
           if (item.questions && Array.isArray(item.questions)) {
             transformedItem.questions = item.questions.map((q: any) => ({
@@ -919,7 +919,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           } else {
             transformedItem.questions = [];
           }
-          
+
           // Preserve resources if they exist
           if (item.resources) {
             transformedItem.resources = item.resources;
@@ -933,7 +933,7 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           transformedItem.contentType = item.contentType || 'video';
           transformedItem.isPromotional = item.isPromotional || false;
           transformedItem.duration = item.duration || 0;
-          
+
           // Transform contentFiles - ensure they have the correct structure
           if (item.contentFiles && Array.isArray(item.contentFiles)) {
             transformedItem.contentFiles = item.contentFiles.map((file: any) => ({
@@ -947,30 +947,30 @@ const transformApiCurriculumToForm = (curriculum: any) => {
           } else {
             transformedItem.contentFiles = [];
           }
-          
+
           // Handle contentUrl for external videos/articles
           if (item.contentUrl) {
             transformedItem.contentUrl = item.contentUrl;
           }
-          
+
           // Handle contentText for articles
           if (item.contentText) {
             transformedItem.contentText = item.contentText;
           }
-          
+
           // Determine videoSource/articleSource based on contentUrl and contentFiles
           if (item.contentType === 'video') {
             transformedItem.videoSource = item.contentUrl ? 'link' : (item.contentFiles?.length > 0 ? 'upload' : 'upload');
           } else if (item.contentType === 'article') {
             transformedItem.articleSource = item.contentUrl ? 'link' : (item.contentText ? 'write' : (item.contentFiles?.length > 0 ? 'upload' : 'write'));
           }
-          
+
           // Preserve resources if they exist
           if (item.resources) {
             transformedItem.resources = item.resources;
           }
         }
-        
+
         return transformedItem;
       }) : []
     }))
@@ -980,10 +980,10 @@ const transformApiCurriculumToForm = (curriculum: any) => {
 // Helper function to normalize seqNo based on array index
 const normalizeSeqNo = (curriculum: any) => {
   if (!curriculum || !curriculum.sections) return curriculum;
-  
+
   // First transform API data to form structure
   const transformed = transformApiCurriculumToForm(curriculum);
-  
+
   return transformed;
 };
 
@@ -992,14 +992,14 @@ const debugCurriculumData = (curriculum: CurriculumFormValues, label: string) =>
   console.log(`=== ${label} ===`);
   console.log('Draft ID:', localStorage.getItem("draftId"));
   console.log('Sections count:', curriculum.sections?.length || 0);
-  
+
   curriculum.sections?.forEach((section, sectionIndex) => {
     console.log(`Section ${sectionIndex + 1}:`, {
       name: section.name,
       published: section.published,
       itemsCount: section.items?.length || 0
     });
-    
+
     section.items?.forEach((item, itemIndex) => {
       if (item.type === 'lecture') {
         const lecture = item as LectureItem;
@@ -1012,7 +1012,7 @@ const debugCurriculumData = (curriculum: CurriculumFormValues, label: string) =>
           published: lecture.published,
           isPromotional: lecture.isPromotional
         });
-        
+
         lecture.contentFiles?.forEach((file, fileIndex) => {
           console.log(`    File ${fileIndex + 1}:`, {
             name: file.name,
@@ -1052,7 +1052,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { courseData, isLoading, isNewCourse, updateCourseData, refreshCourseData } = useCourseData();
-  
+
   // Check if course is published (status = 5) or has pending changes (status = 7)
   const isPublishedCourse = courseData?.status === 5 || courseData?.status === 7;
   const hasPendingChanges = courseData?.hasUnpublishedChanges || courseData?.status === 7;
@@ -1104,33 +1104,33 @@ export function CourseCarriculam({ onSubmit }: any) {
       // This prevents overwriting API data with default values
       if (formValues.sections && formValues.sections.length === 1) {
         const section = formValues.sections[0];
-        if (section.name === "Introduction" && 
-            section.items && section.items.length === 1 && 
-            section.items[0].type === "lecture" &&
-            section.items[0].lectureName === "Lecture 1" &&
-            (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
-            !section.items[0].contentUrl) {
+        if (section.name === "Introduction" &&
+          section.items && section.items.length === 1 &&
+          section.items[0].type === "lecture" &&
+          section.items[0].lectureName === "Lecture 1" &&
+          (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
+          !section.items[0].contentUrl) {
           console.log('Skipping save of default curriculum values');
           return;
         }
       }
-      
+
       isUpdatingRef.current = true;
-      
+
       const serializableCurriculum = stripFilesFromCurriculum(formValues);
-      
+
       // Store curriculum data in localStorage as backup
       localStorage.setItem(`curriculum_${courseData.id}`, JSON.stringify(serializableCurriculum));
-      
+
       // Update course data with current curriculum (without saving to API)
       updateCourseData({
         ...courseData,
         curriculum: serializableCurriculum,
         isCurriculumFinal: false // Mark as not final since user didn't explicitly save
       });
-      
+
       console.log('Curriculum data stored in global state and localStorage:', serializableCurriculum);
-      
+
       // Reset the flag after a short delay
       setTimeout(() => {
         isUpdatingRef.current = false;
@@ -1141,32 +1141,32 @@ export function CourseCarriculam({ onSubmit }: any) {
   useEffect(() => {
     async function fetchDraft() {
       setLoading(true);
-      
+
       // Check if user is logged in
       if (!user) {
         toast.error("Please login to access curriculum");
         setLoading(false);
         return;
       }
-      
+
       // Check if we have course data
       if (!courseData?.id) {
         toast.error("Please create a course first");
         setLoading(false);
         return;
       }
-      
+
       try {
         // Wait for course data to be fully loaded before processing curriculum
         if (isLoading) {
           console.log("Still loading course data, waiting...");
           return;
         }
-        
+
         // Prioritize API data over localStorage - API is the source of truth
         if (courseData.curriculum && courseData.curriculum.sections && courseData.curriculum.sections.length > 0) {
           console.log("Loading curriculum from API:", courseData.curriculum);
-          
+
           // Debug: Log seqNo BEFORE sorting
           console.log("BEFORE sorting and normalization:");
           if (courseData.curriculum.sections) {
@@ -1179,14 +1179,14 @@ export function CourseCarriculam({ onSubmit }: any) {
               }
             });
           }
-          
+
           // Sort sections by seqNo and items within sections by seqNo
           const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
           console.log("AFTER sorting (before normalization):", sortedCurriculum);
-          
+
           // Normalize seqNo and transform API data to form structure
           const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-          
+
           console.log("AFTER normalization and transformation:");
           if (normalizedCurriculum.sections) {
             normalizedCurriculum.sections.forEach((section: any, idx: number) => {
@@ -1207,12 +1207,12 @@ export function CourseCarriculam({ onSubmit }: any) {
               }
             });
           }
-          
+
           // Save transformed curriculum to localStorage
           const serializableCurriculum = stripFilesFromCurriculum(normalizedCurriculum);
           localStorage.setItem(`curriculum_${courseData.id}`, JSON.stringify(serializableCurriculum));
           console.log("Saved transformed curriculum to localStorage:", serializableCurriculum);
-          
+
           setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
           setCurriculumKey(prev => prev + 1); // Force formik reinitialization
           // Initialize the last saved ref with current curriculum
@@ -1220,16 +1220,16 @@ export function CourseCarriculam({ onSubmit }: any) {
         } else {
           // Fallback to localStorage if no API data
           const savedCurriculum = localStorage.getItem(`curriculum_${courseData.id}`);
-          
+
           if (savedCurriculum) {
             console.log("Loading curriculum from localStorage (no API data):", JSON.parse(savedCurriculum));
             const curriculumData = JSON.parse(savedCurriculum);
-            
+
             // Sort sections by seqNo and items within sections by seqNo
             const sortedCurriculum = sortCurriculumBySeqNo(curriculumData);
             // Normalize seqNo to match array indices
             const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-            
+
             console.log("Normalized curriculum from localStorage:", normalizedCurriculum);
             setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
             setCurriculumKey(prev => prev + 1); // Force formik reinitialization
@@ -1241,12 +1241,12 @@ export function CourseCarriculam({ onSubmit }: any) {
               const draft = await getCourseDraft(draftId.current);
               if (draft && draft.curriculum) {
                 console.log("Loading curriculum from Firebase:", draft.curriculum);
-                
+
                 // Sort sections by seqNo and items within sections by seqNo
                 const sortedCurriculum = sortCurriculumBySeqNo(draft.curriculum);
                 // Normalize seqNo to match array indices
                 const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-                
+
                 console.log("Normalized curriculum from Firebase:", normalizedCurriculum);
                 setFormInitialValues(normalizedCurriculum);
                 setCurriculumKey(prev => prev + 1); // Force formik reinitialization
@@ -1258,10 +1258,10 @@ export function CourseCarriculam({ onSubmit }: any) {
         console.error("Failed to load curriculum:", error);
         toast.error("Failed to load curriculum data");
       }
-      
+
       setLoading(false);
     }
-    
+
     if (!isLoading) {
       fetchDraft();
     }
@@ -1271,12 +1271,12 @@ export function CourseCarriculam({ onSubmit }: any) {
   useEffect(() => {
     if (courseData?.curriculum && !loading) {
       console.log("Course curriculum data changed, updating form:", courseData.curriculum);
-      
+
       // Sort sections by seqNo and items within sections by seqNo
       const sortedCurriculum = sortCurriculumBySeqNo(courseData.curriculum);
       // Normalize seqNo to match array indices
       const normalizedCurriculum = normalizeSeqNo(sortedCurriculum);
-      
+
       setFormInitialValues(normalizedCurriculum as unknown as CurriculumFormValues);
       setCurriculumKey(prev => prev + 1); // Force formik reinitialization
     }
@@ -1361,8 +1361,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                     .min(1, "Duration must be at least 1 minute")
                     .required("Duration is required"),
                   totalMarks: Yup.number(),
-                    // .min(1, "Total marks must be at least 1"),
-                    // .required("Total marks are required"),
+                  // .min(1, "Total marks must be at least 1"),
+                  // .required("Total marks are required"),
                   questions: Yup.array()
                     .of(
                       Yup.object({
@@ -1397,10 +1397,10 @@ export function CourseCarriculam({ onSubmit }: any) {
         console.log('Save already in progress, ignoring duplicate request');
         return;
       }
-      
+
       setSaving(true);
       isSavingRef.current = true;
-      
+
       // Check if user is logged in
       if (!user) {
         toast.error("Please login to save curriculum");
@@ -1408,7 +1408,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         isSavingRef.current = false;
         return;
       }
-      
+
       // Check if we have course data
       if (!courseData?.id) {
         toast.error("Please create a course first");
@@ -1416,10 +1416,10 @@ export function CourseCarriculam({ onSubmit }: any) {
         isSavingRef.current = false;
         return;
       }
-      
+
       try {
         console.log('Curriculum submission started:', { courseId: courseData.id, values });
-        
+
         // Debug: Log original curriculum data
         debugCurriculumData(values, 'Original Curriculum Data');
 
@@ -1436,7 +1436,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         // Serialize curriculum data properly for API submission
         const serializableCurriculum = stripFilesFromCurriculum(values, true);
         console.log('Serialized curriculum:', serializableCurriculum);
-        
+
         // Debug: Log serialized curriculum data
         debugCurriculumData(serializableCurriculum, 'Serialized Curriculum Data');
 
@@ -1460,41 +1460,41 @@ export function CourseCarriculam({ onSubmit }: any) {
           target: courseData.target ?? [],
           curriculum: serializableCurriculum
         };
-        
+
         // Update lastSavedCurriculumRef
         const currentCurriculumString = JSON.stringify(serializableCurriculum);
         lastSavedCurriculumRef.current = currentCurriculumString;
-        
+
         // Save curriculum to API using updateCourse
         const response: UpdateCourseMessageResponse = await courseApiService.updateCourse(courseUpdateData);
-        
+
         console.log('Curriculum saved successfully to API:', response);
-        
+
         // Update course data with new curriculum
         updateCourseData({
           ...courseData,
           curriculum: serializableCurriculum,
           isCurriculumFinal: true
         });
-        
+
         // Clear localStorage since data is now saved to API
         localStorage.removeItem(`curriculum_${courseData.id}`);
-        
+
         // Refresh course data from API to ensure all pages have the latest data
         await refreshCourseData();
-        
+
         toast.success(response.message || "Curriculum saved successfully!");
-        
+
         setSaving(false);
         isSavingRef.current = false;
-        
+
         // Ensure curriculum data is stored in global state before navigation
         storeCurriculumData(values);
-        
+
         onSubmit(values);
       } catch (error: any) {
         console.error('Error saving curriculum:', error);
-        
+
         // Handle specific error messages
         if (error.message?.includes('Authentication failed')) {
           toast.error("Authentication failed. Please login again.");
@@ -1505,7 +1505,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         } else {
           toast.error("Failed to save curriculum. Please try again.");
         }
-        
+
         setSaving(false);
         isSavingRef.current = false;
         throw error;
@@ -1550,7 +1550,7 @@ export function CourseCarriculam({ onSubmit }: any) {
       let needsUpdate = false;
       const sectionsWithSeqNo = formik.values.sections.map((section, sectionIndex) => {
         if (section.seqNo !== sectionIndex + 1) needsUpdate = true;
-        
+
         const itemsWithSeqNo = section.items.map((item, itemIndex) => {
           if (item.seqNo !== itemIndex + 1) needsUpdate = true;
           return {
@@ -1558,14 +1558,14 @@ export function CourseCarriculam({ onSubmit }: any) {
             seqNo: itemIndex + 1
           };
         });
-        
+
         return {
           ...section,
           seqNo: sectionIndex + 1,
           items: itemsWithSeqNo
         };
       });
-      
+
       // Only update if seqNo values are incorrect
       if (needsUpdate) {
         formik.setValues({
@@ -1587,21 +1587,21 @@ export function CourseCarriculam({ onSubmit }: any) {
         // This prevents overwriting API data with default values
         if (values.sections && values.sections.length === 1) {
           const section = values.sections[0];
-          if (section.name === "Introduction" && 
-              section.items && section.items.length === 1 && 
-              section.items[0].type === "lecture" &&
-              section.items[0].lectureName === "Lecture 1" &&
-              (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
-              !section.items[0].contentUrl) {
+          if (section.name === "Introduction" &&
+            section.items && section.items.length === 1 &&
+            section.items[0].type === "lecture" &&
+            section.items[0].lectureName === "Lecture 1" &&
+            (!section.items[0].contentFiles || section.items[0].contentFiles.length === 0) &&
+            !section.items[0].contentUrl) {
             console.log('Skipping debounced save of default curriculum values');
             return;
           }
         }
-        
+
         // Only store if the data has actually changed
         const serializableCurriculum = stripFilesFromCurriculum(values);
         const currentCurriculum = courseData.curriculum;
-        
+
         // Compare the serialized data to avoid unnecessary updates
         if (JSON.stringify(serializableCurriculum) !== JSON.stringify(currentCurriculum)) {
           storeCurriculumData(values);
@@ -1622,7 +1622,7 @@ export function CourseCarriculam({ onSubmit }: any) {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       // Also store data when component unmounts
@@ -1633,7 +1633,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   // Cleanup localStorage when course changes
   useEffect(() => {
     const currentCourseId = courseData?.id;
-    
+
     return () => {
       // Clear localStorage for other courses when switching courses
       if (currentCourseId) {
@@ -1667,25 +1667,25 @@ export function CourseCarriculam({ onSubmit }: any) {
   const handleQuizSave = (sectionIdx: number, itemIdx: number) => {
     const currentQuiz = formik.values.sections[sectionIdx].items[itemIdx];
     console.log('Attempting to save quiz:', { sectionIdx, itemIdx, currentQuiz });
-    
+
     if (currentQuiz.type === "quiz") {
       const hasValidQuestions = currentQuiz.questions.every(q => {
         const isValid = q.question && q.question.trim() !== '' &&
           q.options.length >= 2 &&
           q.options.every(opt => opt && opt.trim() !== '') &&
           Array.isArray(q.correctOption) && q.correctOption.length > 0;
-        
+
         console.log('Question validation:', { question: q.question, options: q.options, correctOption: q.correctOption, isValid });
         return isValid;
       });
 
       const hasTitle = currentQuiz.quizTitle && currentQuiz.quizTitle.trim() !== '';
       const hasDescription = currentQuiz.quizDescription && currentQuiz.quizDescription.trim() !== '';
-      
-      console.log('Quiz validation:', { 
-        hasTitle, 
-        hasDescription, 
-        hasValidQuestions, 
+
+      console.log('Quiz validation:', {
+        hasTitle,
+        hasDescription,
+        hasValidQuestions,
         quizTitle: currentQuiz.quizTitle,
         quizDescription: currentQuiz.quizDescription
       });
@@ -1917,15 +1917,15 @@ export function CourseCarriculam({ onSubmit }: any) {
   const fetchYouTubeDuration = async (videoId: string): Promise<number> => {
     try {
       console.log(`Fetching duration for YouTube video: ${videoId}`);
-      
+
       // Method 1: Try to get duration from video page metadata
       const videoPageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
       if (!videoPageResponse.ok) {
         throw new Error(`Failed to fetch YouTube page: ${videoPageResponse.status}`);
       }
-      
+
       const videoPageHtml = await videoPageResponse.text();
-      
+
       // Look for duration in the page metadata - multiple patterns
       const durationPatterns = [
         /"lengthSeconds":"(\d+)"/,
@@ -1935,12 +1935,12 @@ export function CourseCarriculam({ onSubmit }: any) {
         /"duration":"PT(\d+)H(\d+)M"/,
         /"duration":"PT(\d+)M"/
       ];
-      
+
       for (const pattern of durationPatterns) {
         const match = videoPageHtml.match(pattern);
         if (match) {
           let duration = 0;
-          
+
           if (pattern.toString().includes('lengthSeconds')) {
             duration = parseInt(match[1]);
           } else if (pattern.toString().includes('approxDurationMs')) {
@@ -1959,21 +1959,21 @@ export function CourseCarriculam({ onSubmit }: any) {
               duration = minutes * 60 + seconds;
             }
           }
-          
+
           if (duration > 0) {
             console.log(`Found duration for YouTube video ${videoId}: ${duration} seconds`);
             return duration;
           }
         }
       }
-      
+
       // Method 2: Try alternative approach - look for more patterns
       const alternativePatterns = [
         /"lengthSeconds":(\d+)/,
         /"duration":"(\d+)"/,
         /"videoDuration":"(\d+)"/
       ];
-      
+
       for (const pattern of alternativePatterns) {
         const match = videoPageHtml.match(pattern);
         if (match && match[1]) {
@@ -1984,10 +1984,10 @@ export function CourseCarriculam({ onSubmit }: any) {
           }
         }
       }
-      
+
       console.log(`Could not extract duration for YouTube video ${videoId}, using fallback`);
       return 0;
-      
+
     } catch (error) {
       console.error('Error fetching YouTube duration:', error);
       return 0;
@@ -1998,19 +1998,19 @@ export function CourseCarriculam({ onSubmit }: any) {
   const fetchVimeoDuration = async (videoId: string): Promise<number> => {
     try {
       const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${videoId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch Vimeo video info');
       }
-      
+
       const data = await response.json();
-      
+
       // Vimeo oEmbed provides duration in seconds
       if (data.duration) {
         console.log(`Found duration for Vimeo video ${videoId}: ${data.duration} seconds`);
         return data.duration;
       }
-      
+
       return 0;
     } catch (error) {
       console.error('Error fetching Vimeo duration:', error);
@@ -2032,7 +2032,7 @@ export function CourseCarriculam({ onSubmit }: any) {
           return await fetchVimeoDuration(videoId);
         }
       }
-      
+
       return 0;
     } catch (error) {
       console.error('Error fetching video duration:', error);
@@ -2170,7 +2170,7 @@ export function CourseCarriculam({ onSubmit }: any) {
   }
 
   return (
-    
+
     <FormikProvider key={curriculumKey} value={formik}>
       <form onSubmit={formik.handleSubmit}>
         {/* Error summary */}
@@ -2262,7 +2262,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                                               ...prev,
                                               [sectionIdx]: newExpandedState
                                             }));
-                                            
+
                                             // If expanding the section, collapse all items inside it
                                             if (newExpandedState) {
                                               setViewItem(null);
@@ -2351,815 +2351,748 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         {formatDuration(getSectionDuration(section))}
                                       </span>
                                     </div>
-                                    
+
                                     {/* Section Content - Only show when expanded */}
                                     {expandedSections[sectionIdx] && (
                                       <FieldArray name={`sections[${sectionIdx}].items`}>
-                                      {({ push, remove, replace }) => (
-                                        <div className="flex flex-col gap-4">
-                                          <Droppable droppableId={`items-${sectionIdx}`} type="ITEM" isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
-                                            {(provided, snapshot) => (
-                                              <div
-                                                {...provided.droppableProps}
-                                                ref={provided.innerRef}
-                                                className={`space-y-2 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-green-50 border-2 border-green-200 border-dashed rounded' : ''
-                                                  }`}
-                                              >
-                                                {/* Defensive filter for undefined/null items */}
-                                                {Array.isArray(section.items) && section.items.filter(Boolean).map((item, itemIdx) => (
-                                                  <Draggable
-                                                    key={`item-${sectionIdx}-${itemIdx}`}
-                                                    draggableId={`item-${sectionIdx}-${itemIdx}`}
-                                                    index={itemIdx}
-                                                  >
-                                                    {(provided, snapshot) => (
-                                                      <div
-                                                        id={`section-${sectionIdx}-item-${itemIdx}`}
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''} ${item.isDeleted ? 'opacity-60 bg-red-50 border-red-300 border-2' : ''}`}
-                                                      >
-                                                        {/* Drag Handle for all item types */}
-                                                        <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded" {...provided.dragHandleProps}>
-                                                          <GripVertical size={16} className="text-gray-400" />
-                                                          <span className="text-sm text-gray-600">Drag to reorder</span>
-                                                        </div>
-                                                        
-                                                        <div>
-                                                          {/* LECTURE */}
-                                                          {item.type === "lecture" && (
-                                                            <div className={`flex  justify-between ${showContentType && showContentType.sectionIdx === sectionIdx && showContentType.itemIdx === itemIdx ? 'gap-2 flex-col' : ' flex-col md:flex-row'}`}>
-                                                              <div className="flex w-full items-center gap-2 mb-2">
-                                                                {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
-                                                                  <>
-                                                                    <div className="w-full flex-2">
-                                                                      <Input
-                                                                        className="ins-control-border w-full"
-                                                                        //style={{ maxWidth: 300 }}
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].lectureName`}
-                                                                        value={item.lectureName}
-                                                                        onChange={formik.handleChange}
-                                                                        onBlur={() => setEditLecture(null)}
-                                                                        autoFocus
-                                                                      />
-                                                                    </div>
-                                                                    <Button
-                                                                      type="button"
-                                                                      //variant="ghost"
-                                                                      className="px-2 py-1 rounded-none"
-                                                                      onClick={() => setEditLecture(null)}
-                                                                      title="Save"
-                                                                    >
-                                                                      Save
-                                                                    </Button>
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="outline"
-                                                                      className="px-2 py-1 rounded-none"
-                                                                      onClick={() => remove(itemIdx)}
-                                                                      title="Cancel"
-                                                                    >
-                                                                      Cancel
-                                                                    </Button>
-                                                                  </>
-                                                                ) : (
-                                                                  <div className="flex gap-2 items-center">
-                                                                    <span className="font-semibold">{item.lectureName}</span>
-                                                                    {/* Deleted Badge */}
-                                                                    {item.isDeleted && (
-                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800" title="Deleted content - pending approval">
-                                                                        <Trash2 size={12} className="inline-block mr-1" />Deleted
-                                                                      </span>
-                                                                    )}
-                                                                    {/* Pending Change Badges */}
-                                                                    {item.isNew && !item.isDeleted && (
-                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
-                                                                        New
-                                                                      </span>
-                                                                    )}
-                                                                    {item.isEdited && !item.isNew && !item.isDeleted && (
-                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
-                                                                        Edited
-                                                                      </span>
-                                                                    )}
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="outline"
-                                                                      className="px-2 py-1 rounded-none"
-                                                                      onClick={() => setEditLecture({ sectionIdx, itemIdx })}
-                                                                      title="Edit Lecture Name"
-                                                                    >
-                                                                      <Pencil size={16} />
-                                                                    </Button>
+                                        {({ push, remove, replace }) => (
+                                          <div className="flex flex-col gap-4">
+                                            <Droppable droppableId={`items-${sectionIdx}`} type="ITEM" isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
+                                              {(provided, snapshot) => (
+                                                <div
+                                                  {...provided.droppableProps}
+                                                  ref={provided.innerRef}
+                                                  className={`space-y-2 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-green-50 border-2 border-green-200 border-dashed rounded' : ''
+                                                    }`}
+                                                >
+                                                  {/* Defensive filter for undefined/null items */}
+                                                  {Array.isArray(section.items) && section.items.filter(Boolean).map((item, itemIdx) => (
+                                                    <Draggable
+                                                      key={`item-${sectionIdx}-${itemIdx}`}
+                                                      draggableId={`item-${sectionIdx}-${itemIdx}`}
+                                                      index={itemIdx}
+                                                    >
+                                                      {(provided, snapshot) => (
+                                                        <div
+                                                          id={`section-${sectionIdx}-item-${itemIdx}`}
+                                                          ref={provided.innerRef}
+                                                          {...provided.draggableProps}
+                                                          className={`border rounded p-3 mb-2 bg-gray-50 ${snapshot.isDragging ? 'shadow-lg bg-white' : ''} ${item.isDeleted ? 'opacity-60 bg-red-50 border-red-300 border-2' : ''}`}
+                                                        >
+                                                          {/* Drag Handle for all item types */}
+                                                          <div className="cursor-grab active:cursor-grabbing flex items-center gap-2 mb-2 p-2 bg-gray-100 rounded" {...provided.dragHandleProps}>
+                                                            <GripVertical size={16} className="text-gray-400" />
+                                                            <span className="text-sm text-gray-600">Drag to reorder</span>
+                                                          </div>
 
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="outline"
-                                                                      className="px-2 py-1 rounded-none"
-                                                                      onClick={() => remove(itemIdx)}
-                                                                      title="Cancel"
-                                                                    >
-                                                                      <Trash2 size={16} className="text-red-500" />
-                                                                    </Button>
-                                                                  </div>
-                                                                )}
-
-                                                                {/* Publish/Unpublish HoverCard for lecture */}
-                                                                <HoverCard>
-                                                                  <HoverCardTrigger asChild>
-                                                                    <Button
-                                                                      type="button"
-                                                                      variant="ghost"
-                                                                      size="icon"
-                                                                      onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
-                                                                      aria-label={(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
-                                                                    >
-                                                                      {(item.published !== false) ? (
-                                                                        <CheckCircle className="text-green-500" />
-                                                                      ) : (
-                                                                        <XCircle className="text-red-500" />
-                                                                      )}
-                                                                    </Button>
-                                                                  </HoverCardTrigger>
-                                                                  <HoverCardContent side="top" className="p-2 text-xs">
-                                                                    {(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
-                                                                  </HoverCardContent>
-                                                                </HoverCard>
-                                                                
-                                                                {/* Promotional Video Toggle for Video Lectures */}
-                                                                {item.type === 'lecture' && item.contentType === 'video' && (
-                                                                  <HoverCard>
-                                                                    <HoverCardTrigger asChild>
-                                                                      <div className="flex items-center gap-2">
-                                                                        <Checkbox
-                                                                          id={`promotional-${sectionIdx}-${itemIdx}`}
-                                                                          checked={item.isPromotional || false}
-                                                                          onCheckedChange={(checked) => 
-                                                                            formik.setFieldValue(
-                                                                              `sections[${sectionIdx}].items[${itemIdx}].isPromotional`, 
-                                                                              checked === true
-                                                                            )
-                                                                          }
-                                                                        />
-                                                                        <label 
-                                                                          htmlFor={`promotional-${sectionIdx}-${itemIdx}`}
-                                                                          className="text-xs font-medium text-gray-700 cursor-pointer"
-                                                                        >
-                                                                          Free Preview
-                                                                        </label>
-                                                                      </div>
-                                                                    </HoverCardTrigger>
-                                                                    <HoverCardContent side="top" className="p-2 text-xs">
-                                                                      Mark this video as a free promotional preview that students can watch without purchasing the course
-                                                                    </HoverCardContent>
-                                                                  </HoverCard>
-                                                                )}
-                                                                
-                                                                {item.type === 'lecture' && item.contentType === 'video' && (
-                                                                  <div className="flex items-center gap-2 mb-2">
-                                                                    <Clock size={16} />
-                                                                    <span className="font-bold">{formatDuration(getLectureDuration(item))}</span>
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                              {/* Content Type and Upload */}
-                                                              {showContentType &&
-                                                                showContentType.sectionIdx === sectionIdx &&
-                                                                showContentType.itemIdx === itemIdx ? (
-                                                                <div className="flex flex-col gap-2 mt-2 w-auto px-4 md:px-12">
-                                                                  {/* Move Content Type above Description */}
-                                                                  <label className="ins-label">Content Type</label>
-                                                                  <Select
-                                                                    value={item.contentType}
-                                                                    onValueChange={value => {
-                                                                      formik.setFieldValue(
-                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentType`,
-                                                                        value
-                                                                      );
-                                                                    }}
-                                                                  >
-                                                                    <SelectTrigger className="ins-control-border">
-                                                                      <SelectValue placeholder="Select Content Type" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                      {CONTENT_TYPES.map(type => (
-                                                                        <SelectItem key={type.value} value={type.value}>
-                                                                          {type.label}
-                                                                        </SelectItem>
-                                                                      ))}
-                                                                    </SelectContent>
-                                                                  </Select>
-                                                                  {/* Description below Content Type */}
-                                                                  <label className="ins-label font-bold">Description</label>
-                                                                  {(() => {
-                                                                    // Extract itemError for this item
-                                                                    const itemError = (
-                                                                      formik.errors.sections &&
-                                                                      Array.isArray(formik.errors.sections) &&
-                                                                      formik.errors.sections[sectionIdx] &&
-                                                                      (formik.errors.sections[sectionIdx] as any).items &&
-                                                                      Array.isArray((formik.errors.sections[sectionIdx] as any).items) &&
-                                                                      (formik.errors.sections[sectionIdx] as any).items[itemIdx]
-                                                                    ) ? (formik.errors.sections[sectionIdx] as any).items[itemIdx] : {};
-                                                                    return (
-                                                                      <>
+                                                          <div>
+                                                            {/* LECTURE */}
+                                                            {item.type === "lecture" && (
+                                                              <div className={`flex  justify-between ${showContentType && showContentType.sectionIdx === sectionIdx && showContentType.itemIdx === itemIdx ? 'gap-2 flex-col' : ' flex-col md:flex-row'}`}>
+                                                                <div className="flex w-full items-center gap-2 mb-2">
+                                                                  {editLecture && editLecture.sectionIdx === sectionIdx && editLecture.itemIdx === itemIdx ? (
+                                                                    <>
+                                                                      <div className="w-full flex-2">
                                                                         <Input
-                                                                          className={`ins-control-border w-full${itemError && itemError.description ? ' border-red-500 ring-2 ring-red-300' : ''}`}
-                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].description`}
-                                                                          value={item.description}
+                                                                          className="ins-control-border w-full"
+                                                                          //style={{ maxWidth: 300 }}
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].lectureName`}
+                                                                          value={item.lectureName}
                                                                           onChange={formik.handleChange}
-                                                                          onBlur={formik.handleBlur}
-                                                                          placeholder="Enter lecture description"
-                                                                          autoFocus={!!(itemError && itemError.description)}
+                                                                          onBlur={() => setEditLecture(null)}
+                                                                          autoFocus
                                                                         />
-                                                                        {itemError && itemError.description && (
-                                                                          <div className="text-red-500 text-xs mt-1">{itemError.description}</div>
-                                                                        )}
-                                                                      </>
-                                                                    );
-                                                                  })()}
-                                                                  {/* Article: Plain textarea for React 19 */}
-                                                                  {item.contentType === "article" && (
-                                                                    <div className="flex flex-col gap-2">
-                                                                      {/* Article Source Option */}
-                                                                      <div className="flex flex-col items-start gap-4 mb-2">
-                                                                        <label className="ins-label">Article Source:</label>
-                                                                        <div className="flex items-center gap-4">
-                                                                          <div className="flex items-center gap-2">
-                                                                            <input
-                                                                              type="radio"
-                                                                              className="w-4 h-4"
-                                                                              id={`article-upload-${sectionIdx}-${itemIdx}`}
-                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                              checked={item.articleSource === 'upload'}
-                                                                              onChange={() => {
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                                  'upload'
-                                                                                );
-                                                                                // Clear other sources when switching
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                                  ''
-                                                                                );
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                                  ''
-                                                                                );
-                                                                              }}
-                                                                            />
-                                                                            <label className="font-bold" htmlFor={`article-upload-${sectionIdx}-${itemIdx}`}>
-                                                                              Document Upload
-                                                                            </label>
-                                                                          </div>
-
-                                                                          <div className="flex items-center gap-2">
-                                                                            <input
-                                                                              type="radio"
-                                                                              id={`article-link-${sectionIdx}-${itemIdx}`}
-                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                              checked={item.articleSource === 'link'}
-                                                                              className="w-4 h-4"
-                                                                              onChange={() => {
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                                  'link'
-                                                                                );
-                                                                                // Clear other sources when switching
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                  []
-                                                                                );
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                                  ''
-                                                                                );
-                                                                              }}
-                                                                            />
-                                                                            <label className="font-bold" htmlFor={`article-link-${sectionIdx}-${itemIdx}`}>
-                                                                              Via URL Link
-                                                                            </label>
-                                                                          </div>
-
-                                                                          <div className="flex items-center gap-2">
-                                                                            <input
-                                                                              type="radio"
-                                                                              id={`article-write-${sectionIdx}-${itemIdx}`}
-                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
-                                                                              checked={item.articleSource === 'write'}
-                                                                              className="w-4 h-4"
-                                                                              onChange={() => {
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
-                                                                                  'write'
-                                                                                );
-                                                                                // Clear other sources when switching
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                  []
-                                                                                );
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                                  ''
-                                                                                );
-                                                                              }}
-                                                                            />
-                                                                            <label className="font-bold" htmlFor={`article-write-${sectionIdx}-${itemIdx}`}>
-                                                                              Write
-                                                                            </label>
-                                                                          </div>
-                                                                        </div>
                                                                       </div>
-
-                                                                      {/* Document Upload option */}
-                                                                      {item.articleSource === 'upload' && (
-                                                                        <div className="flex flex-col gap-2 mb-2">
-                                                                          <Input
-                                                                            ref={(el) => {
-                                                                              const key = `document-${sectionIdx}-${itemIdx}`;
-                                                                              if (el) {
-                                                                                fileInputRefs.current[key] = el;
-                                                                              } else {
-                                                                                delete fileInputRefs.current[key];
-                                                                              }
-                                                                            }}
-                                                                            key={`document-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
-                                                                            className="ins-control-border"
-                                                                            type="file"
-                                                                            accept=".pdf,.doc,.docx,.txt,.md"
-                                                                            onChange={async (e) => {
-                                                                              const files = Array.from(e.target.files || []);
-                                                                              if (files.length === 0) return;
-
-                                                                              // Store files array before async operations
-                                                                              const selectedFiles = files;
-
-                                                                              // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
-                                                                              setTimeout(() => {
-                                                                                const key = `document-${sectionIdx}-${itemIdx}`;
-                                                                                const input = fileInputRefs.current[key];
-                                                                                if (input) {
-                                                                                  input.value = '';
-                                                                                }
-                                                                              }, 0);
-
-                                                                              const newFiles = await Promise.all(
-                                                                                Array.from(selectedFiles).map(async (file) => {
-                                                                                  // Upload to Cloudinary
-                                                                                  let cloudinaryUrl = '';
-                                                                                  let cloudinaryPublicId = '';
-                                                                                  
-                                                                                  try {
-                                                                                    const uploadResult = await uploadToCloudinary(file, 'raw');
-                                                                                    cloudinaryUrl = uploadResult.url;
-                                                                                    cloudinaryPublicId = uploadResult.publicId;
-                                                                                  } catch (error) {
-                                                                                    console.error('Failed to upload resource to Cloudinary:', error);
-                                                                                    // Fallback to local file
-                                                                                    cloudinaryUrl = URL.createObjectURL(file);
-                                                                                  }
-
-                                                                                  return {
-                                                                                    name: file.name,
-                                                                                    file: file,
-                                                                                    url: cloudinaryUrl,
-                                                                                    cloudinaryUrl: cloudinaryUrl,
-                                                                                    cloudinaryPublicId: cloudinaryPublicId,
-                                                                                    type: 'lecture'
-                                                                                  };
-                                                                                })
-                                                                              );
-
-                                                                              const fileObjects = newFiles.map((file) => ({
-                                                                                file,
-                                                                                url: file.cloudinaryUrl,
-                                                                                name: file.name,
-                                                                                status: 'uploaded' as VideoStatus,
-                                                                                uploadedAt: new Date()
-                                                                              }));
-
-                                                                              // Set lecture name to the first file's name (without extension)
-                                                                              const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
-                                                                                fileNameWithoutExt
-                                                                              );
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                fileObjects
-                                                                              );
-                                                                            }}
-                                                                          />
-
-                                                                          {/* Display uploaded files */}
-                                                                          {item.contentFiles?.length > 0 && (
-                                                                            <div className="border rounded p-2 bg-white">
-                                                                              <h5 className="font-medium text-sm mb-2">Uploaded Documents:</h5>
-                                                                              {item.contentFiles.map((content, idx) => (
-                                                                                <div key={idx} className="flex items-center justify-between py-1">
-                                                                                  <div className="flex items-center gap-2">
-                                                                                    <File size={14} />
-                                                                                    <span className="text-sm">{content.name}</span>
-                                                                                  </div>
-                                                                                  <Button
-                                                                                    type="button"
-                                                                                    size="sm"
-                                                                                    variant="outline"
-                                                                                    className="px-2 py-1 rounded-none"
-                                                                                    onClick={() => {
-                                                                                      const newFiles = [...item.contentFiles];
-                                                                                      URL.revokeObjectURL(newFiles[idx].url);
-                                                                                      newFiles.splice(idx, 1);
-                                                                                      formik.setFieldValue(
-                                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                        newFiles
-                                                                                      );
-                                                                                    }}
-                                                                                  >
-                                                                                    <Trash2 size={14} className="text-red-500" />
-                                                                                  </Button>
-                                                                                </div>
-                                                                              ))}
-                                                                            </div>
-                                                                          )}
-                                                                        </div>
+                                                                      <Button
+                                                                        type="button"
+                                                                        //variant="ghost"
+                                                                        className="px-2 py-1 rounded-none"
+                                                                        onClick={() => setEditLecture(null)}
+                                                                        title="Save"
+                                                                      >
+                                                                        Save
+                                                                      </Button>
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        className="px-2 py-1 rounded-none"
+                                                                        onClick={() => remove(itemIdx)}
+                                                                        title="Cancel"
+                                                                      >
+                                                                        Cancel
+                                                                      </Button>
+                                                                    </>
+                                                                  ) : (
+                                                                    <div className="flex gap-2 items-center">
+                                                                      <span className="font-semibold">{item.lectureName}</span>
+                                                                      {/* Deleted Badge */}
+                                                                      {item.isDeleted && (
+                                                                        <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800" title="Deleted content - pending approval">
+                                                                          <Trash2 size={12} className="inline-block mr-1" />Deleted
+                                                                        </span>
                                                                       )}
-
-                                                                      {/* URL Link option */}
-                                                                      {item.articleSource === 'link' && (
-                                                                        <div className="flex flex-col gap-2 mb-2">
-                                                                          <Input
-                                                                            className="ins-control-border"
-                                                                            type="url"
-                                                                            placeholder="Enter article URL (Medium, blog, etc.)"
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
-                                                                            value={item.contentUrl}
-                                                                            onChange={formik.handleChange}
-                                                                          />
-                                                                          {formik.touched.sections &&
-                                                                            Array.isArray(formik.touched.sections) &&
-                                                                            formik.touched.sections[sectionIdx] &&
-                                                                            formik.touched.sections[sectionIdx]?.items &&
-                                                                            Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
-                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                            (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
-                                                                            formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
-                                                                            (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
-                                                                            formik.errors.sections &&
-                                                                            Array.isArray(formik.errors.sections) &&
-                                                                            (formik.errors.sections as any)[sectionIdx]?.items &&
-                                                                            Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
-                                                                            (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
-                                                                              <div className="text-red-500 text-xs">
-                                                                                {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
-                                                                              </div>
-                                                                            )}
-                                                                        </div>
+                                                                      {/* Pending Change Badges */}
+                                                                      {item.isNew && !item.isDeleted && (
+                                                                        <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                          New
+                                                                        </span>
                                                                       )}
-
-                                                                      {/* Write option - ArticleEditor */}
-                                                                      {item.articleSource === 'write' && (
-                                                                        <div className="border rounded-md overflow-hidden bg-white">
-                                                                          <ArticleEditor
-                                                                            sectionIdx={sectionIdx}
-                                                                            itemIdx={itemIdx}
-                                                                            content={item.contentText || ''}
-                                                                            onChange={(html) => {
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentText`,
-                                                                                html
-                                                                              );
-                                                                            }}
-                                                                          />
-                                                                        </div>
+                                                                      {item.isEdited && !item.isNew && !item.isDeleted && (
+                                                                        <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                          Edited
+                                                                        </span>
                                                                       )}
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        className="px-2 py-1 rounded-none"
+                                                                        onClick={() => setEditLecture({ sectionIdx, itemIdx })}
+                                                                        title="Edit Lecture Name"
+                                                                      >
+                                                                        <Pencil size={16} />
+                                                                      </Button>
+
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        className="px-2 py-1 rounded-none"
+                                                                        onClick={() => remove(itemIdx)}
+                                                                        title="Cancel"
+                                                                      >
+                                                                        <Trash2 size={16} className="text-red-500" />
+                                                                      </Button>
                                                                     </div>
                                                                   )}
-                                                                  {/* Video: Upload & Info */}
-                                                                  {item.contentType === "video" && (
-                                                                    <div className="flex flex-col gap-2">
-                                                                      {/* Video Source Option */}
-                                                                      <div className="flex items-center gap-4 mb-2">
-                                                                        <label className="ins-label">Video Source:</label>
+
+                                                                  {/* Publish/Unpublish HoverCard for lecture */}
+                                                                  <HoverCard>
+                                                                    <HoverCardTrigger asChild>
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                        aria-label={(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                      >
+                                                                        {(item.published !== false) ? (
+                                                                          <CheckCircle className="text-green-500" />
+                                                                        ) : (
+                                                                          <XCircle className="text-red-500" />
+                                                                        )}
+                                                                      </Button>
+                                                                    </HoverCardTrigger>
+                                                                    <HoverCardContent side="top" className="p-2 text-xs">
+                                                                      {(item.published !== false) ? "Unpublish Lecture" : "Publish Lecture"}
+                                                                    </HoverCardContent>
+                                                                  </HoverCard>
+
+                                                                  {/* Promotional Video Toggle for Video Lectures */}
+                                                                  {item.type === 'lecture' && item.contentType === 'video' && (
+                                                                    <HoverCard>
+                                                                      <HoverCardTrigger asChild>
                                                                         <div className="flex items-center gap-2">
-                                                                          <input
-                                                                            type="radio"
-                                                                            className="w-4 h-4"
-                                                                            id={`video-upload-${sectionIdx}-${itemIdx}`}
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
-                                                                            checked={item.videoSource !== 'link'}
-                                                                            onChange={() => {
+                                                                          <Checkbox
+                                                                            id={`promotional-${sectionIdx}-${itemIdx}`}
+                                                                            checked={item.isPromotional || false}
+                                                                            onCheckedChange={(checked) =>
                                                                               formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
-                                                                                'upload'
-                                                                              );
-                                                                              // Clear link if switching
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                                ''
-                                                                              );
-                                                                            }}
+                                                                                `sections[${sectionIdx}].items[${itemIdx}].isPromotional`,
+                                                                                checked === true
+                                                                              )
+                                                                            }
                                                                           />
-                                                                          <label className="font-bold" htmlFor={`video-upload-${sectionIdx}-${itemIdx}`}>Upload file</label>
-                                                                          <input
-                                                                            type="radio"
-                                                                            id={`video-link-${sectionIdx}-${itemIdx}`}
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
-                                                                            checked={item.videoSource === 'link'}
-                                                                            className="w-4 h-4"
-                                                                            onChange={() => {
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
-                                                                                'link'
-                                                                              );
-                                                                              // Clear files if switching
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                []
-                                                                              );
-                                                                            }}
-                                                                          />
-                                                                          <label className="font-bold" htmlFor={`video-link-${sectionIdx}-${itemIdx}`}>Video link</label>
+                                                                          <label
+                                                                            htmlFor={`promotional-${sectionIdx}-${itemIdx}`}
+                                                                            className="text-xs font-medium text-gray-700 cursor-pointer"
+                                                                          >
+                                                                            Free Preview
+                                                                          </label>
                                                                         </div>
-                                                                      </div>
-                                                                      {/* Upload file option */}
-                                                                      {(!item.videoSource || item.videoSource === 'upload') && (
-                                                                        <div className="flex items-center justify-between mb-2">
+                                                                      </HoverCardTrigger>
+                                                                      <HoverCardContent side="top" className="p-2 text-xs">
+                                                                        Mark this video as a free promotional preview that students can watch without purchasing the course
+                                                                      </HoverCardContent>
+                                                                    </HoverCard>
+                                                                  )}
+
+                                                                  {item.type === 'lecture' && item.contentType === 'video' && (
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                      <Clock size={16} />
+                                                                      <span className="font-bold">{formatDuration(getLectureDuration(item))}</span>
+                                                                    </div>
+                                                                  )}
+                                                                </div>
+                                                                {/* Content Type and Upload */}
+                                                                {showContentType &&
+                                                                  showContentType.sectionIdx === sectionIdx &&
+                                                                  showContentType.itemIdx === itemIdx ? (
+                                                                  <div className="flex flex-col gap-2 mt-2 w-auto px-4 md:px-12">
+                                                                    {/* Move Content Type above Description */}
+                                                                    <label className="ins-label">Content Type</label>
+                                                                    <Select
+                                                                      value={item.contentType}
+                                                                      onValueChange={value => {
+                                                                        formik.setFieldValue(
+                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentType`,
+                                                                          value
+                                                                        );
+                                                                      }}
+                                                                    >
+                                                                      <SelectTrigger className="ins-control-border">
+                                                                        <SelectValue placeholder="Select Content Type" />
+                                                                      </SelectTrigger>
+                                                                      <SelectContent>
+                                                                        {CONTENT_TYPES.map(type => (
+                                                                          <SelectItem key={type.value} value={type.value}>
+                                                                            {type.label}
+                                                                          </SelectItem>
+                                                                        ))}
+                                                                      </SelectContent>
+                                                                    </Select>
+                                                                    {/* Description below Content Type */}
+                                                                    <label className="ins-label font-bold">Description</label>
+                                                                    {(() => {
+                                                                      // Extract itemError for this item
+                                                                      const itemError = (
+                                                                        formik.errors.sections &&
+                                                                        Array.isArray(formik.errors.sections) &&
+                                                                        formik.errors.sections[sectionIdx] &&
+                                                                        (formik.errors.sections[sectionIdx] as any).items &&
+                                                                        Array.isArray((formik.errors.sections[sectionIdx] as any).items) &&
+                                                                        (formik.errors.sections[sectionIdx] as any).items[itemIdx]
+                                                                      ) ? (formik.errors.sections[sectionIdx] as any).items[itemIdx] : {};
+                                                                      return (
+                                                                        <>
                                                                           <Input
-                                                                            ref={(el) => {
-                                                                              const key = `video-${sectionIdx}-${itemIdx}`;
-                                                                              if (el) {
-                                                                                fileInputRefs.current[key] = el;
-                                                                              } else {
-                                                                                delete fileInputRefs.current[key];
-                                                                              }
-                                                                            }}
-                                                                            key={`video-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
-                                                                            className="ins-control-border flex-1 mr-2"
-                                                                            type="file"
-                                                                            accept="video/*"
-                                                                                style={{
-      display: !item.videoSource || item.videoSource === 'upload' ? 'block' : 'none'
-    }}
-                                                                            multiple
-                                                                            onChange={async (e) => {
-                                                                              const files = Array.from(e.target.files || []);
-                                                                              if (files.length === 0) return;
+                                                                            className={`ins-control-border w-full${itemError && itemError.description ? ' border-red-500 ring-2 ring-red-300' : ''}`}
+                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].description`}
+                                                                            value={item.description}
+                                                                            onChange={formik.handleChange}
+                                                                            onBlur={formik.handleBlur}
+                                                                            placeholder="Enter lecture description"
+                                                                            autoFocus={!!(itemError && itemError.description)}
+                                                                          />
+                                                                          {itemError && itemError.description && (
+                                                                            <div className="text-red-500 text-xs mt-1">{itemError.description}</div>
+                                                                          )}
+                                                                        </>
+                                                                      );
+                                                                    })()}
+                                                                    {/* Article: Plain textarea for React 19 */}
+                                                                    {item.contentType === "article" && (
+                                                                      <div className="flex flex-col gap-2">
+                                                                        {/* Article Source Option */}
+                                                                        <div className="flex flex-col items-start gap-4 mb-2">
+                                                                          <label className="ins-label">Article Source:</label>
+                                                                          <div className="flex items-center gap-4">
+                                                                            <div className="flex items-center gap-2">
+                                                                              <input
+                                                                                type="radio"
+                                                                                className="w-4 h-4"
+                                                                                id={`article-upload-${sectionIdx}-${itemIdx}`}
+                                                                                name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                                checked={item.articleSource === 'upload'}
+                                                                                onChange={() => {
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                    'upload'
+                                                                                  );
+                                                                                  // Clear other sources when switching
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                    ''
+                                                                                  );
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                    ''
+                                                                                  );
+                                                                                }}
+                                                                              />
+                                                                              <label className="font-bold" htmlFor={`article-upload-${sectionIdx}-${itemIdx}`}>
+                                                                                Document Upload
+                                                                              </label>
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-2">
+                                                                              <input
+                                                                                type="radio"
+                                                                                id={`article-link-${sectionIdx}-${itemIdx}`}
+                                                                                name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                                checked={item.articleSource === 'link'}
+                                                                                className="w-4 h-4"
+                                                                                onChange={() => {
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                    'link'
+                                                                                  );
+                                                                                  // Clear other sources when switching
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                    []
+                                                                                  );
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                    ''
+                                                                                  );
+                                                                                }}
+                                                                              />
+                                                                              <label className="font-bold" htmlFor={`article-link-${sectionIdx}-${itemIdx}`}>
+                                                                                Via URL Link
+                                                                              </label>
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-2">
+                                                                              <input
+                                                                                type="radio"
+                                                                                id={`article-write-${sectionIdx}-${itemIdx}`}
+                                                                                name={`sections[${sectionIdx}].items[${itemIdx}].articleSource`}
+                                                                                checked={item.articleSource === 'write'}
+                                                                                className="w-4 h-4"
+                                                                                onChange={() => {
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].articleSource`,
+                                                                                    'write'
+                                                                                  );
+                                                                                  // Clear other sources when switching
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                    []
+                                                                                  );
+                                                                                  formik.setFieldValue(
+                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                    ''
+                                                                                  );
+                                                                                }}
+                                                                              />
+                                                                              <label className="font-bold" htmlFor={`article-write-${sectionIdx}-${itemIdx}`}>
+                                                                                Write
+                                                                              </label>
+                                                                            </div>
+                                                                          </div>
+                                                                        </div>
+
+                                                                        {/* Document Upload option */}
+                                                                        {item.articleSource === 'upload' && (
+                                                                          <div className="flex flex-col gap-2 mb-2">
+                                                                            <Input
+                                                                              ref={(el) => {
+                                                                                const key = `document-${sectionIdx}-${itemIdx}`;
+                                                                                if (el) {
+                                                                                  fileInputRefs.current[key] = el;
+                                                                                } else {
+                                                                                  delete fileInputRefs.current[key];
+                                                                                }
+                                                                              }}
+                                                                              key={`document-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
+                                                                              className="ins-control-border"
+                                                                              type="file"
+                                                                              accept=".pdf,.doc,.docx,.txt,.md"
+                                                                              onChange={async (e) => {
+                                                                                const files = Array.from(e.target.files || []);
+                                                                                if (files.length === 0) return;
+
+                                                                                // Store files array before async operations
+                                                                                const selectedFiles = files;
+
+                                                                                // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
+                                                                                setTimeout(() => {
+                                                                                  const key = `document-${sectionIdx}-${itemIdx}`;
+                                                                                  const input = fileInputRefs.current[key];
+                                                                                  if (input) {
+                                                                                    input.value = '';
+                                                                                  }
+                                                                                }, 0);
+
+                                                                                const newFiles = await Promise.all(
+                                                                                  Array.from(selectedFiles).map(async (file) => {
+                                                                                    // Upload to Cloudinary
+                                                                                    let cloudinaryUrl = '';
+                                                                                    let cloudinaryPublicId = '';
+
+                                                                                    try {
+                                                                                      const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                      cloudinaryUrl = uploadResult.url;
+                                                                                      cloudinaryPublicId = uploadResult.publicId;
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                      // Fallback to local file
+                                                                                      cloudinaryUrl = URL.createObjectURL(file);
+                                                                                    }
+
+                                                                                    return {
+                                                                                      name: file.name,
+                                                                                      file: file,
+                                                                                      url: cloudinaryUrl,
+                                                                                      cloudinaryUrl: cloudinaryUrl,
+                                                                                      cloudinaryPublicId: cloudinaryPublicId,
+                                                                                      type: 'lecture'
+                                                                                    };
+                                                                                  })
+                                                                                );
+
+                                                                                const fileObjects = newFiles.map((file) => ({
+                                                                                  file,
+                                                                                  url: file.cloudinaryUrl,
+                                                                                  name: file.name,
+                                                                                  status: 'uploaded' as VideoStatus,
+                                                                                  uploadedAt: new Date()
+                                                                                }));
+
+                                                                                // Set lecture name to the first file's name (without extension)
+                                                                                const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
+                                                                                  fileNameWithoutExt
+                                                                                );
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  fileObjects
+                                                                                );
+                                                                              }}
+                                                                            />
+
+                                                                            {/* Display uploaded files */}
+                                                                            {item.contentFiles?.length > 0 && (
+                                                                              <div className="border rounded p-2 bg-white">
+                                                                                <h5 className="font-medium text-sm mb-2">Uploaded Documents:</h5>
+                                                                                {item.contentFiles.map((content, idx) => (
+                                                                                  <div key={idx} className="flex items-center justify-between py-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                      <File size={14} />
+                                                                                      <span className="text-sm">{content.name}</span>
+                                                                                    </div>
+                                                                                    <Button
+                                                                                      type="button"
+                                                                                      size="sm"
+                                                                                      variant="outline"
+                                                                                      className="px-2 py-1 rounded-none"
+                                                                                      onClick={() => {
+                                                                                        const newFiles = [...item.contentFiles];
+                                                                                        URL.revokeObjectURL(newFiles[idx].url);
+                                                                                        newFiles.splice(idx, 1);
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                          newFiles
+                                                                                        );
+                                                                                      }}
+                                                                                    >
+                                                                                      <Trash2 size={14} className="text-red-500" />
+                                                                                    </Button>
+                                                                                  </div>
+                                                                                ))}
+                                                                              </div>
+                                                                            )}
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* URL Link option */}
+                                                                        {item.articleSource === 'link' && (
+                                                                          <div className="flex flex-col gap-2 mb-2">
+                                                                            <Input
+                                                                              className="ins-control-border"
+                                                                              type="url"
+                                                                              placeholder="Enter article URL (Medium, blog, etc.)"
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
+                                                                              value={item.contentUrl}
+                                                                              onChange={formik.handleChange}
+                                                                            />
+                                                                            {formik.touched.sections &&
+                                                                              Array.isArray(formik.touched.sections) &&
+                                                                              formik.touched.sections[sectionIdx] &&
+                                                                              formik.touched.sections[sectionIdx]?.items &&
+                                                                              Array.isArray(formik.touched.sections[sectionIdx]?.items) &&
+                                                                              formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                              (formik.values.sections[sectionIdx]?.items?.[itemIdx] as any)?.type === "lecture" &&
+                                                                              formik.touched.sections[sectionIdx]?.items?.[itemIdx] &&
+                                                                              (formik.touched.sections[sectionIdx]?.items?.[itemIdx] as any)?.contentUrl &&
+                                                                              formik.errors.sections &&
+                                                                              Array.isArray(formik.errors.sections) &&
+                                                                              (formik.errors.sections as any)[sectionIdx]?.items &&
+                                                                              Array.isArray((formik.errors.sections as any)[sectionIdx]?.items) &&
+                                                                              (formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl && (
+                                                                                <div className="text-red-500 text-xs">
+                                                                                  {(formik.errors.sections as any)[sectionIdx]?.items?.[itemIdx]?.contentUrl}
+                                                                                </div>
+                                                                              )}
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* Write option - ArticleEditor */}
+                                                                        {item.articleSource === 'write' && (
+                                                                          <div className="border rounded-md overflow-hidden bg-white">
+                                                                            <ArticleEditor
+                                                                              sectionIdx={sectionIdx}
+                                                                              itemIdx={itemIdx}
+                                                                              content={item.contentText || ''}
+                                                                              onChange={(html) => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentText`,
+                                                                                  html
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                          </div>
+                                                                        )}
+                                                                      </div>
+                                                                    )}
+                                                                    {/* Video: Upload & Info */}
+                                                                    {item.contentType === "video" && (
+                                                                      <div className="flex flex-col gap-2">
+                                                                        {/* Video Source Option */}
+                                                                        <div className="flex items-center gap-4 mb-2">
+                                                                          <label className="ins-label">Video Source:</label>
+                                                                          <div className="flex items-center gap-2">
+                                                                            <input
+                                                                              type="radio"
+                                                                              className="w-4 h-4"
+                                                                              id={`video-upload-${sectionIdx}-${itemIdx}`}
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
+                                                                              checked={item.videoSource !== 'link'}
+                                                                              onChange={() => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
+                                                                                  'upload'
+                                                                                );
+                                                                                // Clear link if switching
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                  ''
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <label className="font-bold" htmlFor={`video-upload-${sectionIdx}-${itemIdx}`}>Upload file</label>
+                                                                            <input
+                                                                              type="radio"
+                                                                              id={`video-link-${sectionIdx}-${itemIdx}`}
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].videoSource`}
+                                                                              checked={item.videoSource === 'link'}
+                                                                              className="w-4 h-4"
+                                                                              onChange={() => {
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].videoSource`,
+                                                                                  'link'
+                                                                                );
+                                                                                // Clear files if switching
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  []
+                                                                                );
+                                                                              }}
+                                                                            />
+                                                                            <label className="font-bold" htmlFor={`video-link-${sectionIdx}-${itemIdx}`}>Video link</label>
+                                                                          </div>
+                                                                        </div>
+                                                                        {/* Upload file option */}
+                                                                        {(!item.videoSource || item.videoSource === 'upload') && (
+                                                                          <div className="flex items-center justify-between mb-2">
+                                                                            <Input
+                                                                              ref={(el) => {
+                                                                                const key = `video-${sectionIdx}-${itemIdx}`;
+                                                                                if (el) {
+                                                                                  fileInputRefs.current[key] = el;
+                                                                                } else {
+                                                                                  delete fileInputRefs.current[key];
+                                                                                }
+                                                                              }}
+                                                                              key={`video-input-${sectionIdx}-${itemIdx}-${item.contentFiles?.length || 0}`}
+                                                                              className="ins-control-border flex-1 mr-2"
+                                                                              type="file"
+                                                                              accept="video/*"
+                                                                              style={{
+                                                                                display: !item.videoSource || item.videoSource === 'upload' ? 'block' : 'none'
+                                                                              }}
+                                                                              multiple
+                                                                              onChange={async (e) => {
+                                                                                const files = Array.from(e.target.files || []);
+                                                                                if (files.length === 0) return;
 
                                                                                 const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
 
-  for (let file of files) {
-    if (file.size > MAX_SIZE) {
-      formik.setFieldError(
-        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-        `${file.name} is should below than 100 MB`
-      );
-      // Reset input after error
-      setTimeout(() => {
-        const key = `video-${sectionIdx}-${itemIdx}`;
-        const input = fileInputRefs.current[key];
-        if (input) {
-          input.value = '';
-        }
-      }, 0);
-      return; // stop upload
-    }
-  }
-
-  // Clear previous errors
-  formik.setFieldError(
-    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-    ""
-  );
-                                                                              
-                                                                              // Store files array before async operations
-                                                                              const selectedFiles = files;
-
-                                                                              // Insert placeholder entries with 'uploading' status so UI shows progress
-                                                                              const placeholders = selectedFiles.map((file) => ({
-                                                                                file,
-                                                                                name: file.name,
-                                                                                url: '',
-                                                                                cloudinaryUrl: '',
-                                                                                cloudinaryPublicId: '',
-                                                                                duration: 0,
-                                                                                status: 'uploading' as VideoStatus,
-                                                                                uploadProgress: 0,
-                                                                                uploadedAt: null
-                                                                              }));
-
-                                                                              const currentFiles = item.contentFiles || [];
-                                                                              const newFilesWithPlaceholders = [...currentFiles, ...placeholders];
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                newFilesWithPlaceholders
-                                                                              );
-
-                                                                              // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
-                                                                              setTimeout(() => {
-                                                                                const key = `video-${sectionIdx}-${itemIdx}`;
-                                                                                const input = fileInputRefs.current[key];
-                                                                                if (input) {
-                                                                                  input.value = '';
+                                                                                for (let file of files) {
+                                                                                  if (file.size > MAX_SIZE) {
+                                                                                    formik.setFieldError(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                      `${file.name} is should below than 100 MB`
+                                                                                    );
+                                                                                    // Reset input after error
+                                                                                    setTimeout(() => {
+                                                                                      const key = `video-${sectionIdx}-${itemIdx}`;
+                                                                                      const input = fileInputRefs.current[key];
+                                                                                      if (input) {
+                                                                                        input.value = '';
+                                                                                      }
+                                                                                    }, 0);
+                                                                                    return; // stop upload
+                                                                                  }
                                                                                 }
-                                                                              }, 0);
 
-                                                                              // Upload sequentially to allow progress updates per-file
-                                                                              for (let i = 0; i < selectedFiles.length; i++) {
-                                                                                const file = selectedFiles[i];
-                                                                                const placeholderIndex = currentFiles.length + i;
-                                                                                const fileKey = `${sectionIdx}-${itemIdx}-${placeholderIndex}`;
+                                                                                // Clear previous errors
+                                                                                formik.setFieldError(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  ""
+                                                                                );
 
-                                                                                try {
-                                                                                  console.log('Uploading individual video to Cloudinary:', file.name);
+                                                                                // Store files array before async operations
+                                                                                const selectedFiles = files;
 
-                                                                                  const uploadResult = await uploadToCloudinary(file, 'video', (percent) => {
-                                                                                    // Update progress on the placeholder entry
+                                                                                // Insert placeholder entries with 'uploading' status so UI shows progress
+                                                                                const placeholders = selectedFiles.map((file) => ({
+                                                                                  file,
+                                                                                  name: file.name,
+                                                                                  url: '',
+                                                                                  cloudinaryUrl: '',
+                                                                                  cloudinaryPublicId: '',
+                                                                                  duration: 0,
+                                                                                  status: 'uploading' as VideoStatus,
+                                                                                  uploadProgress: 0,
+                                                                                  uploadedAt: null
+                                                                                }));
+
+                                                                                const currentFiles = item.contentFiles || [];
+                                                                                const newFilesWithPlaceholders = [...currentFiles, ...placeholders];
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                  newFilesWithPlaceholders
+                                                                                );
+
+                                                                                // Reset file input immediately after storing files, but use setTimeout to ensure React has processed the event
+                                                                                setTimeout(() => {
+                                                                                  const key = `video-${sectionIdx}-${itemIdx}`;
+                                                                                  const input = fileInputRefs.current[key];
+                                                                                  if (input) {
+                                                                                    input.value = '';
+                                                                                  }
+                                                                                }, 0);
+
+                                                                                // Upload sequentially to allow progress updates per-file
+                                                                                for (let i = 0; i < selectedFiles.length; i++) {
+                                                                                  const file = selectedFiles[i];
+                                                                                  const placeholderIndex = currentFiles.length + i;
+                                                                                  const fileKey = `${sectionIdx}-${itemIdx}-${placeholderIndex}`;
+
+                                                                                  try {
+                                                                                    console.log('Uploading individual video to Cloudinary:', file.name);
+
+                                                                                    const uploadResult = await uploadToCloudinary(file, 'video', (percent) => {
+                                                                                      // Update progress on the placeholder entry
+                                                                                      const updated = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
+                                                                                      if (updated[placeholderIndex]) {
+                                                                                        updated[placeholderIndex] = {
+                                                                                          ...updated[placeholderIndex],
+                                                                                          uploadProgress: percent,
+                                                                                          status: 'uploading'
+                                                                                        };
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                          updated
+                                                                                        );
+                                                                                      }
+                                                                                    });
+
+                                                                                    const cloudinaryUrl = uploadResult.url;
+                                                                                    const cloudinaryPublicId = uploadResult.publicId;
+                                                                                    const duration = uploadResult.duration || 0;
+
+                                                                                    // Replace placeholder with final uploaded metadata
+                                                                                    const updatedFiles = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
+                                                                                    if (updatedFiles[placeholderIndex]) {
+                                                                                      updatedFiles[placeholderIndex] = {
+                                                                                        file,
+                                                                                        url: cloudinaryUrl,
+                                                                                        cloudinaryUrl,
+                                                                                        cloudinaryPublicId,
+                                                                                        name: file.name,
+                                                                                        duration,
+                                                                                        status: 'uploaded' as VideoStatus,
+                                                                                        uploadProgress: 100,
+                                                                                        uploadedAt: new Date()
+                                                                                      };
+                                                                                    } else {
+                                                                                      updatedFiles.push({
+                                                                                        file,
+                                                                                        url: cloudinaryUrl,
+                                                                                        cloudinaryUrl,
+                                                                                        cloudinaryPublicId,
+                                                                                        name: file.name,
+                                                                                        duration,
+                                                                                        status: 'uploaded' as VideoStatus,
+                                                                                        uploadProgress: 100,
+                                                                                        uploadedAt: new Date()
+                                                                                      });
+                                                                                    }
+
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                      updatedFiles
+                                                                                    );
+
+                                                                                  } catch (error) {
+                                                                                    console.error('Failed to upload individual video to Cloudinary:', error);
+                                                                                    // Mark placeholder as failed
                                                                                     const updated = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
                                                                                     if (updated[placeholderIndex]) {
                                                                                       updated[placeholderIndex] = {
                                                                                         ...updated[placeholderIndex],
-                                                                                        uploadProgress: percent,
-                                                                                        status: 'uploading'
+                                                                                        status: 'failed',
+                                                                                        uploadProgress: 0
                                                                                       };
                                                                                       formik.setFieldValue(
                                                                                         `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
                                                                                         updated
                                                                                       );
                                                                                     }
-                                                                                  });
-
-                                                                                  const cloudinaryUrl = uploadResult.url;
-                                                                                  const cloudinaryPublicId = uploadResult.publicId;
-                                                                                  const duration = uploadResult.duration || 0;
-
-                                                                                  // Replace placeholder with final uploaded metadata
-                                                                                  const updatedFiles = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
-                                                                                  if (updatedFiles[placeholderIndex]) {
-                                                                                    updatedFiles[placeholderIndex] = {
-                                                                                      file,
-                                                                                      url: cloudinaryUrl,
-                                                                                      cloudinaryUrl,
-                                                                                      cloudinaryPublicId,
-                                                                                      name: file.name,
-                                                                                      duration,
-                                                                                      status: 'uploaded' as VideoStatus,
-                                                                                      uploadProgress: 100,
-                                                                                      uploadedAt: new Date()
-                                                                                    };
-                                                                                  } else {
-                                                                                    updatedFiles.push({
-                                                                                      file,
-                                                                                      url: cloudinaryUrl,
-                                                                                      cloudinaryUrl,
-                                                                                      cloudinaryPublicId,
-                                                                                      name: file.name,
-                                                                                      duration,
-                                                                                      status: 'uploaded' as VideoStatus,
-                                                                                      uploadProgress: 100,
-                                                                                      uploadedAt: new Date()
-                                                                                    });
+                                                                                    // Optionally notify the user
+                                                                                    toast.error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
                                                                                   }
-
-                                                                                  formik.setFieldValue(
-                                                                                    `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                    updatedFiles
-                                                                                  );
-
-                                                                                } catch (error) {
-                                                                                  console.error('Failed to upload individual video to Cloudinary:', error);
-                                                                                  // Mark placeholder as failed
-                                                                                  const updated = [...(((formik.values as any).sections?.[sectionIdx].items?.[itemIdx]?.contentFiles) || [])];
-                                                                                  if (updated[placeholderIndex]) {
-                                                                                    updated[placeholderIndex] = {
-                                                                                      ...updated[placeholderIndex],
-                                                                                      status: 'failed',
-                                                                                      uploadProgress: 0
-                                                                                    };
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                      updated
-                                                                                    );
-                                                                                  }
-                                                                                  // Optionally notify the user
-                                                                                  toast.error(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
                                                                                 }
-                                                                              }
 
-                                                                              // Set lecture name to the first file's name (without extension)
-                                                                              const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
-                                                                                fileNameWithoutExt
-                                                                              );
-                                                                            }}
-                                                                          />
-                                                                          
-                                                                        </div>
-                                                                      )}
-                                                                      {(() => {
-  const fieldError =
-    (formik.errors.sections as any)?.[sectionIdx]?.items?.[itemIdx]?.contentFiles;
+                                                                                // Set lecture name to the first file's name (without extension)
+                                                                                const fileNameWithoutExt = selectedFiles[0].name.replace(/\.[^/.]+$/, "");
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].lectureName`,
+                                                                                  fileNameWithoutExt
+                                                                                );
+                                                                              }}
+                                                                            />
 
-  return typeof fieldError === "string" ? (
-    <p className="text-red-500 text-sm">{fieldError}</p>
-  ) : null;
-})()}
-                                                                      {/* Video link option */}
-                                                                      {item.videoSource === 'link' && (
-                                                                        <div className="flex flex-col gap-2 mb-2">
-                                                                          <Input
-                                                                            className="ins-control-border"
-                                                                            type="url"
-                                                                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
-                                                                            name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
-                                                                            value={item.contentUrl}
-                                                                            onChange={async (e) => {
-                                                                              const url = e.target.value;
-                                                                              const key = `${sectionIdx}-${itemIdx}`;
-                                                                              
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
-                                                                                url
-                                                                              );
-                                                                              
-                                                                              // Auto-fetch duration when URL is entered (only if no manual duration is set)
-                                                                              if (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com'))) {
-                                                                                // Only auto-detect if no manual duration has been set
-                                                                                const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
-                                                                                if (!currentDuration || currentDuration === 0) {
-                                                                                  setDurationFetching(prev => ({ ...prev, [key]: true }));
-                                                                                  setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                                  
-                                                                                  try {
-                                                                                    const duration = await fetchVideoDuration(url);
-                                                                                    if (duration > 0) {
-                                                                                      formik.setFieldValue(
-                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                        duration
-                                                                                      );
-                                                                                    }
-                                                                                    setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                  } catch (error) {
-                                                                                    console.error('Failed to fetch video duration:', error);
-                                                                                    setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                    setDurationError(prev => ({ ...prev, [key]: true }));
-                                                                                  }
-                                                                                } else {
-                                                                                  console.log('Manual duration already set, skipping auto-detection');
-                                                                                  setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                  setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                                }
-                                                                              } else {
-                                                                                setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                              }
-                                                                            }}
-                                                                            onPaste={async (e) => {
-                                                                              const pastedText = e.clipboardData.getData('text');
-                                                                              if (pastedText && (pastedText.includes('youtube.com') || pastedText.includes('youtu.be') || pastedText.includes('vimeo.com'))) {
-                                                                                // Only auto-detect if no manual duration has been set
-                                                                                const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
-                                                                                if (!currentDuration || currentDuration === 0) {
-                                                                                  // Small delay to ensure the URL is set first
-                                                                                  setTimeout(async () => {
-                                                                                    try {
-                                                                                      const duration = await fetchVideoDuration(pastedText);
-                                                                                      if (duration > 0) {
-                                                                                        formik.setFieldValue(
-                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                          duration
-                                                                                        );
-                                                                                      }
-                                                                                    } catch (error) {
-                                                                                      console.error('Failed to fetch video duration:', error);
-                                                                                    }
-                                                                                  }, 100);
-                                                                                } else {
-                                                                                  console.log('Manual duration already set, skipping auto-detection on paste');
-                                                                                }
-                                                                              }
-                                                                            }}
-                                                                          />
-                                                                          {/* Auto-fetched duration display */}
-                                                                          {item.duration && item.duration > 0 && (
-                                                                            <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
-                                                                              <Clock size={16} className="text-green-600" />
-                                                                              <span className="text-sm text-green-700">
-                                                                                Auto-detected duration: {formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)}
-                                                                              </span>
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="ml-auto p-1 h-6 w-6"
-                                                                                onClick={async () => {
-                                                                                  const key = `${sectionIdx}-${itemIdx}`;
-                                                                                  if (item.contentUrl) {
+                                                                          </div>
+                                                                        )}
+                                                                        {(() => {
+                                                                          const fieldError =
+                                                                            (formik.errors.sections as any)?.[sectionIdx]?.items?.[itemIdx]?.contentFiles;
+
+                                                                          return typeof fieldError === "string" ? (
+                                                                            <p className="text-red-500 text-sm">{fieldError}</p>
+                                                                          ) : null;
+                                                                        })()}
+                                                                        {/* Video link option */}
+                                                                        {item.videoSource === 'link' && (
+                                                                          <div className="flex flex-col gap-2 mb-2">
+                                                                            <Input
+                                                                              className="ins-control-border"
+                                                                              type="url"
+                                                                              placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                                                                              name={`sections[${sectionIdx}].items[${itemIdx}].contentUrl`}
+                                                                              value={item.contentUrl}
+                                                                              onChange={async (e) => {
+                                                                                const url = e.target.value;
+                                                                                const key = `${sectionIdx}-${itemIdx}`;
+
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].contentUrl`,
+                                                                                  url
+                                                                                );
+
+                                                                                // Auto-fetch duration when URL is entered (only if no manual duration is set)
+                                                                                if (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com'))) {
+                                                                                  // Only auto-detect if no manual duration has been set
+                                                                                  const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
+                                                                                  if (!currentDuration || currentDuration === 0) {
                                                                                     setDurationFetching(prev => ({ ...prev, [key]: true }));
                                                                                     setDurationError(prev => ({ ...prev, [key]: false }));
+
                                                                                     try {
-                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                      const duration = await fetchVideoDuration(url);
                                                                                       if (duration > 0) {
                                                                                         formik.setFieldValue(
                                                                                           `sections[${sectionIdx}].items[${itemIdx}].duration`,
@@ -3168,37 +3101,388 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       }
                                                                                       setDurationFetching(prev => ({ ...prev, [key]: false }));
                                                                                     } catch (error) {
-                                                                                      console.error('Failed to refresh video duration:', error);
+                                                                                      console.error('Failed to fetch video duration:', error);
                                                                                       setDurationFetching(prev => ({ ...prev, [key]: false }));
                                                                                       setDurationError(prev => ({ ...prev, [key]: true }));
                                                                                     }
+                                                                                  } else {
+                                                                                    console.log('Manual duration already set, skipping auto-detection');
+                                                                                    setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
                                                                                   }
-                                                                                }}
-                                                                                title="Refresh duration"
-                                                                              >
-                                                                                <RefreshCw size={14} />
-                                                                              </Button>
-                                                                            </div>
-                                                                          )}
+                                                                                } else {
+                                                                                  setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                  setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                }
+                                                                              }}
+                                                                              onPaste={async (e) => {
+                                                                                const pastedText = e.clipboardData.getData('text');
+                                                                                if (pastedText && (pastedText.includes('youtube.com') || pastedText.includes('youtu.be') || pastedText.includes('vimeo.com'))) {
+                                                                                  // Only auto-detect if no manual duration has been set
+                                                                                  const currentDuration = formik.values.sections[sectionIdx].items[itemIdx].duration;
+                                                                                  if (!currentDuration || currentDuration === 0) {
+                                                                                    // Small delay to ensure the URL is set first
+                                                                                    setTimeout(async () => {
+                                                                                      try {
+                                                                                        const duration = await fetchVideoDuration(pastedText);
+                                                                                        if (duration > 0) {
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                            duration
+                                                                                          );
+                                                                                        }
+                                                                                      } catch (error) {
+                                                                                        console.error('Failed to fetch video duration:', error);
+                                                                                      }
+                                                                                    }, 100);
+                                                                                  } else {
+                                                                                    console.log('Manual duration already set, skipping auto-detection on paste');
+                                                                                  }
+                                                                                }
+                                                                              }}
+                                                                            />
+                                                                            {/* Auto-fetched duration display */}
+                                                                            {item.duration && item.duration > 0 && (
+                                                                              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
+                                                                                <Clock size={16} className="text-green-600" />
+                                                                                <span className="text-sm text-green-700">
+                                                                                  Auto-detected duration: {formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)}
+                                                                                </span>
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  variant="ghost"
+                                                                                  size="sm"
+                                                                                  className="ml-auto p-1 h-6 w-6"
+                                                                                  onClick={async () => {
+                                                                                    const key = `${sectionIdx}-${itemIdx}`;
+                                                                                    if (item.contentUrl) {
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                      setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                      try {
+                                                                                        const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                        if (duration > 0) {
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                            duration
+                                                                                          );
+                                                                                        }
+                                                                                        setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                      } catch (error) {
+                                                                                        console.error('Failed to refresh video duration:', error);
+                                                                                        setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                        setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                      }
+                                                                                    }
+                                                                                  }}
+                                                                                  title="Refresh duration"
+                                                                                >
+                                                                                  <RefreshCw size={14} />
+                                                                                </Button>
+                                                                              </div>
+                                                                            )}
 
-                                                                          {/* Manual duration override for YouTube videos */}
-                                                                          {item.contentType === 'video' && item.videoSource === 'link' && item.contentUrl && (
-                                                                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                            {/* Manual duration override for YouTube videos */}
+                                                                            {item.contentType === 'video' && item.videoSource === 'link' && item.contentUrl && (
+                                                                              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                                                                                <div className="flex items-center gap-2 mb-2">
+                                                                                  <Clock size={16} className="text-blue-600" />
+                                                                                  <span className="text-sm font-medium text-blue-800">
+                                                                                    Override Duration (if auto-detection is incorrect)
+                                                                                  </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                  <Input
+                                                                                    type="number"
+                                                                                    step="0.01"
+                                                                                    placeholder="Enter duration in seconds (e.g., 17.57)"
+                                                                                    className="w-48 h-8 text-sm"
+                                                                                    value={item.duration || ''}
+                                                                                    onChange={(e) => {
+                                                                                      const value = parseFloat(e.target.value) || 0;
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                        value
+                                                                                      );
+                                                                                    }}
+                                                                                  />
+                                                                                  <span className="text-xs text-gray-600">seconds</span>
+                                                                                  <span className="text-sm text-gray-700">
+                                                                                    ({formatDuration(item.duration || 0)})
+                                                                                  </span>
+                                                                                </div>
+                                                                              </div>
+                                                                            )}
+
+                                                                            {/* Manual duration input when auto-detection fails */}
+                                                                            {(!item.duration || item.duration === 0) &&
+                                                                              (!item.contentFiles?.[0]?.duration || item.contentFiles[0].duration === 0) && (
+                                                                                <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                                                                  <Clock size={16} className="text-yellow-600" />
+                                                                                  <span className="text-sm text-yellow-700">
+                                                                                    Duration not detected automatically
+                                                                                  </span>
+                                                                                  <Input
+                                                                                    type="number"
+                                                                                    placeholder="Enter duration in seconds"
+                                                                                    className="w-24 h-8 text-sm"
+                                                                                    value={item.duration || item.contentFiles?.[0]?.duration || ''}
+                                                                                    onChange={(e) => {
+                                                                                      const value = parseInt(e.target.value) || 0;
+                                                                                      // Update both item.duration and contentFiles[0].duration
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                        value
+                                                                                      );
+                                                                                      if (item.contentFiles?.[0]) {
+                                                                                        formik.setFieldValue(
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles.0.duration`,
+                                                                                          value
+                                                                                        );
+                                                                                      }
+                                                                                    }}
+                                                                                  />
+                                                                                  <span className="text-xs text-gray-600">seconds</span>
+                                                                                  <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="ml-auto p-1 h-6 w-6"
+                                                                                    onClick={async () => {
+                                                                                      const key = `${sectionIdx}-${itemIdx}`;
+                                                                                      if (item.contentUrl) {
+                                                                                        setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                        setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                        try {
+                                                                                          const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                          if (duration > 0) {
+                                                                                            formik.setFieldValue(
+                                                                                              `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                              duration
+                                                                                            );
+                                                                                          }
+                                                                                          setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                        } catch (error) {
+                                                                                          console.error('Failed to retry video duration fetch:', error);
+                                                                                          setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                          setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                        }
+                                                                                      }
+                                                                                    }}
+                                                                                    title="Retry duration fetch"
+                                                                                  >
+                                                                                    <RefreshCw size={14} />
+                                                                                  </Button>
+                                                                                </div>
+                                                                              )}
+                                                                            {/* Loading indicator while fetching duration */}
+                                                                            {durationFetching[`${sectionIdx}-${itemIdx}`] && (
+                                                                              <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                                                <span className="text-sm text-blue-700">
+                                                                                  Fetching video duration...
+                                                                                </span>
+                                                                              </div>
+                                                                            )}
+                                                                            {/* Error state when duration fetching fails */}
+                                                                            {durationError[`${sectionIdx}-${itemIdx}`] && !durationFetching[`${sectionIdx}-${itemIdx}`] && (
+                                                                              <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                                                                <Clock size={16} className="text-red-600" />
+                                                                                <span className="text-sm text-red-700">
+                                                                                  Could not fetch video duration automatically
+                                                                                </span>
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  variant="ghost"
+                                                                                  size="sm"
+                                                                                  className="ml-auto p-1 h-6 w-6"
+                                                                                  onClick={async () => {
+                                                                                    const key = `${sectionIdx}-${itemIdx}`;
+                                                                                    if (item.contentUrl) {
+                                                                                      setDurationFetching(prev => ({ ...prev, [key]: true }));
+                                                                                      setDurationError(prev => ({ ...prev, [key]: false }));
+                                                                                      try {
+                                                                                        const duration = await fetchVideoDuration(item.contentUrl);
+                                                                                        if (duration > 0) {
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].duration`,
+                                                                                            duration
+                                                                                          );
+                                                                                        }
+                                                                                        setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                      } catch (error) {
+                                                                                        console.error('Failed to retry video duration fetch:', error);
+                                                                                        setDurationFetching(prev => ({ ...prev, [key]: false }));
+                                                                                        setDurationError(prev => ({ ...prev, [key]: true }));
+                                                                                      }
+                                                                                    }
+                                                                                  }}
+                                                                                  title="Retry duration fetch"
+                                                                                >
+                                                                                  <RefreshCw size={14} />
+                                                                                </Button>
+                                                                              </div>
+                                                                            )}
+                                                                          </div>
+                                                                        )}
+                                                                        {item.contentFiles?.length > 0 && (
+                                                                          <div className="overflow-x-auto">
+                                                                            <table className="w-full border-collapse">
+                                                                              <thead>
+                                                                                <tr className="bg-gray-50 border-b">
+                                                                                  <th className="text-left p-2 text-sm font-medium text-gray-600">File Name</th>
+                                                                                  {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th> */}
+                                                                                  <th className="text-left p-2 text-sm font-medium text-gray-600">Duration</th>
+                                                                                  <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
+                                                                                  {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th> */}
+                                                                                  <th className="text-left p-2 text-sm font-medium text-gray-600">Actions</th>
+                                                                                </tr>
+                                                                              </thead>
+                                                                              <tbody>
+                                                                                {item.contentFiles.map((content, idx) => (
+                                                                                  <tr key={idx} className="border-b hover:bg-gray-50">
+                                                                                    <td className="p-2">
+                                                                                      <div className="flex items-center gap-2">
+                                                                                        <UploadCloud size={14} />
+                                                                                        <span className="text-sm">{content.name}</span>
+                                                                                      </div>
+                                                                                    </td>
+                                                                                    {/* <td className="p-2">
+                                                                                    <span className="text-sm">{content.file && content.file.type ? content.file.type : 'N/A'}</span>
+                                                                                  </td> */}
+                                                                                    <td className="p-2">
+                                                                                      <span className="text-sm">{formatDuration(content.duration || 0)}</span>
+                                                                                    </td>
+                                                                                    <td className="p-2">
+                                                                                      {content.status === 'uploading' ? (
+                                                                                        <div className="flex items-center gap-2">
+                                                                                          <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
+                                                                                            <div
+                                                                                              className="h-full bg-blue-500 transition-all duration-300"
+                                                                                              style={{ width: `${content.uploadProgress || 0}%` }}
+                                                                                            />
+                                                                                          </div>
+                                                                                          <span className="text-sm font-medium text-blue-600">
+                                                                                            {content.uploadProgress || 0}%
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      ) : content.status === 'uploaded' ? (
+                                                                                        <span className="text-sm px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">
+                                                                                          Uploaded
+                                                                                        </span>
+                                                                                      ) : (
+                                                                                        <span className="text-sm px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">
+                                                                                          Failed
+                                                                                        </span>
+                                                                                      )}
+                                                                                    </td>
+                                                                                    {/* <td className="p-2">
+                                                                                    <span className="text-sm">
+                                                                                      {content.uploadedAt ? new Date(content.uploadedAt).toLocaleDateString() : 'N/A'}
+                                                                                    </span>
+                                                                                  </td> */}
+                                                                                    <td className="p-2">
+                                                                                      <div className="flex items-center gap-2">
+                                                                                        <Button
+                                                                                          type="button"
+                                                                                          size="sm"
+                                                                                          variant="ghost"
+                                                                                          className="p-1"
+                                                                                          onClick={() => handlePreviewFile(content.url, content.name)}
+                                                                                          title="Preview File"
+                                                                                        >
+                                                                                          <Eye size={14} />
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                          type="button"
+                                                                                          size="sm"
+                                                                                          variant="ghost"
+                                                                                          className="p-1"
+                                                                                          onClick={() => {
+                                                                                            if (content.url) {
+                                                                                              navigator.clipboard.writeText(content.url);
+                                                                                            }
+                                                                                          }}
+                                                                                          title="Copy URL"
+                                                                                        >
+                                                                                          <Link size={14} />
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                          type="button"
+                                                                                          size="sm"
+                                                                                          variant="ghost"
+                                                                                          className="p-1"
+                                                                                          onClick={() => {
+                                                                                            setShowContentType({ sectionIdx, itemIdx });
+                                                                                            setViewItem(null);
+                                                                                          }}
+                                                                                        >
+                                                                                          <Pencil size={14} />
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                          type="button"
+                                                                                          size="sm"
+                                                                                          variant="ghost"
+                                                                                          className="p-1"
+                                                                                          onClick={() => handleDeleteFile(sectionIdx, itemIdx, idx)}
+                                                                                        >
+                                                                                          <Trash2 size={14} className="text-red-500" />
+                                                                                        </Button>
+                                                                                      </div>
+                                                                                    </td>
+                                                                                  </tr>
+                                                                                ))}
+                                                                              </tbody>
+                                                                            </table>
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* Show duration status for uploaded videos */}
+                                                                        {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && (
+                                                                          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
+                                                                            <div className="flex items-center gap-2 mb-2">
+                                                                              <Clock size={16} className="text-gray-600" />
+                                                                              <span className="text-sm font-medium text-gray-800">
+                                                                                Video Duration Status
+                                                                              </span>
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-600 space-y-1">
+                                                                              {item.contentFiles.map((file, fileIdx) => (
+                                                                                <div key={fileIdx} className="flex items-center justify-between">
+                                                                                  <span className="truncate max-w-48">{file.name}</span>
+                                                                                  <span className={`px-2 py-1 rounded text-xs ${file.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                                                                                      file.status === 'uploaded' && (file.duration && file.duration > 0) ? 'bg-green-100 text-green-800' :
+                                                                                        file.status === 'uploaded' && (!file.duration || file.duration === 0) ? 'bg-yellow-100 text-yellow-800' :
+                                                                                          'bg-red-100 text-red-800'
+                                                                                    }`}>
+                                                                                    {file.status === 'uploading' ? 'Uploading...' :
+                                                                                      file.status === 'uploaded' && (file.duration && file.duration > 0) ? `Duration: ${formatDuration(file.duration)}` :
+                                                                                        file.status === 'uploaded' ? 'Duration not detected' :
+                                                                                          'Upload failed'}
+                                                                                  </span>
+                                                                                </div>
+                                                                              ))}
+                                                                            </div>
+                                                                          </div>
+                                                                        )}
+
+                                                                        {/* Manual duration input for uploaded videos - only show if no duration detected */}
+                                                                        {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 &&
+                                                                          item.contentFiles.some(file => file.status === 'uploaded' && (!file.duration || file.duration === 0)) && (
+                                                                            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                                                                               <div className="flex items-center gap-2 mb-2">
                                                                                 <Clock size={16} className="text-blue-600" />
                                                                                 <span className="text-sm font-medium text-blue-800">
-                                                                                  Override Duration (if auto-detection is incorrect)
+                                                                                  Set Video Duration
                                                                                 </span>
                                                                               </div>
                                                                               <div className="flex items-center gap-2">
                                                                                 <Input
                                                                                   type="number"
-                                                                                  step="0.01"
-                                                                                  placeholder="Enter duration in seconds (e.g., 17.57)"
-                                                                                  className="w-48 h-8 text-sm"
+                                                                                  placeholder="Duration in seconds"
+                                                                                  className="w-32 h-8 text-sm"
                                                                                   value={item.duration || ''}
                                                                                   onChange={(e) => {
-                                                                                    const value = parseFloat(e.target.value) || 0;
+                                                                                    const value = parseInt(e.target.value) || 0;
                                                                                     formik.setFieldValue(
                                                                                       `sections[${sectionIdx}].items[${itemIdx}].duration`,
                                                                                       value
@@ -3207,466 +3491,181 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                 />
                                                                                 <span className="text-xs text-gray-600">seconds</span>
                                                                                 <span className="text-sm text-gray-700">
-                                                                                  ({formatDuration(item.duration || 0)})
+                                                                                  ({formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)})
                                                                                 </span>
                                                                               </div>
+                                                                              <p className="text-xs text-blue-600 mt-1">
+                                                                                Use this if automatic duration detection fails
+                                                                              </p>
                                                                             </div>
                                                                           )}
-                                                                          
-                                                                          {/* Manual duration input when auto-detection fails */}
-                                                                          {(!item.duration || item.duration === 0) && 
-                                                                           (!item.contentFiles?.[0]?.duration || item.contentFiles[0].duration === 0) && (
-                                                                            <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                                                                              <Clock size={16} className="text-yellow-600" />
-                                                                              <span className="text-sm text-yellow-700">
-                                                                                Duration not detected automatically
-                                                                              </span>
-                                                                              <Input
-                                                                                type="number"
-                                                                                placeholder="Enter duration in seconds"
-                                                                                className="w-24 h-8 text-sm"
-                                                                                value={item.duration || item.contentFiles?.[0]?.duration || ''}
-                                                                                onChange={(e) => {
-                                                                                  const value = parseInt(e.target.value) || 0;
-                                                                                  // Update both item.duration and contentFiles[0].duration
-                                                                                  formik.setFieldValue(
-                                                                                    `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                    value
-                                                                                  );
-                                                                                  if (item.contentFiles?.[0]) {
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].contentFiles.0.duration`,
-                                                                                      value
-                                                                                    );
-                                                                                  }
-                                                                                }}
-                                                                              />
-                                                                              <span className="text-xs text-gray-600">seconds</span>
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="ml-auto p-1 h-6 w-6"
-                                                                                onClick={async () => {
-                                                                                  const key = `${sectionIdx}-${itemIdx}`;
-                                                                                  if (item.contentUrl) {
-                                                                                    setDurationFetching(prev => ({ ...prev, [key]: true }));
-                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                                    try {
-                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
-                                                                                      if (duration > 0) {
-                                                                                        formik.setFieldValue(
-                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                          duration
-                                                                                        );
-                                                                                      }
-                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                    } catch (error) {
-                                                                                      console.error('Failed to retry video duration fetch:', error);
-                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                      setDurationError(prev => ({ ...prev, [key]: true }));
-                                                                                    }
-                                                                                  }
-                                                                                }}
-                                                                                title="Retry duration fetch"
-                                                                              >
-                                                                                <RefreshCw size={14} />
-                                                                              </Button>
-                                                                            </div>
-                                                                          )}
-                                                                          {/* Loading indicator while fetching duration */}
-                                                                          {durationFetching[`${sectionIdx}-${itemIdx}`] && (
-                                                                            <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                                                                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                                                              <span className="text-sm text-blue-700">
-                                                                                Fetching video duration...
-                                                                              </span>
-                                                                            </div>
-                                                                          )}
-                                                                          {/* Error state when duration fetching fails */}
-                                                                          {durationError[`${sectionIdx}-${itemIdx}`] && !durationFetching[`${sectionIdx}-${itemIdx}`] && (
-                                                                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
-                                                                              <Clock size={16} className="text-red-600" />
-                                                                              <span className="text-sm text-red-700">
-                                                                                Could not fetch video duration automatically
-                                                                              </span>
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="ml-auto p-1 h-6 w-6"
-                                                                                onClick={async () => {
-                                                                                  const key = `${sectionIdx}-${itemIdx}`;
-                                                                                  if (item.contentUrl) {
-                                                                                    setDurationFetching(prev => ({ ...prev, [key]: true }));
-                                                                                    setDurationError(prev => ({ ...prev, [key]: false }));
-                                                                                    try {
-                                                                                      const duration = await fetchVideoDuration(item.contentUrl);
-                                                                                      if (duration > 0) {
-                                                                                        formik.setFieldValue(
-                                                                                          `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                          duration
-                                                                                        );
-                                                                                      }
-                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                    } catch (error) {
-                                                                                      console.error('Failed to retry video duration fetch:', error);
-                                                                                      setDurationFetching(prev => ({ ...prev, [key]: false }));
-                                                                                      setDurationError(prev => ({ ...prev, [key]: true }));
-                                                                                    }
-                                                                                  }
-                                                                                }}
-                                                                                title="Retry duration fetch"
-                                                                              >
-                                                                                <RefreshCw size={14} />
-                                                                              </Button>
-                                                                            </div>
-                                                                          )}
-                                                                        </div>
-                                                                      )}
-                                                                      {item.contentFiles?.length > 0 && (
-                                                                        <div className="overflow-x-auto">
-                                                                          <table className="w-full border-collapse">
-                                                                            <thead>
-                                                                              <tr className="bg-gray-50 border-b">
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">File Name</th>
-                                                                                {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Type</th> */}
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Duration</th>
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
-                                                                                {/* <th className="text-left p-2 text-sm font-medium text-gray-600">Upload Date</th> */}
-                                                                                <th className="text-left p-2 text-sm font-medium text-gray-600">Actions</th>
-                                                                              </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                              {item.contentFiles.map((content, idx) => (
-                                                                                <tr key={idx} className="border-b hover:bg-gray-50">
-                                                                                  <td className="p-2">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                      <UploadCloud size={14} />
-                                                                                      <span className="text-sm">{content.name}</span>
-                                                                                    </div>
-                                                                                  </td>
-                                                                                  {/* <td className="p-2">
-                                                                                    <span className="text-sm">{content.file && content.file.type ? content.file.type : 'N/A'}</span>
-                                                                                  </td> */}
-                                                                                  <td className="p-2">
-                                                                                    <span className="text-sm">{formatDuration(content.duration || 0)}</span>
-                                                                                  </td>
-                                                                                  <td className="p-2">
-                                                                                    {content.status === 'uploading' ? (
-                                                                                      <div className="flex items-center gap-2">
-                                                                                        <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
-                                                                                          <div
-                                                                                            className="h-full bg-blue-500 transition-all duration-300"
-                                                                                            style={{ width: `${content.uploadProgress || 0}%` }}
-                                                                                          />
-                                                                                        </div>
-                                                                                        <span className="text-sm font-medium text-blue-600">
-                                                                                          {content.uploadProgress || 0}%
-                                                                                        </span>
-                                                                                      </div>
-                                                                                    ) : content.status === 'uploaded' ? (
-                                                                                      <span className="text-sm px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">
-                                                                                        Uploaded
-                                                                                      </span>
-                                                                                    ) : (
-                                                                                      <span className="text-sm px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">
-                                                                                        Failed
-                                                                                      </span>
-                                                                                    )}
-                                                                                  </td>
-                                                                                  {/* <td className="p-2">
-                                                                                    <span className="text-sm">
-                                                                                      {content.uploadedAt ? new Date(content.uploadedAt).toLocaleDateString() : 'N/A'}
-                                                                                    </span>
-                                                                                  </td> */}
-                                                                                  <td className="p-2">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                      <Button
-                                                                                        type="button"
-                                                                                        size="sm"
-                                                                                        variant="ghost"
-                                                                                        className="p-1"
-                                                                                        onClick={() => handlePreviewFile(content.url, content.name)}
-                                                                                        title="Preview File"
-                                                                                      >
-                                                                                        <Eye size={14} />
-                                                                                      </Button>
-                                                                                      <Button
-                                                                                        type="button"
-                                                                                        size="sm"
-                                                                                        variant="ghost"
-                                                                                        className="p-1"
-                                                                                        onClick={() => {
-                                                                                          if (content.url) {
-                                                                                            navigator.clipboard.writeText(content.url);
-                                                                                          }
-                                                                                        }}
-                                                                                        title="Copy URL"
-                                                                                      >
-                                                                                        <Link size={14} />
-                                                                                      </Button>
-                                                                                      <Button
-                                                                                        type="button"
-                                                                                        size="sm"
-                                                                                        variant="ghost"
-                                                                                        className="p-1"
-                                                                                        onClick={() => {
-                                                                                          setShowContentType({ sectionIdx, itemIdx });
-                                                                                          setViewItem(null);
-                                                                                        }}
-                                                                                      >
-                                                                                        <Pencil size={14} />
-                                                                                      </Button>
-                                                                                      <Button
-                                                                                        type="button"
-                                                                                        size="sm"
-                                                                                        variant="ghost"
-                                                                                        className="p-1"
-                                                                                        onClick={() => handleDeleteFile(sectionIdx, itemIdx, idx)}
-                                                                                      >
-                                                                                        <Trash2 size={14} className="text-red-500" />
-                                                                                      </Button>
-                                                                                    </div>
-                                                                                  </td>
-                                                                                </tr>
-                                                                              ))}
-                                                                            </tbody>
-                                                                          </table>
-                                                                        </div>
-                                                                      )}
-                                                                      
-                                                                      {/* Show duration status for uploaded videos */}
-                                                                      {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && (
-                                                                        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
-                                                                          <div className="flex items-center gap-2 mb-2">
-                                                                            <Clock size={16} className="text-gray-600" />
-                                                                            <span className="text-sm font-medium text-gray-800">
-                                                                              Video Duration Status
-                                                                            </span>
-                                                                          </div>
-                                                                          <div className="text-xs text-gray-600 space-y-1">
-                                                                            {item.contentFiles.map((file, fileIdx) => (
-                                                                              <div key={fileIdx} className="flex items-center justify-between">
-                                                                                <span className="truncate max-w-48">{file.name}</span>
-                                                                                <span className={`px-2 py-1 rounded text-xs ${
-                                                                                  file.status === 'uploading' ? 'bg-blue-100 text-blue-800' :
-                                                                                  file.status === 'uploaded' && (file.duration && file.duration > 0) ? 'bg-green-100 text-green-800' :
-                                                                                  file.status === 'uploaded' && (!file.duration || file.duration === 0) ? 'bg-yellow-100 text-yellow-800' :
-                                                                                  'bg-red-100 text-red-800'
-                                                                                }`}>
-                                                                                  {file.status === 'uploading' ? 'Uploading...' :
-                                                                                   file.status === 'uploaded' && (file.duration && file.duration > 0) ? `Duration: ${formatDuration(file.duration)}` :
-                                                                                   file.status === 'uploaded' ? 'Duration not detected' :
-                                                                                   'Upload failed'}
-                                                                                </span>
-                                                                              </div>
-                                                                            ))}
-                                                                          </div>
-                                                                        </div>
-                                                                      )}
-
-                                                                      {/* Manual duration input for uploaded videos - only show if no duration detected */}
-                                                                      {item.contentType === 'video' && item.videoSource === 'upload' && item.contentFiles?.length > 0 && 
-                                                                       item.contentFiles.some(file => file.status === 'uploaded' && (!file.duration || file.duration === 0)) && (
-                                                                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                                                                          <div className="flex items-center gap-2 mb-2">
-                                                                            <Clock size={16} className="text-blue-600" />
-                                                                            <span className="text-sm font-medium text-blue-800">
-                                                                              Set Video Duration
-                                                                            </span>
-                                                                          </div>
-                                                                          <div className="flex items-center gap-2">
-                                                                            <Input
-                                                                              type="number"
-                                                                              placeholder="Duration in seconds"
-                                                                              className="w-32 h-8 text-sm"
-                                                                              value={item.duration || ''}
-                                                                              onChange={(e) => {
-                                                                                const value = parseInt(e.target.value) || 0;
-                                                                                formik.setFieldValue(
-                                                                                  `sections[${sectionIdx}].items[${itemIdx}].duration`,
-                                                                                  value
-                                                                                );
-                                                                              }}
-                                                                            />
-                                                                            <span className="text-xs text-gray-600">seconds</span>
-                                                                            <span className="text-sm text-gray-700">
-                                                                              ({formatDuration(item.duration || item.contentFiles?.[0]?.duration || 0)})
-                                                                            </span>
-                                                                          </div>
-                                                                          <p className="text-xs text-blue-600 mt-1">
-                                                                            Use this if automatic duration detection fails
-                                                                          </p>
-                                                                        </div>
-                                                                      )}
-                                                                    </div>
-                                                                  )}
-                                                                  
-                                                                  {/* Resources Section */}
-                                                                  <div className="mt-4">
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                      <h4 className="font-medium text-sm">Resources</h4>
-                                                                      <Button
-                                                                        type="button"
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => {
-                                                                          const fileInput = document.createElement('input');
-                                                                          fileInput.type = 'file';
-                                                                          fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
-                                                                          fileInput.multiple = true;
-
-                                                                          fileInput.onchange = async (e) => {
-                                                                            const files = (e.target as HTMLInputElement).files;
-                                                                            if (files) {
-                                                                              const currentResources = item.resources || [];
-                                                                              const newResources = await Promise.all(
-                                                                                Array.from(files).map(async (file) => {
-                                                                                  // Upload to Cloudinary
-                                                                                  let cloudinaryUrl = '';
-                                                                                  let cloudinaryPublicId = '';
-                                                                                  
-                                                                                  try {
-                                                                                    const uploadResult = await uploadToCloudinary(file, 'raw');
-                                                                                    cloudinaryUrl = uploadResult.url;
-                                                                                    cloudinaryPublicId = uploadResult.publicId;
-                                                                                  } catch (error) {
-                                                                                    console.error('Failed to upload resource to Cloudinary:', error);
-                                                                                    // Fallback to local file
-                                                                                    cloudinaryUrl = URL.createObjectURL(file);
-                                                                                  }
-
-                                                                                  return {
-                                                                                    name: file.name,
-                                                                                    file: file,
-                                                                                    url: cloudinaryUrl,
-                                                                                    cloudinaryUrl: cloudinaryUrl,
-                                                                                    cloudinaryPublicId: cloudinaryPublicId,
-                                                                                    type: 'lecture'
-                                                                                  };
-                                                                                })
-                                                                              );
-
-                                                                              formik.setFieldValue(
-                                                                                `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                [...currentResources, ...newResources]
-                                                                              );
-                                                                              
-                                                                              // Reset file input to allow re-selection of the same file
-                                                                              fileInput.value = '';
-                                                                            }
-                                                                          };
-
-                                                                          fileInput.click();
-                                                                        }}
-                                                                      >
-                                                                        + Add Resources
-                                                                      </Button>
-                                                                    </div>
-
-                                                                    {item.resources?.length > 0 && (
-                                                                      <div className="border rounded p-2 bg-white">
-                                                                        {item.resources.map((resource, resourceIdx) => (
-                                                                          <div key={resourceIdx} className="flex items-center justify-between py-1">
-                                                                            <div className="flex items-center gap-2">
-                                                                              {getFileIcon(resource.name)}
-                                                                              <span className="text-sm">{resource.name}</span>
-                                                                              {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
-                                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                                                  Cloudinary
-                                                                                </span>
-                                                                              )}
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2">
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="p-1 h-6 w-6"
-                                                                                onClick={() => {
-                                                                                  if (resource.cloudinaryUrl) {
-                                                                                    window.open(resource.cloudinaryUrl, '_blank');
-                                                                                  } else if (resource.url) {
-                                                                                    window.open(resource.url, '_blank');
-                                                                                  }
-                                                                                }}
-                                                                                title="Open resource"
-                                                                              >
-                                                                                <Eye size={14} />
-                                                                              </Button>
-                                                                              <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="px-2 py-1 rounded-none text-red-600"
-                                                                                onClick={() => {
-                                                                                  const newResources = [...item.resources];
-                                                                                  const resourceUrl = newResources[resourceIdx]?.url;
-                                                                                  if (resourceUrl && resourceUrl.startsWith('blob:')) {
-                                                                                    URL.revokeObjectURL(resourceUrl);
-                                                                                  }
-                                                                                  newResources.splice(resourceIdx, 1);
-                                                                                  formik.setFieldValue(
-                                                                                    `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                    newResources
-                                                                                  );
-                                                                                }}
-                                                                              >
-                                                                                <Trash2 size={12} />
-                                                                              </Button>
-                                                                            </div>
-                                                                          </div>
-                                                                        ))}
                                                                       </div>
                                                                     )}
+
+                                                                    {/* Resources Section */}
+                                                                    <div className="mt-4">
+                                                                      <div className="flex items-center justify-between mb-2">
+                                                                        <h4 className="font-medium text-sm">Resources</h4>
+                                                                        <Button
+                                                                          type="button"
+                                                                          size="sm"
+                                                                          variant="outline"
+                                                                          onClick={() => {
+                                                                            const fileInput = document.createElement('input');
+                                                                            fileInput.type = 'file';
+                                                                            fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
+                                                                            fileInput.multiple = true;
+
+                                                                            fileInput.onchange = async (e) => {
+                                                                              const files = (e.target as HTMLInputElement).files;
+                                                                              if (files) {
+                                                                                const currentResources = item.resources || [];
+                                                                                const newResources = await Promise.all(
+                                                                                  Array.from(files).map(async (file) => {
+                                                                                    // Upload to Cloudinary
+                                                                                    let cloudinaryUrl = '';
+                                                                                    let cloudinaryPublicId = '';
+
+                                                                                    try {
+                                                                                      const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                      cloudinaryUrl = uploadResult.url;
+                                                                                      cloudinaryPublicId = uploadResult.publicId;
+                                                                                    } catch (error) {
+                                                                                      console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                      // Fallback to local file
+                                                                                      cloudinaryUrl = URL.createObjectURL(file);
+                                                                                    }
+
+                                                                                    return {
+                                                                                      name: file.name,
+                                                                                      file: file,
+                                                                                      url: cloudinaryUrl,
+                                                                                      cloudinaryUrl: cloudinaryUrl,
+                                                                                      cloudinaryPublicId: cloudinaryPublicId,
+                                                                                      type: 'lecture'
+                                                                                    };
+                                                                                  })
+                                                                                );
+
+                                                                                formik.setFieldValue(
+                                                                                  `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                  [...currentResources, ...newResources]
+                                                                                );
+
+                                                                                // Reset file input to allow re-selection of the same file
+                                                                                fileInput.value = '';
+                                                                              }
+                                                                            };
+
+                                                                            fileInput.click();
+                                                                          }}
+                                                                        >
+                                                                          + Add Resources
+                                                                        </Button>
+                                                                      </div>
+
+                                                                      {item.resources?.length > 0 && (
+                                                                        <div className="border rounded p-2 bg-white">
+                                                                          {item.resources.map((resource, resourceIdx) => (
+                                                                            <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                              <div className="flex items-center gap-2">
+                                                                                {getFileIcon(resource.name)}
+                                                                                <span className="text-sm">{resource.name}</span>
+                                                                                {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
+                                                                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                                    Cloudinary
+                                                                                  </span>
+                                                                                )}
+                                                                              </div>
+                                                                              <div className="flex items-center gap-2">
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  variant="ghost"
+                                                                                  size="sm"
+                                                                                  className="p-1 h-6 w-6"
+                                                                                  onClick={() => {
+                                                                                    if (resource.cloudinaryUrl) {
+                                                                                      window.open(resource.cloudinaryUrl, '_blank');
+                                                                                    } else if (resource.url) {
+                                                                                      window.open(resource.url, '_blank');
+                                                                                    }
+                                                                                  }}
+                                                                                  title="Open resource"
+                                                                                >
+                                                                                  <Eye size={14} />
+                                                                                </Button>
+                                                                                <Button
+                                                                                  type="button"
+                                                                                  variant="ghost"
+                                                                                  size="sm"
+                                                                                  className="px-2 py-1 rounded-none text-red-600"
+                                                                                  onClick={() => {
+                                                                                    const newResources = [...item.resources];
+                                                                                    const resourceUrl = newResources[resourceIdx]?.url;
+                                                                                    if (resourceUrl && resourceUrl.startsWith('blob:')) {
+                                                                                      URL.revokeObjectURL(resourceUrl);
+                                                                                    }
+                                                                                    newResources.splice(resourceIdx, 1);
+                                                                                    formik.setFieldValue(
+                                                                                      `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                      newResources
+                                                                                    );
+                                                                                  }}
+                                                                                >
+                                                                                  <Trash2 size={12} />
+                                                                                </Button>
+                                                                              </div>
+                                                                            </div>
+                                                                          ))}
+                                                                        </div>
+                                                                      )}
+                                                                    </div>
+
+                                                                    <Button
+                                                                      type="button"
+                                                                      className="rounded-none mt-2"
+                                                                      onClick={() => setShowContentType(null)}
+                                                                    >
+                                                                      Done
+                                                                    </Button>
                                                                   </div>
-                                                                  
-                                                                  <Button
-                                                                    type="button"
-                                                                    className="rounded-none mt-2"
-                                                                    onClick={() => setShowContentType(null)}
-                                                                  >
-                                                                    Done
-                                                                  </Button>
-                                                                </div>
-                                                              ) : (
-                                                                <div className="flex items-center ml-2 mb-2 gap-2">
-                                                                  {!editLecture && <Button
-                                                                    className="h-[10] rounded-none text-sm"
-                                                                    type="button"
-                                                                    onClick={() => setShowContentType({ sectionIdx, itemIdx })}
-                                                                  >
-                                                                    {(
-                                                                      item.contentType && (
-                                                                        (item.contentType === "video" && (item.contentFiles?.length > 0 || item.contentUrl)) ||
-                                                                        (item.contentType === "article" && (
-                                                                          (item.articleSource === "upload" && item.contentFiles?.length > 0) ||
-                                                                          (item.articleSource === "link" && item.contentUrl) ||
-                                                                          (item.articleSource === "write" && item.contentText)
-                                                                        ))
-                                                                      )
-                                                                    ) ? "Edit Content" : "Add Content"}
-                                                                  </Button>}
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    className="px-2 py-1 rounded-none"
-                                                                    onClick={() => setViewItem(
-                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                        ? null
-                                                                        : { sectionIdx, itemIdx }
-                                                                    )}
-                                                                  >
-                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                      ? <ChevronUp size={16} />
-                                                                      : <ChevronDown size={16} />}
-                                                                  </Button>
-                                                                </div>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {/* {item.type === 'lecture' && item.contentFiles?.length > 0 && (
+                                                                ) : (
+                                                                  <div className="flex items-center ml-2 mb-2 gap-2">
+                                                                    {!editLecture && <Button
+                                                                      className="h-[10] rounded-none text-sm"
+                                                                      type="button"
+                                                                      onClick={() => setShowContentType({ sectionIdx, itemIdx })}
+                                                                    >
+                                                                      {(
+                                                                        item.contentType && (
+                                                                          (item.contentType === "video" && (item.contentFiles?.length > 0 || item.contentUrl)) ||
+                                                                          (item.contentType === "article" && (
+                                                                            (item.articleSource === "upload" && item.contentFiles?.length > 0) ||
+                                                                            (item.articleSource === "link" && item.contentUrl) ||
+                                                                            (item.articleSource === "write" && item.contentText)
+                                                                          ))
+                                                                        )
+                                                                      ) ? "Edit Content" : "Add Content"}
+                                                                    </Button>}
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setViewItem(
+                                                                        viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                          ? null
+                                                                          : { sectionIdx, itemIdx }
+                                                                      )}
+                                                                    >
+                                                                      {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? <ChevronUp size={16} />
+                                                                        : <ChevronDown size={16} />}
+                                                                    </Button>
+                                                                  </div>
+                                                                )}
+                                                              </div>
+                                                            )}
+                                                            {/* {item.type === 'lecture' && item.contentFiles?.length > 0 && (
   <div className="mt-1 text-xs text-gray-600">
     {item.contentFiles.map((f, idx) => (
       <div key={idx} className="flex justify-between border p-1 rounded mb-1">
@@ -3677,661 +3676,661 @@ export function CourseCarriculam({ onSubmit }: any) {
     ))}
   </div>
 )} */}
-                                                          {/* QUIZ */}
-                                                          {item.type === 'quiz' && (
-                                                            <div className="flex flex-col gap-2">
-                                                              <div className="flex items-center justify-between gap-2 mb-2">
-                                                                <div className="flex items-center gap-2">
-                                                                  <span className="font-semibold">
-                                                                    {item.quizTitle || "New Quiz"}
-                                                                  </span>
-                                                                  {/* Pending Change Badges */}
-                                                                  {item.isNew && (
-                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
-                                                                      New
+                                                            {/* QUIZ */}
+                                                            {item.type === 'quiz' && (
+                                                              <div className="flex flex-col gap-2">
+                                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                                  <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold">
+                                                                      {item.quizTitle || "New Quiz"}
                                                                     </span>
-                                                                  )}
-                                                                  {item.isEdited && !item.isNew && (
-                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
-                                                                      Edited
-                                                                    </span>
-                                                                  )}
-                                                                  {/* Quiz Duration Display */}
-                                                                  <div className="flex items-center gap-2 ml-2">
-                                                                    <Clock size={16} className="text-primary" />
-                                                                    <span className="font-bold text-primary">
-                                                                      {formatDuration(getQuizDuration(item))}
-                                                                    </span>
-                                                                  </div>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => {
-                                                                      const sampleData = [
-                                                                        ['Quiz Title', 'Quiz Description', 'Duration (minutes)', 'Question', 'Options', 'Correct Options'],
-                                                                        ['Sample Quiz', 'This is a sample quiz description', '15', 'What is 2+2?', '3,4,5,6', '2'],
-                                                                        ['', '', '', 'What colors are in rainbow?', 'Red,Blue,Green,Yellow,Purple,Orange', '1,2,3,4,5,6'],
-                                                                        ['', '', '', 'Which planets are in our solar system?', 'Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune', '1,2,3,4,5,6,7,8']
-                                                                      ];
-                                                                      const wb = XLSX.utils.book_new();
-                                                                      const ws = XLSX.utils.aoa_to_sheet(sampleData);
-                                                                      XLSX.utils.book_append_sheet(wb, ws, 'Quiz Template');
-                                                                      XLSX.writeFile(wb, 'quiz_template.xlsx');
-                                                                    }}
-                                                                    title="Download Quiz Template"
-                                                                  >
-                                                                    <Download size={16} />
-                                                                  </Button>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => {
-                                                                      setQuizUploadFile(null);
-                                                                      setQuizUploadModal({ open: true, sectionIdx, itemIdx });
-                                                                    }}
-                                                                    title="Upload Quiz from Excel"
-                                                                  >
-                                                                    <UploadCloud size={16} />
-                                                                  </Button>
-                                                                  {/* Publish/Unpublish HoverCard for quiz */}
-                                                                  <HoverCard>
-                                                                    <HoverCardTrigger asChild>
-                                                                      <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
-                                                                        aria-label={(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
-                                                                      >
-                                                                        {(item.published !== false) ? (
-                                                                          <CheckCircle className="text-green-500" />
-                                                                        ) : (
-                                                                          <XCircle className="text-red-500" />
-                                                                        )}
-                                                                      </Button>
-                                                                    </HoverCardTrigger>
-                                                                    <HoverCardContent side="top" className="p-2 text-xs">
-                                                                      {(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
-                                                                    </HoverCardContent>
-                                                                  </HoverCard>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => remove(itemIdx)}
-                                                                    title="Delete"
-                                                                  >
-                                                                    <Trash2 size={16} className="text-red-500" />
-                                                                  </Button>
-                                                                  {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                    {/* Pending Change Badges */}
+                                                                    {item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                        New
+                                                                      </span>
+                                                                    )}
+                                                                    {item.isEdited && !item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                        Edited
+                                                                      </span>
+                                                                    )}
+                                                                    {/* Quiz Duration Display */}
+                                                                    <div className="flex items-center gap-2 ml-2">
+                                                                      <Clock size={16} className="text-primary" />
+                                                                      <span className="font-bold text-primary">
+                                                                        {formatDuration(getQuizDuration(item))}
+                                                                      </span>
+                                                                    </div>
                                                                     <Button
                                                                       type="button"
                                                                       variant="outline"
                                                                       size="icon"
                                                                       className="h-8 w-8"
-                                                                      onClick={() => setEditQuiz({ sectionIdx, itemIdx })}
-                                                                      title="Edit"
+                                                                      onClick={() => {
+                                                                        const sampleData = [
+                                                                          ['Quiz Title', 'Quiz Description', 'Duration (minutes)', 'Question', 'Options', 'Correct Options'],
+                                                                          ['Sample Quiz', 'This is a sample quiz description', '15', 'What is 2+2?', '3,4,5,6', '2'],
+                                                                          ['', '', '', 'What colors are in rainbow?', 'Red,Blue,Green,Yellow,Purple,Orange', '1,2,3,4,5,6'],
+                                                                          ['', '', '', 'Which planets are in our solar system?', 'Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune', '1,2,3,4,5,6,7,8']
+                                                                        ];
+                                                                        const wb = XLSX.utils.book_new();
+                                                                        const ws = XLSX.utils.aoa_to_sheet(sampleData);
+                                                                        XLSX.utils.book_append_sheet(wb, ws, 'Quiz Template');
+                                                                        XLSX.writeFile(wb, 'quiz_template.xlsx');
+                                                                      }}
+                                                                      title="Download Quiz Template"
                                                                     >
-                                                                      <Pencil size={16} />
+                                                                      <Download size={16} />
+                                                                    </Button>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => {
+                                                                        setQuizUploadFile(null);
+                                                                        setQuizUploadModal({ open: true, sectionIdx, itemIdx });
+                                                                      }}
+                                                                      title="Upload Quiz from Excel"
+                                                                    >
+                                                                      <UploadCloud size={16} />
+                                                                    </Button>
+                                                                    {/* Publish/Unpublish HoverCard for quiz */}
+                                                                    <HoverCard>
+                                                                      <HoverCardTrigger asChild>
+                                                                        <Button
+                                                                          type="button"
+                                                                          variant="ghost"
+                                                                          size="icon"
+                                                                          onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                          aria-label={(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
+                                                                        >
+                                                                          {(item.published !== false) ? (
+                                                                            <CheckCircle className="text-green-500" />
+                                                                          ) : (
+                                                                            <XCircle className="text-red-500" />
+                                                                          )}
+                                                                        </Button>
+                                                                      </HoverCardTrigger>
+                                                                      <HoverCardContent side="top" className="p-2 text-xs">
+                                                                        {(item.published !== false) ? "Unpublish Quiz" : "Publish Quiz"}
+                                                                      </HoverCardContent>
+                                                                    </HoverCard>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => remove(itemIdx)}
+                                                                      title="Delete"
+                                                                    >
+                                                                      <Trash2 size={16} className="text-red-500" />
+                                                                    </Button>
+                                                                    {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                      <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        className="h-8 w-8"
+                                                                        onClick={() => setEditQuiz({ sectionIdx, itemIdx })}
+                                                                        title="Edit"
+                                                                      >
+                                                                        <Pencil size={16} />
+                                                                      </Button>
+                                                                    )}
+                                                                  </div>
+                                                                  {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      className="px-2 py-1 rounded-none"
+                                                                      onClick={() => setViewItem(
+                                                                        viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                          ? null
+                                                                          : { sectionIdx, itemIdx }
+                                                                      )}
+                                                                    >
+                                                                      {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? <ChevronUp size={16} />
+                                                                        : <ChevronDown size={16} />}
                                                                     </Button>
                                                                   )}
                                                                 </div>
-                                                                {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    className="px-2 py-1 rounded-none"
-                                                                    onClick={() => setViewItem(
-                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                        ? null
-                                                                        : { sectionIdx, itemIdx }
-                                                                    )}
-                                                                  >
-                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                      ? <ChevronUp size={16} />
-                                                                      : <ChevronDown size={16} />}
-                                                                  </Button>
-                                                                )}
-                                                              </div>
 
-                                                              {/* Quiz Edit Form - Shows automatically for new quiz or when edit clicked */}
-                                                              {(!isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ||
-                                                                editQuiz?.sectionIdx === sectionIdx && editQuiz?.itemIdx === itemIdx) && (
-                                                                  <div className="border p-4 rounded bg-gray-50">
-                                                                    {/* Quiz Title */}
-                                                                    <div className="mb-4">
-                                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                        Quiz Title
-                                                                      </label>
-                                                                      <input
-                                                                        type="text"
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
-                                                                        value={item.quizTitle || ''}
-                                                                        onChange={formik.handleChange}
-                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                        placeholder="Enter quiz title"
-                                                                      />
-                                                                    </div>
+                                                                {/* Quiz Edit Form - Shows automatically for new quiz or when edit clicked */}
+                                                                {(!isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ||
+                                                                  editQuiz?.sectionIdx === sectionIdx && editQuiz?.itemIdx === itemIdx) && (
+                                                                    <div className="border p-4 rounded bg-gray-50">
+                                                                      {/* Quiz Title */}
+                                                                      <div className="mb-4">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                          Quiz Title
+                                                                        </label>
+                                                                        <input
+                                                                          type="text"
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].quizTitle`}
+                                                                          value={item.quizTitle || ''}
+                                                                          onChange={formik.handleChange}
+                                                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                          placeholder="Enter quiz title"
+                                                                        />
+                                                                      </div>
 
-                                                                    <Input
-                                                                      className="ins-control-border mb-2"
-                                                                      placeholder="Quiz Description"
-                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].quizDescription`}
-                                                                      value={item.quizDescription}
-                                                                      onChange={formik.handleChange}
-                                                                    />
-
-                                                                    {/* Quiz Duration */}
-                                                                    <div className="mb-4">
-                                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                        Quiz Duration (minutes)
-                                                                      </label>
                                                                       <Input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
-                                                                        value={item.duration || 0}
+                                                                        className="ins-control-border mb-2"
+                                                                        placeholder="Quiz Description"
+                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].quizDescription`}
+                                                                        value={item.quizDescription}
                                                                         onChange={formik.handleChange}
-                                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                        placeholder="Enter quiz duration in minutes"
                                                                       />
-                                                                    </div>
 
-                                                                    <div className="mt-4 mb-2">
-                                                                      <h4 className="font-semibold mb-2">Questions</h4>
-                                                                      <FieldArray
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions`}
-                                                                        render={arrayHelpers => (
-                                                                          <div className="space-y-4">
-                                                                            {item.questions && item.questions.map((question, qIdx) => (
-                                                                              <div key={qIdx} className="border p-3 rounded bg-white">
-                                                                                <div className="flex justify-between items-start mb-2">
-                                                                                  <Input
-                                                                                    className="ins-control-border"
-                                                                                    placeholder="Question"
-                                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].question`}
-                                                                                    value={question.question}
-                                                                                    onChange={formik.handleChange}
-                                                                                  />
-                                                                                  {item.questions.length > 1 && (
-                                                                                    <Button
-                                                                                      type="button"
-                                                                                      variant="outline"
-                                                                                      size="icon"
-                                                                                      className="h-8 w-8 ml-2"
-                                                                                      onClick={() => arrayHelpers.remove(qIdx)}
-                                                                                      title="Remove Question"
-                                                                                    >
-                                                                                      <Trash2 size={16} className="text-red-500" />
-                                                                                    </Button>
-                                                                                  )}
-                                                                                </div>
+                                                                      {/* Quiz Duration */}
+                                                                      <div className="mb-4">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                          Quiz Duration (minutes)
+                                                                        </label>
+                                                                        <Input
+                                                                          type="number"
+                                                                          min="1"
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
+                                                                          value={item.duration || 0}
+                                                                          onChange={formik.handleChange}
+                                                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                          placeholder="Enter quiz duration in minutes"
+                                                                        />
+                                                                      </div>
 
-                                                                                <div className="space-y-2">
-                                                                                  {item.questions && question.options!.map((option, optIdx) => (
-                                                                                    <div key={optIdx} className="flex items-center gap-2">
-                                                                                      <Checkbox
-                                                                                        checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
-                                                                                        onCheckedChange={(checked: boolean) => {
-                                                                                          const currentOptions = Array.isArray(question.correctOption)
-                                                                                            ? [...question.correctOption]
-                                                                                            : [];
+                                                                      <div className="mt-4 mb-2">
+                                                                        <h4 className="font-semibold mb-2">Questions</h4>
+                                                                        <FieldArray
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].questions`}
+                                                                          render={arrayHelpers => (
+                                                                            <div className="space-y-4">
+                                                                              {item.questions && item.questions.map((question, qIdx) => (
+                                                                                <div key={qIdx} className="border p-3 rounded bg-white">
+                                                                                  <div className="flex justify-between items-start mb-2">
+                                                                                    <Input
+                                                                                      className="ins-control-border"
+                                                                                      placeholder="Question"
+                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].question`}
+                                                                                      value={question.question}
+                                                                                      onChange={formik.handleChange}
+                                                                                    />
+                                                                                    {item.questions.length > 1 && (
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        variant="outline"
+                                                                                        size="icon"
+                                                                                        className="h-8 w-8 ml-2"
+                                                                                        onClick={() => arrayHelpers.remove(qIdx)}
+                                                                                        title="Remove Question"
+                                                                                      >
+                                                                                        <Trash2 size={16} className="text-red-500" />
+                                                                                      </Button>
+                                                                                    )}
+                                                                                  </div>
 
-                                                                                          const updatedOptions = checked
-                                                                                            ? [...currentOptions, optIdx]
-                                                                                            : currentOptions.filter(idx => idx !== optIdx);
-
-                                                                                          formik.setFieldValue(
-                                                                                            `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].correctOption`,
-                                                                                            updatedOptions
-                                                                                          );
-                                                                                        }}
-                                                                                        className="mt-1"
-                                                                                      />
-                                                                                      <Input
-                                                                                        className="ins-control-border flex-1"
-                                                                                        placeholder={`Option ${optIdx + 1}`}
-                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options[${optIdx}]`}
-                                                                                        value={option}
-                                                                                        onChange={formik.handleChange}
-                                                                                      />
-                                                                                      {question.options.length > 2 && (
-                                                                                        <Button
-                                                                                          type="button"
-                                                                                          variant="outline"
-                                                                                          size="icon"
-                                                                                          className="h-8 w-8"
-                                                                                          onClick={() => {
-                                                                                            const newOptions = [...question.options];
-                                                                                            newOptions.splice(optIdx, 1);
-                                                                                            formik.setFieldValue(
-                                                                                              `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
-                                                                                              newOptions
-                                                                                            );
-                                                                                            // Also update correctOption indices if needed
-                                                                                            const currentCorrectOptions = Array.isArray(question.correctOption)
-                                                                                              ? question.correctOption.filter(idx => idx !== optIdx).map(idx => idx > optIdx ? idx - 1 : idx)
+                                                                                  <div className="space-y-2">
+                                                                                    {item.questions && question.options!.map((option, optIdx) => (
+                                                                                      <div key={optIdx} className="flex items-center gap-2">
+                                                                                        <Checkbox
+                                                                                          checked={Array.isArray(question.correctOption) && question.correctOption.includes(optIdx)}
+                                                                                          onCheckedChange={(checked: boolean) => {
+                                                                                            const currentOptions = Array.isArray(question.correctOption)
+                                                                                              ? [...question.correctOption]
                                                                                               : [];
+
+                                                                                            const updatedOptions = checked
+                                                                                              ? [...currentOptions, optIdx]
+                                                                                              : currentOptions.filter(idx => idx !== optIdx);
+
                                                                                             formik.setFieldValue(
                                                                                               `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].correctOption`,
-                                                                                              currentCorrectOptions
+                                                                                              updatedOptions
                                                                                             );
                                                                                           }}
-                                                                                          title="Remove Option"
-                                                                                        >
-                                                                                          <Trash2 size={16} className="text-red-500" />
-                                                                                        </Button>
-                                                                                      )}
-                                                                                    </div>
-                                                                                  ))}
+                                                                                          className="mt-1"
+                                                                                        />
+                                                                                        <Input
+                                                                                          className="ins-control-border flex-1"
+                                                                                          placeholder={`Option ${optIdx + 1}`}
+                                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options[${optIdx}]`}
+                                                                                          value={option}
+                                                                                          onChange={formik.handleChange}
+                                                                                        />
+                                                                                        {question.options.length > 2 && (
+                                                                                          <Button
+                                                                                            type="button"
+                                                                                            variant="outline"
+                                                                                            size="icon"
+                                                                                            className="h-8 w-8"
+                                                                                            onClick={() => {
+                                                                                              const newOptions = [...question.options];
+                                                                                              newOptions.splice(optIdx, 1);
+                                                                                              formik.setFieldValue(
+                                                                                                `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
+                                                                                                newOptions
+                                                                                              );
+                                                                                              // Also update correctOption indices if needed
+                                                                                              const currentCorrectOptions = Array.isArray(question.correctOption)
+                                                                                                ? question.correctOption.filter(idx => idx !== optIdx).map(idx => idx > optIdx ? idx - 1 : idx)
+                                                                                                : [];
+                                                                                              formik.setFieldValue(
+                                                                                                `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].correctOption`,
+                                                                                                currentCorrectOptions
+                                                                                              );
+                                                                                            }}
+                                                                                            title="Remove Option"
+                                                                                          >
+                                                                                            <Trash2 size={16} className="text-red-500" />
+                                                                                          </Button>
+                                                                                        )}
+                                                                                      </div>
+                                                                                    ))}
+                                                                                  </div>
+
+                                                                                  <Button
+                                                                                    type="button"
+                                                                                    variant="outline"
+                                                                                    className="mt-2"
+                                                                                    onClick={() => {
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
+                                                                                        [...question.options, '']
+                                                                                      );
+                                                                                    }}
+                                                                                  >
+                                                                                    Add Option
+                                                                                  </Button>
                                                                                 </div>
+                                                                              ))}
 
-                                                                                <Button
-                                                                                  type="button"
-                                                                                  variant="outline"
-                                                                                  className="mt-2"
-                                                                                  onClick={() => {
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].questions[${qIdx}].options`,
-                                                                                      [...question.options, '']
-                                                                                    );
-                                                                                  }}
-                                                                                >
-                                                                                  Add Option
-                                                                                </Button>
-                                                                              </div>
-                                                                            ))}
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                onClick={() => arrayHelpers.push({
+                                                                                  question: '',
+                                                                                  options: ['', ''],
+                                                                                  correctOption: []
+                                                                                })}
+                                                                              >
+                                                                                Add Question
+                                                                              </Button>
+                                                                            </div>
+                                                                          )}
+                                                                        />
 
+                                                                        <div className="flex justify-end gap-2 mt-4">
+                                                                          {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                             <Button
                                                                               type="button"
+                                                                              className="rounded-none"
                                                                               variant="outline"
-                                                                              onClick={() => arrayHelpers.push({
-                                                                                question: '',
-                                                                                options: ['', ''],
-                                                                                correctOption: []
-                                                                              })}
+                                                                              onClick={() => setEditQuiz(null)}
                                                                             >
-                                                                              Add Question
+                                                                              Cancel
                                                                             </Button>
-                                                                          </div>
-                                                                        )}
-                                                                      />
-
-                                                                      <div className="flex justify-end gap-2 mt-4">
-                                                                        {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                          )}
                                                                           <Button
                                                                             type="button"
                                                                             className="rounded-none"
-                                                                            variant="outline"
-                                                                            onClick={() => setEditQuiz(null)}
+                                                                            onClick={() => handleQuizSave(sectionIdx, itemIdx)}
                                                                           >
-                                                                            Cancel
+                                                                            {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ? 'Update Quiz' : 'Save Quiz'}
                                                                           </Button>
-                                                                        )}
-                                                                        <Button
-                                                                          type="button"
-                                                                          className="rounded-none"
-                                                                          onClick={() => handleQuizSave(sectionIdx, itemIdx)}
-                                                                        >
-                                                                          {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] ? 'Update Quiz' : 'Save Quiz'}
-                                                                        </Button>
+                                                                        </div>
                                                                       </div>
                                                                     </div>
-                                                                  </div>
-                                                                )}
+                                                                  )}
 
-                                                              {/* Quiz View/Preview - Only show when quiz is submitted and expanded */}
-                                                              {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] &&
-                                                                viewItem?.sectionIdx === sectionIdx &&
-                                                                viewItem?.itemIdx === itemIdx &&
-                                                                !editQuiz && (
-                                                                  <div className="border-t mt-3 pt-3">
-                                                                    <div className="mb-2">
-                                                                      <b>Description:</b> {item.quizDescription}
+                                                                {/* Quiz View/Preview - Only show when quiz is submitted and expanded */}
+                                                                {isQuizSubmitted[`${sectionIdx}-${itemIdx}`] &&
+                                                                  viewItem?.sectionIdx === sectionIdx &&
+                                                                  viewItem?.itemIdx === itemIdx &&
+                                                                  !editQuiz && (
+                                                                    <div className="border-t mt-3 pt-3">
+                                                                      <div className="mb-2">
+                                                                        <b>Description:</b> {item.quizDescription}
+                                                                      </div>
+                                                                      <div>
+                                                                        <b>Questions:</b>
+                                                                        <ol className="list-decimal ml-5 mt-2">
+                                                                          {item.questions.map((q, qIdx) => (
+                                                                            <li key={qIdx} className="mb-3">
+                                                                              <div className="font-medium mb-1">{q.question}</div>
+                                                                              <ul className="list-disc ml-5">
+                                                                                {q.options.map((opt, optIdx) => (
+                                                                                  <li key={optIdx} className={
+                                                                                    Array.isArray(q.correctOption) && q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
+                                                                                  }>
+                                                                                    {opt}
+                                                                                  </li>
+                                                                                ))}
+                                                                              </ul>
+                                                                            </li>
+                                                                          ))}
+                                                                        </ol>
+                                                                      </div>
                                                                     </div>
-                                                                    <div>
-                                                                      <b>Questions:</b>
-                                                                      <ol className="list-decimal ml-5 mt-2">
-                                                                        {item.questions.map((q, qIdx) => (
-                                                                          <li key={qIdx} className="mb-3">
-                                                                            <div className="font-medium mb-1">{q.question}</div>
-                                                                            <ul className="list-disc ml-5">
-                                                                              {q.options.map((opt, optIdx) => (
-                                                                                <li key={optIdx} className={
-                                                                                  Array.isArray(q.correctOption) && q.correctOption.includes(optIdx) ? "text-green-600 font-medium" : ""
-                                                                                }>
-                                                                                  {opt}
-                                                                                </li>
-                                                                              ))}
-                                                                            </ul>
-                                                                          </li>
-                                                                        ))}
-                                                                      </ol>
+                                                                  )}
+                                                              </div>
+                                                            )}
+                                                            {/* ASSIGNMENT */}
+                                                            {item.type === "assignment" && (
+                                                              <div className="flex flex-col gap-2">
+                                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                                  <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold">
+                                                                      {item.title || "New Assignment"}
+                                                                    </span>
+                                                                    {/* Pending Change Badges */}
+                                                                    {item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
+                                                                        New
+                                                                      </span>
+                                                                    )}
+                                                                    {item.isEdited && !item.isNew && (
+                                                                      <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
+                                                                        Edited
+                                                                      </span>
+                                                                    )}
+                                                                    {/* Assignment Duration Display */}
+                                                                    <div className="flex items-center gap-2 ml-2">
+                                                                      <Clock size={16} className="text-primary" />
+                                                                      <span className="font-bold text-primary">
+                                                                        {formatDuration(getAssignmentDuration(item))}
+                                                                      </span>
                                                                     </div>
-                                                                  </div>
-                                                                )}
-                                                            </div>
-                                                          )}
-                                                          {/* ASSIGNMENT */}
-                                                          {item.type === "assignment" && (
-                                                            <div className="flex flex-col gap-2">
-                                                              <div className="flex items-center justify-between gap-2 mb-2">
-                                                                <div className="flex items-center gap-2">
-                                                                  <span className="font-semibold">
-                                                                    {item.title || "New Assignment"}
-                                                                  </span>
-                                                                  {/* Pending Change Badges */}
-                                                                  {item.isNew && (
-                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800" title="New content - pending approval">
-                                                                      New
-                                                                    </span>
-                                                                  )}
-                                                                  {item.isEdited && !item.isNew && (
-                                                                    <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800" title="Edited content - pending approval">
-                                                                      Edited
-                                                                    </span>
-                                                                  )}
-                                                                  {/* Assignment Duration Display */}
-                                                                  <div className="flex items-center gap-2 ml-2">
-                                                                    <Clock size={16} className="text-primary" />
-                                                                    <span className="font-bold text-primary">
-                                                                      {formatDuration(getAssignmentDuration(item))}
-                                                                    </span>
-                                                                  </div>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => {
-                                                                      const sampleData = [
-                                                                        ['Title', 'Description', 'Duration', 'Questions', 'Marks', 'Word Limit', 'Model Answer'],
-                                                                        ['Sample Assignment', 'dd', '30 minutes', 'dd', '100', '500 words', 'vmvmmv']
-                                                                      ];
-                                                                      const wb = XLSX.utils.book_new();
-                                                                      const ws = XLSX.utils.aoa_to_sheet(sampleData);
-                                                                      XLSX.utils.book_append_sheet(wb, ws, 'Assignment Template');
-                                                                      XLSX.writeFile(wb, 'assignment_template.xlsx');
-                                                                    }}
-                                                                    title="Download Assignment Template"
-                                                                  >
-                                                                    <Download size={16} />
-                                                                  </Button>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => {
-                                                                      setAssignmentUploadFile(null);
-                                                                      setAssignmentUploadModal({ open: true, sectionIdx, itemIdx });
-                                                                    }}
-                                                                    title="Upload Assignment from Excel"
-                                                                  >
-                                                                    <UploadCloud size={16} />
-                                                                  </Button>
-                                                                  {/* Publish/Unpublish HoverCard for assignment */}
-                                                                  <HoverCard>
-                                                                    <HoverCardTrigger asChild>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => {
+                                                                        const sampleData = [
+                                                                          ['Title', 'Description', 'Duration', 'Questions', 'Marks', 'Word Limit', 'Model Answer'],
+                                                                          ['Sample Assignment', 'dd', '30 minutes', 'dd', '100', '500 words', 'vmvmmv']
+                                                                        ];
+                                                                        const wb = XLSX.utils.book_new();
+                                                                        const ws = XLSX.utils.aoa_to_sheet(sampleData);
+                                                                        XLSX.utils.book_append_sheet(wb, ws, 'Assignment Template');
+                                                                        XLSX.writeFile(wb, 'assignment_template.xlsx');
+                                                                      }}
+                                                                      title="Download Assignment Template"
+                                                                    >
+                                                                      <Download size={16} />
+                                                                    </Button>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => {
+                                                                        setAssignmentUploadFile(null);
+                                                                        setAssignmentUploadModal({ open: true, sectionIdx, itemIdx });
+                                                                      }}
+                                                                      title="Upload Assignment from Excel"
+                                                                    >
+                                                                      <UploadCloud size={16} />
+                                                                    </Button>
+                                                                    {/* Publish/Unpublish HoverCard for assignment */}
+                                                                    <HoverCard>
+                                                                      <HoverCardTrigger asChild>
+                                                                        <Button
+                                                                          type="button"
+                                                                          variant="ghost"
+                                                                          size="icon"
+                                                                          onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
+                                                                          aria-label={(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
+                                                                        >
+                                                                          {(item.published !== false) ? (
+                                                                            <CheckCircle className="text-green-500" />
+                                                                          ) : (
+                                                                            <XCircle className="text-red-500" />
+                                                                          )}
+                                                                        </Button>
+                                                                      </HoverCardTrigger>
+                                                                      <HoverCardContent side="top" className="p-2 text-xs">
+                                                                        {(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
+                                                                      </HoverCardContent>
+                                                                    </HoverCard>
+                                                                    <Button
+                                                                      type="button"
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="h-8 w-8"
+                                                                      onClick={() => remove(itemIdx)}
+                                                                      title="Delete"
+                                                                    >
+                                                                      <Trash2 size={16} className="text-red-500" />
+                                                                    </Button>
+                                                                    {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                       <Button
                                                                         type="button"
-                                                                        variant="ghost"
+                                                                        variant="outline"
                                                                         size="icon"
-                                                                        onClick={() => formik.setFieldValue(`sections[${sectionIdx}].items[${itemIdx}].published`, !(item.published !== false))}
-                                                                        aria-label={(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
+                                                                        className="h-8 w-8"
+                                                                        onClick={() => setEditAssignment({ sectionIdx, itemIdx })}
+                                                                        title="Edit"
                                                                       >
-                                                                        {(item.published !== false) ? (
-                                                                          <CheckCircle className="text-green-500" />
-                                                                        ) : (
-                                                                          <XCircle className="text-red-500" />
-                                                                        )}
+                                                                        <Pencil size={16} />
                                                                       </Button>
-                                                                    </HoverCardTrigger>
-                                                                    <HoverCardContent side="top" className="p-2 text-xs">
-                                                                      {(item.published !== false) ? "Unpublish Assignment" : "Publish Assignment"}
-                                                                    </HoverCardContent>
-                                                                  </HoverCard>
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => remove(itemIdx)}
-                                                                    title="Delete"
-                                                                  >
-                                                                    <Trash2 size={16} className="text-red-500" />
-                                                                  </Button>
+                                                                    )}
+                                                                  </div>
                                                                   {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
                                                                     <Button
                                                                       type="button"
                                                                       variant="outline"
                                                                       size="icon"
                                                                       className="h-8 w-8"
-                                                                      onClick={() => setEditAssignment({ sectionIdx, itemIdx })}
-                                                                      title="Edit"
+                                                                      onClick={() => setViewItem(
+                                                                        viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                          ? null
+                                                                          : { sectionIdx, itemIdx }
+                                                                      )}
                                                                     >
-                                                                      <Pencil size={16} />
+                                                                      {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
+                                                                        ? <ChevronUp size={16} />
+                                                                        : <ChevronDown size={16} />}
                                                                     </Button>
                                                                   )}
                                                                 </div>
-                                                                {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                                  <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => setViewItem(
-                                                                      viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                        ? null
-                                                                        : { sectionIdx, itemIdx }
-                                                                    )}
-                                                                  >
-                                                                    {viewItem?.sectionIdx === sectionIdx && viewItem?.itemIdx === itemIdx
-                                                                      ? <ChevronUp size={16} />
-                                                                      : <ChevronDown size={16} />}
-                                                                  </Button>
-                                                                )}
-                                                              </div>
 
-                                                              {/* Assignment Edit Form */}
-                                                              {(!isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] ||
-                                                                editAssignment?.sectionIdx === sectionIdx && editAssignment?.itemIdx === itemIdx) && (
-                                                                  <div className="border p-4 rounded bg-gray-50">
-                                                                    <div>
-                                                                      <label className="block text-sm font-medium mb-1">Assignment Title</label>
-                                                                      <Input
-                                                                        className="ins-control-border mb-2"
-                                                                        placeholder="Assignment Title"
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].title`}
-                                                                        value={item.title}
-                                                                        onChange={formik.handleChange}
-                                                                      />
-                                                                    </div>
-                                                                    <div>
-                                                                      <label className="block text-sm font-medium mb-1">Assignment Description</label>
-                                                                      <Input
-                                                                        className="ins-control-border mb-2"
-                                                                        placeholder="Assignment Description"
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].description`}
-                                                                        value={item.description}
-                                                                        onChange={formik.handleChange}
-                                                                      />
-                                                                    </div>
-                                                                    <div>
-                                                                      <label className="block text-sm font-medium mb-1">
-                                                                        Duration in minutes
-                                                                      </label>
-                                                                      <Input
-                                                                        className="ins-control-border w-20"
-                                                                        type="number"
-                                                                        placeholder="Duration (minutes)"
-                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
-                                                                        value={item.duration}
-                                                                        onChange={formik.handleChange}
-                                                                        min={1}
-                                                                      />
-                                                                    </div>
+                                                                {/* Assignment Edit Form */}
+                                                                {(!isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] ||
+                                                                  editAssignment?.sectionIdx === sectionIdx && editAssignment?.itemIdx === itemIdx) && (
+                                                                    <div className="border p-4 rounded bg-gray-50">
+                                                                      <div>
+                                                                        <label className="block text-sm font-medium mb-1">Assignment Title</label>
+                                                                        <Input
+                                                                          className="ins-control-border mb-2"
+                                                                          placeholder="Assignment Title"
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].title`}
+                                                                          value={item.title}
+                                                                          onChange={formik.handleChange}
+                                                                        />
+                                                                      </div>
+                                                                      <div>
+                                                                        <label className="block text-sm font-medium mb-1">Assignment Description</label>
+                                                                        <Input
+                                                                          className="ins-control-border mb-2"
+                                                                          placeholder="Assignment Description"
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].description`}
+                                                                          value={item.description}
+                                                                          onChange={formik.handleChange}
+                                                                        />
+                                                                      </div>
+                                                                      <div>
+                                                                        <label className="block text-sm font-medium mb-1">
+                                                                          Duration in minutes
+                                                                        </label>
+                                                                        <Input
+                                                                          className="ins-control-border w-20"
+                                                                          type="number"
+                                                                          placeholder="Duration (minutes)"
+                                                                          name={`sections[${sectionIdx}].items[${itemIdx}].duration`}
+                                                                          value={item.duration}
+                                                                          onChange={formik.handleChange}
+                                                                          min={1}
+                                                                        />
+                                                                      </div>
 
-                                                                    {/* Replace the existing question section in the assignment edit form */}
-                                                                    <div className="mt-4 mb-2">
-                                                                      <h4 className="font-semibold mb-2">Questions</h4>
-                                                                      <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
-                                                                        {({ push: pushQuestion, remove: removeQuestion }) => (
-                                                                          <div className="flex flex-col gap-4">
-                                                                            {item.questions && item.questions.map((question, qIdx) => (
-                                                                              <div key={qIdx} className="border p-3 rounded">
-                                                                                <div className="flex justify-between mb-2">
-                                                                                  <span className="font-medium">Question {qIdx + 1}</span>
-                                                                                  {item.questions.length > 1 && (
-                                                                                    <Button
-                                                                                      type="button"
-                                                                                      variant="ghost"
-                                                                                      size="sm"
-                                                                                      onClick={() => removeQuestion(qIdx)}
-                                                                                    >
-                                                                                      <Trash2 size={14} />
-                                                                                    </Button>
-                                                                                  )}
-                                                                                </div>
-
-                                                                                <Input
-                                                                                  className="ins-control-border mb-2"
-                                                                                  placeholder="Enter question"
-                                                                                  name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
-                                                                                  value={question.question}
-                                                                                  onChange={formik.handleChange}
-                                                                                />
-
-                                                                                <div className="flex gap-4 mb-2">
-                                                                                  <div className="flex-1">
-                                                                                    <label className="block text-sm font-medium mb-1">Marks</label>
-                                                                                    <Input
-                                                                                      className="ins-control-border w-24"
-                                                                                      type="number"
-                                                                                      placeholder="Marks"
-                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.marks`}
-                                                                                      value={question.marks}
-                                                                                      onChange={formik.handleChange}
-                                                                                      min={1}
-                                                                                    />
+                                                                      {/* Replace the existing question section in the assignment edit form */}
+                                                                      <div className="mt-4 mb-2">
+                                                                        <h4 className="font-semibold mb-2">Questions</h4>
+                                                                        <FieldArray name={`sections[${sectionIdx}].items[${itemIdx}].questions`}>
+                                                                          {({ push: pushQuestion, remove: removeQuestion }) => (
+                                                                            <div className="flex flex-col gap-4">
+                                                                              {item.questions && item.questions.map((question, qIdx) => (
+                                                                                <div key={qIdx} className="border p-3 rounded">
+                                                                                  <div className="flex justify-between mb-2">
+                                                                                    <span className="font-medium">Question {qIdx + 1}</span>
+                                                                                    {item.questions.length > 1 && (
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        onClick={() => removeQuestion(qIdx)}
+                                                                                      >
+                                                                                        <Trash2 size={14} />
+                                                                                      </Button>
+                                                                                    )}
                                                                                   </div>
-                                                                                  <div className="flex-1">
-                                                                                    <label className="block text-sm font-medium mb-1">Word Limit</label>
-                                                                                    <Input
-                                                                                      className="ins-control-border w-32"
-                                                                                      type="number"
-                                                                                      placeholder="Max words"
-                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.maxWordLimit`}
-                                                                                      value={question.maxWordLimit}
-                                                                                      onChange={formik.handleChange}
-                                                                                      min={1}
-                                                                                    />
-                                                                                  </div>
-                                                                                </div>
 
-                                                                                <div>
-                                                                                  <label className="block text-sm font-medium mb-1">Model Answer (Optional)</label>
-                                                                                  <Textarea
-                                                                                    className="ins-control-border w-full min-h-[100px]"
-                                                                                    placeholder="Enter a model answer for grading reference"
-                                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.answer`}
-                                                                                    value={question.answer}
+                                                                                  <Input
+                                                                                    className="ins-control-border mb-2"
+                                                                                    placeholder="Enter question"
+                                                                                    name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.question`}
+                                                                                    value={question.question}
                                                                                     onChange={formik.handleChange}
                                                                                   />
-                                                                                </div>
-                                                                              </div>
-                                                                            ))}
-                                                                            <Button
-                                                                              type="button"
-                                                                              variant="outline"
-                                                                              onClick={() =>
-                                                                                pushQuestion({
-                                                                                  question: "",
-                                                                                  marks: 0,
-                                                                                  answer: "",
-                                                                                  maxWordLimit: 500
-                                                                                })
-                                                                              }
-                                                                            >
-                                                                              Add Question
-                                                                            </Button>
-                                                                          </div>
-                                                                        )}
-                                                                      </FieldArray>
-                                                                    </div>
 
-                                                                    <div className="flex justify-end gap-2 mt-4">
-                                                                      {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
-                                                                        <Button
-                                                                          type="button"
-                                                                          variant="outline"
-                                                                          onClick={() => setEditAssignment(null)}
-                                                                        >
-                                                                          Cancel
-                                                                        </Button>
-                                                                      )}
-                                                                      <Button
-                                                                        type="button"
-                                                                        onClick={() => handleAssignmentSave(sectionIdx, itemIdx)}
-                                                                      >
-                                                                        Save Assignment
-                                                                      </Button>
-                                                                    </div>
-                                                                  </div>
-                                                                )}
-                                                              {/* Assignment View/Preview */}
-                                                              {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] &&
-                                                                viewItem?.sectionIdx === sectionIdx &&
-                                                                viewItem?.itemIdx === itemIdx &&
-                                                                !editAssignment && (
-                                                                  <div className="border-t mt-3 pt-3">
-                                                                    <div className="mb-2">
-                                                                      <b>Description:</b> {item.description}
-                                                                    </div>
-                                                                    <div className="mb-2">
-                                                                      <b>Duration:</b> {item.duration} minutes
-                                                                    </div>
-                                                                    <div>
-                                                                      <b>Questions:</b>
-                                                                      <ol className="list-decimal ml-5 mt-2">
-                                                                        {item.questions.map((q, qIdx) => (
-                                                                          <li key={qIdx} className="mb-3">
-                                                                            <div className="font-medium mb-1">{q.question}</div>
-                                                                            <div className="text-sm text-gray-600 space-y-1">
-                                                                              <div>Marks: {q.marks}</div>
-                                                                              {q.maxWordLimit && (
-                                                                                <div>Word Limit: {q.maxWordLimit} words</div>
-                                                                              )}
-                                                                              {q.answer && (
-                                                                                <div>
-                                                                                  <b>Model Answer:</b>
-                                                                                  <div className="ml-2 mt-1 text-gray-700">
-                                                                                    {q.answer}
+                                                                                  <div className="flex gap-4 mb-2">
+                                                                                    <div className="flex-1">
+                                                                                      <label className="block text-sm font-medium mb-1">Marks</label>
+                                                                                      <Input
+                                                                                        className="ins-control-border w-24"
+                                                                                        type="number"
+                                                                                        placeholder="Marks"
+                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.marks`}
+                                                                                        value={question.marks}
+                                                                                        onChange={formik.handleChange}
+                                                                                        min={1}
+                                                                                      />
+                                                                                    </div>
+                                                                                    <div className="flex-1">
+                                                                                      <label className="block text-sm font-medium mb-1">Word Limit</label>
+                                                                                      <Input
+                                                                                        className="ins-control-border w-32"
+                                                                                        type="number"
+                                                                                        placeholder="Max words"
+                                                                                        name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.maxWordLimit`}
+                                                                                        value={question.maxWordLimit}
+                                                                                        onChange={formik.handleChange}
+                                                                                        min={1}
+                                                                                      />
+                                                                                    </div>
+                                                                                  </div>
+
+                                                                                  <div>
+                                                                                    <label className="block text-sm font-medium mb-1">Model Answer (Optional)</label>
+                                                                                    <Textarea
+                                                                                      className="ins-control-border w-full min-h-[100px]"
+                                                                                      placeholder="Enter a model answer for grading reference"
+                                                                                      name={`sections[${sectionIdx}].items[${itemIdx}].questions.${qIdx}.answer`}
+                                                                                      value={question.answer}
+                                                                                      onChange={formik.handleChange}
+                                                                                    />
                                                                                   </div>
                                                                                 </div>
-                                                                              )}
+                                                                              ))}
+                                                                              <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                onClick={() =>
+                                                                                  pushQuestion({
+                                                                                    question: "",
+                                                                                    marks: 0,
+                                                                                    answer: "",
+                                                                                    maxWordLimit: 500
+                                                                                  })
+                                                                                }
+                                                                              >
+                                                                                Add Question
+                                                                              </Button>
                                                                             </div>
-                                                                          </li>
-                                                                        ))}
-                                                                      </ol>
+                                                                          )}
+                                                                        </FieldArray>
+                                                                      </div>
+
+                                                                      <div className="flex justify-end gap-2 mt-4">
+                                                                        {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] && (
+                                                                          <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            onClick={() => setEditAssignment(null)}
+                                                                          >
+                                                                            Cancel
+                                                                          </Button>
+                                                                        )}
+                                                                        <Button
+                                                                          type="button"
+                                                                          onClick={() => handleAssignmentSave(sectionIdx, itemIdx)}
+                                                                        >
+                                                                          Save Assignment
+                                                                        </Button>
+                                                                      </div>
                                                                     </div>
-                                                                  </div>
-                                                                )}
-                                                            </div>
-                                                          )}
-                                                          {/* VIEW SUBMITTED CONTENT */}
-                                                          {viewItem && item.type != "quiz" && item.type != "assignment" &&
-                                                            viewItem.sectionIdx === sectionIdx &&
-                                                            viewItem.itemIdx === itemIdx && (
-                                                              <div className="border mt-3 p-3 rounded bg-white">
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                  <span className="font-semibold">Submitted Content</span>
-                                                                  {/* <Button
+                                                                  )}
+                                                                {/* Assignment View/Preview */}
+                                                                {isAssignmentSubmitted[`${sectionIdx}-${itemIdx}`] &&
+                                                                  viewItem?.sectionIdx === sectionIdx &&
+                                                                  viewItem?.itemIdx === itemIdx &&
+                                                                  !editAssignment && (
+                                                                    <div className="border-t mt-3 pt-3">
+                                                                      <div className="mb-2">
+                                                                        <b>Description:</b> {item.description}
+                                                                      </div>
+                                                                      <div className="mb-2">
+                                                                        <b>Duration:</b> {item.duration} minutes
+                                                                      </div>
+                                                                      <div>
+                                                                        <b>Questions:</b>
+                                                                        <ol className="list-decimal ml-5 mt-2">
+                                                                          {item.questions.map((q, qIdx) => (
+                                                                            <li key={qIdx} className="mb-3">
+                                                                              <div className="font-medium mb-1">{q.question}</div>
+                                                                              <div className="text-sm text-gray-600 space-y-1">
+                                                                                <div>Marks: {q.marks}</div>
+                                                                                {q.maxWordLimit && (
+                                                                                  <div>Word Limit: {q.maxWordLimit} words</div>
+                                                                                )}
+                                                                                {q.answer && (
+                                                                                  <div>
+                                                                                    <b>Model Answer:</b>
+                                                                                    <div className="ml-2 mt-1 text-gray-700">
+                                                                                      {q.answer}
+                                                                                    </div>
+                                                                                  </div>
+                                                                                )}
+                                                                              </div>
+                                                                            </li>
+                                                                          ))}
+                                                                        </ol>
+                                                                      </div>
+                                                                    </div>
+                                                                  )}
+                                                              </div>
+                                                            )}
+                                                            {/* VIEW SUBMITTED CONTENT */}
+                                                            {viewItem && item.type != "quiz" && item.type != "assignment" &&
+                                                              viewItem.sectionIdx === sectionIdx &&
+                                                              viewItem.itemIdx === itemIdx && (
+                                                                <div className="border mt-3 p-3 rounded bg-white">
+                                                                  <div className="flex justify-between items-center mb-2">
+                                                                    <span className="font-semibold">Submitted Content</span>
+                                                                    {/* <Button
                                           type="button"
                                           size="sm"
                                           variant="ghost"
@@ -4340,173 +4339,42 @@ export function CourseCarriculam({ onSubmit }: any) {
                                         >
                                           Close
                                         </Button> */}
-                                                                </div>
-                                                                {item.type === "lecture" && (
-                                                                  <>
-                                                                    <div>
-                                                                      <b>Lecture Name:</b> {item.lectureName}
-                                                                    </div>
-                                                                    <div>
-                                                                      <b>Content Type:</b> {item.contentType}
-                                                                    </div>
+                                                                  </div>
+                                                                  {item.type === "lecture" && (
+                                                                    <>
+                                                                      <div>
+                                                                        <b>Lecture Name:</b> {item.lectureName}
+                                                                      </div>
+                                                                      <div>
+                                                                        <b>Content Type:</b> {item.contentType}
+                                                                      </div>
 
-                                                                    {item.contentType === "article" && (
-                                                                      <div className="mt-2">
-                                                                        <b>Article:</b>
+                                                                      {item.contentType === "article" && (
+                                                                        <div className="mt-2">
+                                                                          <b>Article:</b>
 
-                                                                        {/* Article Source: Write - Show HTML content */}
-                                                                        {item.articleSource === 'write' && item.contentText && (
-                                                                          <div
-                                                                            className="prose max-w-none border p-2 mt-1 rounded bg-gray-50"
-                                                                            dangerouslySetInnerHTML={{ __html: item.contentText }}
-                                                                          />
-                                                                        )}
+                                                                          {/* Article Source: Write - Show HTML content */}
+                                                                          {item.articleSource === 'write' && item.contentText && (
+                                                                            <div
+                                                                              className="prose max-w-none border p-2 mt-1 rounded bg-gray-50"
+                                                                              dangerouslySetInnerHTML={{ __html: item.contentText }}
+                                                                            />
+                                                                          )}
 
-                                                                                                                                                {/* Article Source: Upload - Show uploaded files */}
-                                                                        {item.articleSource === 'upload' && item.contentFiles?.length > 0 && (
-                                                                          <div className="border rounded p-2 mt-1 bg-gray-50">
-                                                                            <div className="text-sm text-gray-600 mb-2">Uploaded Documents:</div>
-                                                                            {item.contentFiles.map((file, idx) => (
-                                                                              <div key={idx} className="flex items-center justify-between py-1">
-                                                                                <div className="flex items-center gap-2">
-                                                                                  <File size={16} className="text-blue-500" />
-                                                                                  <span className="text-sm font-medium">{file.name}</span>
-                                                                                  <span className="text-xs text-gray-500">
-                                                                                    {file.file && typeof file.file.size === 'number'
-                                                                                      ? `(${(file.file.size / 1024 / 1024).toFixed(2)} MB)`
-                                                                                      : ''}
-                                                                                  </span>
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2">
-                                                                                  <Button
-                                                                                    type="button"
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    className="p-1 h-6 w-6"
-                                                                                    onClick={() => handlePreviewFile(file.url, file.name)}
-                                                                                    title="Preview file"
-                                                                                  >
-                                                                                    <Eye size={14} />
-                                                                                  </Button>
-                                                                                  <Button
-                                                                                    type="button"
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    className="px-2 py-1 rounded-none"
-                                                                                    onClick={() => {
-                                                                                      const newFiles = [...item.contentFiles];
-                                                                                      if (newFiles[idx].url && newFiles[idx].url.startsWith('blob:')) {
-                                                                                        URL.revokeObjectURL(newFiles[idx].url);
-                                                                                      }
-                                                                                      newFiles.splice(idx, 1);
-                                                                                      formik.setFieldValue(
-                                                                                        `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
-                                                                                        newFiles
-                                                                                      );
-                                                                                    }}
-                                                                                  >
-                                                                                    <Trash2 size={14} className="text-red-500" />
-                                                                                  </Button>
-                                                                                </div>
-                                                                              </div>
-                                                                            ))}
-                                                                          </div>
-                                                                        )}
-
-                                                                        {/* Article Source: Link - Show URL with preview */}
-                                                                        {item.articleSource === 'link' && item.contentUrl && (
-                                                                          <div className="border p-2 mt-1 rounded bg-gray-50">
-                                                                            <div className="flex items-center gap-2">
-                                                                              <ExternalLink size={16} className="text-blue-500" />
-                                                                              <a
-                                                                                href={item.contentUrl}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="text-blue-600 hover:text-blue-800 underline text-sm break-all"
-                                                                              >
-                                                                                {item.contentUrl}
-                                                                              </a>
-                                                                            </div>
-                                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                              External Article Link
-                                                                            </div>
-                                                                          </div>
-                                                                        )}
-
-                                                                        {/* Resources Section for Articles */}
-                                                                        <div className="mt-4">
-                                                                          <div className="flex items-center justify-between mb-2">
-                                                                            <h4 className="font-medium text-sm">Resources</h4>
-                                                                            <Button
-                                                                              type="button"
-                                                                              size="sm"
-                                                                              variant="outline"
-                                                                              onClick={() => {
-                                                                                const fileInput = document.createElement('input');
-                                                                                fileInput.type = 'file';
-                                                                                fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
-                                                                                fileInput.multiple = true;
-
-                                                                                fileInput.onchange = async (e) => {
-                                                                                  const files = (e.target as HTMLInputElement).files;
-                                                                                  if (files) {
-                                                                                    const currentResources = item.resources || [];
-                                                                                    const newResources = await Promise.all(
-                                                                                      Array.from(files).map(async (file) => {
-                                                                                        // Upload to Cloudinary
-                                                                                        let cloudinaryUrl = '';
-                                                                                        let cloudinaryPublicId = '';
-                                                                                        
-                                                                                        try {
-                                                                                          const uploadResult = await uploadToCloudinary(file, 'raw');
-                                                                                          cloudinaryUrl = uploadResult.url;
-                                                                                          cloudinaryPublicId = uploadResult.publicId;
-                                                                                        } catch (error) {
-                                                                                          console.error('Failed to upload resource to Cloudinary:', error);
-                                                                                          // Fallback to local file
-                                                                                          cloudinaryUrl = URL.createObjectURL(file);
-                                                                                        }
-
-                                                                                        return {
-                                                                                          name: file.name,
-                                                                                          file: file,
-                                                                                          url: cloudinaryUrl,
-                                                                                          cloudinaryUrl: cloudinaryUrl,
-                                                                                          cloudinaryPublicId: cloudinaryPublicId,
-                                                                                          type: 'lecture'
-                                                                                        };
-                                                                                      })
-                                                                                    );
-
-                                                                                    formik.setFieldValue(
-                                                                                      `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                      [...currentResources, ...newResources]
-                                                                                    );
-                                                                                    
-                                                                                    // Reset file input to allow re-selection of the same file
-                                                                                    fileInput.value = '';
-                                                                                  }
-                                                                                };
-
-                                                                                fileInput.click();
-                                                                              }}
-                                                                            >
-                                                                              + Add Resources
-                                                                            </Button>
-                                                                          </div>
-
-                                                                          {item.resources?.length > 0 && (
-                                                                            <div className="border rounded p-2 bg-white">
-                                                                              {item.resources.map((resource, resourceIdx) => (
-                                                                                <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                          {/* Article Source: Upload - Show uploaded files */}
+                                                                          {item.articleSource === 'upload' && item.contentFiles?.length > 0 && (
+                                                                            <div className="border rounded p-2 mt-1 bg-gray-50">
+                                                                              <div className="text-sm text-gray-600 mb-2">Uploaded Documents:</div>
+                                                                              {item.contentFiles.map((file, idx) => (
+                                                                                <div key={idx} className="flex items-center justify-between py-1">
                                                                                   <div className="flex items-center gap-2">
-                                                                                    {getFileIcon(resource.name)}
-                                                                                    <span className="text-sm">{resource.name}</span>
-                                                                                    {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
-                                                                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                                                        Cloudinary
-                                                                                      </span>
-                                                                                    )}
+                                                                                    <File size={16} className="text-blue-500" />
+                                                                                    <span className="text-sm font-medium">{file.name}</span>
+                                                                                    <span className="text-xs text-gray-500">
+                                                                                      {file.file && typeof file.file.size === 'number'
+                                                                                        ? `(${(file.file.size / 1024 / 1024).toFixed(2)} MB)`
+                                                                                        : ''}
+                                                                                    </span>
                                                                                   </div>
                                                                                   <div className="flex items-center gap-2">
                                                                                     <Button
@@ -4514,14 +4382,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       variant="ghost"
                                                                                       size="sm"
                                                                                       className="p-1 h-6 w-6"
-                                                                                      onClick={() => {
-                                                                                        if (resource.cloudinaryUrl) {
-                                                                                          window.open(resource.cloudinaryUrl, '_blank');
-                                                                                        } else if (resource.url) {
-                                                                                          window.open(resource.url, '_blank');
-                                                                                        }
-                                                                                      }}
-                                                                                      title="Open resource"
+                                                                                      onClick={() => handlePreviewFile(file.url, file.name)}
+                                                                                      title="Preview file"
                                                                                     >
                                                                                       <Eye size={14} />
                                                                                     </Button>
@@ -4529,76 +4391,213 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                       type="button"
                                                                                       variant="ghost"
                                                                                       size="sm"
-                                                                                      className="px-2 py-1 rounded-none text-red-600"
+                                                                                      className="px-2 py-1 rounded-none"
                                                                                       onClick={() => {
-                                                                                        const newResources = [...item.resources];
-                                                                                        const resourceUrl = newResources[resourceIdx]?.url;
-                                                                                        if (resourceUrl && resourceUrl.startsWith('blob:')) {
-                                                                                          URL.revokeObjectURL(resourceUrl);
+                                                                                        const newFiles = [...item.contentFiles];
+                                                                                        if (newFiles[idx].url && newFiles[idx].url.startsWith('blob:')) {
+                                                                                          URL.revokeObjectURL(newFiles[idx].url);
                                                                                         }
-                                                                                        newResources.splice(resourceIdx, 1);
+                                                                                        newFiles.splice(idx, 1);
                                                                                         formik.setFieldValue(
-                                                                                          `sections[${sectionIdx}].items[${itemIdx}].resources`,
-                                                                                          newResources
+                                                                                          `sections[${sectionIdx}].items[${itemIdx}].contentFiles`,
+                                                                                          newFiles
                                                                                         );
                                                                                       }}
                                                                                     >
-                                                                                      <Trash2 size={12} />
+                                                                                      <Trash2 size={14} className="text-red-500" />
                                                                                     </Button>
                                                                                   </div>
                                                                                 </div>
                                                                               ))}
                                                                             </div>
                                                                           )}
-                                                                        </div>
 
-                                                                        {/* No content message */}
-                                                                        {(!item.articleSource ||
-                                                                          (item.articleSource === 'write' && !item.contentText) ||
-                                                                          (item.articleSource === 'upload' && (!item.contentFiles || item.contentFiles.length === 0)) ||
-                                                                          (item.articleSource === 'link' && !item.contentUrl)
-                                                                        ) && (
-                                                                            <div className="border p-2 mt-1 rounded bg-gray-50 text-gray-500 text-sm italic">
-                                                                              No article content added yet
+                                                                          {/* Article Source: Link - Show URL with preview */}
+                                                                          {item.articleSource === 'link' && item.contentUrl && (
+                                                                            <div className="border p-2 mt-1 rounded bg-gray-50">
+                                                                              <div className="flex items-center gap-2">
+                                                                                <ExternalLink size={16} className="text-blue-500" />
+                                                                                <a
+                                                                                  href={item.contentUrl}
+                                                                                  target="_blank"
+                                                                                  rel="noopener noreferrer"
+                                                                                  className="text-blue-600 hover:text-blue-800 underline text-sm break-all"
+                                                                                >
+                                                                                  {item.contentUrl}
+                                                                                </a>
+                                                                              </div>
+                                                                              <div className="text-xs text-gray-500 mt-1">
+                                                                                External Article Link
+                                                                              </div>
                                                                             </div>
                                                                           )}
-                                                                      </div>
-                                                                    )}
-                                                                    {/* In your view content section, update the video part */}
-                                                                    {item.contentType === "video" && (
-                                                                      <div className="mt-2">
-                                                                        {item.contentFiles?.length > 0 && (
-                                                                          <>
-                                                                            <b>Videos:</b>
-                                                                            <div className="grid gap-4 mt-1">
-                                                                              {item.contentFiles.map((content, idx) => (
-                                                                                <div key={idx} className="border rounded p-2">
-                                                                                  <div className="flex items-center justify-between mb-2">
-                                                                                    <p className="text-sm font-medium">Video {idx + 1}: {content.name}</p>
-                                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                                      <Clock className="text-primary" size={16} />
-                                                                                      <span className="font-bold text-primary"> {formatDuration(content.duration || 0)}</span>
+
+                                                                          {/* Resources Section for Articles */}
+                                                                          <div className="mt-4">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                              <h4 className="font-medium text-sm">Resources</h4>
+                                                                              <Button
+                                                                                type="button"
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => {
+                                                                                  const fileInput = document.createElement('input');
+                                                                                  fileInput.type = 'file';
+                                                                                  fileInput.accept = '.pdf,.doc,.docx,.zip,.rar,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.xls,.xlsx';
+                                                                                  fileInput.multiple = true;
+
+                                                                                  fileInput.onchange = async (e) => {
+                                                                                    const files = (e.target as HTMLInputElement).files;
+                                                                                    if (files) {
+                                                                                      const currentResources = item.resources || [];
+                                                                                      const newResources = await Promise.all(
+                                                                                        Array.from(files).map(async (file) => {
+                                                                                          // Upload to Cloudinary
+                                                                                          let cloudinaryUrl = '';
+                                                                                          let cloudinaryPublicId = '';
+
+                                                                                          try {
+                                                                                            const uploadResult = await uploadToCloudinary(file, 'raw');
+                                                                                            cloudinaryUrl = uploadResult.url;
+                                                                                            cloudinaryPublicId = uploadResult.publicId;
+                                                                                          } catch (error) {
+                                                                                            console.error('Failed to upload resource to Cloudinary:', error);
+                                                                                            // Fallback to local file
+                                                                                            cloudinaryUrl = URL.createObjectURL(file);
+                                                                                          }
+
+                                                                                          return {
+                                                                                            name: file.name,
+                                                                                            file: file,
+                                                                                            url: cloudinaryUrl,
+                                                                                            cloudinaryUrl: cloudinaryUrl,
+                                                                                            cloudinaryPublicId: cloudinaryPublicId,
+                                                                                            type: 'lecture'
+                                                                                          };
+                                                                                        })
+                                                                                      );
+
+                                                                                      formik.setFieldValue(
+                                                                                        `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                        [...currentResources, ...newResources]
+                                                                                      );
+
+                                                                                      // Reset file input to allow re-selection of the same file
+                                                                                      fileInput.value = '';
+                                                                                    }
+                                                                                  };
+
+                                                                                  fileInput.click();
+                                                                                }}
+                                                                              >
+                                                                                + Add Resources
+                                                                              </Button>
+                                                                            </div>
+
+                                                                            {item.resources?.length > 0 && (
+                                                                              <div className="border rounded p-2 bg-white">
+                                                                                {item.resources.map((resource, resourceIdx) => (
+                                                                                  <div key={resourceIdx} className="flex items-center justify-between py-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                      {getFileIcon(resource.name)}
+                                                                                      <span className="text-sm">{resource.name}</span>
+                                                                                      {resource.cloudinaryUrl && resource.cloudinaryUrl !== resource.url && (
+                                                                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                                          Cloudinary
+                                                                                        </span>
+                                                                                      )}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="p-1 h-6 w-6"
+                                                                                        onClick={() => {
+                                                                                          if (resource.cloudinaryUrl) {
+                                                                                            window.open(resource.cloudinaryUrl, '_blank');
+                                                                                          } else if (resource.url) {
+                                                                                            window.open(resource.url, '_blank');
+                                                                                          }
+                                                                                        }}
+                                                                                        title="Open resource"
+                                                                                      >
+                                                                                        <Eye size={14} />
+                                                                                      </Button>
+                                                                                      <Button
+                                                                                        type="button"
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="px-2 py-1 rounded-none text-red-600"
+                                                                                        onClick={() => {
+                                                                                          const newResources = [...item.resources];
+                                                                                          const resourceUrl = newResources[resourceIdx]?.url;
+                                                                                          if (resourceUrl && resourceUrl.startsWith('blob:')) {
+                                                                                            URL.revokeObjectURL(resourceUrl);
+                                                                                          }
+                                                                                          newResources.splice(resourceIdx, 1);
+                                                                                          formik.setFieldValue(
+                                                                                            `sections[${sectionIdx}].items[${itemIdx}].resources`,
+                                                                                            newResources
+                                                                                          );
+                                                                                        }}
+                                                                                      >
+                                                                                        <Trash2 size={12} />
+                                                                                      </Button>
                                                                                     </div>
                                                                                   </div>
-                                                                                  <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
-                                                                                    <video src={content.url} controls style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                                                                                ))}
+                                                                              </div>
+                                                                            )}
+                                                                          </div>
+
+                                                                          {/* No content message */}
+                                                                          {(!item.articleSource ||
+                                                                            (item.articleSource === 'write' && !item.contentText) ||
+                                                                            (item.articleSource === 'upload' && (!item.contentFiles || item.contentFiles.length === 0)) ||
+                                                                            (item.articleSource === 'link' && !item.contentUrl)
+                                                                          ) && (
+                                                                              <div className="border p-2 mt-1 rounded bg-gray-50 text-gray-500 text-sm italic">
+                                                                                No article content added yet
+                                                                              </div>
+                                                                            )}
+                                                                        </div>
+                                                                      )}
+                                                                      {/* In your view content section, update the video part */}
+                                                                      {item.contentType === "video" && (
+                                                                        <div className="mt-2">
+                                                                          {item.contentFiles?.length > 0 && (
+                                                                            <>
+                                                                              <b>Videos:</b>
+                                                                              <div className="grid gap-4 mt-1">
+                                                                                {item.contentFiles.map((content, idx) => (
+                                                                                  <div key={idx} className="border rounded p-2">
+                                                                                    <div className="flex items-center justify-between mb-2">
+                                                                                      <p className="text-sm font-medium">Video {idx + 1}: {content.name}</p>
+                                                                                      <div className="flex items-center gap-2 mb-2">
+                                                                                        <Clock className="text-primary" size={16} />
+                                                                                        <span className="font-bold text-primary"> {formatDuration(content.duration || 0)}</span>
+                                                                                      </div>
+                                                                                    </div>
+                                                                                    <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                                                                                      <video src={content.url} controls style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                                                                                    </div>
                                                                                   </div>
-                                                                                </div>
-                                                                              ))}
-                                                                            </div>
-                                                                          </>
-                                                                        )}
-                                                                        {/* Show video link if present */}
-                                                                        {item.videoSource === "link" && item.contentUrl && (
-                                                                          <div className="mt-4">
-                                                                            <b>Video Link:</b>
-                                                                            <div className="border rounded p-2 mt-1 bg-gray-50 break-all">
-                                                                              <a href={item.contentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                                                                {item.contentUrl}
-                                                                              </a>
-                                                                            </div>
-                                                                            {/* Optionally, embed the video if it's a YouTube/Vimeo link */}
-                                                                            {(item.contentUrl.includes("youtube.com") || item.contentUrl.includes("youtu.be")) && (
+                                                                                ))}
+                                                                              </div>
+                                                                            </>
+                                                                          )}
+                                                                          {/* Show video link if present */}
+                                                                          {item.videoSource === "link" && item.contentUrl && (
+                                                                            <div className="mt-4">
+                                                                              <b>Video Link:</b>
+                                                                              <div className="border rounded p-2 mt-1 bg-gray-50 break-all">
+                                                                                <a href={item.contentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                                                                  {item.contentUrl}
+                                                                                </a>
+                                                                              </div>
+                                                                              {/* Optionally, embed the video if it's a YouTube/Vimeo link */}
+                                                                              {(item.contentUrl.includes("youtube.com") || item.contentUrl.includes("youtu.be")) && (
                                                                                 <div className="mt-2">
                                                                                   <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
                                                                                     <iframe
@@ -4612,8 +4611,8 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                     />
                                                                                   </div>
                                                                                 </div>
-                                                                            )}
-                                                                            {item.contentUrl.includes("vimeo.com") && (
+                                                                              )}
+                                                                              {item.contentUrl.includes("vimeo.com") && (
                                                                                 <div className="mt-2">
                                                                                   <div className="w-full" style={{ position: 'relative', paddingTop: '56.25%' }}>
                                                                                     <iframe
@@ -4625,112 +4624,112 @@ export function CourseCarriculam({ onSubmit }: any) {
                                                                                     />
                                                                                   </div>
                                                                                 </div>
-                                                                            )}
-                                                                          </div>
-                                                                        )}
-                                                                        {/* Resources */}
-                                                                        {item.resources?.length > 0 && (
-                                                                          <div className="mt-4">
-                                                                            <b>Resources:</b>
-                                                                            <div className="border rounded p-2 mt-1 bg-gray-50">
-                                                                              {item.resources.map((resource, idx) => (
-                                                                                <div key={idx} className="flex items-center gap-2 py-1">
-                                                                                  <File size={14} />
-                                                                                  <span className="text-sm">{resource.name}</span>
-                                                                                </div>
-                                                                              ))}
+                                                                              )}
                                                                             </div>
-                                                                          </div>
-                                                                        )}
-                                                                      </div>
-                                                                    )}
-                                                                  </>
-                                                                )}
+                                                                          )}
+                                                                          {/* Resources */}
+                                                                          {item.resources?.length > 0 && (
+                                                                            <div className="mt-4">
+                                                                              <b>Resources:</b>
+                                                                              <div className="border rounded p-2 mt-1 bg-gray-50">
+                                                                                {item.resources.map((resource, idx) => (
+                                                                                  <div key={idx} className="flex items-center gap-2 py-1">
+                                                                                    <File size={14} />
+                                                                                    <span className="text-sm">{resource.name}</span>
+                                                                                  </div>
+                                                                                ))}
+                                                                              </div>
+                                                                            </div>
+                                                                          )}
+                                                                        </div>
+                                                                      )}
+                                                                    </>
+                                                                  )}
 
-                                                              </div>
-                                                            )}
+                                                                </div>
+                                                              )}
+                                                          </div>
                                                         </div>
-                                                      </div>
-                                                    )}
-                                                  </Draggable>
-                                                ))}
-                                              </div>)}
-                                          </Droppable>
-                                          {/* Add item (lecture/quiz) */}
-                                          {addType && addType.sectionIdx === sectionIdx ? (
-                                            <div className="flex flex-col md:flex-row gap-2 mt-2">
-                                              <Button
-                                                type="button"
-                                                className="rounded-none"
-                                                onClick={() => {
-                                                  push({
-                                                    type: "lecture",
-                                                    lectureName: `Lecture ${section.items.length + 1}`,
-                                                    contentType: "",
-                                                    videoSource: "upload",
-                                                    articleSource: "upload",
-                                                    contentFiles: [],
-                                                    contentUrl: "",
-                                                    contentText: "",
-                                                    resources: [],
-                                                    published: true, // Default to published
-                                                    description: "", // Add description field
-                                                    isPromotional: true, // Default to promotional for free preview
-                                                    seqNo: section.items.length + 1, // Set seqNo based on current items count
-                                                  });
-                                                  setAddType(null);
-                                                }}
-                                              >
-                                                + Lecture
-                                              </Button>
-                                              <Button
-                                                type="button"
-                                                className="rounded-none"
-                                                onClick={() => {
-                                                  const newItemIdx = section.items.length;
-                                                  push(getInitialQuiz(newItemIdx + 1));
-                                                  setAddType(null);
-                                                  // Set the new quiz to edit mode
-                                                  setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
-                                                  setViewItem({ sectionIdx, itemIdx: newItemIdx });
-                                                  setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
-                                                }}
-                                              >
-                                                + Quiz
-                                              </Button>
-                                              <Button
-                                                type="button"
-                                                className="rounded-none"
-                                                onClick={() => {
-                                                  const newItemIdx = section.items.length;
-                                                  push(getInitialAssignment(newItemIdx + 1));
-                                                  setAddType(null);
-                                                }}
-                                              >
-                                                + Assignment
-                                              </Button>
-                                              <Button
-                                                type="button"
-                                                className="rounded-none"
-                                                onClick={() => setAddType(null)}
-                                              >
-                                                Cancel
-                                              </Button>
-                                            </div>
-                                          ) : (
-                                            <div>
-                                              <Button
-                                                className="rounded-none mt-2"
-                                                type="button"
-                                                onClick={() => setAddType({ sectionIdx })}
-                                              >
-                                                + Curriculum item
-                                              </Button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </FieldArray>
+                                                      )}
+                                                    </Draggable>
+                                                  ))}
+                                                </div>)}
+                                            </Droppable>
+                                            {/* Add item (lecture/quiz) */}
+                                            {addType && addType.sectionIdx === sectionIdx ? (
+                                              <div className="flex flex-col md:flex-row gap-2 mt-2">
+                                                <Button
+                                                  type="button"
+                                                  className="rounded-none"
+                                                  onClick={() => {
+                                                    push({
+                                                      type: "lecture",
+                                                      lectureName: `Lecture ${section.items.length + 1}`,
+                                                      contentType: "",
+                                                      videoSource: "upload",
+                                                      articleSource: "upload",
+                                                      contentFiles: [],
+                                                      contentUrl: "",
+                                                      contentText: "",
+                                                      resources: [],
+                                                      published: true, // Default to published
+                                                      description: "", // Add description field
+                                                      isPromotional: true, // Default to promotional for free preview
+                                                      seqNo: section.items.length + 1, // Set seqNo based on current items count
+                                                    });
+                                                    setAddType(null);
+                                                  }}
+                                                >
+                                                  + Lecture
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  className="rounded-none"
+                                                  onClick={() => {
+                                                    const newItemIdx = section.items.length;
+                                                    push(getInitialQuiz(newItemIdx + 1));
+                                                    setAddType(null);
+                                                    // Set the new quiz to edit mode
+                                                    setEditQuiz({ sectionIdx, itemIdx: newItemIdx });
+                                                    setViewItem({ sectionIdx, itemIdx: newItemIdx });
+                                                    setIsQuizSubmitted(prev => ({ ...prev, [`${sectionIdx}-${newItemIdx}`]: false }));
+                                                  }}
+                                                >
+                                                  + Quiz
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  className="rounded-none"
+                                                  onClick={() => {
+                                                    const newItemIdx = section.items.length;
+                                                    push(getInitialAssignment(newItemIdx + 1));
+                                                    setAddType(null);
+                                                  }}
+                                                >
+                                                  + Assignment
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  className="rounded-none"
+                                                  onClick={() => setAddType(null)}
+                                                >
+                                                  Cancel
+                                                </Button>
+                                              </div>
+                                            ) : (
+                                              <div>
+                                                <Button
+                                                  className="rounded-none mt-2"
+                                                  type="button"
+                                                  onClick={() => setAddType({ sectionIdx })}
+                                                >
+                                                  + Curriculum item
+                                                </Button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </FieldArray>
                                     )}
                                   </div>
                                 </div>)}
@@ -4937,10 +4936,10 @@ export function CourseCarriculam({ onSubmit }: any) {
                 let cloudinaryUrl = '';
                 let cloudinaryPublicId = '';
                 let duration = 0;
-                
+
                 try {
                   console.log('Starting video upload to Cloudinary for:', file.name);
-                  
+
                   // Update status to uploading
                   const tempLecture = {
                     type: 'lecture' as const,
@@ -4983,25 +4982,25 @@ export function CourseCarriculam({ onSubmit }: any) {
                       }
                     }
                   });
-                  
+
                   cloudinaryUrl = uploadResult.url;
                   cloudinaryPublicId = uploadResult.publicId;
                   duration = uploadResult.duration || 0;
-                  
+
                   console.log('Cloudinary upload successful:', {
                     url: cloudinaryUrl,
                     publicId: cloudinaryPublicId,
                     duration: duration
                   });
-                  
+
                   // Ensure we have a valid Cloudinary URL
                   if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
                     throw new Error('Invalid Cloudinary URL received');
                   }
-                  
+
                 } catch (error) {
                   console.error('Failed to upload video to Cloudinary:', error);
-                  
+
                   // Update status to failed
                   const updatedSections = [...formik.values.sections];
                   const lectureIndex = updatedSections[sectionIdx].items.length - 1;
@@ -5012,20 +5011,20 @@ export function CourseCarriculam({ onSubmit }: any) {
                       formik.setValues({ sections: updatedSections });
                     }
                   }
-                  
+
                   // Don't fallback to blob URLs - require Cloudinary upload
                   throw new Error(`Video upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
 
                 console.log('Updating lecture with Cloudinary data:', duration);
-                
+
                 // Update the existing lecture with Cloudinary data
                 const updatedSections = [...formik.values.sections];
                 const lectureIndex = updatedSections[sectionIdx].items.length - 1;
-                
+
                 if (updatedSections[sectionIdx].items[lectureIndex].type === 'lecture') {
                   const lecture = updatedSections[sectionIdx].items[lectureIndex] as LectureItem;
-                  
+
                   // Update the content file with Cloudinary data
                   if (lecture.contentFiles[0]) {
                     lecture.contentFiles[0] = {
@@ -5038,18 +5037,18 @@ export function CourseCarriculam({ onSubmit }: any) {
                       uploadProgress: 100
                     };
                   }
-                  
+
                   // Update lecture properties
                   lecture.contentUrl = cloudinaryUrl;
                   lecture.duration = duration;
-                  
+
                   // Update the form values
                   formik.setValues({ sections: updatedSections });
-                  
+
                   console.log('Updated lecture object:', lecture);
                   return lecture;
                 }
-                
+
                 // Fallback: create new lecture if update failed
                 const lecture = {
                   type: 'lecture' as const,
@@ -5079,39 +5078,39 @@ export function CourseCarriculam({ onSubmit }: any) {
               })
             );
 
-              // Build the final items array (insert into empty lecture if present)
-              let finalItems = [] as any[];
-              if (emptyLectureIndex !== -1) {
-                const updatedItems = [...currentSectionItems];
-                updatedItems[emptyLectureIndex] = newLectures[0];
-                if (newLectures.length > 1) {
-                  updatedItems.push(...newLectures.slice(1));
-                }
-                finalItems = updatedItems;
-              } else {
-                finalItems = [...currentSectionItems, ...newLectures];
+            // Build the final items array (insert into empty lecture if present)
+            let finalItems = [] as any[];
+            if (emptyLectureIndex !== -1) {
+              const updatedItems = [...currentSectionItems];
+              updatedItems[emptyLectureIndex] = newLectures[0];
+              if (newLectures.length > 1) {
+                updatedItems.push(...newLectures.slice(1));
               }
+              finalItems = updatedItems;
+            } else {
+              finalItems = [...currentSectionItems, ...newLectures];
+            }
 
-              // Utility: mark first two video lectures in this section as promotional
-              const applyPromotionalMarking = (itemsArray: any[]) => {
-                const copy = itemsArray.map((it) => ({ ...it }));
-                let markedCount = 0;
-                for (let i = 0; i < copy.length; i++) {
-                  const it = copy[i];
-                  if (it && it.type === 'lecture' && it.contentType === 'video') {
-                    if (markedCount < 2) {
-                      it.isPromotional = true;
-                      markedCount++;
-                    } else {
-                      it.isPromotional = false;
-                    }
+            // Utility: mark first two video lectures in this section as promotional
+            const applyPromotionalMarking = (itemsArray: any[]) => {
+              const copy = itemsArray.map((it) => ({ ...it }));
+              let markedCount = 0;
+              for (let i = 0; i < copy.length; i++) {
+                const it = copy[i];
+                if (it && it.type === 'lecture' && it.contentType === 'video') {
+                  if (markedCount < 2) {
+                    it.isPromotional = true;
+                    markedCount++;
+                  } else {
+                    it.isPromotional = false;
                   }
                 }
-                return copy;
-              };
+              }
+              return copy;
+            };
 
-              const itemsWithPromo = applyPromotionalMarking(finalItems);
-              formik.setFieldValue(`sections[${sectionIdx}].items`, itemsWithPromo);
+            const itemsWithPromo = applyPromotionalMarking(finalItems);
+            formik.setFieldValue(`sections[${sectionIdx}].items`, itemsWithPromo);
           } else if (uploadType === 'document' && isFileList(filesOrExcel)) {
             // Handle document files
             console.log('Processing document files');
@@ -5121,7 +5120,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                 // Upload to Cloudinary
                 let cloudinaryUrl = '';
                 let cloudinaryPublicId = '';
-                
+
                 try {
                   const uploadResult = await uploadToCloudinary(file, 'raw');
                   cloudinaryUrl = uploadResult.url;
@@ -5130,7 +5129,7 @@ export function CourseCarriculam({ onSubmit }: any) {
                   console.error('Failed to upload document to Cloudinary:', error);
                   // Fallback to blob URL if Cloudinary fails
                   const fallbackUrl = URL.createObjectURL(file);
-                  
+
                   return {
                     type: 'lecture' as const,
                     lectureName: file.name.replace(/\.[^/.]+$/, ""),
@@ -5320,7 +5319,7 @@ export function CourseCarriculam({ onSubmit }: any) {
         }}
         sectionIdx={uploadModal.sectionIdx}
       />
-      
+
       {/* Preview Modal */}
       {showPreviewModal && previewContent && (
         <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
@@ -5388,15 +5387,15 @@ const formatDuration = (seconds: number): string => {
   if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) {
     return "00:00";
   }
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = Math.floor(seconds % 60);
-  
+
   if (hours > 0) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
-  
+
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
@@ -5411,7 +5410,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
   onUpload: (filesOrExcel: FileList | File | string, sectionIdx: number) => void;
   sectionIdx: number | null;
 }) {
-  
+
   const [selectedFiles, setSelectedFiles] = useState<FileList | File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -5426,7 +5425,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     console.log('File change event:', files);
-    
+
     if (!files || files.length === 0) {
       setSelectedFiles(null);
       return;
@@ -5458,7 +5457,7 @@ function UploadContentModal({ open, onClose, uploadType, setUploadType, onUpload
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-       onClose();
+      onClose();
     } catch (error) {
       console.error('Upload failed:', error);
     }
